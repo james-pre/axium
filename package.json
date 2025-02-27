@@ -1,0 +1,30 @@
+{
+	"name": "bedrock",
+	"version": "0.0.0",
+	"description": "A self-hosted alternative to Google Drive",
+	"main": "dist/index.js",
+	"scripts": {
+		"format": "prettier --write .",
+		"format:check": "prettier --check .",
+		"lint": "eslint src",
+		"web:dev": "vite",
+		"web:build": "vite build",
+		"web:preview": "vite preview"
+	},
+	"keywords": [],
+	"author": "James Prevett <bedrock@jamespre.dev> (https://jamespre.dev)",
+	"license": "MIT",
+	"type": "module",
+	"devDependencies": {
+		"eslint": "^9.21.0",
+		"prettier": "^3.5.1",
+		"typescript": "^5.7.3",
+		"typescript-eslint": "^8.24.1",
+		"vite": "^6.2.0"
+	},
+	"dependencies": {
+		"@zenfs/core": "^1.11.4",
+		"lit": "^3.2.1",
+		"marked": "^15.0.7"
+	}
+}

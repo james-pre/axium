@@ -1,0 +1,3 @@
+- `client` has the API for interacting with the server, and has a client CLI
+- `web` is the web client
+- `server` is the server API and CLI
