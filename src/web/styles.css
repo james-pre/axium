@@ -79,38 +79,14 @@ body {
 
 #content {
 	grid-column: 2;
-	overflow: scroll;
 	margin: 1em;
-	display: flex;
 
-	.header {
-		margin-bottom: 1.5em;
-		border-bottom: 1px solid #333;
-		padding-bottom: 0.5em;
-
-		h1 {
-			font-size: 1.8em;
-			color: #fff;
-			margin-bottom: 0.5em;
-			display: flex;
-			align-items: center;
-			gap: 0.5em;
-		}
+	[item] {
+		display: none;
+		overflow-y: scroll;
 	}
-}
 
-#settings-icon {
-	position: fixed;
-	bottom: 1em;
-	left: 1em;
-	cursor: pointer;
-}
-
-#settings {
-	inset: 4em;
-	position: fixed;
-	background: #444;
-	border-radius: 1em;
-	padding: 1em;
-	display: none;
+	[item].active {
+		display: block;
+	}
 }

@@ -1,6 +1,3 @@
-/**
- * Switch between sidebars
- */
 function switchSidebar(target: string): void {
 	document.querySelector('.active')?.classList.remove('active');
 	document.querySelector('#sidebar [item="' + target + '"]')!.classList.add('active');
@@ -13,4 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	}
 
 	switchSidebar('files');
+});
+
+document.querySelector('#sidebar [item="settings"]')!.addEventListener('click', () => {
+	document.querySelector<HTMLElement>('#content [item="settings"]')!.classList.toggle('active');
 });
