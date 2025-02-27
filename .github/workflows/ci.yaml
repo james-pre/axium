@@ -41,7 +41,7 @@ jobs:
               run: npm run lint
 
             - name: Build
-              run: npx vite build
+              run: npm run web:build
 
             - name: Upload
               uses: actions/upload-pages-artifact@v3
