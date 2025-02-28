@@ -7,7 +7,7 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "eslint src",
-		"web:dev": "vite",
+		"web:dev": "vite dev",
 		"web:build": "vite build",
 		"web:preview": "vite preview"
 	},
