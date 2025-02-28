@@ -42,12 +42,3 @@ jobs:
 
             - name: Build
               run: npm run web:build
-
-            - name: Upload
-              uses: actions/upload-pages-artifact@v3
-              with:
-                  path: ./build
-
-            - name: Deploy
-              id: deploy
-              uses: actions/deploy-pages@v4
