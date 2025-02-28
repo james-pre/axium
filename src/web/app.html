@@ -1,11 +1,15 @@
 <!doctype html>
 <html lang="en">
 	<head>
-		<meta charset="UTF-8" />
-		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-		<title>Bedrock Web Client</title>
-		<link rel="stylesheet" href="./styles.css" />
+		<meta charset="utf-8" />
+		<link rel="icon" href="%sveltekit.assets%/favicon.png" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="color-scheme" content="dark light" />
+		%sveltekit.head%
+
+		<link rel="stylesheet" href="/shared.css" />
 	</head>
+
 	<body>
 		<div id="sidebar">
 			<h2 id="logo">Bedrock</h2>
@@ -51,13 +55,6 @@
 			</div>
 		</div>
 
-		<div id="content">
-			<div item="files"></div>
-			<div item="shared"></div>
-			<div item="trash"></div>
-			<div item="settings"></div>
-		</div>
-
-		<script src="./app.ts" type="module"></script>
+		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>
