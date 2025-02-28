@@ -1,15 +1,6 @@
 {
 	"extends": "./.svelte-kit/tsconfig.json",
 	"compilerOptions": {
-		"module": "NodeNext",
-		"target": "ES2022",
-		"outDir": "dist",
-		"lib": ["ESNext", "ESNext.Disposable", "DOM"],
-		"moduleResolution": "NodeNext",
-		"verbatimModuleSyntax": true,
-		"isolatedModules": true,
-		"declaration": true,
 		"strict": true
-	},
-	"include": ["src/**/*.ts", "src/**/*.svelte"]
+	}
 }

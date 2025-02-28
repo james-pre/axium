@@ -19,6 +19,9 @@ export default {
 			lib: 'src/web/lib',
 			assets: 'src/web/static',
 			appTemplate: 'src/web/app.html',
+			hooks: {
+				server: 'src/web/hooks.server.ts',
+			},
 		},
 	},
 };
