@@ -18,6 +18,7 @@ export default {
 			routes: 'src/web/routes',
 			lib: 'src/web/lib',
 			assets: 'src/web/static',
+			appTemplate: 'src/web/app.html',
 		},
 	},
 };
