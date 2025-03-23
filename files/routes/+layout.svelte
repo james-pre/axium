@@ -14,7 +14,7 @@
 </script>
 
 <div id="sidebar">
-	<h2 id="logo">Bedrock</h2>
+	<h2 id="logo">Axium</h2>
 
 	<button id="new">
 		<div>

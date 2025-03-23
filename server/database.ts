@@ -77,8 +77,8 @@ export function connect(config: Config): Kysely<Schema> & AsyncDisposable {
 		dialect: new PostgresDialect({
 			pool: new pg.Pool({
 				...config,
-				user: 'bedrock',
-				database: 'bedrock',
+				user: 'axium',
+				database: 'axium',
 			}),
 		}),
 	});

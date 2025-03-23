@@ -6,7 +6,7 @@ import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import * as _db from './database.js';
 
-program.version('0.0.0').name('bedrock').description('Bedrock server CLI');
+program.version('0.0.0').name('axium').description('Axium server CLI');
 
 // Options shared by multiple commands
 const opts = {
@@ -16,7 +16,7 @@ const opts = {
 	verbose: new Option('-v, --verbose', 'verbose output').default(false),
 };
 
-const bedrockDB = program.command('db').alias('database').description('manage the database');
+const axiumDB = program.command('db').alias('database').description('manage the database');
 
 interface RunOptions {
 	timeout?: number;
@@ -80,7 +80,7 @@ function shouldRecreate(opt: { force: boolean; skip: boolean }): boolean {
 	process.exit(2);
 }
 
-bedrockDB
+axiumDB
 	.command('init')
 	.description('initialize the database')
 	.addOption(opts.host)
@@ -94,31 +94,31 @@ bedrockDB
 		const config = _db.normalizeConfig(opt);
 		config.password ??= process.env.PGPASSWORD || randomBytes(32).toString('base64').replaceAll('=', '').replaceAll('/', '_').replaceAll('+', '-');
 
-		await runSQL(opt, 'CREATE DATABASE bedrock', 'Creating database')
+		await runSQL(opt, 'CREATE DATABASE axium', 'Creating database')
 			.catch(async error => {
-				if (error != 'database "bedrock" already exists') exit(error);
+				if (error != 'database "axium" already exists') exit(error);
 				if (shouldRecreate(opt)) return;
 
-				await runSQL(opt, 'DROP DATABASE bedrock', 'Dropping database');
-				await runSQL(opt, 'CREATE DATABASE bedrock', 'Re-creating database');
+				await runSQL(opt, 'DROP DATABASE axium', 'Dropping database');
+				await runSQL(opt, 'CREATE DATABASE axium', 'Re-creating database');
 			})
 			.catch(exit);
 
-		const createQuery = `CREATE USER bedrock WITH ENCRYPTED PASSWORD '${config.password}' LOGIN`;
+		const createQuery = `CREATE USER axium WITH ENCRYPTED PASSWORD '${config.password}' LOGIN`;
 		await runSQL(opt, createQuery, 'Creating user')
 			.catch(async error => {
-				if (error != 'role "bedrock" already exists') exit(error);
+				if (error != 'role "axium" already exists') exit(error);
 				if (shouldRecreate(opt)) return;
 
-				await runSQL(opt, 'REVOKE ALL PRIVILEGES ON SCHEMA public FROM bedrock', 'Revoking schema privileges');
-				await runSQL(opt, 'DROP USER bedrock', 'Dropping user');
+				await runSQL(opt, 'REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
+				await runSQL(opt, 'DROP USER axium', 'Dropping user');
 				await runSQL(opt, createQuery, 'Re-creating user');
 			})
 			.catch(exit);
 
-		await runSQL(opt, 'GRANT ALL PRIVILEGES ON DATABASE bedrock TO bedrock', 'Granting database privileges').catch(exit);
-		await runSQL(opt, 'GRANT ALL PRIVILEGES ON SCHEMA public TO bedrock', 'Granting schema privileges').catch(exit);
-		await runSQL(opt, 'ALTER DATABASE bedrock OWNER TO bedrock', 'Setting database owner').catch(exit);
+		await runSQL(opt, 'GRANT ALL PRIVILEGES ON DATABASE axium TO axium', 'Granting database privileges').catch(exit);
+		await runSQL(opt, 'GRANT ALL PRIVILEGES ON SCHEMA public TO axium', 'Granting schema privileges').catch(exit);
+		await runSQL(opt, 'ALTER DATABASE axium OWNER TO axium', 'Setting database owner').catch(exit);
 
 		await runSQL(opt, 'SELECT pg_reload_conf()', 'Reloading configuration').catch(exit);
 
@@ -216,7 +216,7 @@ bedrockDB
 		console.log('Done!\nPassword: ' + config.password);
 	});
 
-bedrockDB
+axiumDB
 	.command('status')
 	.alias('stats')
 	.description('check the status of the database')
@@ -229,7 +229,7 @@ bedrockDB
 			.catch(() => exit('Unavailable'))
 	);
 
-bedrockDB
+axiumDB
 	.command('drop')
 	.description('drop the database')
 	.addOption(opts.host)
@@ -250,9 +250,9 @@ bedrockDB
 				process.exit(2);
 			}
 
-		await runSQL(opt, 'DROP DATABASE bedrock', 'Dropping database').catch(exit);
-		await runSQL(opt, 'REVOKE ALL PRIVILEGES ON SCHEMA public FROM bedrock', 'Revoking schema privileges').catch(exit);
-		await runSQL(opt, 'DROP USER bedrock', 'Dropping user').catch(exit);
+		await runSQL(opt, 'DROP DATABASE axium', 'Dropping database').catch(exit);
+		await runSQL(opt, 'REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges').catch(exit);
+		await runSQL(opt, 'DROP USER axium', 'Dropping user').catch(exit);
 	});
 
 program
@@ -261,7 +261,7 @@ program
 	.description('get information about the server')
 	.option('-D --db-host <host>', 'the host of the database.', 'localhost:5432')
 	.action(async opt => {
-		console.log('Bedrock Server v' + program.version());
+		console.log('Axium Server v' + program.version());
 
 		process.stdout.write('Database: ');
 		await _db

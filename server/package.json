@@ -1,5 +1,5 @@
 {
-	"name": "@bedrock/server",
+	"name": "@axium/server",
 	"version": "0.0.0",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
@@ -8,7 +8,7 @@
 		"dist"
 	],
 	"bin": {
-		"bedrock": "./dist/cli.js"
+		"axium": "./dist/cli.js"
 	},
 	"scripts": {
 		"build": "tsc"

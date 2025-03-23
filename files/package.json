@@ -1,6 +1,6 @@
 {
-	"name": "@bedrock/files",
-	"description": "A self-hosted file storage service for Bedrock",
+	"name": "@axium/files",
+	"description": "A self-hosted file storage service for Axium",
 	"version": "0.0.0",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",

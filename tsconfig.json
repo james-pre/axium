@@ -8,10 +8,10 @@
 		"target": "ES2023",
 		"strict": true,
 		"paths": {
-			"@bedrock/cli": ["./cli/*"],
-			"@bedrock/core": ["./core/*"],
-			"@bedrock/server": ["./server/*"],
-			"@bedrock/files": ["./files/*"]
+			"@axium/cli": ["./cli/*"],
+			"@axium/core": ["./core/*"],
+			"@axium/server": ["./server/*"],
+			"@axium/files": ["./files/*"]
 		}
 	}
 }

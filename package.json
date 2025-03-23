@@ -1,10 +1,10 @@
 {
-	"name": "@bedrock/root",
+	"name": "@axium/root",
 	"version": "0.0.0",
 	"description": "A self-hosted productivity platform",
 	"main": "dist/index.js",
 	"bin": {
-		"bedrock": "./server/dist/cli.js"
+		"axium": "./server/dist/cli.js"
 	},
 	"scripts": {
 		"format": "prettier --write .",
@@ -19,7 +19,7 @@
 		"files"
 	],
 	"keywords": [],
-	"author": "James Prevett <bedrock@jamespre.dev> (https://jamespre.dev)",
+	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"license": "MIT",
 	"type": "module",
 	"devDependencies": {
