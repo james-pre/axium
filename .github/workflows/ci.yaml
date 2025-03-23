@@ -39,6 +39,6 @@ jobs:
             - name: Build Server
               run: npx tsc -p server
 
-            # `cd` is crude but it works for now
             - name: Build Files
-              run: cd files && npx vite build
+              run: npx vite build
+              working-directory: files

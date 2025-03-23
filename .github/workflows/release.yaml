@@ -25,12 +25,20 @@ jobs:
                   registry-url: https://registry.npmjs.org/
 
             - name: Install dependencies
-              run: npm install
+              run: npm ci
 
-            - name: Build
-              run: npm run build
+            - name: Resolve package
+              id: resolve
+              run: |
+                  PACKAGE="$(echo ${{ github.event.release.tag_name }} | sed 's/@.*$//')"
+                  if [ ! -d "$PACKAGE" ]; then
+                      echo "Package directory not found"
+                      exit 1
+                  fi
+                  echo "path=$PACKAGE" >> $GITHUB_OUTPUT
 
             - name: Publish
               run: npm publish --access=public --provenance
+              working-directory: ${{ steps.resolve.outputs.path }}
               env:
-                  NODE_AUTH_TOKEN: ${{secrets.npm_token}}
+                  NODE_AUTH_TOKEN: ${{ secrets.npm_token }}
