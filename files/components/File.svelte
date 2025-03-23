@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Stats } from '@zenfs/core';
-	import { basename } from '@zenfs/core/vfs/path.js';
+	import { basename } from '@zenfs/core/path.js';
 
 	let { path, stats }: { path: string; stats: Stats } = $props();
 

@@ -16,7 +16,7 @@ const opts = {
 	verbose: new Option('-v, --verbose', 'verbose output').default(false),
 };
 
-const bedrockDB = program.command('db');
+const bedrockDB = program.command('db').alias('database').description('manage the database');
 
 interface RunOptions {
 	timeout?: number;
@@ -222,7 +222,12 @@ bedrockDB
 	.description('check the status of the database')
 	.addOption(opts.host)
 	.addOption(opts.verbose)
-	.action(opt => _db.statusText(opt).then(console.log).catch(exit));
+	.action(opt =>
+		_db
+			.statusText(opt)
+			.then(console.log)
+			.catch(() => exit('Unavailable'))
+	);
 
 bedrockDB
 	.command('drop')
@@ -252,6 +257,8 @@ bedrockDB
 
 program
 	.command('status')
+	.alias('stats')
+	.description('get information about the server')
 	.option('-D --db-host <host>', 'the host of the database.', 'localhost:5432')
 	.action(async opt => {
 		console.log('Bedrock Server v' + program.version());

@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import type { LayoutServerLoadEvent } from './$types';
+import type { LayoutServerLoadEvent } from './$types.js';
 
 const noAuthPrefixes = ['/api', '/auth', '/favicon'];
 

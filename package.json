@@ -9,13 +9,14 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"lint": "eslint src"
+		"lint": "eslint src",
+		"build": "tsc -p server && vite build -c files/vite.config.js"
 	},
 	"workspaces": [
 		"server",
 		"core",
 		"cli",
-		"web"
+		"files"
 	],
 	"keywords": [],
 	"author": "James Prevett <bedrock@jamespre.dev> (https://jamespre.dev)",
