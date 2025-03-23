@@ -21,7 +21,7 @@
 		"dist"
 	],
 	"bin": {
-		"axium": "./dist/cli.js"
+		"axium": "dist/cli.js"
 	},
 	"scripts": {
 		"build": "tsc"
