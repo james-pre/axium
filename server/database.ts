@@ -48,11 +48,13 @@ export interface Schema {
 
 export interface Config {
 	password?: string;
-	host: string;
+	host?: string;
 	port?: number;
 }
 
 export function normalizeConfig(config: Config): Config {
+	config.host ??= 'localhost';
+
 	if (!config.port) {
 		const [hostname, port] = config.host.split(':');
 		config.port = port ? parseInt(port) : 5432;

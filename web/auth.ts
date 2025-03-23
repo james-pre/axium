@@ -4,7 +4,7 @@ import type { Database, KyselyAuth } from '@auth/kysely-adapter';
 import { KyselyAdapter } from '@auth/kysely-adapter';
 import { SvelteKitAuth } from '@auth/sveltekit';
 import * as zod from 'zod';
-import { database } from '../server/database.js';
+import { connect } from '../server/database.js';
 
 export const credentialsAuthSchema = zod.object({
 	email: zod.string({ required_error: 'Email is required' }).min(1, 'Email is required').email('Invalid email'),
@@ -15,7 +15,7 @@ export const credentialsAuthSchema = zod.object({
 		.max(32, 'Password must be less than 32 characters'),
 });
 
-const adapter = KyselyAdapter(database as any as KyselyAuth<Database>);
+const adapter = KyselyAdapter(connect({}) as any as KyselyAuth<Database>);
 
 /**
  * @todo Add DB and stuff
