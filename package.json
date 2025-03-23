@@ -3,6 +3,19 @@
 	"version": "0.0.0",
 	"private": true,
 	"description": "A self-hosted productivity platform",
+	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
 	"main": "dist/index.js",
 	"bin": {
 		"axium": "./server/dist/cli.js"
@@ -19,7 +32,6 @@
 		"files"
 	],
 	"keywords": [],
-	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"license": "MIT",
 	"type": "module",
 	"devDependencies": {

@@ -1,7 +1,20 @@
 {
 	"name": "@axium/files",
-	"description": "A self-hosted file storage service for Axium",
 	"version": "0.0.0",
+	"description": "A self-hosted file storage service for Axium",
+	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"type": "module",

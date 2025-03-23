@@ -2,6 +2,19 @@
 	"name": "@axium/server",
 	"version": "0.0.1",
 	"main": "dist/index.js",
+	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
 	"types": "dist/index.d.ts",
 	"type": "module",
 	"files": [
