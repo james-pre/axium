@@ -1,4 +1,4 @@
-import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
+import { Kysely, PostgresDialect, type GeneratedAlways } from 'kysely';
 import pg from 'pg';
 
 export interface Schema {
