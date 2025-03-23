@@ -16,6 +16,32 @@ const opts = {
 	verbose: new Option('-v, --verbose', 'verbose output').default(false),
 };
 
+interface Opts {
+	'db init': {
+		host: string;
+		timeout: number;
+		force: boolean;
+		verbose: boolean;
+		skip: boolean;
+	};
+
+	'db status': {
+		host: string;
+		verbose: boolean;
+	};
+
+	'db drop': {
+		host: string;
+		verbose: boolean;
+		force: boolean;
+		timeout: number;
+	};
+
+	status: {
+		dbHost: string;
+	};
+}
+
 const axiumDB = program.command('db').alias('database').description('manage the database');
 
 interface RunOptions {
@@ -88,7 +114,7 @@ axiumDB
 	.addOption(opts.force)
 	.addOption(opts.verbose)
 	.option('-s, --skip', 'Skip existing database and/or user')
-	.action(async opt => {
+	.action(async (opt: Opts['db init']) => {
 		opt.verbose && opt.force && console.log(chalk.yellow('--force: Protections disabled.'));
 
 		const config = _db.normalizeConfig(opt);
@@ -222,7 +248,7 @@ axiumDB
 	.description('check the status of the database')
 	.addOption(opts.host)
 	.addOption(opts.verbose)
-	.action(opt =>
+	.action(async (opt: Opts['db status']) =>
 		_db
 			.statusText(opt)
 			.then(console.log)
@@ -235,7 +261,8 @@ axiumDB
 	.addOption(opts.host)
 	.addOption(opts.verbose)
 	.addOption(opts.force)
-	.action(async opt => {
+	.addOption(opts.timeout)
+	.action(async (opt: Opts['db drop']) => {
 		opt.verbose && opt.force && console.log(chalk.yellow('--force: Protections disabled.'));
 
 		_db.normalizeConfig(opt);
@@ -260,7 +287,7 @@ program
 	.alias('stats')
 	.description('get information about the server')
 	.option('-D --db-host <host>', 'the host of the database.', 'localhost:5432')
-	.action(async opt => {
+	.action(async (opt: Opts['status']) => {
 		console.log('Axium Server v' + program.version());
 
 		process.stdout.write('Database: ');
