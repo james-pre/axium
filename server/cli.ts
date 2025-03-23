@@ -121,7 +121,7 @@ axiumDB
 		config.password ??= process.env.PGPASSWORD || randomBytes(32).toString('base64').replaceAll('=', '').replaceAll('/', '_').replaceAll('+', '-');
 
 		await runSQL(opt, 'CREATE DATABASE axium', 'Creating database')
-			.catch(async error => {
+			.catch(async (error: string) => {
 				if (error != 'database "axium" already exists') exit(error);
 				if (shouldRecreate(opt)) return;
 
@@ -132,7 +132,7 @@ axiumDB
 
 		const createQuery = `CREATE USER axium WITH ENCRYPTED PASSWORD '${config.password}' LOGIN`;
 		await runSQL(opt, createQuery, 'Creating user')
-			.catch(async error => {
+			.catch(async (error: string) => {
 				if (error != 'role "axium" already exists') exit(error);
 				if (shouldRecreate(opt)) return;
 
@@ -150,7 +150,7 @@ axiumDB
 
 		await using db = _db.connect(config);
 
-		const relationExists = (table: string) => (error: any) => (error == `relation "${table}" already exists` ? console.warn(chalk.yellow('already exists.')) : exit(error));
+		const relationExists = (table: string) => (error: string) => (error == `relation "${table}" already exists` ? console.warn(chalk.yellow('already exists.')) : exit(error));
 		const created = chalk.green('created.');
 
 		await report(
