@@ -37,8 +37,8 @@ jobs:
               run: npm run lint
 
             - name: Build Server
-              run: tsc -p server
+              run: npx tsc -p server
 
             # `cd` is crude but it works for now
             - name: Build Files
-              run: cd files && vite build
+              run: cd files && npx vite build
