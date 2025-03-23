@@ -1,6 +1,16 @@
 {
-	"extends": "./.svelte-kit/tsconfig.json",
 	"compilerOptions": {
+		"verbatimModuleSyntax": true,
+		"isolatedModules": true,
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"moduleResolution": "NodeNext",
+		"module": "NodeNext",
+		"target": "ES2023",
 		"strict": true
+	},
+	"paths": {
+		"@bedrock/cli": ["./cli/*"],
+		"@bedrock/core": ["./core/*"],
+		"@bedrock/server": ["./server/*"]
 	}
 }

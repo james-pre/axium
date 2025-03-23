@@ -1,0 +1,23 @@
+{
+	"name": "@bedrock/server",
+	"version": "0.0.0",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"type": "module",
+	"files": [
+		"dist"
+	],
+	"bin": {
+		"bedrock": "./dist/cli.js"
+	},
+	"scripts": {
+		"build": "tsc"
+	},
+	"dependencies": {
+		"@types/pg": "^8.11.11",
+		"commander": "^13.1.0",
+		"kysely": "^0.27.5",
+		"pg": "^8.14.1",
+		"@auth/kysely-adapter": "^1.8.0"
+	}
+}
