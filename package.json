@@ -9,7 +9,7 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"lint": "eslint src",
+		"lint": "eslint server files",
 		"build": "tsc -p server && vite build -c files/vite.config.js"
 	},
 	"workspaces": [
