@@ -5,7 +5,7 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config({
 	name: 'Axium',
 	extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
-	files: ['src/**/*.ts'],
+	files: ['**/*.ts'],
 	languageOptions: {
 		globals: { ...globals.browser, ...globals.node },
 		ecmaVersion: 'latest',
