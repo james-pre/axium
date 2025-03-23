@@ -37,6 +37,10 @@ jobs:
                   fi
                   echo "path=$PACKAGE" >> $GITHUB_OUTPUT
 
+            - name: Build
+              run: npm run build
+              working-directory: ${{ steps.resolve.outputs.path }}
+
             - name: Publish
               run: npm publish --access=public --provenance
               working-directory: ${{ steps.resolve.outputs.path }}
