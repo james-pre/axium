@@ -1,6 +1,7 @@
 {
 	"name": "@axium/root",
 	"version": "0.0.0",
+	"private": true,
 	"description": "A self-hosted productivity platform",
 	"main": "dist/index.js",
 	"bin": {
