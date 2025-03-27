@@ -38,7 +38,3 @@ jobs:
 
             - name: Build Server
               run: npx tsc -p server
-
-            - name: Build Files
-              run: npx vite build
-              working-directory: files
