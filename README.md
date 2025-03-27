@@ -12,7 +12,7 @@ Axium provides a foundation for you to work off of.
 
 ### Database
 
-When setting up the database, you will need to add the following lines to pg\*hba.conf (usually in /var/lib/pgsql/data) _before_ the lines containing `all all`:
+When setting up the database, you will need to add the following lines to `pg_hba.conf` (usually in `/var/lib/pgsql/data`) _before_ the lines containing `all all`:
 
 ```
 local axium axium md5
