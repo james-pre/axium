@@ -5,8 +5,9 @@ import { sql } from 'kysely';
 import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import * as _db from './database.js';
+import $pkg from './package.json' with { type: 'json' };
 
-program.version('0.0.0').name('axium').description('Axium server CLI');
+program.version($pkg.version).name('axium').description('Axium server CLI');
 
 // Options shared by multiple commands
 const opts = {
@@ -118,7 +119,7 @@ axiumDB
 		opt.verbose && opt.force && console.log(chalk.yellow('--force: Protections disabled.'));
 
 		const config = _db.normalizeConfig(opt);
-		config.password ??= process.env.PGPASSWORD || randomBytes(32).toString('base64').replaceAll('=', '').replaceAll('/', '_').replaceAll('+', '-');
+		config.password ??= process.env.PGPASSWORD || randomBytes(32).toString('base64');
 
 		await runSQL(opt, 'CREATE DATABASE axium', 'Creating database')
 			.catch(async (error: string) => {

@@ -7,11 +7,12 @@
 		"module": "NodeNext",
 		"target": "ES2023",
 		"strict": true,
+		"resolveJsonModule": true,
+		"outDir": "dist",
 		"paths": {
-			"@axium/cli": ["./cli/*"],
 			"@axium/core": ["./core/*"],
-			"@axium/server": ["./server/*"],
-			"@axium/files": ["./files/*"]
+			"@axium/client": ["./client/*"],
+			"@axium/server": ["./server/*"]
 		}
 	}
 }

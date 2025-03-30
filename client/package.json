@@ -1,5 +1,5 @@
 {
-	"name": "@axium/server",
+	"name": "@axium/client",
 	"version": "0.0.1",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"funding": {
@@ -21,18 +21,13 @@
 		"dist"
 	],
 	"bin": {
-		"axium": "dist/cli.js"
+		"axium-client": "dist/cli.js"
 	},
 	"scripts": {
 		"build": "tsc"
 	},
 	"dependencies": {
-		"@types/pg": "^8.11.11",
 		"chalk": "^5.4.1",
-		"commander": "^13.1.0",
-		"kysely": "^0.27.5",
-		"pg": "^8.14.1",
-		"@auth/kysely-adapter": "^1.8.0",
-		"@auth/core": "^0.38.0"
+		"commander": "^13.1.0"
 	}
 }

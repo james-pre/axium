@@ -1,3 +1,4 @@
+import type { AdapterAccountType } from '@auth/core/adapters';
 import { Kysely, PostgresDialect, type GeneratedAlways } from 'kysely';
 import pg from 'pg';
 
@@ -12,15 +13,15 @@ export interface Schema {
 	Account: {
 		id: GeneratedAlways<string>;
 		userId: string;
-		type: string;
+		type: AdapterAccountType;
 		provider: string;
 		providerAccountId: string;
-		refresh_token: string | null;
-		access_token: string | null;
-		expires_at: number | null;
-		token_type: string | null;
-		scope: string | null;
-		id_token: string | null;
+		refresh_token?: string;
+		access_token?: string;
+		expires_at?: number;
+		token_type?: Lowercase<string>;
+		scope?: string;
+		id_token?: string;
 		session_state: string | null;
 	};
 	Session: {
