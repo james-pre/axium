@@ -5,7 +5,7 @@ import { sql } from 'kysely';
 import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import * as _db from './database.js';
-import $pkg from './package.json' with { type: 'json' };
+import $pkg from '../package.json' with { type: 'json' };
 
 program.version($pkg.version).name('axium').description('Axium server CLI');
 

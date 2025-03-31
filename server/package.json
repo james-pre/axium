@@ -27,12 +27,18 @@
 		"build": "tsc"
 	},
 	"dependencies": {
+		"@auth/core": "^0.38.0",
+		"@auth/kysely-adapter": "^1.8.0",
 		"@types/pg": "^8.11.11",
 		"chalk": "^5.4.1",
 		"commander": "^13.1.0",
 		"kysely": "^0.27.5",
-		"pg": "^8.14.1",
-		"@auth/kysely-adapter": "^1.8.0",
-		"@auth/core": "^0.38.0"
+		"pg": "^8.14.1"
+	},
+	"devDependencies": {
+		"@auth/sveltekit": "^1.8.0",
+		"@sveltejs/adapter-node": "^5.2.12",
+		"@sveltejs/kit": "^2.20.2",
+		"svelte": "^5.25.3"
 	}
 }
