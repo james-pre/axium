@@ -8,7 +8,7 @@
 		"target": "ES2023",
 		"strict": true,
 		"resolveJsonModule": true,
-		"outDir": "dist",
+		"declaration": true,
 		"paths": {
 			"@axium/core": ["./core/*"],
 			"@axium/client": ["./client/*"],

@@ -1,6 +1,10 @@
-import type { AdapterAccountType } from '@auth/core/adapters';
-import { Kysely, PostgresDialect, type GeneratedAlways } from 'kysely';
+import type { AdapterAccountType as db } from '@auth/core/adapters';
+import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
+import { exec } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import pg from 'pg';
+import type { WithRequired } from 'utilium';
+import { Database as DBConfig } from './config.js';
 
 export interface Schema {
 	User: {
@@ -9,11 +13,13 @@ export interface Schema {
 		email: string;
 		emailVerified: Date | null;
 		image: string | null;
+		password: string | null;
+		salt: string | null;
 	};
 	Account: {
 		id: GeneratedAlways<string>;
 		userId: string;
-		type: AdapterAccountType;
+		type: db;
 		provider: string;
 		providerAccountId: string;
 		refresh_token?: string;
@@ -47,13 +53,7 @@ export interface Schema {
 	};
 }
 
-export interface Config {
-	password?: string;
-	host?: string;
-	port?: number;
-}
-
-export function normalizeConfig(config: Config): Config {
+export function normalizeConfig<T extends DBConfig>(config: T): T {
 	config.host ??= 'localhost';
 
 	if (!config.port) {
@@ -69,7 +69,7 @@ export function normalizeConfig(config: Config): Config {
 
 export let database: Kysely<Schema> & AsyncDisposable;
 
-export function connect(config: Config): Kysely<Schema> & AsyncDisposable {
+export function connect(config: DBConfig): Kysely<Schema> & AsyncDisposable {
 	if (database) return database;
 
 	normalizeConfig(config);
@@ -99,7 +99,7 @@ export interface Stats {
 	sessions: number;
 }
 
-export async function status(config: Config): Promise<Stats> {
+export async function status(config: DBConfig): Promise<Stats> {
 	normalizeConfig(config);
 
 	await using db = connect(config);
@@ -111,11 +111,205 @@ export async function status(config: Config): Promise<Stats> {
 	};
 }
 
-export async function statusText(config: Config): Promise<string> {
+export async function statusText(config: DBConfig): Promise<string> {
 	try {
 		const stats = await status(config);
 		return `${stats.users} users, ${stats.accounts} accounts, ${stats.sessions} sessions`;
 	} catch (error: any) {
 		throw typeof error == 'object' && 'message' in error ? error.message : error;
 	}
+}
+
+export type OpOutputState = 'done' | 'log' | 'warn' | 'error' | 'start';
+
+export type OpOutput = {
+	(state: 'done'): void;
+	(state: Exclude<OpOutputState, 'done'>, message: string): void;
+};
+
+/**
+ * TS can't tell when we do this inline
+ */
+function _fixOutput(opt: OpOptions): asserts opt is WithRequired<OpOptions, 'output'> {
+	opt.output ??= () => {};
+}
+
+export interface OpOptions extends DBConfig {
+	timeout: number;
+	force: boolean;
+	output?: OpOutput;
+}
+
+export interface InitOptions extends OpOptions {
+	skip: boolean;
+}
+
+/**
+ * Convenience function for `sudo -u postgres psql -c "${command}"`, plus `report` coolness.
+ * @internal
+ */
+async function execSQL(opts: WithRequired<OpOptions, 'output'>, command: string, message: string) {
+	let stderr: string | undefined;
+
+	try {
+		opts.output('start', message);
+		const { promise, resolve, reject } = Promise.withResolvers<void>();
+		exec(`sudo -u postgres psql -c "${command}"`, opts, (err, _, _stderr) => {
+			stderr = _stderr.startsWith('ERROR:') ? _stderr.slice(6).trim() : _stderr;
+			if (err) reject('[command]');
+			else resolve();
+		});
+		await promise;
+		opts.output('done');
+	} catch (error: any) {
+		throw error == '[command]' ? stderr?.slice(0, 100) || 'failed.' : typeof error == 'object' && 'message' in error ? error.message : error;
+	}
+}
+
+function shouldRecreate(opt: WithRequired<InitOptions, 'output'>): boolean {
+	if (opt.skip) {
+		opt.output('warn', 'already exists. (skipped)\n');
+		return true;
+	}
+
+	if (opt.force) {
+		opt.output('warn', 'already exists. (re-creating)\n');
+		return false;
+	}
+
+	opt.output('warn', 'already exists. Use --skip to skip or --force to re-create.\n');
+	throw 2;
+}
+
+export async function init(opt: InitOptions): Promise<DBConfig> {
+	_fixOutput(opt);
+	const config = normalizeConfig(opt);
+	config.password ??= process.env.PGPASSWORD || randomBytes(32).toString('base64');
+
+	const _sql = (command: string, message: string) => execSQL(opt, command, message);
+
+	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
+		if (error != 'database "axium" already exists') throw error;
+		if (shouldRecreate(opt)) return;
+
+		await _sql('DROP DATABASE axium', 'Dropping database');
+		await _sql('CREATE DATABASE axium', 'Re-creating database');
+	});
+
+	const createQuery = `CREATE USER axium WITH ENCRYPTED PASSWORD '${config.password}' LOGIN`;
+	await _sql(createQuery, 'Creating user').catch(async (error: string) => {
+		if (error != 'role "axium" already exists') throw error;
+		if (shouldRecreate(opt)) return;
+
+		await _sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
+		await _sql('DROP USER axium', 'Dropping user');
+		await _sql(createQuery, 'Re-creating user');
+	});
+
+	await _sql('GRANT ALL PRIVILEGES ON DATABASE axium TO axium', 'Granting database privileges');
+	await _sql('GRANT ALL PRIVILEGES ON SCHEMA public TO axium', 'Granting schema privileges');
+	await _sql('ALTER DATABASE axium OWNER TO axium', 'Setting database owner');
+
+	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
+
+	await using db = connect(config);
+
+	const relationExists = (table: string) => (error: string | Error) => {
+		error = typeof error == 'object' && 'message' in error ? error.message : error;
+		if (error == `relation "${table}" already exists`) opt.output('warn', 'already exists.');
+		else throw error;
+	};
+
+	opt.output('start', 'Creating table User');
+	await db.schema
+		.createTable('User')
+		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+		.addColumn('name', 'text')
+		.addColumn('email', 'text', col => col.unique().notNull())
+		.addColumn('emailVerified', 'timestamptz')
+		.addColumn('image', 'text')
+		.addColumn('password', 'text')
+		.addColumn('salt', 'text')
+		.execute()
+		.catch(relationExists('User'));
+	opt.output('done');
+
+	opt.output('start', 'Creating table Account');
+	await db.schema
+		.createTable('Account')
+		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+		.addColumn('userId', 'uuid', col => col.references('User.id').onDelete('cascade').notNull())
+		.addColumn('type', 'text', col => col.notNull())
+		.addColumn('provider', 'text', col => col.notNull())
+		.addColumn('providerAccountId', 'text', col => col.notNull())
+		.addColumn('refresh_token', 'text')
+		.addColumn('access_token', 'text')
+		.addColumn('expires_at', 'bigint')
+		.addColumn('token_type', 'text')
+		.addColumn('scope', 'text')
+		.addColumn('id_token', 'text')
+		.addColumn('session_state', 'text')
+		.execute()
+		.catch(relationExists('Account'));
+	opt.output('done');
+
+	opt.output('start', 'Creating index for Account.userId');
+	db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().catch(relationExists('Account_userId_index'));
+	opt.output('done');
+
+	opt.output('start', 'Creating table Session');
+	await db.schema
+		.createTable('Session')
+		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+		.addColumn('userId', 'uuid', col => col.references('User.id').onDelete('cascade').notNull())
+		.addColumn('sessionToken', 'text', col => col.notNull().unique())
+		.addColumn('expires', 'timestamptz', col => col.notNull())
+		.execute()
+		.catch(relationExists('Session'));
+	opt.output('done');
+
+	opt.output('start', 'Creating index for Session.userId');
+	db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().catch(relationExists('Session_userId_index'));
+	opt.output('done');
+
+	opt.output('start', 'Creating table VerificationToken');
+	await db.schema
+		.createTable('VerificationToken')
+		.addColumn('identifier', 'text', col => col.notNull())
+		.addColumn('token', 'text', col => col.notNull().unique())
+		.addColumn('expires', 'timestamptz', col => col.notNull())
+		.execute()
+		.catch(relationExists('VerificationToken'));
+	opt.output('done');
+
+	opt.output('start', 'Creating table Authenticator');
+	await db.schema
+		.createTable('Authenticator')
+		.addColumn('credentialID', 'text', col => col.primaryKey().notNull())
+		.addColumn('userId', 'uuid', col => col.notNull().references('User.id').onDelete('cascade').onUpdate('cascade'))
+		.addColumn('providerAccountId', 'text', col => col.notNull())
+		.addColumn('credentialPublicKey', 'text', col => col.notNull())
+		.addColumn('counter', 'integer', col => col.notNull())
+		.addColumn('credentialDeviceType', 'text', col => col.notNull())
+		.addColumn('credentialBackedUp', 'boolean', col => col.notNull())
+		.addColumn('transports', 'text')
+		.execute()
+		.catch(relationExists('Authenticator'));
+	opt.output('done');
+
+	opt.output('start', 'Creating index for Authenticator.credentialID');
+	db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().catch(relationExists('Authenticator_credentialID_key'));
+	opt.output('done');
+
+	return config;
+}
+
+/**
+ * Completely remove Axium from the database.
+ */
+export async function remove(opt: OpOptions): Promise<void> {
+	_fixOutput(opt);
+	await execSQL(opt, 'DROP DATABASE axium', 'Dropping database');
+	await execSQL(opt, 'REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
+	await execSQL(opt, 'DROP USER axium', 'Dropping user');
 }

@@ -17,6 +17,10 @@
 	"type": "module",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./api": "./dist/api.js"
+	},
 	"files": [
 		"dist"
 	],
