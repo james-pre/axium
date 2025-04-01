@@ -1,4 +1,7 @@
 import chalk from 'chalk';
+import { existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { join } from 'node:path/posix';
 
 /** Convenience function for `example... [Done. / error]` */
 export async function report<T>(promise: Promise<T>, message: string, success: string = 'done.'): Promise<T> {
@@ -23,3 +26,30 @@ export function exit(message: string | Error, code: number = 1): never {
 	err(message);
 	process.exit(code);
 }
+
+export let verbose = false;
+
+export function setVerbose(v: boolean) {
+	verbose = v;
+}
+
+/**
+ * Find the Axium directory.
+ * This directory includes things like config files, secrets, etc.
+ */
+export function findDir(global: boolean): string {
+	if (process.env.AXIUM_DIR) return process.env.AXIUM_DIR;
+	if (process.getuid?.() === 0) return '/etc/axium';
+	if (global) return join(homedir(), '.axium');
+	return '.axium';
+}
+
+/**
+ *
+ */
+export function checkDir(path: string) {
+	if (existsSync(path)) return;
+	mkdirSync(path, { recursive: true });
+}
+
+if (process.getuid?.() === 0) checkDir('/etc/axium');

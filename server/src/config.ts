@@ -1,6 +1,9 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import { readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path/posix';
 import type { PartialRecursive } from 'utilium';
 import * as z from 'zod';
+import { findDir, verbose } from './io.js';
 
 export const Database = z
 	.object({
@@ -11,7 +14,7 @@ export const Database = z
 	.partial();
 export type Database = z.infer<typeof Database>;
 
-export let db: Database = {};
+export const db: Database = {};
 
 export const schema = z.object({
 	credentials: z.boolean(),
@@ -23,10 +26,12 @@ export const schema = z.object({
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Config extends z.infer<typeof schema> {}
 
-export type AuthProvider = 'credentials' | 'passkeys';
+export const authProviders = ['credentials', 'passkeys'] as const;
+export type AuthProvider = (typeof authProviders)[number];
 
 export let credentials: boolean = true;
 export let passkeys: boolean = true;
+
 export let debug: boolean = false;
 
 export function get(): Config {
@@ -38,6 +43,9 @@ export function get(): Config {
 	};
 }
 
+/**
+ * Update the current config
+ */
 export function set(config: PartialRecursive<Config>) {
 	credentials = config.credentials ?? credentials;
 	debug = config.debug ?? debug;
@@ -47,24 +55,70 @@ export function set(config: PartialRecursive<Config>) {
 
 export const files = new Map<string, PartialRecursive<Config>>();
 
-export function load(path: string) {
-	const result: PartialRecursive<Config> = schema.deepPartial().parse(JSON.parse(readFileSync(path, 'utf8')));
-	files.set(path, result);
-	set(result);
+export interface LoadOptions {
+	/**
+	 * If enabled, the config file will be not be loaded if it does not match the schema.
+	 */
+	strict?: boolean;
+
+	/**
+	 * If enabled, the config file will be skipped if it does not exist.
+	 */
+	optional?: boolean;
+
+	/**
+	 * If `optional`, this function will be called with the error if the config file is invalid or can't be read.
+	 */
+	onError?(error: Error): void;
 }
 
-export function save(path: string, changed: PartialRecursive<Config>) {
+/**
+ * Load the config from the provided path
+ */
+export function load(path: string, options: LoadOptions = {}) {
+	let json;
+	try {
+		json = JSON.parse(readFileSync(path, 'utf8'));
+	} catch (e: any) {
+		if (!options.optional) throw e;
+		verbose && console.warn(`Skipping config at ${path} (${e.message})`);
+		return;
+	}
+
+	const config: PartialRecursive<Config> = options.strict ? schema.deepPartial().parse(json) : json;
+	files.set(path, config);
+	set(config);
+	verbose && console.debug('Loaded config file:', path);
+}
+
+/**
+ * Update the current config and write the updated config to the appropriate file
+ */
+export function save(changed: PartialRecursive<Config>, global: boolean = false) {
+	saveTo(process.env.AXIUM_CONFIG ?? findDir(global), changed);
+}
+
+/**
+ * Update the current config and write the updated config to the provided path
+ */
+export function saveTo(path: string, changed: PartialRecursive<Config>) {
+	set(changed);
 	const config = files.get(path) ?? {};
 	Object.assign(config, changed);
 
+	verbose && console.log('Wrote config to', path);
 	writeFileSync(path, JSON.stringify(config));
 }
 
-export function findLocal(): string {
-	return '';
+/**
+ * Find the path to the config file
+ */
+export function findPath(global: boolean): string {
+	if (process.env.AXIUM_CONFIG) return process.env.AXIUM_CONFIG;
+	return join(findDir(global), 'config.json');
 }
 
 if (process.env.AXIUM_CONFIG) load(process.env.AXIUM_CONFIG);
 
-if (existsSync('/etc/axium/')) {
-}
+load(findPath(true), { optional: true });
+load(findPath(false), { optional: true });
