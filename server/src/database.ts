@@ -4,7 +4,7 @@ import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { WithRequired } from 'utilium';
-import { Database as DBConfig } from './config.js';
+import type { Database as DBConfig } from './config.js';
 
 export interface Schema {
 	User: {

@@ -6,6 +6,15 @@
 
 <div id="main">
 	<form method="POST">
+		{#if form?.error}
+			<div id="error">
+				{typeof form.error === 'string' ? form.error : JSON.stringify(form.error)}
+			</div>
+		{/if}
+		<div>
+			<label for="name"> Display Name </label>
+			<input name="name" type="text" />
+		</div>
 		<div>
 			<label for="email"> Email </label>
 			<input name="email" type="email" />
@@ -30,8 +39,14 @@
 		color: #bbb;
 	}
 
+	#error {
+		padding: 1em;
+		border-radius: 0.5em;
+		background-color: #733;
+		color: #ccc;
+	}
+
 	form {
-		position: fixed;
 		padding: 2em;
 		width: max-content;
 		height: max-content;

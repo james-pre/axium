@@ -5,11 +5,12 @@ import Credentials from '@auth/core/providers/credentials';
 import Passkey from '@auth/core/providers/passkey';
 import type { AuthConfig } from '@auth/core/types';
 import { KyselyAdapter, type Database, type KyselyAuth } from '@auth/kysely-adapter';
-import { Login } from '@axium/core/api';
+import { Login, Registration } from '@axium/core/api';
 import { genSaltSync, hashSync } from 'bcryptjs';
 import { omit } from 'utilium';
 import * as config from './config.js';
 import * as db from './database.js';
+import { randomBytes } from 'node:crypto';
 
 declare module '@auth/core/adapters' {
 	interface AdapterUser {
@@ -52,18 +53,36 @@ export function createAdapter(): Adapter {
 	return adapter;
 }
 
-/**
- * @todo
- */
-export async function register(credentials: Login) {
-	const { email, password } = Login.parse(credentials);
+export async function register(credentials: Registration) {
+	const { email, password, name } = Registration.parse(credentials);
 
-	const user = await adapter.getUserByEmail?.(email);
-	if (user) 'User already exists';
+	const existing = await adapter.getUserByEmail?.(email);
+	if (existing) throw 'User already exists';
+
+	let id = crypto.randomUUID();
+	while (await adapter.getUser?.(id)) id = crypto.randomUUID();
 
 	const salt = genSaltSync(10);
 
-	throw 'register() is not implemented';
+	const user = await adapter.createUser?.({
+		id,
+		name,
+		email,
+		emailVerified: null,
+		salt,
+		password: hashSync(password, salt),
+	});
+
+	const expires = new Date();
+	expires.setMonth(expires.getMonth() + 1);
+
+	const session = await adapter.createSession?.({
+		sessionToken: randomBytes(64).toString('base64'),
+		userId: id,
+		expires,
+	});
+
+	return { user, session };
 }
 
 export async function authorize(credentials: Partial<Record<string, unknown>>) {

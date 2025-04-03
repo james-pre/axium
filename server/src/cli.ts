@@ -6,19 +6,29 @@ import * as config from './config.js';
 import * as db from './database.js';
 import { err, exit, setVerbose } from './io.js';
 
-program.version($pkg.version).name('axium').description('Axium server CLI');
+program
+	.version($pkg.version)
+	.name('axium')
+	.description('Axium server CLI')
+	.configureHelp({
+		showGlobalOptions: true,
+	})
+	.option('-v, --verbose', 'verbose output', false)
+	.option('-c, --config <path>', 'path to the config file');
 
-program.on('option:verbose', function (this: Command) {
-	setVerbose(this.opts<OptCommon>().verbose);
+program.on('option:verbose', () => setVerbose(program.opts<OptCommon>().verbose));
+program.on('option:config', () => config.load(program.opts<OptCommon>().config));
+
+program.hook('preAction', function (_, action: Command) {
+	config.loadDefaults();
+	const opt = action.optsWithGlobals<OptCommon>();
+	opt.verbose && opt.force && console.log(chalk.yellow('--force: Protections disabled.'));
 });
 
 // Options shared by multiple (sub)commands
 const opts = {
-	verbose: new Option('-v, --verbose', 'verbose output').default(false),
-
 	// database specific
 	host: new Option('-H, --host <host>', 'the host of the database.').default('localhost:5432'),
-	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default(1000),
 	force: new Option('-f, --force', 'force the operation').default(false),
 
 	// config
@@ -27,13 +37,16 @@ const opts = {
 
 interface OptCommon {
 	verbose: boolean;
+	config: string;
+	force?: boolean;
 }
 
-function checkForce(opt: OptCommon & { force: boolean }) {
-	opt.verbose && opt.force && console.log(chalk.yellow('--force: Protections disabled.'));
-}
-
-const axiumDB = program.command('db').alias('database').description('manage the database');
+const axiumDB = program
+	.command('db')
+	.alias('database')
+	.description('manage the database')
+	.option('-t, --timeout <ms>', 'how long to wait for commands to complete.', '1000')
+	.addOption(opts.host);
 
 interface OptDB extends OptCommon {
 	host: string;
@@ -44,7 +57,7 @@ interface OptDB extends OptCommon {
 function db_output(state: db.OpOutputState, message?: string) {
 	switch (state) {
 		case 'start':
-			process.stdout.write(message + '...');
+			process.stdout.write(message + '... ');
 			break;
 		case 'log':
 		case 'warn':
@@ -62,14 +75,9 @@ function db_output(state: db.OpOutputState, message?: string) {
 axiumDB
 	.command('init')
 	.description('initialize the database')
-	.addOption(opts.verbose)
 	.addOption(opts.force)
-	.addOption(opts.host)
-	.addOption(opts.timeout)
 	.option('-s, --skip', 'Skip existing database and/or user')
 	.action(async (opt: OptDB & { skip: boolean }) => {
-		checkForce(opt);
-
 		await db.init({ ...opt, output: db_output }).catch((e: number | string | Error) => {
 			if (typeof e == 'number') process.exit(e);
 			else exit(e);
@@ -80,9 +88,6 @@ axiumDB
 	.command('status')
 	.alias('stats')
 	.description('check the status of the database')
-	.addOption(opts.verbose)
-	.addOption(opts.host)
-	.addOption(opts.timeout)
 	.action(async (opt: Omit<OptDB, 'force'>) =>
 		db
 			.statusText(opt)
@@ -93,13 +98,8 @@ axiumDB
 axiumDB
 	.command('drop')
 	.description('drop the database')
-	.addOption(opts.verbose)
 	.addOption(opts.force)
-	.addOption(opts.host)
-	.addOption(opts.timeout)
 	.action(async (opt: OptDB) => {
-		checkForce(opt);
-
 		db.normalizeConfig(opt);
 
 		const stats = await db.status(opt).catch(exit);
@@ -122,7 +122,6 @@ interface OptConfig extends OptCommon {
 program
 	.command('enable')
 	.description('enable an authentication provider')
-	.addOption(opts.verbose)
 	.addOption(opts.global)
 	.argument('<provider>', 'the provider to enable')
 	.action((provider: string, opt: OptConfig) => {
@@ -133,7 +132,6 @@ program
 program
 	.command('disable')
 	.description('disable an authentication provider')
-	.addOption(opts.verbose)
 	.addOption(opts.global)
 	.argument('<provider>', 'the provider to disable')
 	.action((provider: string, opt: OptConfig) => {
@@ -154,18 +152,18 @@ program
 			.statusText(opt)
 			.then(console.log)
 			.catch(() => err('Unavailable'));
+
+		console.log('Enabled auth providers:', config.authProviders.filter(provider => config[provider]).join(', '));
+
+		console.log('Debug mode:', config.debug ? chalk.yellow('Enabled') : 'Disabled');
 	});
 
 program
 	.command('init')
 	.description('Install Axium server')
-	.addOption(opts.verbose)
 	.addOption(opts.force)
-	.addOption(opts.timeout)
 	.addOption(opts.host)
 	.action(async (opt: OptDB & { dbSkip: boolean }) => {
-		checkForce(opt);
-
 		await db.init({ ...opt, skip: opt.dbSkip, output: db_output }).catch((e: number | string | Error) => {
 			if (typeof e == 'number') process.exit(e);
 			else exit(e);

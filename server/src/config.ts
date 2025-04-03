@@ -91,6 +91,11 @@ export function load(path: string, options: LoadOptions = {}) {
 	verbose && console.debug('Loaded config file:', path);
 }
 
+export function loadDefaults() {
+	load(findPath(true), { optional: true });
+	load(findPath(false), { optional: true });
+}
+
 /**
  * Update the current config and write the updated config to the appropriate file
  */
@@ -119,6 +124,3 @@ export function findPath(global: boolean): string {
 }
 
 if (process.env.AXIUM_CONFIG) load(process.env.AXIUM_CONFIG);
-
-load(findPath(true), { optional: true });
-load(findPath(false), { optional: true });
