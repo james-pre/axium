@@ -1,30 +1,42 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+import chalk from 'chalk';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path/posix';
-import type { PartialRecursive } from 'utilium';
+import { dirname, join } from 'node:path/posix';
+import { assignWithDefaults, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
-import { findDir, verbose } from './io.js';
+import { findDir } from './io.js';
 
-export const Database = z
-	.object({
-		host: z.string(),
-		port: z.number(),
-		password: z.string(),
-	})
-	.partial();
+export const Database = z.object({
+	host: z.string(),
+	port: z.number(),
+	password: z.string(),
+	user: z.string(),
+	database: z.string(),
+});
 export type Database = z.infer<typeof Database>;
 
-export const db: Database = {};
+export const db: Database = {
+	host: process.env.PGHOST ?? 'localhost',
+	port: process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432,
+	password: process.env.PGPASSWORD ?? '',
+	user: process.env.PGUSER ?? 'axium',
+	database: process.env.PGDATABASE ?? 'axium',
+};
 
-export const schema = z.object({
+export const Config = z.object({
 	credentials: z.boolean(),
 	passkeys: z.boolean(),
 	debug: z.boolean(),
 	db: Database.partial(),
 });
 
+export const File = Config.deepPartial().extend({
+	include: z.array(z.string()).optional(),
+});
+export type File = z.infer<typeof File>;
+
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface Config extends z.infer<typeof schema> {}
+export interface Config extends z.infer<typeof Config> {}
 
 export const authProviders = ['credentials', 'passkeys'] as const;
 export type AuthProvider = (typeof authProviders)[number];
@@ -49,7 +61,7 @@ export function get(): Config {
 export function set(config: PartialRecursive<Config>) {
 	credentials = config.credentials ?? credentials;
 	debug = config.debug ?? debug;
-	Object.assign(db, config.db);
+	assignWithDefaults(db, config.db ?? {});
 	passkeys = config.passkeys ?? passkeys;
 }
 
@@ -81,14 +93,14 @@ export function load(path: string, options: LoadOptions = {}) {
 		json = JSON.parse(readFileSync(path, 'utf8'));
 	} catch (e: any) {
 		if (!options.optional) throw e;
-		verbose && console.warn(`Skipping config at ${path} (${e.message})`);
+		debug && console.debug(chalk.gray(`Skipping config at ${path} (${e.message})`));
 		return;
 	}
 
-	const config: PartialRecursive<Config> = options.strict ? schema.deepPartial().parse(json) : json;
+	const config: File = options.strict ? File.parse(json) : json;
 	files.set(path, config);
 	set(config);
-	verbose && console.debug('Loaded config file:', path);
+	for (const include of config.include ?? []) load(join(dirname(path), include), { optional: true });
 }
 
 export function loadDefaults() {
@@ -100,7 +112,7 @@ export function loadDefaults() {
  * Update the current config and write the updated config to the appropriate file
  */
 export function save(changed: PartialRecursive<Config>, global: boolean = false) {
-	saveTo(process.env.AXIUM_CONFIG ?? findDir(global), changed);
+	saveTo(process.env.AXIUM_CONFIG ?? findPath(global), changed);
 }
 
 /**
@@ -109,9 +121,9 @@ export function save(changed: PartialRecursive<Config>, global: boolean = false)
 export function saveTo(path: string, changed: PartialRecursive<Config>) {
 	set(changed);
 	const config = files.get(path) ?? {};
-	Object.assign(config, changed);
+	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
 
-	verbose && console.log('Wrote config to', path);
+	debug && console.debug(chalk.gray(`Wrote config to ${path}`));
 	writeFileSync(path, JSON.stringify(config));
 }
 

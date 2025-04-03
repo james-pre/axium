@@ -2,6 +2,7 @@ import chalk from 'chalk';
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
+import { debug } from './config.js';
 
 /** Convenience function for `example... [Done. / error]` */
 export async function report<T>(promise: Promise<T>, message: string, success: string = 'done.'): Promise<T> {
@@ -27,10 +28,9 @@ export function exit(message: string | Error, code: number = 1): never {
 	process.exit(code);
 }
 
-export let verbose = false;
-
-export function setVerbose(v: boolean) {
-	verbose = v;
+export function verbose(...message: any[]) {
+	if (!debug) return;
+	console.debug(chalk.gray(message));
 }
 
 /**

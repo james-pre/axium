@@ -7,10 +7,10 @@ import type { AuthConfig } from '@auth/core/types';
 import { KyselyAdapter, type Database, type KyselyAuth } from '@auth/kysely-adapter';
 import { Login, Registration } from '@axium/core/api';
 import { genSaltSync, hashSync } from 'bcryptjs';
+import { randomBytes } from 'node:crypto';
 import { omit } from 'utilium';
 import * as config from './config.js';
 import * as db from './database.js';
-import { randomBytes } from 'node:crypto';
 
 declare module '@auth/core/adapters' {
 	interface AdapterUser {
@@ -22,7 +22,7 @@ declare module '@auth/core/adapters' {
 export let adapter: Adapter;
 
 export function createAdapter(): Adapter {
-	const conn = db.connect(config.db);
+	const conn = db.connect();
 
 	adapter = Object.assign(KyselyAdapter(conn as any as KyselyAuth<Database>), {
 		_axium: { config },

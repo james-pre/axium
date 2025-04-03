@@ -4,7 +4,8 @@ import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { WithRequired } from 'utilium';
-import type { Database as DBConfig } from './config.js';
+import * as config from './config.js';
+import { verbose } from './io.js';
 
 export interface Schema {
 	User: {
@@ -53,35 +54,13 @@ export interface Schema {
 	};
 }
 
-export function normalizeConfig<T extends DBConfig>(config: T): T {
-	config.host ??= 'localhost';
-
-	if (!config.port) {
-		const [hostname, port] = config.host.split(':');
-		config.port = port ? parseInt(port) : 5432;
-		config.host = hostname;
-	}
-
-	if (config.host.includes(':')) config.host = config.host.split(':')[0];
-
-	return config;
-}
-
 export let database: Kysely<Schema> & AsyncDisposable;
 
-export function connect(config: DBConfig): Kysely<Schema> & AsyncDisposable {
+export function connect(): Kysely<Schema> & AsyncDisposable {
 	if (database) return database;
 
-	normalizeConfig(config);
-
 	const _db = new Kysely<Schema>({
-		dialect: new PostgresDialect({
-			pool: new pg.Pool({
-				...config,
-				user: 'axium',
-				database: 'axium',
-			}),
-		}),
+		dialect: new PostgresDialect({ pool: new pg.Pool(config.db) }),
 	});
 
 	database = Object.assign(_db, {
@@ -99,10 +78,8 @@ export interface Stats {
 	sessions: number;
 }
 
-export async function status(config: DBConfig): Promise<Stats> {
-	normalizeConfig(config);
-
-	await using db = connect(config);
+export async function status(): Promise<Stats> {
+	await using db = connect();
 
 	return {
 		users: (await db.selectFrom('User').select(db.fn.countAll<number>().as('count')).executeTakeFirstOrThrow()).count,
@@ -111,9 +88,9 @@ export async function status(config: DBConfig): Promise<Stats> {
 	};
 }
 
-export async function statusText(config: DBConfig): Promise<string> {
+export async function statusText(): Promise<string> {
 	try {
-		const stats = await status(config);
+		const stats = await status();
 		return `${stats.users} users, ${stats.accounts} accounts, ${stats.sessions} sessions`;
 	} catch (error: any) {
 		throw typeof error == 'object' && 'message' in error ? error.message : error;
@@ -134,7 +111,7 @@ function _fixOutput(opt: OpOptions): asserts opt is WithRequired<OpOptions, 'out
 	opt.output ??= () => {};
 }
 
-export interface OpOptions extends DBConfig {
+export interface OpOptions {
 	timeout: number;
 	force: boolean;
 	output?: OpOutput;
@@ -181,10 +158,12 @@ function shouldRecreate(opt: WithRequired<InitOptions, 'output'>): boolean {
 	throw 2;
 }
 
-export async function init(opt: InitOptions): Promise<DBConfig> {
+export async function init(opt: InitOptions): Promise<config.Database> {
 	_fixOutput(opt);
-	const config = normalizeConfig(opt);
-	config.password ??= process.env.PGPASSWORD || randomBytes(32).toString('base64');
+	if (!config.db.password) {
+		config.save({ db: { password: randomBytes(32).toString('base64') } }, true);
+		verbose('Generated password and wrote to global config');
+	}
 
 	const _sql = (command: string, message: string) => execSQL(opt, command, message);
 
@@ -196,7 +175,7 @@ export async function init(opt: InitOptions): Promise<DBConfig> {
 		await _sql('CREATE DATABASE axium', 'Re-creating database');
 	});
 
-	const createQuery = `CREATE USER axium WITH ENCRYPTED PASSWORD '${config.password}' LOGIN`;
+	const createQuery = `CREATE USER axium WITH ENCRYPTED PASSWORD '${config.db.password}' LOGIN`;
 	await _sql(createQuery, 'Creating user').catch(async (error: string) => {
 		if (error != 'role "axium" already exists') throw error;
 		if (shouldRecreate(opt)) return;
@@ -212,7 +191,7 @@ export async function init(opt: InitOptions): Promise<DBConfig> {
 
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
-	await using db = connect(config);
+	await using db = connect();
 
 	const relationExists = (table: string) => (error: string | Error) => {
 		error = typeof error == 'object' && 'message' in error ? error.message : error;
@@ -301,7 +280,7 @@ export async function init(opt: InitOptions): Promise<DBConfig> {
 	db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().catch(relationExists('Authenticator_credentialID_key'));
 	opt.output('done');
 
-	return config;
+	return config.db;
 }
 
 /**
