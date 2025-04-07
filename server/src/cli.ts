@@ -172,7 +172,7 @@ program
 	.action(async () => {
 		console.log('Axium Server v' + program.version());
 
-		console.log('Debug mode:', config.debug ? chalk.yellow('Enabled') : 'Disabled');
+		console.log('Debug mode:', config.debug ? chalk.yellow('enabled') : 'disabled');
 
 		console.log('Loaded config files:', config.files.keys().toArray().join(', '));
 
@@ -182,7 +182,7 @@ program
 			.then(console.log)
 			.catch(() => err('Unavailable'));
 
-		console.log('Enabled auth providers:', config.authProviders.filter(provider => config[provider]).join(', '));
+		console.log('Enabled auth providers:', config.authProviders.filter(provider => config.auth[provider]).join(', '));
 	});
 
 program

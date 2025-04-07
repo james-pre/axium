@@ -16,16 +16,34 @@ export const Database = z.object({
 export type Database = z.infer<typeof Database>;
 
 export const db: Database = {
-	host: process.env.PGHOST ?? 'localhost',
+	host: process.env.PGHOST || 'localhost',
 	port: process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432,
-	password: process.env.PGPASSWORD ?? '',
-	user: process.env.PGUSER ?? 'axium',
-	database: process.env.PGDATABASE ?? 'axium',
+	password: process.env.PGPASSWORD || '',
+	user: process.env.PGUSER || 'axium',
+	database: process.env.PGDATABASE || 'axium',
 };
 
-export const Config = z.object({
+export const Auth = z.object({
 	credentials: z.boolean(),
+	debug: z.boolean().optional(),
 	passkeys: z.boolean(),
+	secret: z.string(),
+	secure_cookies: z.boolean(),
+});
+export type Auth = z.infer<typeof Auth>;
+
+export const auth: Auth = {
+	credentials: true,
+	passkeys: true,
+	secret: '',
+	secure_cookies: false,
+};
+
+export const authProviders = ['credentials', 'passkeys'] as const;
+export type AuthProvider = (typeof authProviders)[number];
+
+export const Config = z.object({
+	auth: Auth.partial(),
 	debug: z.boolean(),
 	db: Database.partial(),
 });
@@ -38,20 +56,13 @@ export type File = z.infer<typeof File>;
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Config extends z.infer<typeof Config> {}
 
-export const authProviders = ['credentials', 'passkeys'] as const;
-export type AuthProvider = (typeof authProviders)[number];
-
-export let credentials: boolean = true;
-export let passkeys: boolean = true;
-
 export let debug: boolean = false;
 
 export function get(): Config {
 	return {
-		credentials,
+		auth,
 		db,
 		debug,
-		passkeys,
 	};
 }
 
@@ -59,10 +70,9 @@ export function get(): Config {
  * Update the current config
  */
 export function set(config: PartialRecursive<Config>) {
-	credentials = config.credentials ?? credentials;
+	assignWithDefaults(auth, config.auth ?? {});
 	debug = config.debug ?? debug;
 	assignWithDefaults(db, config.db ?? {});
-	passkeys = config.passkeys ?? passkeys;
 }
 
 export const files = new Map<string, PartialRecursive<Config>>();

@@ -44,7 +44,7 @@ export function createAdapter(): Adapter {
 		},
 		async updateAuthenticatorCounter(credentialID: AdapterAuthenticator['credentialID'], newCounter: AdapterAuthenticator['counter']): Promise<AdapterAuthenticator> {
 			await conn.updateTable('Authenticator').set({ counter: newCounter }).where('credentialID', '=', credentialID).executeTakeFirstOrThrow();
-			const authenticator = await this.getAuthenticator(credentialID);
+			const authenticator = await adapter.getAuthenticator?.(credentialID);
 			if (!authenticator) throw new Error('Authenticator not found');
 			return authenticator;
 		},
@@ -103,8 +103,9 @@ export async function authorize(credentials: Partial<Record<string, unknown>>) {
 export function getProviders(): Provider[] {
 	const providers: Provider[] = [];
 
-	if (config.passkeys) providers.push(Passkey);
-	if (config.credentials) {
+	if (config.auth.passkeys) providers.push(Passkey);
+
+	if (config.auth.credentials) {
 		providers.push(
 			Credentials({
 				credentials: {
@@ -125,7 +126,12 @@ export function getConfig(): AuthConfig {
 	return {
 		adapter,
 		providers: getProviders(),
-		debug: config.debug,
+		debug: config.auth.debug ?? config.debug,
 		experimental: { enableWebAuthn: true },
+		secret: config.auth.secret,
+		useSecureCookies: config.auth.secure_cookies,
+		session: {
+			strategy: 'database',
+		},
 	};
 }
