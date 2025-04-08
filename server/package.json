@@ -1,6 +1,6 @@
 {
 	"name": "@axium/server",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"funding": {
 		"type": "individual",
@@ -25,6 +25,9 @@
 	},
 	"scripts": {
 		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/core": ">=0.0.1"
 	},
 	"dependencies": {
 		"@auth/core": "^0.38.0",
