@@ -36,5 +36,8 @@ jobs:
             - name: Linting
               run: npm run lint
 
+            - name: Build Core
+              run: npx tsc -p core
+
             - name: Build Server
               run: npx tsc -p server
