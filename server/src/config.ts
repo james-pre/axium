@@ -26,21 +26,16 @@ export const db: Database = {
 export const Auth = z.object({
 	credentials: z.boolean(),
 	debug: z.boolean().optional(),
-	passkeys: z.boolean(),
 	secret: z.string(),
 	secure_cookies: z.boolean(),
 });
 export type Auth = z.infer<typeof Auth>;
 
 export const auth: Auth = {
-	credentials: true,
-	passkeys: true,
+	credentials: false,
 	secret: '',
 	secure_cookies: false,
 };
-
-export const authProviders = ['credentials', 'passkeys'] as const;
-export type AuthProvider = (typeof authProviders)[number];
 
 export const Config = z.object({
 	auth: Auth.partial(),

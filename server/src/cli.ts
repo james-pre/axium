@@ -182,7 +182,7 @@ program
 			.then(console.log)
 			.catch(() => err('Unavailable'));
 
-		console.log('Enabled auth providers:', config.authProviders.filter(provider => config.auth[provider]).join(', '));
+		console.log('Credentials authentication:', config.auth.credentials ? chalk.yellow('enabled') : 'disabled');
 	});
 
 program

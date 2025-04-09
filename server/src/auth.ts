@@ -14,8 +14,8 @@ import * as db from './database.js';
 
 declare module '@auth/core/adapters' {
 	interface AdapterUser {
-		password: string;
-		salt: string;
+		password: string | null;
+		salt: string | null;
 	}
 }
 
@@ -53,6 +53,9 @@ export function createAdapter(): Adapter {
 	return adapter;
 }
 
+/**
+ * Login using credentials
+ */
 export async function register(credentials: Registration) {
 	const { email, password, name } = Registration.parse(credentials);
 
@@ -64,19 +67,19 @@ export async function register(credentials: Registration) {
 
 	const salt = genSaltSync(10);
 
-	const user = await adapter.createUser?.({
+	const user = await adapter.createUser!({
 		id,
 		name,
 		email,
 		emailVerified: null,
-		salt,
-		password: hashSync(password, salt),
+		salt: password ? salt : null,
+		password: password ? hashSync(password, salt) : null,
 	});
 
 	const expires = new Date();
 	expires.setMonth(expires.getMonth() + 1);
 
-	const session = await adapter.createSession?.({
+	const session = await adapter.createSession!({
 		sessionToken: randomBytes(64).toString('base64'),
 		userId: id,
 		expires,
@@ -85,25 +88,27 @@ export async function register(credentials: Registration) {
 	return { user, session };
 }
 
+/**
+ * Authorize using credentials
+ */
 export async function authorize(credentials: Partial<Record<string, unknown>>) {
 	const { success, error, data } = Login.safeParse(credentials);
 	if (!success) throw new CredentialsSignin(error);
 
 	const user = await adapter.getUserByEmail?.(data.email);
-	if (!user) return null;
+	if (!user || !data.password || !user.salt) return null;
 
 	if (user.password !== hashSync(data.password, user.salt)) return null;
 
 	return omit(user, 'password', 'salt');
 }
 
-/**
- * Get the providers current enabled in the Axium config.
- */
-export function getProviders(): Provider[] {
-	const providers: Provider[] = [];
+type Providers = Exclude<Provider, (...args: any[]) => any>[];
 
-	if (config.auth.passkeys) providers.push(Passkey);
+export function getConfig(): AuthConfig & { providers: Providers } {
+	createAdapter();
+
+	const providers: Providers = [Passkey({})];
 
 	if (config.auth.credentials) {
 		providers.push(
@@ -117,21 +122,19 @@ export function getProviders(): Provider[] {
 		);
 	}
 
-	return providers;
-}
-
-export function getConfig(): AuthConfig {
-	createAdapter();
-
 	return {
 		adapter,
-		providers: getProviders(),
+		providers,
 		debug: config.auth.debug ?? config.debug,
 		experimental: { enableWebAuthn: true },
 		secret: config.auth.secret,
 		useSecureCookies: config.auth.secure_cookies,
-		session: {
-			strategy: 'database',
+		session: { strategy: 'database' },
+		callbacks: {
+			signIn({ user, account }) {
+				console.log('[auth:signin:callback]', user);
+				return true;
+			},
 		},
 	};
 }

@@ -1,15 +1,20 @@
 import { Registration } from '@axium/core/api';
-import { fail } from '@sveltejs/kit';
-import type { Actions } from './$types';
+import { fail, redirect } from '@sveltejs/kit';
 import * as auth from '../../../src/auth.js';
+import * as config from '../../../src/config.js';
+import type { Actions } from './$types';
+
+export function load() {
+	if (!config.auth.credentials) return redirect(308, '/auth/signin');
+}
 
 export const actions = {
 	async default(event) {
-		const formData = await event.request.formData();
-		const { data, success, error } = Registration.safeParse(Object.fromEntries(formData));
+		const { data, success, error } = Registration.safeParse(Object.fromEntries(await event.request.formData()));
 
 		if (!success)
 			return fail(400, {
+				...data,
 				error: error.flatten().formErrors[0] || Object.values(error.flatten().fieldErrors).flat()[0],
 			});
 
@@ -20,9 +25,9 @@ export const actions = {
 				expires: session.expires,
 				httpOnly: true,
 			});
-			return { success: true, data: session.sessionToken };
+			return { ...data, success: true, data: session.sessionToken };
 		} catch (error: any) {
-			return fail(400, { error: typeof error === 'string' ? error : error.message });
+			return fail(400, { ...data, error: typeof error === 'string' ? error : error.message });
 		}
 	},
 } satisfies Actions;
