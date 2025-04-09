@@ -110,7 +110,27 @@ axiumDB
 				process.exit(2);
 			}
 
-		await db.remove({ ...opt, output: db_output }).catch(exit);
+		await db.uninstall({ ...opt, output: db_output }).catch(exit);
+		await db.database.destroy();
+	});
+
+axiumDB
+	.command('wipe')
+	.description('wipe the database')
+	.addOption(opts.force)
+	.action(async (opt: OptDB) => {
+		const stats = await db.status().catch(exit);
+
+		if (!opt.force)
+			for (const key of ['users', 'accounts', 'sessions'] as const) {
+				if (stats[key] == 0) continue;
+
+				console.warn(chalk.yellow(`Database has existing ${key}. Use --force if you really want to wipe the database.`));
+				process.exit(2);
+			}
+
+		await db.wipe({ ...opt, output: db_output }).catch(exit);
+		await db.database.destroy();
 	});
 
 interface OptConfig extends OptCommon {

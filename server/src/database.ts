@@ -79,7 +79,7 @@ export interface Stats {
 }
 
 export async function status(): Promise<Stats> {
-	await using db = connect();
+	const db = connect();
 
 	return {
 		users: (await db.selectFrom('User').select(db.fn.countAll<number>().as('count')).executeTakeFirstOrThrow()).count,
@@ -286,9 +286,24 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 /**
  * Completely remove Axium from the database.
  */
-export async function remove(opt: OpOptions): Promise<void> {
+export async function uninstall(opt: OpOptions): Promise<void> {
 	_fixOutput(opt);
 	await execSQL(opt, 'DROP DATABASE axium', 'Dropping database');
 	await execSQL(opt, 'REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
 	await execSQL(opt, 'DROP USER axium', 'Dropping user');
+}
+
+/**
+ * Removes all data from tables.
+ */
+export async function wipe(opt: OpOptions): Promise<void> {
+	_fixOutput(opt);
+
+	const db = connect();
+
+	for (const table of ['User', 'Account', 'Session', 'VerificationToken', 'Authenticator'] as const) {
+		opt.output('start', `Removing data from ${table}`);
+		await db.deleteFrom(table).execute();
+		opt.output('done');
+	}
 }

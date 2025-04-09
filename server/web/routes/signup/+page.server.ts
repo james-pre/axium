@@ -5,7 +5,7 @@ import * as config from '../../../src/config.js';
 import type { Actions } from './$types';
 
 export function load() {
-	if (!config.auth.credentials) return redirect(308, '/auth/signin');
+	if (!config.auth.credentials) return redirect(307, '/auth/signin');
 }
 
 export const actions = {
