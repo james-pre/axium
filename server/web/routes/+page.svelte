@@ -10,17 +10,17 @@
 
 <div id="content">
 	<img id="pfp" src={image} alt="User profile" />
-	<p id="name">Welcome, {user.name}</p>
+	<p id="greeting">Welcome, {user.name}</p>
 	<div class="main">
 		<div>
 			<p>Name</p>
 			<p>{user.name}</p>
-			<Icon id="chevron-right" />
+			<a href="/edit/name"><Icon id="chevron-right" /></a>
 		</div>
 		<div>
 			<p>Email</p>
 			<p>{user.email}</p>
-			<Icon id="chevron-right" />
+			<a href="/edit/email"><Icon id="chevron-right" /></a>
 		</div>
 	</div>
 </div>
@@ -40,36 +40,47 @@
 		margin: 3em auto 2em;
 	}
 
-	#name {
+	#greeting {
 		font-size: 2em;
 		margin-bottom: 1em;
 	}
 
 	.main {
-		width: calc(100% - 4em);
+		width: 50%;
+		padding-top: 4em;
+
+		> :not(:last-child) {
+			border-bottom: 1px solid #8888;
+		}
 	}
 
 	.main > div {
-		display: flex;
-		justify-content: space-between;
+		display: grid;
+		grid-template-columns: 10em 1fr 2em;
 		align-items: center;
-		width: max-content;
+		width: 100%;
 		gap: 1em;
 		text-wrap: nowrap;
+		padding-bottom: 1em;
 
-		:nth-child(1) {
-			flex: 0 10em;
-			margin: 0 10em;
+		> :first-child {
+			margin: 0 5em 0 1em;
 			color: #bbbb;
 			font-size: 0.9em;
+			grid-column: 1;
 		}
 
-		:nth-child(2) {
-			flex: 1 5em;
+		> :nth-child(2) {
+			margin: 0;
+			grid-column: 2;
 		}
 
-		:nth-child(3) {
-			flex: 0 1em;
+		> :last-child {
+			margin: 0;
+			display: inline;
+			grid-column: 3;
+			font-size: 0.75em;
+			cursor: pointer;
 		}
 	}
 </style>

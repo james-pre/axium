@@ -30,9 +30,7 @@
 	});
 </script>
 
-<div>
-	{@html content}
-</div>
+<div>{@html content}</div>
 
 <style>
 	div {
