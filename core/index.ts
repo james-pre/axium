@@ -1,1 +1,2 @@
-export * as api from './api.js';
+export * as schemas from './schemas.js';
+export * from './user.js';

@@ -19,7 +19,7 @@
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": "./dist/index.js",
-		"./api": "./dist/api.js"
+		"./schemas": "./dist/schemas.js"
 	},
 	"files": [
 		"dist"

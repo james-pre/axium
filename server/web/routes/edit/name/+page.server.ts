@@ -1,7 +1,6 @@
-import { Name } from '@axium/core/api';
+import { Name } from '@axium/core/schemas';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { adapter } from '../../../../src/auth';
-import { generateUserImage } from '../../../../src/auth.js';
 import type { PageServerLoadEvent } from './$types';
 
 export async function load(event: PageServerLoadEvent) {
@@ -25,8 +24,6 @@ export const actions = {
 
 		const user = await adapter.getUserByEmail(session.user.email);
 		if (!user) return fail(500, { name, error: 'User does not exist' });
-
-		if (!user.image) user.image = generateUserImage(name);
 
 		try {
 			await adapter.updateUser({ id: user.id, name, image: user.image });

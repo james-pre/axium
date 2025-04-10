@@ -5,7 +5,7 @@ import Credentials from '@auth/core/providers/credentials';
 import Passkey from '@auth/core/providers/passkey';
 import type { AuthConfig } from '@auth/core/types';
 import { KyselyAdapter, type Database, type KyselyAuth } from '@auth/kysely-adapter';
-import { Login, Registration } from '@axium/core/api';
+import { Login, Registration } from '@axium/core/schemas';
 import { genSaltSync, hashSync } from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { omit } from 'utilium';
@@ -100,24 +100,6 @@ export async function authorize(credentials: Partial<Record<string, unknown>>) {
 	if (user.password !== hashSync(data.password, user.salt)) return null;
 
 	return omit(user, 'password', 'salt');
-}
-
-export function generateUserImage(seed: string): string {
-	let color = seed.charCodeAt(0);
-
-	for (let i = 1; i < seed.length; i++) {
-		color *= seed.charCodeAt(i);
-	}
-
-	color &= 0xbfbfbf;
-
-	const r = (color >> 16) & 0xff;
-	const g = (color >> 8) & 0xff;
-	const b = color & 0xff;
-
-	return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" style="background-color:rgb(${r},${g},${b});">
-		<text x="50" y="50" style="font-family:sans-serif;color:white;">${seed.replaceAll(/\W/g, '')[0]}</text>
-	</svg>`.replaceAll(/[\t\n]/g, '');
 }
 
 type Providers = Exclude<Provider, (...args: any[]) => any>[];

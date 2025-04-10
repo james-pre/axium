@@ -10,7 +10,6 @@ export default {
 			strict: true,
 		}),
 		alias: {
-			$components: 'web/components',
 			$stores: 'web/stores',
 			$lib: 'web/lib',
 		},

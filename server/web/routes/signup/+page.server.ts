@@ -1,4 +1,4 @@
-import { Registration } from '@axium/core/api';
+import { Registration } from '@axium/core/schemas';
 import { fail, redirect } from '@sveltejs/kit';
 import * as auth from '../../../src/auth.js';
 import * as config from '../../../src/config.js';
