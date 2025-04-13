@@ -1,7 +1,7 @@
 import { Registration } from '@axium/core/schemas';
 import { fail, redirect } from '@sveltejs/kit';
-import * as auth from '../../../src/auth.js';
-import * as config from '../../../src/config.js';
+import * as auth from '../../../dist/auth.js';
+import * as config from '../../../dist/config.js';
 import type { Actions } from './$types';
 
 export function load() {

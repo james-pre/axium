@@ -1,6 +1,6 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { adapter } from '../../../../src/auth';
 import * as z from 'zod';
+import { adapter } from '../../../../dist/auth.js';
 import type { PageServerLoadEvent } from './$types';
 
 export async function load(event: PageServerLoadEvent) {

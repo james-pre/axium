@@ -1,6 +1,6 @@
 import { Name } from '@axium/core/schemas';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { adapter } from '../../../../src/auth';
+import { adapter } from '../../../../dist/auth.js';
 import type { PageServerLoadEvent } from './$types';
 
 export async function load(event: PageServerLoadEvent) {

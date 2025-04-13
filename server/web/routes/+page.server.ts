@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import { adapter } from '../../src/auth.js';
+import { adapter } from '../../dist/auth.js';
 import type { PageServerLoadEvent } from './$types';
 
 export async function load(event: PageServerLoadEvent) {

@@ -24,7 +24,6 @@
 		"./web/*": "./web/*"
 	},
 	"files": [
-		"src",
 		"dist",
 		"web"
 	],
@@ -35,7 +34,7 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.0.1"
+		"@axium/core": ">=0.0.2"
 	},
 	"dependencies": {
 		"@auth/core": "^0.38.0",
