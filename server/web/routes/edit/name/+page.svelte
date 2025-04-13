@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import '../../lib/styles.css';
 	let { form, data } = $props();
 	const { user } = data.session;
 </script>

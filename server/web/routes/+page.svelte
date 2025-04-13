@@ -1,6 +1,7 @@
 <script lang="ts">
-	import Icon from '../lib/Icon.svelte';
 	import { getUserImage } from '@axium/core';
+	import Icon from '../lib/Icon.svelte';
+	import '../lib/styles.css';
 
 	const { data, children } = $props();
 

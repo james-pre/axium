@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import '../../lib/styles.css';
 	let { form } = $props();
 </script>
 
