@@ -1,6 +1,6 @@
 {
 	"name": "@axium/server",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"funding": {
 		"type": "individual",
@@ -21,7 +21,8 @@
 		".": "./dist/index.js",
 		"./*": "./dist/*",
 		"./web": "./web/index.js",
-		"./web/*": "./web/*"
+		"./web/*": "./web/*",
+		"./web/server": "./web/index.server.js"
 	},
 	"files": [
 		"dist",
