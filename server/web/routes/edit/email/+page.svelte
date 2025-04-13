@@ -5,6 +5,10 @@
 	let { form } = $props();
 </script>
 
+<svelte:head>
+	<title>Edit Email</title>
+</svelte:head>
+
 <div>
 	<form method="POST" class="main" use:enhance>
 		{#if form?.error}

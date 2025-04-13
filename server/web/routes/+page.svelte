@@ -8,6 +8,10 @@
 	const image = getUserImage(user);
 </script>
 
+<svelte:head>
+	<title>Axium Account</title>
+</svelte:head>
+
 <div id="content">
 	<img id="pfp" src={image} alt="User profile" />
 	<p id="greeting">Welcome, {user.name}</p>
