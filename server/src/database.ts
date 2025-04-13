@@ -4,6 +4,7 @@ import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { WithRequired } from 'utilium';
+import type { Preferences } from './auth.js';
 import * as config from './config.js';
 import { logger } from './io.js';
 
@@ -16,6 +17,7 @@ export interface Schema {
 		image: string | null;
 		password: string | null;
 		salt: string | null;
+		preferences: Preferences;
 	};
 	Account: {
 		id: GeneratedAlways<string>;
@@ -209,6 +211,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 		.addColumn('image', 'text')
 		.addColumn('password', 'text')
 		.addColumn('salt', 'text')
+		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo(sql`'{}'::jsonb`))
 		.execute()
 		.catch(relationExists('User'));
 	opt.output('done');

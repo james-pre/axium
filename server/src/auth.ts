@@ -13,10 +13,18 @@ import * as config from './config.js';
 import * as db from './database.js';
 import { logger } from './io.js';
 
+/**
+ * User preferences.
+ * Modify with `declare module ...`
+ */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface Preferences {}
+
 declare module '@auth/core/adapters' {
 	interface AdapterUser {
 		password: string | null;
 		salt: string | null;
+		preferences: Preferences;
 	}
 }
 
@@ -74,6 +82,7 @@ export async function register(credentials: Registration) {
 		emailVerified: null,
 		salt: password ? salt : null,
 		password: password ? hashSync(password, salt) : null,
+		preferences: {},
 	});
 
 	const expires = new Date();
