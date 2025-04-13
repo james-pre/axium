@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import chalk from 'chalk';
+import { levelText } from 'logzen';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path/posix';
+import { styleText } from 'node:util';
 import { assignWithDefaults, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
 import { findDir } from './io.js';
-import { levelText } from 'logzen';
 
 export const Database = z.object({
 	host: z.string(),
@@ -115,7 +115,7 @@ export function load(path: string, options: LoadOptions = {}) {
 		json = JSON.parse(readFileSync(path, 'utf8'));
 	} catch (e: any) {
 		if (!options.optional) throw e;
-		debug && console.debug(chalk.gray(`Skipping config at ${path} (${e.message})`));
+		debug && console.debug(styleText('gray', `Skipping config at ${path} (${e.message})`));
 		return;
 	}
 
@@ -145,7 +145,7 @@ export function saveTo(path: string, changed: PartialRecursive<Config>) {
 	const config = files.get(path) ?? {};
 	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
 
-	debug && console.debug(chalk.gray(`Wrote config to ${path}`));
+	debug && console.debug(styleText('gray', `Wrote config to ${path}`));
 	writeFileSync(path, JSON.stringify(config));
 }
 

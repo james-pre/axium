@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import chalk from 'chalk';
 import { Option, program, type Command } from 'commander';
+import { styleText } from 'node:util';
 import { getByString, isJSON, pick, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
 import * as config from './config.js';
@@ -21,7 +21,7 @@ program.on('option:config', () => config.load(program.opts<OptCommon>().config))
 program.hook('preAction', function (_, action: Command) {
 	config.loadDefaults();
 	const opt = action.optsWithGlobals<OptCommon>();
-	opt.force && console.log(chalk.yellow('--force: Protections disabled.'));
+	opt.force && console.log(styleText('yellow', '--force: Protections disabled.'));
 });
 
 // Options shared by multiple (sub)commands
@@ -54,17 +54,19 @@ interface OptDB extends OptCommon {
 	force: boolean;
 }
 
-function db_output(state: db.OpOutputState, message?: string) {
+function db_output(state: 'done'): void;
+function db_output(state: Exclude<db.OpOutputState, 'done'>, message: string): void;
+function db_output(state: db.OpOutputState, message: string = ''): void {
 	switch (state) {
 		case 'start':
 			process.stdout.write(message + '... ');
 			break;
 		case 'log':
 		case 'warn':
-			process.stdout.write(chalk.yellow(message));
+			process.stdout.write(styleText('yellow', message));
 			break;
 		case 'error':
-			process.stdout.write(chalk.red(message));
+			process.stdout.write(styleText('red', message));
 			break;
 		case 'done':
 			console.log('done.');
@@ -106,7 +108,7 @@ axiumDB
 			for (const key of ['users', 'accounts', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				console.warn(chalk.yellow(`Database has existing ${key}. Use --force if you really want to drop the database.`));
+				console.warn(styleText('yellow', `Database has existing ${key}. Use --force if you really want to drop the database.`));
 				process.exit(2);
 			}
 
@@ -125,7 +127,7 @@ axiumDB
 			for (const key of ['users', 'accounts', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				console.warn(chalk.yellow(`Database has existing ${key}. Use --force if you really want to wipe the database.`));
+				console.warn(styleText('yellow', `Database has existing ${key}. Use --force if you really want to wipe the database.`));
 				process.exit(2);
 			}
 
@@ -192,7 +194,7 @@ program
 	.action(async () => {
 		console.log('Axium Server v' + program.version());
 
-		console.log('Debug mode:', config.debug ? chalk.yellow('enabled') : 'disabled');
+		console.log('Debug mode:', config.debug ? styleText('yellow', 'enabled') : 'disabled');
 
 		console.log('Loaded config files:', config.files.keys().toArray().join(', '));
 
@@ -202,7 +204,7 @@ program
 			.then(console.log)
 			.catch(() => err('Unavailable'));
 
-		console.log('Credentials authentication:', config.auth.credentials ? chalk.yellow('enabled') : 'disabled');
+		console.log('Credentials authentication:', config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled');
 	});
 
 program

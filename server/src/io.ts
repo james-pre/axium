@@ -1,8 +1,8 @@
-import chalk from 'chalk';
 import { Logger } from 'logzen';
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
+import { styleText } from 'node:util';
 import { debug } from './config.js';
 
 /** Convenience function for `example... [Done. / error]` */
@@ -20,7 +20,8 @@ export async function report<T>(promise: Promise<T>, message: string, success: s
 
 export function err(message: string | Error): void {
 	if (message instanceof Error) message = message.message;
-	console.error(message.startsWith('\x1b') ? message : chalk.red(message));
+
+	console.error(message.startsWith('\x1b') ? message : styleText('red', message));
 }
 
 /** Yet another convenience function */
@@ -31,7 +32,7 @@ export function exit(message: string | Error, code: number = 1): never {
 
 export function verbose(...message: any[]) {
 	if (!debug) return;
-	console.debug(chalk.gray(message));
+	console.debug(styleText('gray', message.join(' ')));
 }
 
 /**

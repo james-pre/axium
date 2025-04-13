@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import chalk from 'chalk';
 import { Option, program } from 'commander';
+import { styleText } from 'node:util';
 import $pkg from './package.json' with { type: 'json' };
 
 program.version($pkg.version).name('axium-client').description('Axium client CLI');
@@ -46,7 +46,7 @@ async function report<T>(promise: Promise<T>, message: string, success: string =
 
 function err(message: string | Error): void {
 	if (message instanceof Error) message = message.message;
-	console.error(message.startsWith('\x1b') ? message : chalk.red(message));
+	console.error(message.startsWith('\x1b') ? message : styleText('red', message));
 }
 
 /** Yet another convenience function */
