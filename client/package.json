@@ -1,7 +1,7 @@
 {
 	"name": "@axium/client",
 	"version": "0.0.1",
-	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"author": "James Prevett <jp@jamespre.dev>",
 	"funding": {
 		"type": "individual",
 		"url": "https://github.com/sponsors/james-pre"
@@ -20,9 +20,6 @@
 	"files": [
 		"dist"
 	],
-	"bin": {
-		"axium-client": "dist/cli.js"
-	},
 	"scripts": {
 		"build": "tsc"
 	},
