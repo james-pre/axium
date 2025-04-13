@@ -32,7 +32,7 @@
 </script>
 
 <svelte:head>
-	<link rel="prefetch" {href} />
+	<link rel="preload" {href} />
 </svelte:head>
 
 <span>{@html content}</span>
