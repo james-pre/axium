@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { page } from '$app/state';
-	import Icon from '$lib/Icon.svelte';
+	import Icon from '../lib/Icon.svelte';
 	import { getUserImage } from '@axium/core';
 
-	const { user } = page.data;
+	const { data } = $props();
+
+	const { user } = data;
 
 	const image = getUserImage(user);
 </script>

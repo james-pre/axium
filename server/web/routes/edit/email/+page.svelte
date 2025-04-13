@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { page } from '$app/state';
-	const { user } = page.data.session;
-	let { form } = $props();
+	let { form, data } = $props();
+	const { user } = data.session;
 </script>
 
 <svelte:head>
