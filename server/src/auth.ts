@@ -129,11 +129,5 @@ export function getConfig(): AuthConfig & { providers: Providers } {
 		secret: config.auth.secret,
 		useSecureCookies: config.auth.secure_cookies,
 		session: { strategy: 'database' },
-		callbacks: {
-			signIn({ user, account }) {
-				console.log('[auth:signin:callback]', user);
-				return true;
-			},
-		},
 	};
 }

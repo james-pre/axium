@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { WithRequired } from 'utilium';
 import * as config from './config.js';
-import { verbose } from './io.js';
+import { logger } from './io.js';
 
 export interface Schema {
 	User: {
@@ -162,7 +162,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 	_fixOutput(opt);
 	if (!config.db.password) {
 		config.save({ db: { password: randomBytes(32).toString('base64') } }, true);
-		verbose('Generated password and wrote to global config');
+		logger.debug('Generated password and wrote to global config');
 	}
 
 	const _sql = (command: string, message: string) => execSQL(opt, command, message);

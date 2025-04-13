@@ -2,10 +2,9 @@
 import { levelText } from 'logzen';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path/posix';
-import { styleText } from 'node:util';
 import { assignWithDefaults, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
-import { findDir } from './io.js';
+import { findDir, logger, output } from './io.js';
 
 export const Database = z.object({
 	host: z.string(),
@@ -40,14 +39,12 @@ export const auth: Auth = {
 
 export const Log = z.object({
 	level: z.enum(levelText),
-	path: z.string(),
 	console: z.boolean(),
 });
 export type Log = z.infer<typeof Log>;
 
 export const log: Log = {
 	level: 'info',
-	path: join(findDir(false), 'logs'),
 	console: true,
 };
 
@@ -85,6 +82,9 @@ export function set(config: PartialRecursive<Config>) {
 	assignWithDefaults(auth, config.auth ?? {});
 	debug = config.debug ?? debug;
 	assignWithDefaults(db, config.db ?? {});
+	assignWithDefaults(log, config.log ?? {});
+	logger.detach(output);
+	if (log.console) logger.attach(output, { output: log.level });
 }
 
 export const files = new Map<string, PartialRecursive<Config>>();
@@ -115,7 +115,7 @@ export function load(path: string, options: LoadOptions = {}) {
 		json = JSON.parse(readFileSync(path, 'utf8'));
 	} catch (e: any) {
 		if (!options.optional) throw e;
-		debug && console.debug(styleText('gray', `Skipping config at ${path} (${e.message})`));
+		debug && output.debug(`Skipping config at ${path} (${e.message})`);
 		return;
 	}
 
@@ -145,7 +145,7 @@ export function saveTo(path: string, changed: PartialRecursive<Config>) {
 	const config = files.get(path) ?? {};
 	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
 
-	debug && console.debug(styleText('gray', `Wrote config to ${path}`));
+	debug && output.debug(`Wrote config to ${path}`);
 	writeFileSync(path, JSON.stringify(config));
 }
 

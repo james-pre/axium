@@ -5,7 +5,7 @@ import { getByString, isJSON, pick, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
 import * as config from './config.js';
 import * as db from './database.js';
-import { err, exit } from './io.js';
+import { exit, output } from './io.js';
 
 program
 	.version($pkg.version)
@@ -21,7 +21,7 @@ program.on('option:config', () => config.load(program.opts<OptCommon>().config))
 program.hook('preAction', function (_, action: Command) {
 	config.loadDefaults();
 	const opt = action.optsWithGlobals<OptCommon>();
-	opt.force && console.log(styleText('yellow', '--force: Protections disabled.'));
+	opt.force && output.warn('--force: Protections disabled.');
 });
 
 // Options shared by multiple (sub)commands
@@ -90,12 +90,16 @@ axiumDB
 	.command('status')
 	.alias('stats')
 	.description('check the status of the database')
-	.action(async () =>
-		db
-			.statusText()
-			.then(console.log)
-			.catch(() => exit('Unavailable'))
-	);
+	.action(async () => {
+		try {
+			console.log(await db.statusText());
+		} catch {
+			output.error('Unavailable');
+			process.exitCode = 1;
+		} finally {
+			await db.database.destroy();
+		}
+	});
 
 axiumDB
 	.command('drop')
@@ -108,7 +112,7 @@ axiumDB
 			for (const key of ['users', 'accounts', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				console.warn(styleText('yellow', `Database has existing ${key}. Use --force if you really want to drop the database.`));
+				output.warn(`Database has existing ${key}. Use --force if you really want to drop the database.`);
 				process.exit(2);
 			}
 
@@ -127,7 +131,7 @@ axiumDB
 			for (const key of ['users', 'accounts', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				console.warn(styleText('yellow', `Database has existing ${key}. Use --force if you really want to wipe the database.`));
+				output.warn(`Database has existing ${key}. Use --force if you really want to wipe the database.`);
 				process.exit(2);
 			}
 
@@ -199,10 +203,13 @@ program
 		console.log('Loaded config files:', config.files.keys().toArray().join(', '));
 
 		process.stdout.write('Database: ');
-		await db
-			.statusText()
-			.then(console.log)
-			.catch(() => err('Unavailable'));
+
+		try {
+			console.log(await db.statusText());
+		} catch {
+			output.error('Unavailable');
+		}
+		await db.database.destroy();
 
 		console.log('Credentials authentication:', config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled');
 	});
