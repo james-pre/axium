@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import { adapter } from '../../src/auth.js';
 import type { PageServerLoadEvent } from './$types';
 
 export async function load(event: PageServerLoadEvent) {
@@ -7,5 +8,7 @@ export async function load(event: PageServerLoadEvent) {
 	if (!session) redirect(307, '/auth/signin');
 	if (!session.user.name) redirect(307, '/edit/name');
 
-	return { session };
+	const user = await adapter.getUserByEmail(session.user.email);
+
+	return { session, user };
 }

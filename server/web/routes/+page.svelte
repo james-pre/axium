@@ -3,7 +3,7 @@
 	import Icon from '$lib/Icon.svelte';
 	import { getUserImage } from '@axium/core';
 
-	const { user } = page.data.session;
+	const { user } = page.data;
 
 	const image = getUserImage(user);
 </script>
@@ -22,6 +22,11 @@
 			<p>{user.email}</p>
 			<a href="/edit/email"><Icon id="chevron-right" /></a>
 		</div>
+		<div>
+			<p>User ID <dfn title="This is your UUID."><Icon id="circle-info" style="regular" /></dfn></p>
+			<p>{user.id}</p>
+		</div>
+		<a id="signout" href="/auth/signout"><button>Sign out</button></a>
 	</div>
 </div>
 
@@ -49,7 +54,7 @@
 		width: 50%;
 		padding-top: 4em;
 
-		> :not(:last-child) {
+		> div:has(+ div) {
 			border-bottom: 1px solid #8888;
 		}
 	}
@@ -75,12 +80,16 @@
 			grid-column: 2;
 		}
 
-		> :last-child {
+		> a:last-child {
 			margin: 0;
 			display: inline;
 			grid-column: 3;
 			font-size: 0.75em;
 			cursor: pointer;
 		}
+	}
+
+	#signout {
+		margin-top: 2em;
 	}
 </style>

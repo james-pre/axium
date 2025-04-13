@@ -30,10 +30,10 @@
 	});
 </script>
 
-<div>{@html content}</div>
+<span>{@html content}</span>
 
 <style>
-	div {
+	span {
 		width: 1em;
 		height: 1em;
 		display: inline-block;
