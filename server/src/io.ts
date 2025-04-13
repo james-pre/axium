@@ -1,4 +1,5 @@
 import chalk from 'chalk';
+import { Logger } from 'logzen';
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
@@ -53,3 +54,7 @@ export function checkDir(path: string) {
 }
 
 if (process.getuid?.() === 0) checkDir('/etc/axium');
+
+export const log = new Logger({
+	hideWarningStack: true,
+});

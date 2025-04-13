@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path/posix';
 import { assignWithDefaults, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
 import { findDir } from './io.js';
+import { levelText } from 'logzen';
 
 export const Database = z.object({
 	host: z.string(),
@@ -37,12 +38,27 @@ export const auth: Auth = {
 	secure_cookies: false,
 };
 
+export const Log = z.object({
+	level: z.enum(levelText),
+	path: z.string(),
+	console: z.boolean(),
+});
+export type Log = z.infer<typeof Log>;
+
+export const log: Log = {
+	level: 'info',
+	path: join(findDir(false), 'logs'),
+	console: true,
+};
+
 export const Config = z.object({
 	auth: Auth.partial(),
 	debug: z.boolean(),
 	db: Database.partial(),
+	log: Log.partial(),
 });
 
+// config from file
 export const File = Config.deepPartial().extend({
 	include: z.array(z.string()).optional(),
 });
@@ -58,6 +74,7 @@ export function get(): Config {
 		auth,
 		db,
 		debug,
+		log,
 	};
 }
 
