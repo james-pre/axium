@@ -35,10 +35,9 @@
 
 <style>
 	span {
-		width: 1em;
-		height: 1em;
+		width: var(--size, 1em);
+		height: var(--size, 1em);
 		display: inline-block;
 		fill: #bbb;
-		font-size: var(--size, auto);
 	}
 </style>
