@@ -1,7 +1,7 @@
-import { Name } from '@axium/core/schemas';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
-import { adapter } from '../../../../dist/auth.js';
-import type { PageServerLoadEvent } from './$types';
+import * as z from 'zod';
+import { adapter } from '../../../dist/auth.js';
+import type { PageServerLoadEvent } from './$types.js';
 
 export async function load(event: PageServerLoadEvent) {
 	const session = await event.locals.auth();
@@ -13,22 +13,22 @@ export const actions = {
 	async default(event) {
 		const session = await event.locals.auth();
 
-		const rawName = (await event.request.formData()).get('name');
-		const { data: name, success, error } = Name.safeParse(rawName);
+		const rawEmail = (await event.request.formData()).get('email');
+		const { data: email, success, error } = z.string().email().safeParse(rawEmail);
 
 		if (!success)
 			return fail(400, {
-				name,
+				email,
 				error: error.flatten().formErrors[0] || Object.values(error.flatten().fieldErrors).flat()[0],
 			});
 
 		const user = await adapter.getUserByEmail(session.user.email);
-		if (!user) return fail(500, { name, error: 'User does not exist' });
+		if (!user) return fail(500, { email, error: 'User does not exist' });
 
 		try {
-			await adapter.updateUser({ id: user.id, name, image: user.image });
+			await adapter.updateUser({ id: user.id, email, image: user.image });
 		} catch (error: any) {
-			return fail(400, { name, error: typeof error === 'string' ? error : error.message });
+			return fail(400, { email, error: typeof error === 'string' ? error : error.message });
 		}
 		redirect(303, '/');
 	},

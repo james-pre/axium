@@ -6,7 +6,7 @@ export async function load(event: PageServerLoadEvent) {
 	const session = await event.locals.auth();
 
 	if (!session) redirect(307, '/auth/signin');
-	if (!session.user.name) redirect(307, '/edit/name');
+	if (!session.user.name) redirect(307, '/name');
 
 	const user = await adapter.getUserByEmail(session.user.email);
 
