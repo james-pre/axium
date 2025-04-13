@@ -16,6 +16,7 @@ export function findDir(global: boolean): string {
 }
 
 if (process.getuid?.() === 0) mkdirSync('/etc/axium', { recursive: true });
+mkdirSync(findDir(false), { recursive: true });
 
 export const logger = new Logger({
 	hideWarningStack: true,
@@ -44,11 +45,7 @@ export const output = {
 logger.attach(output);
 
 export function attachLogFiles(): void {
-	const logDir = join(findDir(false), 'logs');
-	mkdirSync(logDir, { recursive: true });
-
-	logger.attach(createWriteStream(join(logDir, 'latest.log')));
-	logger.attach(createWriteStream(join(logDir, new Date().toISOString() + '.log')));
+	logger.attach(createWriteStream(join(findDir(false), 'server.log')));
 }
 
 /** Yet another convenience function */

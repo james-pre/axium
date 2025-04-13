@@ -3,6 +3,9 @@
 	"debug": true,
 	"auth": {
 		"secure_cookies": false,
-		"debug": false
+		"debug": true
+	},
+	"log": {
+		"level": "debug"
 	}
 }

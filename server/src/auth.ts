@@ -11,6 +11,7 @@ import { randomBytes } from 'node:crypto';
 import { omit } from 'utilium';
 import * as config from './config.js';
 import * as db from './database.js';
+import { logger } from './io.js';
 
 declare module '@auth/core/adapters' {
 	interface AdapterUser {
@@ -129,5 +130,33 @@ export function getConfig(): AuthConfig & { providers: Providers } {
 		secret: config.auth.secret,
 		useSecureCookies: config.auth.secure_cookies,
 		session: { strategy: 'database' },
+		logger: {
+			error(error: Error) {
+				logger.error('[auth] ' + error.message);
+			},
+			warn(code): void {
+				switch (code) {
+					case 'experimental-webauthn':
+					case 'debug-enabled':
+						return;
+					case 'csrf-disabled':
+						logger.warn('CSRF protection is disabled.');
+						break;
+					case 'env-url-basepath-redundant':
+					case 'env-url-basepath-mismatch':
+					default:
+						logger.warn('[auth] ' + code);
+				}
+			},
+			debug(message: string, metadata?: unknown) {
+				logger.debug('[auth] ' + message + (metadata ? JSON.stringify(metadata) : ''));
+			},
+		},
+		callbacks: {
+			signIn({ user }) {
+				logger.debug('[auth] signin', user.id ?? '', user.email ? `(${user.email})` : '');
+				return true;
+			},
+		},
 	};
 }
