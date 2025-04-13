@@ -3,7 +3,7 @@
 	import Icon from '../lib/Icon.svelte';
 	import '../lib/styles.css';
 
-	const { data, children } = $props();
+	const { data, children = () => {} } = $props();
 
 	const { user } = data;
 
@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>Axium Account</title>
+	<title>Account</title>
 </svelte:head>
 
 <div id="content">
