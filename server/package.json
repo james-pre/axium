@@ -1,6 +1,6 @@
 {
 	"name": "@axium/server",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"funding": {
 		"type": "individual",
@@ -24,6 +24,7 @@
 		"./web/*": "./web/*"
 	},
 	"files": [
+		"src",
 		"dist",
 		"web"
 	],
