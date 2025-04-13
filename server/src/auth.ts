@@ -122,10 +122,12 @@ export function getConfig(): AuthConfig & { providers: Providers } {
 		);
 	}
 
+	const debug = config.auth.debug ?? config.debug;
+
 	return {
 		adapter,
 		providers,
-		debug: config.auth.debug ?? config.debug,
+		debug,
 		experimental: { enableWebAuthn: true },
 		secret: config.auth.secret,
 		useSecureCookies: config.auth.secure_cookies,
@@ -149,12 +151,12 @@ export function getConfig(): AuthConfig & { providers: Providers } {
 				}
 			},
 			debug(message: string, metadata?: unknown) {
-				logger.debug('[auth] ' + message + (metadata ? JSON.stringify(metadata) : ''));
+				debug && logger.debug('[auth]', message, metadata ? JSON.stringify(metadata, (k, v) => (k && JSON.stringify(v).length > 100 ? '...' : v)) : '');
 			},
 		},
 		callbacks: {
 			signIn({ user }) {
-				logger.debug('[auth] signin', user.id ?? '', user.email ? `(${user.email})` : '');
+				logger.info('[auth] signin', user.id ?? '', user.email ? `(${user.email})` : '');
 				return true;
 			},
 		},

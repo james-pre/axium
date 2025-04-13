@@ -1,5 +1,5 @@
 import { Logger, type LoggerConsole } from 'logzen';
-import { createWriteStream, mkdirSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
@@ -43,10 +43,6 @@ export const output = {
 } satisfies LoggerConsole;
 
 logger.attach(output);
-
-export function attachLogFiles(): void {
-	logger.attach(createWriteStream(join(findDir(false), 'server.log')));
-}
 
 /** Yet another convenience function */
 export function exit(message: string | Error, code: number = 1): never {
