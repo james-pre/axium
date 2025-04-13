@@ -31,6 +31,10 @@
 	});
 </script>
 
+<svelte:head>
+	<link rel="prefetch" {href} />
+</svelte:head>
+
 <span>{@html content}</span>
 
 <style>
