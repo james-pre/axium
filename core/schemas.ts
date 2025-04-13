@@ -4,6 +4,7 @@ export const Name = z.string().min(1, 'Name is required').max(255, 'Name is too 
 export type Name = z.infer<typeof Name>;
 
 export const User = z.object({
+	id: z.string().uuid(),
 	email: z.string().email(),
 	name: Name,
 	image: z.string().url(),
