@@ -2,7 +2,7 @@
 	import Icon from '../lib/Icon.svelte';
 	import { getUserImage } from '@axium/core';
 
-	const { data } = $props();
+	const { data, children } = $props();
 
 	const { user } = data;
 
@@ -33,6 +33,7 @@
 		</div>
 		<a id="signout" href="/auth/signout"><button>Sign out</button></a>
 	</div>
+	{@render children()}
 </div>
 
 <style>
