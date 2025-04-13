@@ -7,12 +7,7 @@ export default {
 		strictPort: true,
 		port: 443,
 	},
-	plugins: [
-		sveltekit(),
-		mkcert({
-			hosts: ['axium.localhost'],
-		}),
-	],
+	plugins: [sveltekit(), mkcert({ hosts: ['test.localhost'] })],
 	esbuild: {
 		target: 'es2021',
 		sourceRoot: 'web',
