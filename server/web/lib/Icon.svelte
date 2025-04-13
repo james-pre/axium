@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	const { id, style = 'solid' } = $props();
+	const { id } = $props();
 
-	const href = `https://site-assets.fontawesome.com/releases/v6.7.2/svgs/${style}/${id}.svg`;
+	const withStyle = id.includes('/') ? id : 'solid/' + id;
+	const href = `https://site-assets.fontawesome.com/releases/v6.7.2/svgs/${withStyle}.svg`;
 
 	let content = $state('');
 
@@ -38,5 +39,6 @@
 		height: 1em;
 		display: inline-block;
 		fill: #bbb;
+		font-size: var(--size, auto);
 	}
 </style>

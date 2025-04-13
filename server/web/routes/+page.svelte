@@ -27,7 +27,7 @@
 			<a href="/edit/email"><Icon id="chevron-right" /></a>
 		</div>
 		<div>
-			<p>User ID <dfn title="This is your UUID."><Icon id="circle-info" style="regular" /></dfn></p>
+			<p>User ID <dfn title="This is your UUID."><Icon id="regular/circle-info" /></dfn></p>
 			<p>{user.id}</p>
 		</div>
 		<a id="signout" href="/auth/signout"><button>Sign out</button></a>
