@@ -17,7 +17,7 @@
 <div id="content">
 	<img id="pfp" src={image} alt="User profile" />
 	<p id="greeting">Welcome, {user.name}</p>
-	<div class="main">
+	<div class="account-section main">
 		<div>
 			<p>Name</p>
 			<p>{user.name}</p>
@@ -57,7 +57,7 @@
 		margin-bottom: 1em;
 	}
 
-	.main {
+	:global(.account-section) {
 		width: 50%;
 		padding-top: 4em;
 
@@ -66,7 +66,7 @@
 		}
 	}
 
-	.main > div {
+	:global(.account-section) > div {
 		display: grid;
 		grid-template-columns: 10em 1fr 2em;
 		align-items: center;
