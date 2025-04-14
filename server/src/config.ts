@@ -127,7 +127,7 @@ export function load(path: string, options: LoadOptions = {}) {
 		json = JSON.parse(readFileSync(path, 'utf8'));
 	} catch (e: any) {
 		if (!options.optional) throw e;
-		logger.debug(`Skipping config at ${path} (${e.message})`);
+		debug && output.debug(`Skipping config at ${path} (${e.message})`);
 		return;
 	}
 
@@ -157,7 +157,7 @@ export function saveTo(path: string, changed: PartialRecursive<Config>) {
 	const config = files.get(path) ?? {};
 	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
 
-	logger.debug(`Wrote config to ${path}`);
+	debug && output.debug(`Wrote config to ${path}`);
 	writeFileSync(path, JSON.stringify(config));
 }
 

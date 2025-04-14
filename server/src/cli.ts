@@ -1,27 +1,29 @@
 #!/usr/bin/env node
-import { Option, program, type Command } from 'commander';
+import { Argument, Option, program, type Command } from 'commander';
 import { styleText } from 'node:util';
-import { getByString, isJSON, pick, setByString } from 'utilium';
+import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
 import * as config from './config.js';
 import * as db from './database.js';
-import { exit, output } from './io.js';
+import { _portActions, _portMethods, exit, output, restrictedPorts, type PortOptions } from './io.js';
 
 program
 	.version($pkg.version)
 	.name('axium')
 	.description('Axium server CLI')
 	.configureHelp({ showGlobalOptions: true })
-	.option('-D, --debug', 'override debug mode', false)
+	.option('--debug', 'override debug mode')
+	.option('--no-debug', 'override debug mode')
 	.option('-c, --config <path>', 'path to the config file');
 
-program.on('option:debug', () => config.set(pick(program.opts<OptCommon>(), 'debug')));
+program.on('option:debug', () => config.set({ debug: true }));
 program.on('option:config', () => config.load(program.opts<OptCommon>().config));
 
 program.hook('preAction', function (_, action: Command) {
 	config.loadDefaults();
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');
+	if (opt.debug === false) config.set({ debug: false });
 });
 
 // Options shared by multiple (sub)commands
@@ -54,33 +56,13 @@ interface OptDB extends OptCommon {
 	force: boolean;
 }
 
-function db_output(state: 'done'): void;
-function db_output(state: Exclude<db.OpOutputState, 'done'>, message: string): void;
-function db_output(state: db.OpOutputState, message: string = ''): void {
-	switch (state) {
-		case 'start':
-			process.stdout.write(message + '... ');
-			break;
-		case 'log':
-		case 'warn':
-			process.stdout.write(styleText('yellow', message));
-			break;
-		case 'error':
-			process.stdout.write(styleText('red', message));
-			break;
-		case 'done':
-			console.log('done.');
-			break;
-	}
-}
-
 axiumDB
 	.command('init')
 	.description('initialize the database')
 	.addOption(opts.force)
 	.option('-s, --skip', 'Skip existing database and/or user')
 	.action(async (opt: OptDB & { skip: boolean }) => {
-		await db.init({ ...opt, output: db_output }).catch((e: number | string | Error) => {
+		await db.init(opt).catch((e: number | string | Error) => {
 			if (typeof e == 'number') process.exit(e);
 			else exit(e);
 		});
@@ -116,7 +98,7 @@ axiumDB
 				process.exit(2);
 			}
 
-		await db.uninstall({ ...opt, output: db_output }).catch(exit);
+		await db.uninstall(opt).catch(exit);
 		await db.database.destroy();
 	});
 
@@ -135,7 +117,7 @@ axiumDB
 				process.exit(2);
 			}
 
-		await db.wipe({ ...opt, output: db_output }).catch(exit);
+		await db.wipe(opt).catch(exit);
 		await db.database.destroy();
 	});
 
@@ -146,7 +128,6 @@ interface OptConfig extends OptCommon {
 
 const axiumConfig = program
 	.command('config')
-	.alias('conf')
 	.description('manage the configuration')
 	.option('-j, --json', 'values are JSON encoded')
 	.option('-g, --global', 'apply to the global config');
@@ -215,15 +196,30 @@ program
 	});
 
 program
+	.command('ports')
+	.description('Enable or disable use of restricted ports (e.g. 443)')
+	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
+	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
+	.action((action: PortOptions['action'], opt: OptCommon & Pick<PortOptions, 'method'>) => {
+		try {
+			restrictedPorts({ ...opt, action });
+		} catch (e: any) {
+			if (typeof e == 'number') process.exit(e);
+			else exit(e);
+		}
+	});
+
+program
 	.command('init')
 	.description('Install Axium server')
 	.addOption(opts.force)
 	.addOption(opts.host)
 	.action(async (opt: OptDB & { dbSkip: boolean }) => {
-		await db.init({ ...opt, skip: opt.dbSkip, output: db_output }).catch((e: number | string | Error) => {
+		await db.init({ ...opt, skip: opt.dbSkip }).catch((e: number | string | Error) => {
 			if (typeof e == 'number') process.exit(e);
 			else exit(e);
 		});
+		restrictedPorts({ method: 'node-cap', action: 'enable' });
 	});
 
 program.parse();

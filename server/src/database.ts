@@ -3,10 +3,9 @@ import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
 import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
-import type { WithRequired } from 'utilium';
 import type { Preferences } from './auth.js';
 import * as config from './config.js';
-import { logger } from './io.js';
+import { _fixOutput, type MaybeOutput, type WithOutput } from './io.js';
 
 export interface Schema {
 	User: {
@@ -99,24 +98,9 @@ export async function statusText(): Promise<string> {
 	}
 }
 
-export type OpOutputState = 'done' | 'log' | 'warn' | 'error' | 'start';
-
-export type OpOutput = {
-	(state: 'done'): void;
-	(state: Exclude<OpOutputState, 'done'>, message: string): void;
-};
-
-/**
- * TS can't tell when we do this inline
- */
-function _fixOutput(opt: OpOptions): asserts opt is WithRequired<OpOptions, 'output'> {
-	opt.output ??= () => {};
-}
-
-export interface OpOptions {
+export interface OpOptions extends MaybeOutput {
 	timeout: number;
 	force: boolean;
-	output?: OpOutput;
 }
 
 export interface InitOptions extends OpOptions {
@@ -127,7 +111,7 @@ export interface InitOptions extends OpOptions {
  * Convenience function for `sudo -u postgres psql -c "${command}"`, plus `report` coolness.
  * @internal
  */
-async function execSQL(opts: WithRequired<OpOptions, 'output'>, command: string, message: string) {
+async function execSQL(opts: OpOptions & WithOutput, command: string, message: string) {
 	let stderr: string | undefined;
 
 	try {
@@ -145,7 +129,7 @@ async function execSQL(opts: WithRequired<OpOptions, 'output'>, command: string,
 	}
 }
 
-function shouldRecreate(opt: WithRequired<InitOptions, 'output'>): boolean {
+function shouldRecreate(opt: InitOptions & WithOutput): boolean {
 	if (opt.skip) {
 		opt.output('warn', 'already exists. (skipped)\n');
 		return true;
@@ -164,7 +148,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 	_fixOutput(opt);
 	if (!config.db.password) {
 		config.save({ db: { password: randomBytes(32).toString('base64') } }, true);
-		logger.debug('Generated password and wrote to global config');
+		opt.output('debug', 'Generated password and wrote to global config');
 	}
 
 	const _sql = (command: string, message: string) => execSQL(opt, command, message);
