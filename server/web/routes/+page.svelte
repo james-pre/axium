@@ -3,7 +3,7 @@
 	import Icon from '../lib/Icon.svelte';
 	import '../lib/styles.css';
 
-	const { data, children = () => {} } = $props();
+	const { data, children = () => {}, prefix = '' } = $props();
 
 	const { user } = data;
 
@@ -21,12 +21,12 @@
 		<div>
 			<p>Name</p>
 			<p>{user.name}</p>
-			<a href="name"><Icon id="chevron-right" /></a>
+			<a href="{prefix}/name"><Icon id="chevron-right" /></a>
 		</div>
 		<div>
 			<p>Email</p>
 			<p>{user.email}</p>
-			<a href="email"><Icon id="chevron-right" /></a>
+			<a href="{prefix}/email"><Icon id="chevron-right" /></a>
 		</div>
 		<div>
 			<p>User ID <dfn title="This is your UUID."><Icon id="regular/circle-info" /></dfn></p>

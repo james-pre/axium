@@ -2,7 +2,7 @@ import { Registration } from '@axium/core/schemas';
 import { fail, redirect } from '@sveltejs/kit';
 import * as auth from '../../../dist/auth.js';
 import * as config from '../../../dist/config.js';
-import type { Actions } from './$types';
+import type { Actions } from './$types.js';
 
 export function load() {
 	if (!config.auth.credentials) return redirect(307, '/auth/signin');
