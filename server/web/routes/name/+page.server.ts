@@ -1,6 +1,7 @@
 import { Name } from '@axium/core/schemas';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { adapter } from '../../../dist/auth.js';
+import { web } from '../../../dist/config.js';
 import type { PageServerLoadEvent } from './$types.js';
 
 export async function load(event: PageServerLoadEvent) {
@@ -30,6 +31,6 @@ export const actions = {
 		} catch (error: any) {
 			return fail(400, { name, error: typeof error === 'string' ? error : error.message });
 		}
-		redirect(303, '/');
+		redirect(303, web.prefix);
 	},
 } satisfies Actions;

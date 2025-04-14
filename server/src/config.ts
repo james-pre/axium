@@ -48,11 +48,21 @@ export const log: Log = {
 	console: true,
 };
 
+export const Web = z.object({
+	prefix: z.string(),
+});
+export type Web = z.infer<typeof Web>;
+
+export const web: Web = {
+	prefix: '',
+};
+
 export const Config = z.object({
 	auth: Auth.partial(),
 	debug: z.boolean(),
 	db: Database.partial(),
 	log: Log.partial(),
+	web: Web.partial(),
 });
 
 // config from file
@@ -72,6 +82,7 @@ export function get(): Config {
 		db,
 		debug,
 		log,
+		web,
 	};
 }
 
@@ -83,6 +94,7 @@ export function set(config: PartialRecursive<Config>) {
 	debug = config.debug ?? debug;
 	assignWithDefaults(db, config.db ?? {});
 	assignWithDefaults(log, config.log ?? {});
+	assignWithDefaults(web, config.web ?? {});
 	logger.detach(output);
 	if (log.console) logger.attach(output, { output: log.level });
 }

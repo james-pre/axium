@@ -1,9 +1,19 @@
 <script lang="ts">
 	import { getUserImage } from '@axium/core';
+	import { web } from '../../dist/config.js';
 	import Icon from '../lib/Icon.svelte';
 	import '../lib/styles.css';
+	import type { PageData } from './$types.js';
 
-	const { data, children = () => {}, prefix = '' } = $props();
+	const {
+		data,
+		children = () => {},
+		prefix = web.prefix,
+	}: {
+		data: PageData;
+		children: () => any;
+		prefix: string;
+	} = $props();
 
 	const { user } = data;
 

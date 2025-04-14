@@ -2,6 +2,7 @@ import { fail, redirect, type Actions } from '@sveltejs/kit';
 import * as z from 'zod';
 import { adapter } from '../../../dist/auth.js';
 import type { PageServerLoadEvent } from './$types.js';
+import { web } from '../../../dist/config.js';
 
 export async function load(event: PageServerLoadEvent) {
 	const session = await event.locals.auth();
@@ -30,6 +31,6 @@ export const actions = {
 		} catch (error: any) {
 			return fail(400, { email, error: typeof error === 'string' ? error : error.message });
 		}
-		redirect(303, '/');
+		redirect(303, web.prefix);
 	},
 } satisfies Actions;
