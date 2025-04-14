@@ -1,11 +1,10 @@
 import type { AdapterAccountType as db } from '@auth/core/adapters';
 import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
-import { exec } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { Preferences } from './auth.js';
 import * as config from './config.js';
-import { _fixOutput, type MaybeOutput, type WithOutput } from './io.js';
+import { _fixOutput, run, type MaybeOutput, type WithOutput } from './io.js';
 
 export interface Schema {
 	User: {
@@ -107,28 +106,6 @@ export interface InitOptions extends OpOptions {
 	skip: boolean;
 }
 
-/**
- * Convenience function for `sudo -u postgres psql -c "${command}"`, plus `report` coolness.
- * @internal
- */
-async function execSQL(opts: OpOptions & WithOutput, command: string, message: string) {
-	let stderr: string | undefined;
-
-	try {
-		opts.output('start', message);
-		const { promise, resolve, reject } = Promise.withResolvers<void>();
-		exec(`sudo -u postgres psql -c "${command}"`, opts, (err, _, _stderr) => {
-			stderr = _stderr.startsWith('ERROR:') ? _stderr.slice(6).trim() : _stderr;
-			if (err) reject('[command]');
-			else resolve();
-		});
-		await promise;
-		opts.output('done');
-	} catch (error: any) {
-		throw error == '[command]' ? stderr?.slice(0, 100) || 'failed.' : typeof error == 'object' && 'message' in error ? error.message : error;
-	}
-}
-
 function shouldRecreate(opt: InitOptions & WithOutput): boolean {
 	if (opt.skip) {
 		opt.output('warn', 'already exists. (skipped)\n');
@@ -151,7 +128,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 		opt.output('debug', 'Generated password and wrote to global config');
 	}
 
-	const _sql = (command: string, message: string) => execSQL(opt, command, message);
+	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
 
 	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
 		if (error != 'database "axium" already exists') throw error;
@@ -275,9 +252,10 @@ export async function init(opt: InitOptions): Promise<config.Database> {
  */
 export async function uninstall(opt: OpOptions): Promise<void> {
 	_fixOutput(opt);
-	await execSQL(opt, 'DROP DATABASE axium', 'Dropping database');
-	await execSQL(opt, 'REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
-	await execSQL(opt, 'DROP USER axium', 'Dropping user');
+	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
+	await _sql('DROP DATABASE axium', 'Dropping database');
+	await _sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
+	await _sql('DROP USER axium', 'Dropping user');
 }
 
 /**

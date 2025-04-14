@@ -1,5 +1,5 @@
 import { Logger, type LoggerConsole } from 'logzen';
-import { execSync } from 'node:child_process';
+import { exec, execSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
@@ -46,6 +46,29 @@ export const output = {
 
 logger.attach(output);
 
+/**
+ * Run a system command with the fancy "Example... done."
+ * @internal
+ */
+export async function run(opts: WithOutput & { timeout?: number }, message: string, command: string): Promise<string> {
+	let stderr: string | undefined;
+
+	try {
+		opts.output('start', message);
+		const { promise, resolve, reject } = Promise.withResolvers<string>();
+		exec(command, opts, (err, stdout, _stderr) => {
+			stderr = _stderr.startsWith('ERROR:') ? _stderr.slice(6).trim() : _stderr;
+			if (err) reject('[command]');
+			else resolve(stdout);
+		});
+		const value = await promise;
+		opts.output('done');
+		return value;
+	} catch (error: any) {
+		throw error == '[command]' ? stderr?.slice(0, 100) || 'failed.' : typeof error == 'object' && 'message' in error ? error.message : error;
+	}
+}
+
 /** Yet another convenience function */
 export function exit(message: string | Error, code: number = 1): never {
 	if (message instanceof Error) message = message.message;
@@ -53,17 +76,9 @@ export function exit(message: string | Error, code: number = 1): never {
 	process.exit(code);
 }
 
-/** Convenience function for `example... [done. / error]` */
-export async function report<T>(promise: Promise<T>, message: string, success: string = 'done.'): Promise<T> {
-	process.stdout.write(message + '... ');
-
-	try {
-		const result = await promise;
-		console.log(success);
-		return result;
-	} catch (error: any) {
-		throw typeof error == 'object' && 'message' in error ? error.message : error;
-	}
+export function handleError(e: number | string | Error) {
+	if (typeof e == 'number') process.exit(e);
+	else exit(e);
 }
 
 export type OutputState = 'done' | 'log' | 'warn' | 'error' | 'start' | 'debug';
@@ -136,7 +151,7 @@ export interface PortOptions extends MaybeOutput {
  * Use of these ports is needed so the origin doesn't have a port.
  * If the origin has a port, passkeys do not work correctly with some password managers.
  */
-export function restrictedPorts(opt: PortOptions) {
+export async function restrictedPorts(opt: PortOptions) {
 	_fixOutput(opt);
 	opt.output('start', 'Checking for root privileges');
 	if (process.getuid?.() != 0) throw 'root privileges are needed to change restricted ports.';
@@ -152,33 +167,36 @@ export function restrictedPorts(opt: PortOptions) {
 
 	switch (opt.method) {
 		case 'node-cap': {
-			opt.output('start', 'Finding setcap');
-			let setcap = execSync('command -v setcap', { encoding: 'utf-8' }).trim();
-			if (setcap) opt.output('done');
-			else {
-				opt.output('warn', 'not in path.');
-				opt.output('start', 'Checking for /usr/sbin/setcap');
-				fs.accessSync('/usr/sbin/setcap', fs.constants.X_OK);
-				setcap = '/usr/sbin/setcap';
-				opt.output('done');
-			}
+			const setcap = await run(opt, 'Finding setcap', 'command -v setcap')
+				.then(e => e.trim())
+				.catch(() => {
+					opt.output('warn', 'not in path.');
+					opt.output('start', 'Checking for /usr/sbin/setcap');
+					fs.accessSync('/usr/sbin/setcap', fs.constants.X_OK);
+					opt.output('done');
+					return '/usr/sbin/setcap';
+				});
+
 			opt.output('debug', 'Using setup at ' + setcap);
 
-			opt.output('start', 'Finding node');
-			let node = execSync('command -v node', { encoding: 'utf-8' }).trim();
-			if (node) opt.output('done');
-			else {
-				opt.output('warn', 'not in path.');
-				opt.output('start', 'Checking for /usr/bin/node');
-				fs.accessSync('/usr/bin/node', fs.constants.X_OK);
-				node = '/usr/bin/node';
-				opt.output('done');
-			}
+			let node = await run(opt, 'Finding node', 'command -v node')
+				.then(e => e.trim())
+				.catch(() => {
+					opt.output('warn', 'not in path.');
+					opt.output('start', 'Checking for /usr/bin/node');
+					fs.accessSync('/usr/bin/node', fs.constants.X_OK);
+					opt.output('done');
+					return '/usr/bin/node';
+				});
+
+			opt.output('start', 'Resolving real path for node');
+			node = fs.realpathSync(node);
+			opt.output('done');
+
 			opt.output('debug', 'Using node at ' + node);
 
-			opt.output('start', 'Setting ports capability');
-			execSync(`${setcap} cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep ${node}`, { encoding: 'utf-8' });
-			opt.output('done');
+			await run(opt, 'Setting ports capability', `${setcap} cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep ${node}`);
+
 			break;
 		}
 	}

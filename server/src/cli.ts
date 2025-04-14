@@ -5,7 +5,7 @@ import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
 import * as config from './config.js';
 import * as db from './database.js';
-import { _portActions, _portMethods, exit, output, restrictedPorts, type PortOptions } from './io.js';
+import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 
 program
 	.version($pkg.version)
@@ -200,13 +200,8 @@ program
 	.description('Enable or disable use of restricted ports (e.g. 443)')
 	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
 	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
-	.action((action: PortOptions['action'], opt: OptCommon & Pick<PortOptions, 'method'>) => {
-		try {
-			restrictedPorts({ ...opt, action });
-		} catch (e: any) {
-			if (typeof e == 'number') process.exit(e);
-			else exit(e);
-		}
+	.action(async (action: PortOptions['action'], opt: OptCommon & Pick<PortOptions, 'method'>) => {
+		await restrictedPorts({ ...opt, action }).catch(handleError);
 	});
 
 program
@@ -215,11 +210,8 @@ program
 	.addOption(opts.force)
 	.addOption(opts.host)
 	.action(async (opt: OptDB & { dbSkip: boolean }) => {
-		await db.init({ ...opt, skip: opt.dbSkip }).catch((e: number | string | Error) => {
-			if (typeof e == 'number') process.exit(e);
-			else exit(e);
-		});
-		restrictedPorts({ method: 'node-cap', action: 'enable' });
+		await db.init({ ...opt, skip: opt.dbSkip }).catch(handleError);
+		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(handleError);
 	});
 
 program.parse();
