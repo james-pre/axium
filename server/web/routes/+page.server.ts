@@ -11,5 +11,5 @@ export async function load(event: PageServerLoadEvent) {
 
 	const user = await adapter.getUserByEmail(session.user.email);
 
-	return { session, user };
+	return { session, user, prefix: web.prefix };
 }
