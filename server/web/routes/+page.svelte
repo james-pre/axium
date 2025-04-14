@@ -51,6 +51,7 @@
 		display: flex;
 		align-items: center;
 		flex-direction: column;
+		gap: 1em;
 	}
 
 	#pfp {
@@ -58,12 +59,11 @@
 		height: 100px;
 		border-radius: 50%;
 		border: 1px solid #8888;
-		margin: 3em auto 2em;
+		margin-top: 3em;
 	}
 
 	#greeting {
 		font-size: 2em;
-		margin-bottom: 1em;
 	}
 
 	:global(.account-section) {
