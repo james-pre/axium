@@ -144,6 +144,7 @@ export const _portActions = ['enable', 'disable'] as const;
 export interface PortOptions extends MaybeOutput {
 	method: (typeof _portMethods)[number];
 	action: (typeof _portActions)[number];
+	node?: string;
 }
 
 /**
@@ -179,7 +180,8 @@ export async function restrictedPorts(opt: PortOptions) {
 
 			opt.output('debug', 'Using setup at ' + setcap);
 
-			let node = await run(opt, 'Finding node', 'command -v node')
+			let { node } = opt;
+			node ||= await run(opt, 'Finding node', 'command -v node')
 				.then(e => e.trim())
 				.catch(() => {
 					opt.output('warn', 'not in path.');

@@ -200,7 +200,8 @@ program
 	.description('Enable or disable use of restricted ports (e.g. 443)')
 	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
 	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
-	.action(async (action: PortOptions['action'], opt: OptCommon & Pick<PortOptions, 'method'>) => {
+	.option('-N, --node <path>', 'the path to the node binary')
+	.action(async (action: PortOptions['action'], opt: OptCommon & Omit<PortOptions, 'action'>) => {
 		await restrictedPorts({ ...opt, action }).catch(handleError);
 	});
 
