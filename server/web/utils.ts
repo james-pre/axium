@@ -7,7 +7,7 @@ export function failZod(error: z.ZodError): ActionFailure<{ error: string }> {
 	});
 }
 
-export function tryZod<Input, Output>(result: z.SafeParseReturnType<Input, Output>): [Output?, ActionFailure<{ error: string }>?] {
-	if (result.success) return [result.data, undefined];
-	return [undefined, failZod(result.error)];
+export function tryZod<Input, Output>(result: z.SafeParseReturnType<Input, Output>): [Output, null] | [null, ActionFailure<{ error: string }>] {
+	if (result.success) return [result.data, null];
+	return [null, failZod(result.error)];
 }
