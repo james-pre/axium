@@ -66,6 +66,13 @@ button:hover {
 	color: #ccc;
 }
 
+.success {
+	padding: 1em;
+	border-radius: 0.5em;
+	background-color: #373;
+	color: #ccc;
+}
+
 .subtle {
 	color: #bbbb;
 	font-size: 0.9em;
