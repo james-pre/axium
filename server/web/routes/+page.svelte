@@ -2,6 +2,7 @@
 	import { getUserImage } from '@axium/core';
 	import Icon from '../lib/Icon.svelte';
 	import '../lib/styles.css';
+	import '../lib/account.css';
 	import type { PageData } from './$types.js';
 
 	const {
@@ -27,18 +28,18 @@
 	<img id="pfp" src={image} alt="User profile" />
 	<p id="greeting">Welcome, {user.name}</p>
 	<div class="account-section main">
-		<div>
-			<p>Name</p>
+		<div class="account-item">
+			<p class="subtle">Name</p>
 			<p>{user.name}</p>
-			<a href="{prefix}/name"><Icon id="chevron-right" /></a>
+			<a class="change" href="{prefix}/name"><Icon id="chevron-right" /></a>
 		</div>
-		<div>
-			<p>Email</p>
+		<div class="account-item">
+			<p class="subtle">Email</p>
 			<p>{user.email}</p>
-			<a href="{prefix}/email"><Icon id="chevron-right" /></a>
+			<a class="change" href="{prefix}/email"><Icon id="chevron-right" /></a>
 		</div>
-		<div>
-			<p>User ID <dfn title="This is your UUID."><Icon id="regular/circle-info" /></dfn></p>
+		<div class="account-item">
+			<p class="subtle">User ID <dfn title="This is your UUID."><Icon id="regular/circle-info" /></dfn></p>
 			<p>{user.id}</p>
 		</div>
 		<a id="signout" href="/auth/signout"><button>Sign out</button></a>
@@ -64,45 +65,6 @@
 
 	#greeting {
 		font-size: 2em;
-	}
-
-	:global(.account-section) {
-		width: 50%;
-		padding-top: 4em;
-
-		> div:has(+ div) {
-			border-bottom: 1px solid #8888;
-		}
-	}
-
-	:global(.account-section) > div {
-		display: grid;
-		grid-template-columns: 10em 1fr 2em;
-		align-items: center;
-		width: 100%;
-		gap: 1em;
-		text-wrap: nowrap;
-		padding-bottom: 1em;
-
-		> :first-child {
-			margin: 0 5em 0 1em;
-			color: #bbbb;
-			font-size: 0.9em;
-			grid-column: 1;
-		}
-
-		> :nth-child(2) {
-			margin: 0;
-			grid-column: 2;
-		}
-
-		> a:last-child {
-			margin: 0;
-			display: inline;
-			grid-column: 3;
-			font-size: 0.75em;
-			cursor: pointer;
-		}
 	}
 
 	#signout {

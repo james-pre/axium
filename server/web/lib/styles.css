@@ -65,3 +65,8 @@ button:hover {
 	background-color: #733;
 	color: #ccc;
 }
+
+.subtle {
+	color: #bbbb;
+	font-size: 0.9em;
+}
