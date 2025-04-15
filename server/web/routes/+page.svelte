@@ -11,8 +11,8 @@
 		prefix,
 	}: {
 		data: PageData;
-		children: () => any;
-		prefix: string;
+		children?: () => any;
+		prefix?: string;
 	} = $props();
 
 	const { user } = data;
