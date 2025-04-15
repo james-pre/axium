@@ -2,6 +2,7 @@ import { Name } from '@axium/core/schemas';
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import { adapter } from '../../../dist/auth.js';
 import { web } from '../../../dist/config.js';
+import { tryZod } from '../../utils.js';
 import type { PageServerLoadEvent } from './$types.js';
 
 export async function load(event: PageServerLoadEvent) {
@@ -15,13 +16,8 @@ export const actions = {
 		const session = await event.locals.auth();
 
 		const rawName = (await event.request.formData()).get('name');
-		const { data: name, success, error } = Name.safeParse(rawName);
-
-		if (!success)
-			return fail(400, {
-				name,
-				error: error.flatten().formErrors[0] || Object.values(error.flatten().fieldErrors).flat()[0],
-			});
+		const [name, error] = tryZod(Name.safeParse(rawName));
+		if (error) error;
 
 		const user = await adapter.getUserByEmail(session.user.email);
 		if (!user) return fail(500, { name, error: 'User does not exist' });

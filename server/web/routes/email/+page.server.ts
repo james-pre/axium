@@ -1,8 +1,9 @@
 import { fail, redirect, type Actions } from '@sveltejs/kit';
 import * as z from 'zod';
 import { adapter } from '../../../dist/auth.js';
-import type { PageServerLoadEvent } from './$types.js';
 import { web } from '../../../dist/config.js';
+import { tryZod } from '../../utils.js';
+import type { PageServerLoadEvent } from './$types.js';
 
 export async function load(event: PageServerLoadEvent) {
 	const session = await event.locals.auth();
@@ -15,13 +16,8 @@ export const actions = {
 		const session = await event.locals.auth();
 
 		const rawEmail = (await event.request.formData()).get('email');
-		const { data: email, success, error } = z.string().email().safeParse(rawEmail);
-
-		if (!success)
-			return fail(400, {
-				email,
-				error: error.flatten().formErrors[0] || Object.values(error.flatten().fieldErrors).flat()[0],
-			});
+		const [email, error] = tryZod(z.string().email().safeParse(rawEmail));
+		if (error) return error;
 
 		const user = await adapter.getUserByEmail(session.user.email);
 		if (!user) return fail(500, { email, error: 'User does not exist' });
