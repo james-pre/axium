@@ -55,6 +55,7 @@
 		align-items: center;
 		flex-direction: column;
 		gap: 1em;
+		overflow-y: scroll;
 	}
 
 	#pfp {
