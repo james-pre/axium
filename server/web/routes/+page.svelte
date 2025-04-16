@@ -4,6 +4,7 @@
 	import '../lib/styles.css';
 	import '../lib/account.css';
 	import type { PageData } from './$types.js';
+	import { goto } from '$app/navigation';
 
 	const {
 		data,
@@ -16,6 +17,7 @@
 	} = $props();
 
 	const { user } = data;
+	if (!user) goto('/auth/signin');
 
 	const image = getUserImage(user);
 </script>
