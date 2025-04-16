@@ -46,7 +46,8 @@
 		"kysely": "^0.27.5",
 		"logzen": "^0.6.2",
 		"pg": "^8.14.1",
-		"utilium": "^2.2.3"
+		"utilium": "^2.2.3",
+		"zod-validation-error": "^3.4.0"
 	},
 	"devDependencies": {
 		"@auth/sveltekit": "^1.8.0",

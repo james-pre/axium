@@ -1,14 +1,31 @@
-import { fail, type ActionFailure } from '@sveltejs/kit';
+import type { Session } from '@auth/sveltekit';
+import type { ActionFailure, RequestEvent } from '@sveltejs/kit';
+import { fail, redirect } from '@sveltejs/kit';
 import type * as z from 'zod';
+import { fromError } from 'zod-validation-error';
+import { web } from '../dist/config.js';
 
-export function failZod<T extends Record<string, unknown>>(error: z.ZodError, data: T = {} as T): ActionFailure<T & { error: string }> {
-	return fail(400, {
-		...data,
-		error: error.flatten().formErrors[0] || Object.values(error.flatten().fieldErrors).flat()[0],
-	});
+export async function loadSession(event: RequestEvent): Promise<{ session: Session }> {
+	const session = await event.locals.auth();
+	if (!session) redirect(307, '/auth/signin');
+	if (!session.user.name) redirect(307, web.prefix + '/name');
+	return { session };
 }
 
-export function tryZod<Input, Output>(result: z.SafeParseReturnType<Input, Output>): [Output, null] | [null, ActionFailure<Partial<Output> & { error: string }>] {
-	if (result.success) return [result.data, null];
-	return [null, failZod(result.error)];
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface FormFail<S extends z.AnyZodObject> extends ActionFailure<z.infer<S> & { error: string }> {}
+
+export async function parseForm<S extends z.AnyZodObject>(event: RequestEvent, schema: S): Promise<[z.infer<S>, FormFail<S> | null]> {
+	const formData = Object.fromEntries(await event.request.formData());
+	const { data, error, success } = schema.safeParse(formData);
+
+	if (success) return [data, null];
+
+	return [
+		data,
+		fail(400, {
+			...data,
+			error: fromError(error, { prefix: null }).toString(),
+		}),
+	];
 }

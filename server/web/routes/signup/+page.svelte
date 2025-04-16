@@ -4,7 +4,7 @@
 	let { form } = $props();
 </script>
 
-<div>
+<div class="Signup">
 	<form method="POST" class="main" use:enhance>
 		{#if form?.error}
 			<div class="error">

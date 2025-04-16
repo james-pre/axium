@@ -18,7 +18,7 @@
 	<title>Account</title>
 </svelte:head>
 
-<div class="flex-content">
+<div class="Account flex-content">
 	<img class="pfp" src={image} alt="User profile" />
 	<p class="greeting">Welcome, {user.name}</p>
 	<div class="account-section main">

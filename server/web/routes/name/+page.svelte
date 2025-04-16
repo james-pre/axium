@@ -9,7 +9,7 @@
 	<title>Edit Name</title>
 </svelte:head>
 
-<div>
+<div class="EditName">
 	<form method="POST" class="main" use:enhance>
 		{#if form?.error}
 			<div class="error">
