@@ -18,9 +18,9 @@
 	<title>Account</title>
 </svelte:head>
 
-<div id="content">
-	<img id="pfp" src={image} alt="User profile" />
-	<p id="greeting">Welcome, {user.name}</p>
+<div class="flex-content">
+	<img class="pfp" src={image} alt="User profile" />
+	<p class="greeting">Welcome, {user.name}</p>
 	<div class="account-section main">
 		<div class="account-item">
 			<p class="subtle">Name</p>
@@ -36,21 +36,13 @@
 			<p class="subtle">User ID <dfn title="This is your UUID."><Icon id="regular/circle-info" /></dfn></p>
 			<p>{user.id}</p>
 		</div>
-		<a id="signout" href="/auth/signout"><button>Sign out</button></a>
+		<a class="signout" href="/auth/signout"><button>Sign out</button></a>
 	</div>
 	{@render children()}
 </div>
 
 <style>
-	#content {
-		display: flex;
-		align-items: center;
-		flex-direction: column;
-		gap: 1em;
-		overflow-y: scroll;
-	}
-
-	#pfp {
+	.pfp {
 		width: 100px;
 		height: 100px;
 		border-radius: 50%;
@@ -58,11 +50,11 @@
 		margin-top: 3em;
 	}
 
-	#greeting {
+	.greeting {
 		font-size: 2em;
 	}
 
-	#signout {
+	.signout {
 		margin-top: 2em;
 	}
 </style>
