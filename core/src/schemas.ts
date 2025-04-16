@@ -1,12 +1,9 @@
 import * as z from 'zod';
 
-export const Name = z.string().min(1, 'Name is required').max(255, 'Name is too long');
-export type Name = z.infer<typeof Name>;
-
 export const User = z.object({
 	id: z.string().uuid(),
 	email: z.string().email(),
-	name: Name,
+	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
 	image: z.string().url(),
 });
 export type User = z.infer<typeof User>;
