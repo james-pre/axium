@@ -1,3 +1,7 @@
+body {
+	overflow-y: scroll;
+}
+
 .account-section {
 	width: 50%;
 	padding-top: 4em;
