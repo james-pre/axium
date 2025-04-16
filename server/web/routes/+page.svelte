@@ -1,20 +1,12 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { getUserImage } from '@axium/core';
+	import '../lib/account.css';
 	import Icon from '../lib/Icon.svelte';
 	import '../lib/styles.css';
-	import '../lib/account.css';
 	import type { PageData } from './$types.js';
-	import { goto } from '$app/navigation';
 
-	const {
-		data,
-		children = () => {},
-		prefix,
-	}: {
-		data: PageData;
-		children?: () => any;
-		prefix?: string;
-	} = $props();
+	const { data, children = () => {} }: { data: PageData; children?: () => any } = $props();
 
 	const { user } = data;
 	if (!user) goto('/auth/signin');
@@ -33,12 +25,12 @@
 		<div class="account-item">
 			<p class="subtle">Name</p>
 			<p>{user.name}</p>
-			<a class="change" href="{prefix}/name"><Icon id="chevron-right" /></a>
+			<a class="change" href="{data.prefix}/name"><Icon id="chevron-right" /></a>
 		</div>
 		<div class="account-item">
 			<p class="subtle">Email</p>
 			<p>{user.email}</p>
-			<a class="change" href="{prefix}/email"><Icon id="chevron-right" /></a>
+			<a class="change" href="{data.prefix}/email"><Icon id="chevron-right" /></a>
 		</div>
 		<div class="account-item">
 			<p class="subtle">User ID <dfn title="This is your UUID."><Icon id="regular/circle-info" /></dfn></p>
