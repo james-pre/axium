@@ -4,7 +4,7 @@ import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { Preferences } from './auth.js';
 import * as config from './config.js';
-import { _fixOutput, run, type MaybeOutput, type WithOutput } from './io.js';
+import { _fixOutput, run, someWarnings, type MaybeOutput, type WithOutput } from './io.js';
 
 export interface Schema {
 	User: {
@@ -106,7 +106,7 @@ export interface InitOptions extends OpOptions {
 	skip: boolean;
 }
 
-function shouldRecreate(opt: InitOptions & WithOutput): boolean {
+export function shouldRecreate(opt: InitOptions & WithOutput): boolean {
 	if (opt.skip) {
 		opt.output('warn', 'already exists. (skipped)\n');
 		return true;
@@ -129,6 +129,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 	}
 
 	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
+	const relationExists = someWarnings(opt, [/relation "\w+" already exists/, 'already exists.']);
 
 	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
 		if (error != 'database "axium" already exists') throw error;
@@ -156,12 +157,6 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 
 	await using db = connect();
 
-	const relationExists = (table: string) => (error: string | Error) => {
-		error = typeof error == 'object' && 'message' in error ? error.message : error;
-		if (error == `relation "${table}" already exists`) opt.output('warn', 'already exists.');
-		else throw error;
-	};
-
 	opt.output('start', 'Creating table User');
 	await db.schema
 		.createTable('User')
@@ -174,7 +169,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 		.addColumn('salt', 'text')
 		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo(sql`'{}'::jsonb`))
 		.execute()
-		.catch(relationExists('User'));
+		.catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating table Account');
@@ -193,11 +188,11 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 		.addColumn('id_token', 'text')
 		.addColumn('session_state', 'text')
 		.execute()
-		.catch(relationExists('Account'));
+		.catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating index for Account.userId');
-	db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().catch(relationExists('Account_userId_index'));
+	db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating table Session');
@@ -208,11 +203,11 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 		.addColumn('sessionToken', 'text', col => col.notNull().unique())
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.execute()
-		.catch(relationExists('Session'));
+		.catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating index for Session.userId');
-	db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().catch(relationExists('Session_userId_index'));
+	db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating table VerificationToken');
@@ -222,7 +217,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 		.addColumn('token', 'text', col => col.notNull().unique())
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.execute()
-		.catch(relationExists('VerificationToken'));
+		.catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating table Authenticator');
@@ -237,11 +232,11 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 		.addColumn('credentialBackedUp', 'boolean', col => col.notNull())
 		.addColumn('transports', 'text')
 		.execute()
-		.catch(relationExists('Authenticator'));
+		.catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating index for Authenticator.credentialID');
-	db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().catch(relationExists('Authenticator_credentialID_key'));
+	db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().catch(relationExists);
 	opt.output('done');
 
 	return config.db;

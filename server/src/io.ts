@@ -1,5 +1,5 @@
 import { Logger, type LoggerConsole } from 'logzen';
-import { exec, execSync } from 'node:child_process';
+import { exec } from 'node:child_process';
 import * as fs from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
@@ -202,4 +202,19 @@ export async function restrictedPorts(opt: PortOptions) {
 			break;
 		}
 	}
+}
+
+/**
+ * This is a factory for handling errors when performing operations.
+ * The handler will allow the parent scope to continue if a relation already exists,
+ * rather than fatally exiting.
+ */
+export function someWarnings(opt: WithOutput, ...allowList: [RegExp, string?][]): (error: string | Error) => void {
+	return (error: string | Error) => {
+		error = typeof error == 'object' && 'message' in error ? error.message : error;
+		for (const [pattern, message = error] of allowList) {
+			if (pattern.test(error)) opt.output('warn', message);
+		}
+		throw error;
+	};
 }
