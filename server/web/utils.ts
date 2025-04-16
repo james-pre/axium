@@ -8,7 +8,7 @@ import { web } from '../dist/config.js';
 export async function loadSession(event: RequestEvent): Promise<{ session: Session }> {
 	const session = await event.locals.auth();
 	if (!session) redirect(307, '/auth/signin');
-	if (!session.user.name) redirect(307, web.prefix + '/name');
+	if (!session.user.name && event.url.pathname != web.prefix + '/name') redirect(307, web.prefix + '/name');
 	return { session };
 }
 
