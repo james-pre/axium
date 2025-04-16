@@ -129,7 +129,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 	}
 
 	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
-	const relationExists = someWarnings(opt, [/relation "\w+" already exists/, 'already exists.']);
+	const relationExists = someWarnings(opt.output, [/relation "\w+" already exists/, 'already exists.']);
 
 	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
 		if (error != 'database "axium" already exists') throw error;
