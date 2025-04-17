@@ -192,7 +192,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 	opt.output('done');
 
 	opt.output('start', 'Creating index for Account.userId');
-	db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().catch(relationExists);
+	await db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating table Session');
@@ -207,7 +207,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 	opt.output('done');
 
 	opt.output('start', 'Creating index for Session.userId');
-	db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().catch(relationExists);
+	await db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().catch(relationExists);
 	opt.output('done');
 
 	opt.output('start', 'Creating table VerificationToken');
@@ -236,7 +236,7 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 	opt.output('done');
 
 	opt.output('start', 'Creating index for Authenticator.credentialID');
-	db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().catch(relationExists);
+	await db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().catch(relationExists);
 	opt.output('done');
 
 	return config.db;

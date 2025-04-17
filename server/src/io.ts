@@ -110,10 +110,10 @@ export function defaultOutput(state: OutputState, message: string = ''): void {
 			console.log(message);
 			break;
 		case 'warn':
-			process.stdout.write(styleText('yellow', message));
+			console.warn(styleText('yellow', message));
 			break;
 		case 'error':
-			process.stdout.write(styleText('red', message));
+			console.error(styleText('red', message));
 			break;
 		case 'done':
 			console.log('done.');
