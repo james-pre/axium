@@ -62,10 +62,7 @@ axiumDB
 	.addOption(opts.force)
 	.option('-s, --skip', 'Skip existing database and/or user')
 	.action(async (opt: OptDB & { skip: boolean }) => {
-		await db.init(opt).catch((e: number | string | Error) => {
-			if (typeof e == 'number') process.exit(e);
-			else exit(e);
-		});
+		await db.init(opt).catch(handleError);
 	});
 
 axiumDB
