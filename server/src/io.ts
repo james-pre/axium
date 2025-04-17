@@ -213,7 +213,9 @@ export function someWarnings(output: Output, ...allowList: [RegExp, string?][]):
 	return (error: string | Error) => {
 		error = typeof error == 'object' && 'message' in error ? error.message : error;
 		for (const [pattern, message = error] of allowList) {
-			if (pattern.test(error)) output('warn', message);
+			if (!pattern.test(error)) continue;
+			output('warn', message);
+			return;
 		}
 		throw error;
 	};
