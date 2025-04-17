@@ -1,28 +1,15 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
+	import SignUp from '../../lib/SignUp.svelte';
 	import '../../lib/styles.css';
 	let { form } = $props();
+	$effect(() => {
+		if (form?.success) goto('/');
+	});
 </script>
 
-<div class="Signup">
-	<form method="POST" class="main" use:enhance>
-		{#if form?.error}
-			<div class="error">
-				{typeof form.error === 'string' ? form.error : JSON.stringify(form.error)}
-			</div>
-		{/if}
-		<div>
-			<label for="name">Display Name</label>
-			<input name="name" type="text" value={form?.name || ''} required />
-		</div>
-		<div>
-			<label for="email">Email</label>
-			<input name="email" type="email" value={form?.email || ''} required />
-		</div>
-		<div>
-			<label for="password">Password</label>
-			<input name="password" type="password" />
-		</div>
-		<button type="submit">Register</button>
-	</form>
-</div>
+<svelte:head>
+	<title>Sign Up</title>
+</svelte:head>
+
+<SignUp {form} />

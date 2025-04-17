@@ -1,14 +1,14 @@
 import { Registration, User } from '@axium/core/schemas';
 import type { RequestEvent } from '@sveltejs/kit';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import { adapter, register } from '../dist/auth.js';
-import { web } from '../dist/config.js';
 import { parseForm } from './utils.js';
 
 export async function editEmail(event: RequestEvent) {
 	const session = await event.locals.auth();
+	if (!session) return fail(401, { error: 'You are not signed in' });
 
-	const [{ email }, error] = await parseForm(event, User.pick({ email: true }));
+	const [{ email } = {}, error] = await parseForm(event, User.pick({ email: true }));
 	if (error) return error;
 
 	const user = await adapter.getUserByEmail(session.user.email);
@@ -19,13 +19,14 @@ export async function editEmail(event: RequestEvent) {
 	} catch (error: any) {
 		return fail(400, { email, error: typeof error === 'string' ? error : error.message });
 	}
-	redirect(303, web.prefix);
+	return { success: true };
 }
 
 export async function editName(event: RequestEvent) {
 	const session = await event.locals.auth();
+	if (!session) return fail(401, { error: 'You are not signed in' });
 
-	const [{ name }, error] = await parseForm(event, User.pick({ name: true }));
+	const [{ name } = {}, error] = await parseForm(event, User.pick({ name: true }));
 	if (error) return error;
 
 	const user = await adapter.getUserByEmail(session.user.email);
@@ -36,7 +37,7 @@ export async function editName(event: RequestEvent) {
 	} catch (error: any) {
 		return fail(400, { name, error: typeof error === 'string' ? error : error.message });
 	}
-	redirect(303, web.prefix);
+	return { success: true };
 }
 
 export async function signup(event: RequestEvent) {
