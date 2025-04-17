@@ -108,16 +108,16 @@ export interface InitOptions extends OpOptions {
 
 export function shouldRecreate(opt: InitOptions & WithOutput): boolean {
 	if (opt.skip) {
-		opt.output('warn', 'already exists. (skipped)\n');
+		opt.output('warn', 'already exists. (skipped)');
 		return true;
 	}
 
 	if (opt.force) {
-		opt.output('warn', 'already exists. (re-creating)\n');
+		opt.output('warn', 'already exists. (re-creating)');
 		return false;
 	}
 
-	opt.output('warn', 'already exists. Use --skip to skip or --force to re-create.\n');
+	opt.output('warn', 'already exists. Use --skip to skip or --force to re-create.');
 	throw 2;
 }
 
