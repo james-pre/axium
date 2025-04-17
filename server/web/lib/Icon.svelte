@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 
-	const { id } = $props();
+	const { i } = $props();
 
-	const withStyle = id.includes('/') ? id : 'solid/' + id;
+	const withStyle = i.includes('/') ? i : 'solid/' + i;
 	const href = `https://site-assets.fontawesome.com/releases/v6.7.2/svgs/${withStyle}.svg`;
 
 	let content = $state('');

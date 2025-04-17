@@ -25,15 +25,15 @@
 		<div class="account-item">
 			<p class="subtle">Name</p>
 			<p>{user.name}</p>
-			<a class="change" href="{data.prefix}/name"><Icon id="chevron-right" /></a>
+			<a class="change" href="{data.prefix}/name"><Icon i="chevron-right" /></a>
 		</div>
 		<div class="account-item">
 			<p class="subtle">Email</p>
 			<p>{user.email}</p>
-			<a class="change" href="{data.prefix}/email"><Icon id="chevron-right" /></a>
+			<a class="change" href="{data.prefix}/email"><Icon i="chevron-right" /></a>
 		</div>
 		<div class="account-item">
-			<p class="subtle">User ID <dfn title="This is your UUID."><Icon id="regular/circle-info" /></dfn></p>
+			<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
 			<p>{user.id}</p>
 		</div>
 		<a class="signout" href="/auth/signout"><button>Sign out</button></a>
