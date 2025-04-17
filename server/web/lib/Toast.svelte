@@ -3,17 +3,13 @@
 
 	const { enabled, children, delay = 5000, duration = 1000, ...rest } = $props();
 
-	let done = $state(false);
+	let hiding = $state(false);
 
-	$effect(() => {
-		done = false;
-	});
-
-	const show = $derived(enabled && !done);
+	const show = $derived(enabled && !hiding);
 </script>
 
 {#if show}
-	<div class="Toast" in:fade|global={{ duration }} onintroend={() => (done = true)} out:fade|global={{ delay, duration }} {...rest}>
+	<div class="Toast" in:fade|global={{ duration }} onintroend={() => (hiding = true)} out:fade|global={{ delay, duration }} onoutroend={() => (hiding = false)} {...rest}>
 		{@render children()}
 	</div>
 {/if}
