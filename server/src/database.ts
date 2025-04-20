@@ -79,13 +79,16 @@ export interface Stats {
 	sessions: number;
 }
 
-export async function status(): Promise<Stats> {
+export async function count(table: keyof Schema): Promise<number> {
 	const db = connect();
+	return (await db.selectFrom(table).select(db.fn.countAll<number>().as('count')).executeTakeFirstOrThrow()).count;
+}
 
+export async function status(): Promise<Stats> {
 	return {
-		users: (await db.selectFrom('User').select(db.fn.countAll<number>().as('count')).executeTakeFirstOrThrow()).count,
-		accounts: (await db.selectFrom('Account').select(db.fn.countAll<number>().as('count')).executeTakeFirstOrThrow()).count,
-		sessions: (await db.selectFrom('Session').select(db.fn.countAll<number>().as('count')).executeTakeFirstOrThrow()).count,
+		users: await count('User'),
+		accounts: await count('Account'),
+		sessions: await count('Session'),
 	};
 }
 
