@@ -9,7 +9,7 @@ import { Login, Registration } from '@axium/core/schemas';
 import { genSaltSync, hashSync } from 'bcryptjs';
 import { randomBytes } from 'node:crypto';
 import { omit } from 'utilium';
-import * as config from './config.js';
+import config from './config.js';
 import * as db from './database.js';
 import { logger } from './io.js';
 

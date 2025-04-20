@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
-import { debug } from './config.js';
+import config from './config.js';
 
 /**
  * Find the Axium directory.
@@ -104,7 +104,7 @@ export function defaultOutput(state: OutputState, message: string = ''): void {
 			process.stdout.write(message + '... ');
 			break;
 		case 'debug':
-			debug && output.debug(message);
+			config.debug && output.debug(message);
 			break;
 		case 'log':
 			console.log(message);

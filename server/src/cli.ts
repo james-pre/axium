@@ -3,7 +3,7 @@ import { Argument, Option, program, type Command } from 'commander';
 import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
-import * as config from './config.js';
+import config from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 
@@ -133,7 +133,7 @@ axiumConfig
 	.command('dump')
 	.description('Output the entire current configuration')
 	.action(() => {
-		const value = config.get();
+		const value = config;
 		console.log(axiumConfig.optsWithGlobals<OptConfig>().json ? JSON.stringify(value) : value);
 	});
 

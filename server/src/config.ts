@@ -2,104 +2,84 @@
 import { levelText } from 'logzen';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path/posix';
-import { assignWithDefaults, type PartialRecursive } from 'utilium';
+import { deepAssign, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
 import { findDir, logger, output } from './io.js';
 
-export const Database = z.object({
-	host: z.string(),
-	port: z.number(),
-	password: z.string(),
-	user: z.string(),
-	database: z.string(),
-});
-export type Database = z.infer<typeof Database>;
-
-export const db: Database = {
-	host: process.env.PGHOST || 'localhost',
-	port: process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432,
-	password: process.env.PGPASSWORD || '',
-	user: process.env.PGUSER || 'axium',
-	database: process.env.PGDATABASE || 'axium',
-};
-
-export const Auth = z.object({
-	credentials: z.boolean(),
-	debug: z.boolean().optional(),
-	secret: z.string(),
-	secure_cookies: z.boolean(),
-});
-export type Auth = z.infer<typeof Auth>;
-
-export const auth: Auth = {
-	credentials: false,
-	secret: '',
-	secure_cookies: false,
-};
-
-export const Log = z.object({
-	level: z.enum(levelText),
-	console: z.boolean(),
-});
-export type Log = z.infer<typeof Log>;
-
-export const log: Log = {
-	level: 'info',
-	console: true,
-};
-
-export const Web = z.object({
-	prefix: z.string(),
-});
-export type Web = z.infer<typeof Web>;
-
-export const web: Web = {
-	prefix: '',
-};
-
-export const Config = z.object({
-	auth: Auth.partial(),
+export const Schema = z.object({
+	auth: z.object({
+		credentials: z.boolean(),
+		debug: z.boolean(),
+		secret: z.string(),
+		secure_cookies: z.boolean(),
+	}),
+	db: z.object({
+		host: z.string(),
+		port: z.number(),
+		password: z.string(),
+		user: z.string(),
+		database: z.string(),
+	}),
 	debug: z.boolean(),
-	db: Database.partial(),
-	log: Log.partial(),
-	web: Web.partial(),
+	log: z.object({
+		level: z.enum(levelText),
+		console: z.boolean(),
+	}),
+	web: z.object({
+		prefix: z.string(),
+	}),
 });
+
+export interface Config extends Record<string, unknown>, z.infer<typeof Schema> {}
+
+export const configFiles = new Map<string, PartialRecursive<Config>>();
+
+export const config = {
+	auth: {
+		credentials: false,
+		debug: false,
+		secret: '',
+		secure_cookies: true,
+	},
+	db: {
+		database: process.env.PGDATABASE || 'axium',
+		host: process.env.PGHOST || 'localhost',
+		password: process.env.PGPASSWORD || '',
+		port: process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432,
+		user: process.env.PGUSER || 'axium',
+	},
+	debug: false,
+	log: {
+		console: true,
+		level: 'info',
+	},
+	web: {
+		prefix: '',
+	},
+	findPath: findConfigPath,
+	load: loadConfig,
+	loadDefaults: loadDefaultConfigs,
+	save: saveConfig,
+	saveTo: saveConfigTo,
+	set: setConfig,
+	files: configFiles,
+} satisfies Config;
+export default config;
 
 // config from file
-export const File = Config.deepPartial().extend({
+export const File = Schema.deepPartial().extend({
 	include: z.array(z.string()).optional(),
 });
-export type File = z.infer<typeof File>;
-
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface Config extends z.infer<typeof Config> {}
-
-export let debug: boolean = false;
-
-export function get(): Config {
-	return {
-		auth,
-		db,
-		debug,
-		log,
-		web,
-	};
-}
+export interface File extends PartialRecursive<Config>, z.infer<typeof File> {}
 
 /**
  * Update the current config
  */
-export function set(config: PartialRecursive<Config>) {
-	assignWithDefaults(auth, config.auth ?? {});
-	debug = config.debug ?? debug;
-	assignWithDefaults(db, config.db ?? {});
-	assignWithDefaults(log, config.log ?? {});
-	assignWithDefaults(web, config.web ?? {});
+export function setConfig(other: PartialRecursive<Config>) {
+	deepAssign(config, other);
 	logger.detach(output);
-	if (log.console) logger.attach(output, { output: log.level });
+	if (config.log.console) logger.attach(output, { output: config.log.level });
 }
-
-export const files = new Map<string, PartialRecursive<Config>>();
 
 export interface LoadOptions {
 	/**
@@ -121,52 +101,52 @@ export interface LoadOptions {
 /**
  * Load the config from the provided path
  */
-export function load(path: string, options: LoadOptions = {}) {
+export function loadConfig(path: string, options: LoadOptions = {}) {
 	let json;
 	try {
 		json = JSON.parse(readFileSync(path, 'utf8'));
 	} catch (e: any) {
 		if (!options.optional) throw e;
-		debug && output.debug(`Skipping config at ${path} (${e.message})`);
+		config.debug && output.debug(`Skipping config at ${path} (${e.message})`);
 		return;
 	}
 
-	const config: File = options.strict ? File.parse(json) : json;
-	files.set(path, config);
-	set(config);
-	for (const include of config.include ?? []) load(join(dirname(path), include), { optional: true });
+	const file: File = options.strict ? File.parse(json) : json;
+	configFiles.set(path, file);
+	setConfig(file);
+	for (const include of file.include ?? []) loadConfig(join(dirname(path), include), { optional: true });
 }
 
-export function loadDefaults() {
-	load(findPath(true), { optional: true });
-	load(findPath(false), { optional: true });
+export function loadDefaultConfigs() {
+	loadConfig(findConfigPath(true), { optional: true });
+	loadConfig(findConfigPath(false), { optional: true });
 }
 
 /**
  * Update the current config and write the updated config to the appropriate file
  */
-export function save(changed: PartialRecursive<Config>, global: boolean = false) {
-	saveTo(process.env.AXIUM_CONFIG ?? findPath(global), changed);
+export function saveConfig(changed: PartialRecursive<Config>, global: boolean = false) {
+	saveConfigTo(process.env.AXIUM_CONFIG ?? findConfigPath(global), changed);
 }
 
 /**
  * Update the current config and write the updated config to the provided path
  */
-export function saveTo(path: string, changed: PartialRecursive<Config>) {
-	set(changed);
-	const config = files.get(path) ?? {};
+export function saveConfigTo(path: string, changed: PartialRecursive<Config>) {
+	setConfig(changed);
+	const config = configFiles.get(path) ?? {};
 	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
 
-	debug && output.debug(`Wrote config to ${path}`);
+	config.debug && output.debug(`Wrote config to ${path}`);
 	writeFileSync(path, JSON.stringify(config));
 }
 
 /**
  * Find the path to the config file
  */
-export function findPath(global: boolean): string {
+export function findConfigPath(global: boolean): string {
 	if (process.env.AXIUM_CONFIG) return process.env.AXIUM_CONFIG;
 	return join(findDir(global), 'config.json');
 }
 
-if (process.env.AXIUM_CONFIG) load(process.env.AXIUM_CONFIG);
+if (process.env.AXIUM_CONFIG) loadConfig(process.env.AXIUM_CONFIG);

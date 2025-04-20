@@ -3,7 +3,7 @@ import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
 import type { Preferences } from './auth.js';
-import * as config from './config.js';
+import config from './config.js';
 import { _fixOutput, run, someWarnings, type MaybeOutput, type WithOutput } from './io.js';
 
 export interface Schema {
@@ -121,7 +121,7 @@ export function shouldRecreate(opt: InitOptions & WithOutput): boolean {
 	throw 2;
 }
 
-export async function init(opt: InitOptions): Promise<config.Database> {
+export async function init(opt: InitOptions): Promise<void> {
 	_fixOutput(opt);
 	if (!config.db.password) {
 		config.save({ db: { password: randomBytes(32).toString('base64') } }, true);
@@ -236,8 +236,6 @@ export async function init(opt: InitOptions): Promise<config.Database> {
 
 	opt.output('start', 'Creating index for Authenticator.credentialID');
 	await db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().then(done).catch(relationExists);
-
-	return config.db;
 }
 
 /**
