@@ -15,13 +15,9 @@ export const Plugin = z.object({
 		.args()
 		.returns(z.union([z.string(), z.promise(z.string())]))
 		.optional(),
-	db: z
-		.object({
-			init: z.function(),
-			remove: z.function(),
-			wipe: z.function(),
-		})
-		.optional(),
+	db_init: z.function().optional(),
+	db_remove: z.function().optional(),
+	db_wipe: z.function().optional(),
 });
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -42,7 +38,12 @@ export function pluginText(plugin: Plugin): string {
 		`Version: ${plugin.version}`,
 		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
 		`Status text integration: ${plugin.statusText ? styleText('whiteBright', 'yes') : styleText('yellow', 'no')}`,
-		`Database integration: ${plugin.db ? 'yes' : 'no'}`,
+		`Database integration: ${
+			[plugin.db_init, plugin.db_remove, plugin.db_wipe]
+				.filter(Boolean)
+				.map(fn => fn?.name.slice(3))
+				.join(', ') || styleText('dim', '(none)')
+		}`,
 	].join('\n');
 }
 

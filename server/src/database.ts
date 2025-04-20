@@ -249,9 +249,9 @@ export async function init(opt: InitOptions): Promise<void> {
 	await db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().then(done).catch(warnExists);
 
 	for (const plugin of plugins) {
-		if (!plugin.db) continue;
+		if (!plugin.db_init) continue;
 		opt.output('plugin', plugin.name);
-		await plugin.db.init(opt, db, { warnExists, done } satisfies PluginShortcuts);
+		await plugin.db_init(opt, db, { warnExists, done } satisfies PluginShortcuts);
 	}
 }
 
@@ -264,9 +264,9 @@ export async function uninstall(opt: OpOptions): Promise<void> {
 	const db = connect();
 
 	for (const plugin of plugins) {
-		if (!plugin.db) continue;
+		if (!plugin.db_remove) continue;
 		opt.output('plugin', plugin.name);
-		await plugin.db.remove(opt, db);
+		await plugin.db_remove(opt, db);
 	}
 
 	await db.destroy();
@@ -286,9 +286,9 @@ export async function wipe(opt: OpOptions): Promise<void> {
 	const db = connect();
 
 	for (const plugin of plugins) {
-		if (!plugin.db) continue;
+		if (!plugin.db_wipe) continue;
 		opt.output('plugin', plugin.name);
-		await plugin.db.wipe(opt, db);
+		await plugin.db_wipe(opt, db);
 	}
 
 	for (const table of ['User', 'Account', 'Session', 'VerificationToken', 'Authenticator'] as const) {
