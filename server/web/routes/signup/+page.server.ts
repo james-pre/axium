@@ -1,5 +1,5 @@
 import { redirect } from '@sveltejs/kit';
-import * as config from '../../../dist/config.js';
+import config from '../../../dist/config.js';
 import { signup } from '../../actions.js';
 import type { Actions } from './$types.js';
 
