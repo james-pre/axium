@@ -230,7 +230,6 @@ program
 		} catch {
 			output.error('Unavailable');
 		}
-		await db.database.destroy();
 
 		console.log(styleText('whiteBright', 'Credentials authentication:'), config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled');
 
@@ -246,6 +245,8 @@ program
 			console.log(styleText('bold', plugin.name + ':'));
 			console.log(await plugin.statusText());
 		}
+
+		await db.database.destroy();
 	});
 
 program
