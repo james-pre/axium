@@ -244,7 +244,7 @@ program
 		for (const plugin of plugins) {
 			if (!plugin.statusText) continue;
 			console.log(styleText('bold', plugin.name + ':'));
-			console.log(plugin.statusText());
+			console.log(await plugin.statusText());
 		}
 	});
 
