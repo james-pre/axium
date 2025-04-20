@@ -55,9 +55,11 @@ export interface Schema {
 	};
 }
 
-export let database: Kysely<Schema> & AsyncDisposable;
+export interface Database extends Kysely<Schema>, AsyncDisposable {}
 
-export function connect(): Kysely<Schema> & AsyncDisposable {
+export let database: Database;
+
+export function connect(): Database {
 	if (database) return database;
 
 	const _db = new Kysely<Schema>({
@@ -123,6 +125,11 @@ export function shouldRecreate(opt: InitOptions & WithOutput): boolean {
 
 	opt.output('warn', 'already exists. Use --skip to skip or --force to re-create.');
 	throw 2;
+}
+
+export interface PluginShortcuts {
+	done: () => void;
+	warnExists: (error: string | Error) => void;
 }
 
 export async function init(opt: InitOptions): Promise<void> {
@@ -244,7 +251,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	for (const plugin of plugins) {
 		if (!plugin.db) continue;
 		opt.output('plugin', plugin.name);
-		await plugin.db.init(opt, db, { warnExists, done });
+		await plugin.db.init(opt, db, { warnExists, done } satisfies PluginShortcuts);
 	}
 }
 

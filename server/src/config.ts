@@ -7,35 +7,48 @@ import * as z from 'zod';
 import { findDir, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 
-export const Schema = z.object({
-	auth: z.object({
-		credentials: z.boolean(),
+export const Schema = z
+	.object({
+		auth: z.object({
+			credentials: z.boolean(),
+			debug: z.boolean(),
+			secret: z.string(),
+			secure_cookies: z.boolean(),
+		}),
+		db: z.object({
+			host: z.string(),
+			port: z.number(),
+			password: z.string(),
+			user: z.string(),
+			database: z.string(),
+		}),
 		debug: z.boolean(),
-		secret: z.string(),
-		secure_cookies: z.boolean(),
-	}),
-	db: z.object({
-		host: z.string(),
-		port: z.number(),
-		password: z.string(),
-		user: z.string(),
-		database: z.string(),
-	}),
-	debug: z.boolean(),
-	log: z.object({
-		level: z.enum(levelText),
-		console: z.boolean(),
-	}),
-	web: z.object({
-		prefix: z.string(),
-	}),
-});
+		log: z.object({
+			level: z.enum(levelText),
+			console: z.boolean(),
+		}),
+		web: z.object({
+			prefix: z.string(),
+		}),
+	})
+	.passthrough();
 
 export interface Config extends Record<string, unknown>, z.infer<typeof Schema> {}
 
 export const configFiles = new Map<string, PartialRecursive<Config>>();
 
-export const config = {
+const configShortcuts = {
+	findPath: findConfigPath,
+	load: loadConfig,
+	loadDefaults: loadDefaultConfigs,
+	save: saveConfig,
+	saveTo: saveConfigTo,
+	set: setConfig,
+	files: configFiles,
+};
+
+export const config: Config & typeof configShortcuts = {
+	...configShortcuts,
 	auth: {
 		credentials: false,
 		debug: false,
@@ -57,21 +70,16 @@ export const config = {
 	web: {
 		prefix: '',
 	},
-	findPath: findConfigPath,
-	load: loadConfig,
-	loadDefaults: loadDefaultConfigs,
-	save: saveConfig,
-	saveTo: saveConfigTo,
-	set: setConfig,
-	files: configFiles,
-} satisfies Config;
+};
 export default config;
 
 // config from file
-export const File = Schema.deepPartial().extend({
-	include: z.array(z.string()).optional(),
-	plugins: z.array(z.string()).optional(),
-});
+export const File = Schema.deepPartial()
+	.extend({
+		include: z.array(z.string()).optional(),
+		plugins: z.array(z.string()).optional(),
+	})
+	.passthrough();
 export interface File extends PartialRecursive<Config>, z.infer<typeof File> {}
 
 /**
