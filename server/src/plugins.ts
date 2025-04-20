@@ -1,15 +1,54 @@
-export interface Plugin {
-	id: string;
-	name: string;
-	version: string;
+import * as fs from 'node:fs';
+import { join } from 'node:path/posix';
+import * as z from 'zod';
+import { findDir, logger } from './io.js';
 
-	statusText?(): Promise<string>;
+export const Plugin = z.object({
+	id: z.string(),
+	name: z.string(),
+	version: z.string(),
+	statusText: z
+		.function()
+		.args()
+		.returns(z.union([z.string(), z.promise(z.string())]))
+		.optional(),
+	db: z
+		.object({
+			init: z.function(),
+			drop: z.function(),
+			wipe: z.function(),
+		})
+		.optional(),
+});
 
-	db?: {
-		init(): Promise<void>;
-		/** Removes plugin-related database tables, schemas, etc. */
-		drop(): Promise<void>;
-		/** Empties plugin-related data from the database */
-		wipe(): Promise<void>;
-	};
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface Plugin extends z.infer<typeof Plugin> {}
+
+export const plugins = new Set<Plugin>();
+
+export async function loadPlugin(path: string) {
+	const stats = fs.statSync(path);
+
+	if (stats.isDirectory() || !['.js', '.mjs'].some(ext => path.endsWith(ext))) return;
+
+	try {
+		const plugin = Plugin.parse(await import(path));
+		plugins.add(plugin);
+		logger.debug(`Loaded plugin: "${plugin.name}" (${plugin.id}) ${plugin.version}`);
+	} catch (e: any) {
+		logger.debug(`Failed to load plugin from ${path}: ${e}`);
+	}
+}
+
+export async function loadPlugins(dir: string) {
+	fs.mkdirSync(dir, { recursive: true });
+	const files = fs.readdirSync(dir);
+	for (const file of files) {
+		await loadPlugin(join(dir, file));
+	}
+}
+
+export async function loadDefaultPlugins() {
+	await loadPlugins(join(findDir(true), 'plugins'));
+	await loadPlugins(join(findDir(false), 'plugins'));
 }
