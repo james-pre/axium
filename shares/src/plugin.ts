@@ -1,4 +1,5 @@
 import type { Database, InitOptions, OpOptions, PluginShortcuts } from '@axium/server/database.js';
+import { count } from '@axium/server/database.js';
 import pkg from '../package.json' with { type: 'json' };
 import type { WithOutput } from '@axium/server/io.js';
 import config from '@axium/server/config.js';
@@ -8,7 +9,14 @@ export const name = 'Axium Shares';
 export const version = pkg.version;
 export const description = pkg.description;
 
-export async function statusText() {}
+export async function statusText(): Promise<string> {
+	let text = '';
+	for (const table of config.shares) {
+		const shares = await count(`shares.${table}`);
+		text += `${shares} ${table} shares\n`;
+	}
+	return text;
+}
 
 export async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
 	opt.output('start', 'Creating schema shares');

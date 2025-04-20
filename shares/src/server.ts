@@ -12,7 +12,7 @@ export interface DBShare {
 
 declare module '@axium/server/database.js' {
 	export interface Schema {
-		Share: DBShare;
+		[key: `shares.${string}`]: DBShare;
 	}
 }
 

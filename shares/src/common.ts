@@ -36,13 +36,13 @@ export const permissionNames = {
 	[Permission.Manage]: 'Manager',
 } satisfies Record<Permission, string>;
 
-export interface Item {
+export interface Sharable {
 	visibility: Visibility;
 	userId: string;
 	shares?: Share[];
 }
 
-export function hasPermission(item: Item, userId: string | undefined, permission: number): boolean {
+export function hasPermission(item: Sharable, userId: string | undefined, permission: number): boolean {
 	if (item.visibility >= Visibility.Public) return true;
 	if (!userId) return false;
 	if (item.userId == userId) return true;

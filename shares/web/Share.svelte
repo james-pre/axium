@@ -3,7 +3,7 @@
 	import { permissionNames } from '../dist/common.js';
 	import type { Entries } from 'utilium';
 	import { UserCard } from '@axium/server/web';
-	import type { Share } from '../dist/share.js';
+	import type { Share } from '../dist/common.js';
 
 	const { share, editable }: { share: Share; editable: boolean } = $props();
 
