@@ -5,6 +5,7 @@ import { dirname, join } from 'node:path/posix';
 import { deepAssign, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
 import { findDir, logger, output } from './io.js';
+import { loadPlugin } from './plugins.js';
 
 export const Schema = z.object({
 	auth: z.object({
@@ -69,6 +70,7 @@ export default config;
 // config from file
 export const File = Schema.deepPartial().extend({
 	include: z.array(z.string()).optional(),
+	plugins: z.array(z.string()).optional(),
 });
 export interface File extends PartialRecursive<Config>, z.infer<typeof File> {}
 
@@ -101,7 +103,7 @@ export interface LoadOptions {
 /**
  * Load the config from the provided path
  */
-export function loadConfig(path: string, options: LoadOptions = {}) {
+export async function loadConfig(path: string, options: LoadOptions = {}) {
 	let json;
 	try {
 		json = JSON.parse(readFileSync(path, 'utf8'));
@@ -114,12 +116,13 @@ export function loadConfig(path: string, options: LoadOptions = {}) {
 	const file: File = options.strict ? File.parse(json) : json;
 	configFiles.set(path, file);
 	setConfig(file);
-	for (const include of file.include ?? []) loadConfig(join(dirname(path), include), { optional: true });
+	for (const include of file.include ?? []) await loadConfig(join(dirname(path), include), { optional: true });
+	for (const plugin of file.plugins ?? []) await loadPlugin(plugin);
 }
 
-export function loadDefaultConfigs() {
-	loadConfig(findConfigPath(true), { optional: true });
-	loadConfig(findConfigPath(false), { optional: true });
+export async function loadDefaultConfigs() {
+	await loadConfig(findConfigPath(true), { optional: true });
+	await loadConfig(findConfigPath(false), { optional: true });
 }
 
 /**
@@ -149,4 +152,4 @@ export function findConfigPath(global: boolean): string {
 	return join(findDir(global), 'config.json');
 }
 
-if (process.env.AXIUM_CONFIG) loadConfig(process.env.AXIUM_CONFIG);
+if (process.env.AXIUM_CONFIG) await loadConfig(process.env.AXIUM_CONFIG);

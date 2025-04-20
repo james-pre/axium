@@ -7,6 +7,6 @@ import { findDir, logger } from '../dist/io.js';
 import { allLogLevels } from 'logzen';
 
 logger.attach(createWriteStream(join(findDir(false), 'server.log')), { output: allLogLevels });
-config.loadDefaults();
+await config.loadDefaults();
 
 export const { handle, signIn, signOut } = SvelteKitAuth(getConfig());

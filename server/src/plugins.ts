@@ -1,9 +1,9 @@
 import * as fs from 'node:fs';
-import { join, resolve } from 'node:path/posix';
+import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import * as z from 'zod';
-import { findDir, output } from './io.js';
 import { fromZodError } from 'zod-validation-error';
+import { findDir, output } from './io.js';
 
 export const Plugin = z.object({
 	id: z.string(),
@@ -46,20 +46,20 @@ export function pluginText(plugin: Plugin): string {
 	].join('\n');
 }
 
-export async function loadPlugin(path: string) {
-	path = resolve(path);
-	const stats = fs.statSync(path);
+export async function loadPlugin(specifier: string) {
+	specifier = import.meta.resolve(specifier);
+	const stats = fs.statSync(specifier);
 
-	if (stats.isDirectory() || !['.js', '.mjs'].some(ext => path.endsWith(ext))) return;
+	if (stats.isDirectory() || !['.js', '.mjs'].some(ext => specifier.endsWith(ext))) return;
 
 	try {
-		const plugin = await Plugin.parseAsync(await import(path)).catch(e => {
+		const plugin = await Plugin.parseAsync(await import(specifier)).catch(e => {
 			throw fromZodError(e);
 		});
 		plugins.add(plugin);
 		output.debug(`Loaded plugin: "${plugin.name}" (${plugin.id}) ${plugin.version}`);
 	} catch (e: any) {
-		output.debug(`Failed to load plugin from ${path}: ${e}`);
+		output.debug(`Failed to load plugin from ${specifier}: ${e}`);
 	}
 }
 
