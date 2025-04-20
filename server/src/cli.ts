@@ -18,10 +18,10 @@ program
 	.option('-c, --config <path>', 'path to the config file');
 
 program.on('option:debug', () => config.set({ debug: true }));
-program.on('option:config', () => config.load(program.opts<OptCommon>().config));
+program.on('option:config', () => void config.load(program.opts<OptCommon>().config));
 
 program.hook('preAction', async function (_, action: Command) {
-	config.loadDefaults();
+	await config.loadDefaults();
 	await loadDefaultPlugins();
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');

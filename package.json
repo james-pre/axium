@@ -23,7 +23,7 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"lint": "eslint client core server"
+		"lint": "eslint shares client core server"
 	},
 	"workspaces": [
 		"shares",
