@@ -26,6 +26,7 @@
 		"lint": "eslint client core server"
 	},
 	"workspaces": [
+		"shares",
 		"client",
 		"core",
 		"server"
