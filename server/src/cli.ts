@@ -6,6 +6,7 @@ import $pkg from '../package.json' with { type: 'json' };
 import config from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
+import { loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
 
 program
 	.version($pkg.version)
@@ -19,8 +20,9 @@ program
 program.on('option:debug', () => config.set({ debug: true }));
 program.on('option:config', () => config.load(program.opts<OptCommon>().config));
 
-program.hook('preAction', function (_, action: Command) {
+program.hook('preAction', async function (_, action: Command) {
 	config.loadDefaults();
+	await loadDefaultPlugins();
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');
 	if (opt.debug === false) config.set({ debug: false });
@@ -35,6 +37,7 @@ const opts = {
 		config.db.port = port && Number.isSafeInteger(parseInt(port)) ? parseInt(port) : config.db.port;
 	}),
 	force: new Option('-f, --force', 'force the operation').default(false),
+	global: new Option('-g, --global', 'apply the operation globally').default(false),
 };
 
 interface OptCommon {
@@ -46,7 +49,7 @@ interface OptCommon {
 const axiumDB = program
 	.command('db')
 	.alias('database')
-	.description('manage the database')
+	.description('Manage the database')
 	.option('-t, --timeout <ms>', 'how long to wait for commands to complete.', '1000')
 	.addOption(opts.host);
 
@@ -58,9 +61,9 @@ interface OptDB extends OptCommon {
 
 axiumDB
 	.command('init')
-	.description('initialize the database')
+	.description('Initialize the database')
 	.addOption(opts.force)
-	.option('-s, --skip', 'Skip existing database and/or user')
+	.option('-s, --skip', 'If the user, database, or schema already exists, skip trying to create it.')
 	.action(async (opt: OptDB & { skip: boolean }) => {
 		await db.init(opt).catch(handleError);
 	});
@@ -68,7 +71,7 @@ axiumDB
 axiumDB
 	.command('status')
 	.alias('stats')
-	.description('check the status of the database')
+	.description('Check the status of the database')
 	.action(async () => {
 		try {
 			console.log(await db.statusText());
@@ -82,7 +85,7 @@ axiumDB
 
 axiumDB
 	.command('drop')
-	.description('drop the database')
+	.description('Drop the Axium database and user')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
 		const stats = await db.status().catch(exit);
@@ -101,7 +104,7 @@ axiumDB
 
 axiumDB
 	.command('wipe')
-	.description('wipe the database')
+	.description('Wipe the database')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
 		const stats = await db.status().catch(exit);
@@ -123,11 +126,7 @@ interface OptConfig extends OptCommon {
 	json: boolean;
 }
 
-const axiumConfig = program
-	.command('config')
-	.description('manage the configuration')
-	.option('-j, --json', 'values are JSON encoded')
-	.option('-g, --global', 'apply to the global config');
+const axiumConfig = program.command('config').description('Manage the configuration').addOption(opts.global).option('-j, --json', 'values are JSON encoded');
 
 axiumConfig
 	.command('dump')
@@ -139,7 +138,7 @@ axiumConfig
 
 axiumConfig
 	.command('get')
-	.description('get a config value')
+	.description('Get a config value')
 	.argument('<key>', 'the key to get')
 	.action((key: string) => {
 		const value = getByString(config, key);
@@ -168,19 +167,63 @@ axiumConfig
 		for (const path of config.files.keys()) console.log(path);
 	});
 
+const axiumPlugin = program
+	.command('plugins')
+	.description('Manage plugins')
+	.addOption(opts.global)
+	.option('--safe', 'do not perform actions that would execute code from plugins.');
+
+axiumPlugin
+	.command('list')
+	.alias('ls')
+	.description('List loaded plugins')
+	.option('-l, --long', 'use the long listing format')
+	.option('--no-versions', 'do not show plugin versions')
+	.action((opt: OptCommon & { long: boolean; versions: boolean }) => {
+		if (!plugins.size) {
+			console.log('No plugins loaded.');
+			return;
+		}
+
+		if (!opt.long) {
+			console.log(
+				Array.from(plugins)
+					.map(plugin => plugin.name)
+					.join(', ')
+			);
+			return;
+		}
+
+		console.log(styleText('whiteBright', plugins.size + ' plugin(s) loaded:'));
+
+		for (const plugin of plugins) {
+			console.log(plugin.name, styleText('dim', `(${plugin.id})`), opt.versions ? plugin.version : '');
+		}
+	});
+
+axiumPlugin
+	.command('info')
+	.description('Get information about a plugin')
+	.argument('<plugin>', 'the plugin to get information about')
+	.action((search: string) => {
+		const plugin = resolvePlugin(search);
+		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
+		console.log(pluginText(plugin));
+	});
+
 program
 	.command('status')
 	.alias('stats')
-	.description('get information about the server')
+	.description('Get information about the server')
 	.addOption(opts.host)
 	.action(async () => {
 		console.log('Axium Server v' + program.version());
 
-		console.log('Debug mode:', config.debug ? styleText('yellow', 'enabled') : 'disabled');
+		console.log(styleText('whiteBright', 'Debug mode:'), config.debug ? styleText('yellow', 'enabled') : 'disabled');
 
-		console.log('Loaded config files:', config.files.keys().toArray().join(', '));
+		console.log(styleText('whiteBright', 'Loaded config files:'), config.files.keys().toArray().join(', '));
 
-		process.stdout.write('Database: ');
+		process.stdout.write(styleText('whiteBright', 'Database: '));
 
 		try {
 			console.log(await db.statusText());
@@ -189,7 +232,20 @@ program
 		}
 		await db.database.destroy();
 
-		console.log('Credentials authentication:', config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled');
+		console.log(styleText('whiteBright', 'Credentials authentication:'), config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled');
+
+		console.log(
+			styleText('whiteBright', 'Loaded plugins:'),
+			Array.from(plugins)
+				.map(plugin => plugin.id)
+				.join(', ') || styleText('dim', '(none)')
+		);
+
+		for (const plugin of plugins) {
+			if (!plugin.statusText) continue;
+			console.log(styleText('bold', plugin.name + ':'));
+			console.log(plugin.statusText());
+		}
 	});
 
 program

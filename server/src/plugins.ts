@@ -1,12 +1,15 @@
 import * as fs from 'node:fs';
-import { join } from 'node:path/posix';
+import { join, resolve } from 'node:path/posix';
+import { styleText } from 'node:util';
 import * as z from 'zod';
-import { findDir, logger } from './io.js';
+import { findDir, output } from './io.js';
+import { fromZodError } from 'zod-validation-error';
 
 export const Plugin = z.object({
 	id: z.string(),
 	name: z.string(),
 	version: z.string(),
+	description: z.string().optional(),
 	statusText: z
 		.function()
 		.args()
@@ -15,7 +18,7 @@ export const Plugin = z.object({
 	db: z
 		.object({
 			init: z.function(),
-			drop: z.function(),
+			remove: z.function(),
 			wipe: z.function(),
 		})
 		.optional(),
@@ -26,17 +29,37 @@ export interface Plugin extends z.infer<typeof Plugin> {}
 
 export const plugins = new Set<Plugin>();
 
+export function resolvePlugin(search: string): Plugin | undefined {
+	for (const plugin of plugins) {
+		if (plugin.name.startsWith(search) || plugin.id.startsWith(search)) return plugin;
+	}
+}
+
+export function pluginText(plugin: Plugin): string {
+	return [
+		styleText('whiteBright', plugin.name),
+		plugin.id,
+		`Version: ${plugin.version}`,
+		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
+		`Status text integration: ${plugin.statusText ? styleText('whiteBright', 'yes') : styleText('yellow', 'no')}`,
+		`Database integration: ${plugin.db ? 'yes' : 'no'}`,
+	].join('\n');
+}
+
 export async function loadPlugin(path: string) {
+	path = resolve(path);
 	const stats = fs.statSync(path);
 
 	if (stats.isDirectory() || !['.js', '.mjs'].some(ext => path.endsWith(ext))) return;
 
 	try {
-		const plugin = Plugin.parse(await import(path));
+		const plugin = await Plugin.parseAsync(await import(path)).catch(e => {
+			throw fromZodError(e);
+		});
 		plugins.add(plugin);
-		logger.debug(`Loaded plugin: "${plugin.name}" (${plugin.id}) ${plugin.version}`);
+		output.debug(`Loaded plugin: "${plugin.name}" (${plugin.id}) ${plugin.version}`);
 	} catch (e: any) {
-		logger.debug(`Failed to load plugin from ${path}: ${e}`);
+		output.debug(`Failed to load plugin from ${path}: ${e}`);
 	}
 }
 

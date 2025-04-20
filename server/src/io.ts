@@ -81,11 +81,20 @@ export function handleError(e: number | string | Error) {
 	else exit(e);
 }
 
-export type OutputState = 'done' | 'log' | 'warn' | 'error' | 'start' | 'debug';
+export type OutputTag =
+	// Log-style message
+	| 'debug'
+	| 'info'
+	| 'warn'
+	| 'error'
+	// State
+	| 'start'
+	| 'done'
+	| 'plugin';
 
 export interface Output {
-	(state: 'done'): void;
-	(state: Exclude<OutputState, 'done'>, message: string): void;
+	(tag: 'done'): void;
+	(tag: Exclude<OutputTag, 'done'>, message: string): void;
 }
 
 export interface MaybeOutput {
@@ -96,17 +105,14 @@ export interface WithOutput {
 	output: Output;
 }
 
-export function defaultOutput(state: 'done'): void;
-export function defaultOutput(state: Exclude<OutputState, 'done'>, message: string): void;
-export function defaultOutput(state: OutputState, message: string = ''): void {
-	switch (state) {
-		case 'start':
-			process.stdout.write(message + '... ');
-			break;
+export function defaultOutput(tag: 'done'): void;
+export function defaultOutput(tag: Exclude<OutputTag, 'done'>, message: string): void;
+export function defaultOutput(tag: OutputTag, message: string = ''): void {
+	switch (tag) {
 		case 'debug':
 			config.debug && output.debug(message);
 			break;
-		case 'log':
+		case 'info':
 			console.log(message);
 			break;
 		case 'warn':
@@ -115,9 +121,14 @@ export function defaultOutput(state: OutputState, message: string = ''): void {
 		case 'error':
 			console.error(styleText('red', message));
 			break;
+		case 'start':
+			process.stdout.write(message + '... ');
+			break;
 		case 'done':
 			console.log('done.');
 			break;
+		case 'plugin':
+			console.log(styleText('whiteBright', 'Running plugin: ' + message));
 	}
 }
 

@@ -5,6 +5,7 @@ import pg from 'pg';
 import type { Preferences } from './auth.js';
 import config from './config.js';
 import { _fixOutput, run, someWarnings, type MaybeOutput, type WithOutput } from './io.js';
+import { plugins } from './plugins.js';
 
 export interface Schema {
 	User: {
@@ -129,7 +130,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	}
 
 	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
-	const relationExists = someWarnings(opt.output, [/relation "\w+" already exists/, 'already exists.']);
+	const warnExists = someWarnings(opt.output, [/(schema|relation) "\w+" already exists/, 'already exists.']);
 	const done = () => opt.output('done');
 
 	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
@@ -171,7 +172,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo(sql`'{}'::jsonb`))
 		.execute()
 		.then(done)
-		.catch(relationExists);
+		.catch(warnExists);
 
 	opt.output('start', 'Creating table Account');
 	await db.schema
@@ -190,10 +191,10 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('session_state', 'text')
 		.execute()
 		.then(done)
-		.catch(relationExists);
+		.catch(warnExists);
 
 	opt.output('start', 'Creating index for Account.userId');
-	await db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().then(done).catch(relationExists);
+	await db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().then(done).catch(warnExists);
 
 	opt.output('start', 'Creating table Session');
 	await db.schema
@@ -204,10 +205,10 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.execute()
 		.then(done)
-		.catch(relationExists);
+		.catch(warnExists);
 
 	opt.output('start', 'Creating index for Session.userId');
-	await db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().then(done).catch(relationExists);
+	await db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().then(done).catch(warnExists);
 
 	opt.output('start', 'Creating table VerificationToken');
 	await db.schema
@@ -217,7 +218,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.execute()
 		.then(done)
-		.catch(relationExists);
+		.catch(warnExists);
 
 	opt.output('start', 'Creating table Authenticator');
 	await db.schema
@@ -232,10 +233,16 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('transports', 'text')
 		.execute()
 		.then(done)
-		.catch(relationExists);
+		.catch(warnExists);
 
 	opt.output('start', 'Creating index for Authenticator.credentialID');
-	await db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().then(done).catch(relationExists);
+	await db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().then(done).catch(warnExists);
+
+	for (const plugin of plugins) {
+		if (!plugin.db) continue;
+		opt.output('plugin', plugin.name);
+		await plugin.db.init(opt, db, { warnExists, done });
+	}
 }
 
 /**
@@ -243,6 +250,17 @@ export async function init(opt: InitOptions): Promise<void> {
  */
 export async function uninstall(opt: OpOptions): Promise<void> {
 	_fixOutput(opt);
+
+	const db = connect();
+
+	for (const plugin of plugins) {
+		if (!plugin.db) continue;
+		opt.output('plugin', plugin.name);
+		await plugin.db.remove(opt, db);
+	}
+
+	await db.destroy();
+
 	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
 	await _sql('DROP DATABASE axium', 'Dropping database');
 	await _sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
@@ -256,6 +274,12 @@ export async function wipe(opt: OpOptions): Promise<void> {
 	_fixOutput(opt);
 
 	const db = connect();
+
+	for (const plugin of plugins) {
+		if (!plugin.db) continue;
+		opt.output('plugin', plugin.name);
+		await plugin.db.wipe(opt, db);
+	}
 
 	for (const table of ['User', 'Account', 'Session', 'VerificationToken', 'Authenticator'] as const) {
 		opt.output('start', `Removing data from ${table}`);
