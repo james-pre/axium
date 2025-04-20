@@ -3,8 +3,8 @@ import * as z from 'zod';
 export const User = z.object({
 	id: z.string().uuid(),
 	email: z.string().email(),
-	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
-	image: z.string().url(),
+	name: z.string().min(1, 'Name is required').max(255, 'Name is too long').nullable(),
+	image: z.string().url().nullable(),
 });
 export type User = z.infer<typeof User>;
 
