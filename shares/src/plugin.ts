@@ -25,10 +25,9 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 	for (const table of config.shares) {
 		opt.output('start', 'Creating table shares.' + table);
 		await db.schema
-			.withSchema('shares')
-			.createTable(table)
-			.addColumn('itemId', 'uuid', col => col.notNull().references(`public.${table}.id`).onDelete('cascade').onUpdate('cascade'))
-			.addColumn('userId', 'uuid', col => col.notNull().references('public.User.id').onDelete('cascade').onUpdate('cascade'))
+			.createTable(`shares.${table.replaceAll('.', '_')}`)
+			.addColumn('itemId', 'uuid', col => col.notNull().references(`${table}.id`).onDelete('cascade').onUpdate('cascade'))
+			.addColumn('userId', 'uuid', col => col.notNull().references('User.id').onDelete('cascade').onUpdate('cascade'))
 			.addColumn('sharedAt', 'timestamptz', col => col.notNull())
 			.addColumn('permission', 'integer', col => col.notNull())
 			.execute()
@@ -36,10 +35,22 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 			.catch(warnExists);
 
 		opt.output('start', `Creating index for shares.${table}.userId`);
-		await db.schema.withSchema('shares').createIndex(`shares_${table}_userId_index`).on(`shares.${table}`).column('userId').execute().then(done).catch(warnExists);
+		await db.schema
+			.createIndex(`shares.${table.replaceAll('.', '_')}_userId_index`)
+			.on(`shares.${table.replaceAll('.', '_')}`)
+			.column('userId')
+			.execute()
+			.then(done)
+			.catch(warnExists);
 
 		opt.output('start', `Creating index for shares.${table}.itemId`);
-		await db.schema.withSchema('shares').createIndex(`shares_${table}_itemId_index`).on(`shares.${table}`).column('itemId').execute().then(done).catch(warnExists);
+		await db.schema
+			.createIndex(`shares.${table.replaceAll('.', '_')}_itemId_index`)
+			.on(`shares.${table.replaceAll('.', '_')}`)
+			.column('itemId')
+			.execute()
+			.then(done)
+			.catch(warnExists);
 	}
 }
 
