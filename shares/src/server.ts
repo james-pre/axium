@@ -22,16 +22,21 @@ declare module '@axium/server/config.js' {
 	}
 }
 
+export function sharesTableFor(itemType: keyof Schema): `shares.${string}` {
+	const table = itemType.split('.').at(-1)!;
+	return `shares.${table}`;
+}
+
 export async function share(itemType: keyof Schema, itemId: string, userId: string, permission: number): Promise<void> {
-	await database.withSchema('shares').insertInto(itemType).values({ itemId, userId, permission }).execute();
+	await database.insertInto(sharesTableFor(itemType)).values({ itemId, userId, permission }).execute();
 }
 
 export async function unshare(itemType: keyof Schema, itemId: string, userId: string): Promise<void> {
-	await database.withSchema('shares').deleteFrom(itemType).where('itemId', '=', itemId).where('userId', '=', userId).execute();
+	await database.deleteFrom(sharesTableFor(itemType)).where('itemId', '=', itemId).where('userId', '=', userId).execute();
 }
 
 export async function getShares(itemType: keyof Schema, itemId: string): Promise<Required<Share>[]> {
-	const shares = await database.withSchema('shares').selectFrom(itemType).where('itemId', '=', itemId).selectAll().execute();
+	const shares = await database.selectFrom(sharesTableFor(itemType)).where('itemId', '=', itemId).selectAll().execute();
 
 	if (!shares.length) return [];
 
