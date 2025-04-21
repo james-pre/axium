@@ -49,11 +49,6 @@ export function pluginText(plugin: Plugin): string {
 }
 
 export async function loadPlugin(specifier: string) {
-	specifier = fileURLToPath(import.meta.resolve(specifier));
-	const stats = fs.statSync(specifier);
-
-	if (stats.isDirectory() || !['.js', '.mjs'].some(ext => specifier.endsWith(ext))) return;
-
 	try {
 		const plugin = await Plugin.parseAsync(await import(specifier)).catch(e => {
 			throw fromZodError(e);
@@ -61,7 +56,7 @@ export async function loadPlugin(specifier: string) {
 		plugins.add(plugin);
 		output.debug(`Loaded plugin: "${plugin.name}" (${plugin.id}) ${plugin.version}`);
 	} catch (e: any) {
-		output.debug(`Failed to load plugin from ${specifier}: ${e}`);
+		output.debug(`Failed to load plugin from ${specifier}: ${e.message || e}`);
 	}
 }
 
@@ -69,7 +64,11 @@ export async function loadPlugins(dir: string) {
 	fs.mkdirSync(dir, { recursive: true });
 	const files = fs.readdirSync(dir);
 	for (const file of files) {
-		await loadPlugin(resolve(join(dir, file)));
+		const path = resolve(dir, file);
+		const stats = fs.statSync(path);
+
+		if (stats.isDirectory() || !['.js', '.mjs'].some(ext => path.endsWith(ext))) return;
+		await loadPlugin(path);
 	}
 }
 
