@@ -41,3 +41,6 @@ jobs:
 
             - name: Build Server
               run: npx tsc -p server
+
+            - name: Build Shares
+              run: npx tsc -p shares

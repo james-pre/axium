@@ -43,6 +43,9 @@ jobs:
             - name: Build server
               run: npx tsc -p server
 
+            - name: Build shares
+              run: npx tsc -p shares
+
             - name: Publish
               run: npm publish --access=public --provenance
               working-directory: ${{ steps.resolve.outputs.path }}
