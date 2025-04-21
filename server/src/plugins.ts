@@ -1,5 +1,5 @@
 import * as fs from 'node:fs';
-import { join } from 'node:path/posix';
+import { join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import { fromZodError } from 'zod-validation-error';
@@ -69,7 +69,7 @@ export async function loadPlugins(dir: string) {
 	fs.mkdirSync(dir, { recursive: true });
 	const files = fs.readdirSync(dir);
 	for (const file of files) {
-		await loadPlugin(join(dir, file));
+		await loadPlugin(resolve(join(dir, file)));
 	}
 }
 
