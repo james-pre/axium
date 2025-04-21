@@ -4,6 +4,7 @@ import { styleText } from 'node:util';
 import * as z from 'zod';
 import { fromZodError } from 'zod-validation-error';
 import { findDir, output } from './io.js';
+import { fileURLToPath } from 'node:url';
 
 export const Plugin = z.object({
 	id: z.string(),
@@ -48,7 +49,7 @@ export function pluginText(plugin: Plugin): string {
 }
 
 export async function loadPlugin(specifier: string) {
-	specifier = import.meta.resolve(specifier);
+	specifier = fileURLToPath(import.meta.resolve(specifier));
 	const stats = fs.statSync(specifier);
 
 	if (stats.isDirectory() || !['.js', '.mjs'].some(ext => specifier.endsWith(ext))) return;
