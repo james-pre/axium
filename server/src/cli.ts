@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Argument, Option, program, type Command } from 'commander';
+import { randomBytes } from 'node:crypto';
 import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
@@ -265,6 +266,7 @@ program
 	.addOption(opts.force)
 	.addOption(opts.host)
 	.action(async (opt: OptDB & { dbSkip: boolean }) => {
+		config.save({ auth: { secret: randomBytes(32).toString('base64') } }, true);
 		await db.init({ ...opt, skip: opt.dbSkip }).catch(handleError);
 		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(handleError);
 	});
