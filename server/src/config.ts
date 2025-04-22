@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { levelText } from 'logzen';
 import { readFileSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path/posix';
+import { dirname, join, resolve } from 'node:path/posix';
 import { deepAssign, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
 import { findDir, logger, output } from './io.js';
@@ -125,7 +125,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	configFiles.set(path, file);
 	setConfig(file);
 	for (const include of file.include ?? []) await loadConfig(join(dirname(path), include), { optional: true });
-	for (const plugin of file.plugins ?? []) await loadPlugin(plugin);
+	for (const plugin of file.plugins ?? []) await loadPlugin(plugin.startsWith('.') ? resolve(dirname(path), plugin) : plugin);
 }
 
 export async function loadDefaultConfigs() {
