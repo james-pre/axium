@@ -2,13 +2,11 @@ import type {} from '@axium/server/config.js';
 import type {} from '@axium/server/database.js';
 import { database } from '@axium/server/database.js';
 import type { Generated } from 'kysely';
-import type { FileMetadata } from './common.js';
-import { adapter } from '@axium/server/auth.js';
 import { createHash } from 'node:crypto';
+import type { FileMetadata } from './common.js';
 
 export interface DBContentAddressableFile {
 	fileId: Generated<string>;
-	creatorId: string;
 	ownerId: string;
 	lastModified: Generated<Date>;
 	restricted: Generated<boolean>;
@@ -48,10 +46,10 @@ export async function fileMetadata(fileId: string): Promise<FileMetadata | undef
 	return await database.selectFrom('ContentAddressableFile').where('fileId', '=', fileId).selectAll().executeTakeFirst();
 }
 
-export async function addFile(creatorId: string, file: File): Promise<void> {
+export async function addFile(ownerId: string, file: File): Promise<void> {
 	const content = new Uint8Array(await file.arrayBuffer());
 
 	const hash = createHash('BLAKE2b512').update(content).digest();
 
-	await database.insertInto('ContentAddressableFile').values({ creatorId, ownerId: creatorId, hash }).execute();
+	await database.insertInto('ContentAddressableFile').values({ ownerId, hash }).execute();
 }

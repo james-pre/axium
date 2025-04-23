@@ -3,7 +3,6 @@ import fileIcons from './file-icons.json' with { type: 'json' };
 
 export interface FileMetadata {
 	fileId: string;
-	creatorId: string;
 	ownerId: string;
 	lastModified: Date;
 	/** Whether editing the file is restricted to managers */
