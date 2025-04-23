@@ -28,7 +28,7 @@
 	"workspaces": [
 		"client",
 		"core",
-		"files",
+		"cas",
 		"shares",
 		"server"
 	],

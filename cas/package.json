@@ -1,5 +1,5 @@
 {
-	"name": "@axium/files",
+	"name": "@axium/cas",
 	"version": "0.0.1",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "",
@@ -37,6 +37,8 @@
 		"@axium/server": ">=0.7.0"
 	},
 	"dependencies": {
-		"@zenfs/core": "^2.1.0"
+		"@zenfs/core": "^2.1.0",
+		"blakejs": "^1.2.1",
+		"mime": "^4.0.7"
 	}
 }
