@@ -44,7 +44,7 @@
 		"bcryptjs": "^3.0.2",
 		"commander": "^13.1.0",
 		"kysely": "^0.27.5",
-		"logzen": "^0.6.2",
+		"logzen": "^0.7.0",
 		"pg": "^8.14.1",
 		"utilium": "^2.3.0",
 		"zod-validation-error": "^3.4.0"

@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { levelText } from 'logzen';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
-import { deepAssign, type PartialRecursive } from 'utilium';
+import { deepAssign, omit, type PartialRecursive } from 'utilium';
 import * as z from 'zod';
 import { findDir, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
@@ -37,10 +37,15 @@ export interface Config extends Record<string, unknown>, z.infer<typeof Schema> 
 
 export const configFiles = new Map<string, PartialRecursive<Config>>();
 
+export function plainConfig(): Omit<Config, keyof typeof configShortcuts> {
+	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);
+}
+
 const configShortcuts = {
 	findPath: findConfigPath,
 	load: loadConfig,
 	loadDefaults: loadDefaultConfigs,
+	plain: plainConfig,
 	save: saveConfig,
 	saveTo: saveConfigTo,
 	set: setConfig,
@@ -129,8 +134,10 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 }
 
 export async function loadDefaultConfigs() {
-	await loadConfig(findConfigPath(true), { optional: true });
-	await loadConfig(findConfigPath(false), { optional: true });
+	for (const path of [findConfigPath(true), findConfigPath(false)]) {
+		if (!existsSync(path)) writeFileSync(path, '{}');
+		await loadConfig(path, { optional: true });
+	}
 }
 
 /**

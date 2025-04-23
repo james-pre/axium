@@ -27,6 +27,10 @@ program.hook('preAction', async function (_, action: Command) {
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');
 	if (opt.debug === false) config.set({ debug: false });
+	if (!config.auth.secret) {
+		config.save({ auth: { secret: process.env.AUTH_SECRET || randomBytes(32).toString('base64') } }, true);
+		output.debug('Auto-generated a new auth secret');
+	}
 });
 
 // Options shared by multiple (sub)commands
@@ -125,16 +129,30 @@ axiumDB
 interface OptConfig extends OptCommon {
 	global: boolean;
 	json: boolean;
+	redact: boolean;
 }
 
-const axiumConfig = program.command('config').description('Manage the configuration').addOption(opts.global).option('-j, --json', 'values are JSON encoded');
+const axiumConfig = program
+	.command('config')
+	.description('Manage the configuration')
+	.addOption(opts.global)
+	.option('-j, --json', 'values are JSON encoded')
+	.option('-r, --redact', 'Do not output sensitive values');
+
+function configReplacer(opt: OptConfig) {
+	return (key: string, value: any) => {
+		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
+		return opt.redact && ['password', 'secret'].includes(key) ? '[redacted]' : value;
+	};
+}
 
 axiumConfig
 	.command('dump')
 	.description('Output the entire current configuration')
 	.action(() => {
-		const value = config;
-		console.log(axiumConfig.optsWithGlobals<OptConfig>().json ? JSON.stringify(value) : value);
+		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+		const value = config.plain();
+		console.log(opt.json ? JSON.stringify(value, configReplacer(opt), 4) : value);
 	});
 
 axiumConfig
@@ -142,8 +160,9 @@ axiumConfig
 	.description('Get a config value')
 	.argument('<key>', 'the key to get')
 	.action((key: string) => {
-		const value = getByString(config, key);
-		console.log(axiumConfig.optsWithGlobals<OptConfig>().json ? JSON.stringify(value) : value);
+		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+		const value = getByString(config.plain(), key);
+		console.log(opt.json ? JSON.stringify(value, configReplacer(opt), 4) : value);
 	});
 
 axiumConfig
@@ -151,11 +170,11 @@ axiumConfig
 	.description('Set a config value. Note setting objects is not supported.')
 	.argument('<key>', 'the key to set')
 	.argument('<value>', 'the value')
-	.action((key: string, value: string, opt: OptConfig) => {
-		const useJSON = axiumConfig.optsWithGlobals<OptConfig>().json;
-		if (useJSON && !isJSON(value)) exit('Invalid JSON');
+	.action((key: string, value: string) => {
+		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+		if (opt.json && !isJSON(value)) exit('Invalid JSON');
 		const obj: Record<string, any> = {};
-		setByString(obj, key, useJSON ? JSON.parse(value) : value);
+		setByString(obj, key, opt.json ? JSON.parse(value) : value);
 		config.save(obj, opt.global);
 	});
 
