@@ -45,5 +45,5 @@ jobs:
             - name: Build Shares
               run: npx tsc -p shares
 
-            - name: Build Files
-              run: npx tsc -p files
+            - name: Build CAS
+              run: npx tsc -p cas
