@@ -37,7 +37,6 @@
 		"@axium/server": ">=0.7.0"
 	},
 	"dependencies": {
-		"@zenfs/core": "^2.1.0",
 		"blakejs": "^1.2.1",
 		"mime": "^4.0.7"
 	}
