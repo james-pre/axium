@@ -36,6 +36,7 @@
 		"@axium/core": ">=0.0.2",
 		"@axium/server": ">=0.7.0"
 	},
-	"dependencies": {},
-	"devDependencies": {}
+	"dependencies": {
+		"@zenfs/core": "^2.1.0"
+	}
 }

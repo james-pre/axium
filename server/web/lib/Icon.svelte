@@ -1,41 +1,23 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
-
+	import light from './icons/light.svg';
+	import solid from './icons/solid.svg';
+	import regular from './icons/regular.svg';
+	const urls = { light, solid, regular };
 	const { i } = $props();
 
-	const withStyle = i.includes('/') ? i : 'solid/' + i;
-	const href = `https://site-assets.fontawesome.com/releases/v6.7.2/svgs/${withStyle}.svg`;
-
-	let content = $state('');
-
-	// Fetch and inline the SVG content on component mount
-	onMount(async () => {
-		const res = await fetch(href);
-
-		if (!res.ok) {
-			console.error('Failed to fetch icon:', res.statusText);
-			return;
-		}
-
-		const text = await res.text();
-
-		const doc = new DOMParser().parseFromString(text, 'image/svg+xml');
-		const errorNode = doc.querySelector('parsererror');
-
-		if (errorNode || doc.documentElement?.nodeName != 'svg') {
-			console.error('Invalid SVG');
-			return;
-		}
-
-		content = text;
-	});
+	const [style, id] = i.includes('/') ? i.split('/') : ['solid', i];
+	const url = urls[style];
 </script>
 
 <svelte:head>
-	<link rel="preload" {href} />
+	<link rel="preload" href={url} />
 </svelte:head>
 
-<span>{@html content}</span>
+<span>
+	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em">
+		<use href="{url}#{id}" />
+	</svg>
+</span>
 
 <style>
 	span {

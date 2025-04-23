@@ -9,7 +9,7 @@ export default {
 	},
 	plugins: [sveltekit(), mkcert({ hosts: ['test.localhost'] })],
 	esbuild: {
-		target: 'es2021',
+		target: 'es2022',
 		sourceRoot: 'web',
 	},
 } satisfies UserConfig;
