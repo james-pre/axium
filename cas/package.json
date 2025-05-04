@@ -2,7 +2,7 @@
 	"name": "@axium/cas",
 	"version": "0.0.1",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
-	"description": "",
+	"description": "Content Addressable Storage for Axium",
 	"funding": {
 		"type": "individual",
 		"url": "https://github.com/sponsors/james-pre"
@@ -37,7 +37,6 @@
 		"@axium/server": ">=0.7.0"
 	},
 	"dependencies": {
-		"blakejs": "^1.2.1",
-		"mime": "^4.0.7"
+		"blakejs": "^1.2.1"
 	}
 }

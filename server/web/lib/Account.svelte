@@ -3,7 +3,7 @@
 	import { getUserImage } from '@axium/core';
 	import './account.css';
 	import FormDialog from './FormDialog.svelte';
-	import Icon from './Icon.svelte';
+	import Icon from './icons/Icon.svelte';
 	import './styles.css';
 
 	const { data, children = () => {}, form } = $props();

@@ -1,7 +1,4 @@
-import mime from 'mime';
-import fileIcons from './file-icons.json' with { type: 'json' };
-
-export interface FileMetadata {
+export interface ContentAddressableFile {
 	fileId: string;
 	ownerId: string;
 	lastModified: Date;
@@ -10,10 +7,4 @@ export interface FileMetadata {
 	size: number;
 	trashedAt: Date | null;
 	hash: Uint8Array;
-}
-
-export function iconFor(path: string): string {
-	type K = keyof typeof fileIcons;
-	const type = mime.getType(path) || 'application/octet-stream';
-	return fileIcons[type as K] || fileIcons[type.split('/')[0] as K] || 'file';
 }

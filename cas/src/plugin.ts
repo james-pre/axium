@@ -10,7 +10,7 @@ export const version = pkg.version;
 export const description = pkg.description;
 
 export async function statusText(): Promise<string> {
-	const files = await count('ContentAddressableFile');
+	const items = await count('ContentAddressableFile');
 	const result = await database
 		.selectFrom('ContentAddressableFile')
 		.select(eb => eb.fn.sum('size').as('size'))
@@ -21,7 +21,7 @@ export async function statusText(): Promise<string> {
 		unit: 'byte',
 		unitDisplay: 'narrow',
 	});
-	return `${files} files totaling ${size} bytes`;
+	return `${items} items totaling ${size} bytes`;
 }
 
 export async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
@@ -40,4 +40,8 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 		.catch(warnExists);
 }
 
-export async function db_wipe(opt: OpOptions & WithOutput, db: Database) {}
+export async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
+	opt.output('start', 'Removing data from ContentAddressableFile');
+	await db.deleteFrom('ContentAddressableFile').execute();
+	opt.output('done');
+}

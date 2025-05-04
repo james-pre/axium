@@ -1,9 +1,8 @@
 import type {} from '@axium/server/config.js';
-import type {} from '@axium/server/database.js';
 import { database } from '@axium/server/database.js';
 import type { Generated } from 'kysely';
 import { createHash } from 'node:crypto';
-import type { FileMetadata } from './common.js';
+import type { ContentAddressableFile } from './common.js';
 
 export interface DBContentAddressableFile {
 	fileId: Generated<string>;
@@ -21,14 +20,14 @@ declare module '@axium/server/database.js' {
 	}
 }
 
-export interface FilesConfig {
+export interface ContentAddressableConfig {
 	/** Path to data directory */
 	data: string;
 }
 
 declare module '@axium/server/config.js' {
 	export interface Config {
-		files: FilesConfig;
+		cas: ContentAddressableConfig;
 	}
 }
 
@@ -42,7 +41,7 @@ export async function currentUsage(userId: string): Promise<number> {
 	return Number(result?.size);
 }
 
-export async function fileMetadata(fileId: string): Promise<FileMetadata | undefined> {
+export async function fileMetadata(fileId: string): Promise<ContentAddressableFile | undefined> {
 	return await database.selectFrom('ContentAddressableFile').where('fileId', '=', fileId).selectAll().executeTakeFirst();
 }
 

@@ -45,6 +45,7 @@
 		"commander": "^13.1.0",
 		"kysely": "^0.27.5",
 		"logzen": "^0.7.0",
+		"mime": "^4.0.7",
 		"pg": "^8.14.1",
 		"utilium": "^2.3.0",
 		"zod-validation-error": "^3.4.0"

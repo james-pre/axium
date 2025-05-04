@@ -1,7 +1,7 @@
 <script lang="ts">
-	import light from './icons/light.svg';
-	import solid from './icons/solid.svg';
-	import regular from './icons/regular.svg';
+	import light from './light.svg';
+	import solid from './solid.svg';
+	import regular from './regular.svg';
 	const urls = { light, solid, regular };
 	const { i } = $props();
 
