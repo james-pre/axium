@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { User } from '@axium/core/schemas';
+	import type { User } from '@axium/core/user';
 	import { getUserImage } from '@axium/core';
 
 	const {

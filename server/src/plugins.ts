@@ -1,24 +1,21 @@
 import * as fs from 'node:fs';
 import { join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
-import * as z from 'zod';
-import { fromZodError } from 'zod-validation-error';
+import z from 'zod/v4';
 import { findDir, output } from './io.js';
-import { fileURLToPath } from 'node:url';
+import { zAsyncFunction } from '@axium/core/schema';
+
+export const fn = z.custom<(...args: unknown[]) => any>(data => typeof data === 'function');
 
 export const Plugin = z.object({
 	id: z.string(),
 	name: z.string(),
 	version: z.string(),
 	description: z.string().optional(),
-	statusText: z
-		.function()
-		.args()
-		.returns(z.union([z.string(), z.promise(z.string())]))
-		.optional(),
-	db_init: z.function().optional(),
-	db_remove: z.function().optional(),
-	db_wipe: z.function().optional(),
+	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })),
+	db_init: fn.optional(),
+	db_remove: fn.optional(),
+	db_wipe: fn.optional(),
 });
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
@@ -51,7 +48,7 @@ export function pluginText(plugin: Plugin): string {
 export async function loadPlugin(specifier: string) {
 	try {
 		const plugin = await Plugin.parseAsync(await import(specifier)).catch(e => {
-			throw fromZodError(e);
+			throw z.prettifyError(e);
 		});
 		plugins.add(plugin);
 		output.debug(`Loaded plugin: "${plugin.name}" (${plugin.id}) ${plugin.version}`);

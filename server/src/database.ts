@@ -1,56 +1,42 @@
-import type { AdapterAccountType as db } from '@auth/core/adapters';
+import type { Preferences } from '@axium/core';
 import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
-import type { Preferences } from './auth.js';
 import config from './config.js';
 import { _fixOutput, run, someWarnings, type MaybeOutput, type WithOutput } from './io.js';
 import { plugins } from './plugins.js';
 
-export interface Schema {
-	User: {
+interface Schema {
+	users: {
 		id: GeneratedAlways<string>;
-		name: string | null;
 		email: string;
-		emailVerified: Date | null;
-		image: string | null;
+		name: string;
+		image?: string | null;
+		emailVerified?: Date | null;
 		password: string | null;
 		salt: string | null;
-		preferences: Preferences;
+		preferences?: Preferences;
 	};
-	Account: {
+	sessions: {
 		id: GeneratedAlways<string>;
 		userId: string;
-		type: db;
-		provider: string;
-		providerAccountId: string;
-		refresh_token?: string;
-		access_token?: string;
-		expires_at?: number;
-		token_type?: Lowercase<string>;
-		scope?: string;
-		id_token?: string;
-		session_state: string | null;
-	};
-	Session: {
-		id: GeneratedAlways<string>;
-		userId: string;
-		sessionToken: string;
-		expires: Date;
-	};
-	VerificationToken: {
-		identifier: string;
 		token: string;
 		expires: Date;
 	};
-	Authenticator: {
-		credentialID: string;
+	verifications: {
+		id: string;
+		token: string;
+		expires: Date;
+	};
+	passkeys: {
+		id: string;
+		name: string | null;
+		createdAt: GeneratedAlways<Date>;
 		userId: string;
-		providerAccountId: string;
-		credentialPublicKey: string;
+		publicKey: Uint8Array;
 		counter: number;
-		credentialDeviceType: string;
-		credentialBackedUp: boolean;
+		deviceType: string;
+		backedUp: boolean;
 		transports: string | null;
 	};
 }
@@ -77,7 +63,7 @@ export function connect(): Database {
 
 export interface Stats {
 	users: number;
-	accounts: number;
+	passkeys: number;
 	sessions: number;
 }
 
@@ -88,16 +74,16 @@ export async function count(table: keyof Schema): Promise<number> {
 
 export async function status(): Promise<Stats> {
 	return {
-		users: await count('User'),
-		accounts: await count('Account'),
-		sessions: await count('Session'),
+		users: await count('users'),
+		passkeys: await count('passkeys'),
+		sessions: await count('sessions'),
 	};
 }
 
 export async function statusText(): Promise<string> {
 	try {
 		const stats = await status();
-		return `${stats.users} users, ${stats.accounts} accounts, ${stats.sessions} sessions`;
+		return `${stats.users} users, ${stats.passkeys} passkeys, ${stats.sessions} sessions`;
 	} catch (error: any) {
 		throw typeof error == 'object' && 'message' in error ? error.message : error;
 	}
@@ -169,9 +155,9 @@ export async function init(opt: InitOptions): Promise<void> {
 
 	await using db = connect();
 
-	opt.output('start', 'Creating table User');
+	opt.output('start', 'Creating table users');
 	await db.schema
-		.createTable('User')
+		.createTable('users')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('name', 'text')
 		.addColumn('email', 'text', col => col.unique().notNull())
@@ -184,69 +170,49 @@ export async function init(opt: InitOptions): Promise<void> {
 		.then(done)
 		.catch(warnExists);
 
-	opt.output('start', 'Creating table Account');
+	opt.output('start', 'Creating table sessions');
 	await db.schema
-		.createTable('Account')
+		.createTable('sessions')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.references('User.id').onDelete('cascade').notNull())
-		.addColumn('type', 'text', col => col.notNull())
-		.addColumn('provider', 'text', col => col.notNull())
-		.addColumn('providerAccountId', 'text', col => col.notNull())
-		.addColumn('refresh_token', 'text')
-		.addColumn('access_token', 'text')
-		.addColumn('expires_at', 'bigint')
-		.addColumn('token_type', 'text')
-		.addColumn('scope', 'text')
-		.addColumn('id_token', 'text')
-		.addColumn('session_state', 'text')
-		.execute()
-		.then(done)
-		.catch(warnExists);
-
-	opt.output('start', 'Creating index for Account.userId');
-	await db.schema.createIndex('Account_userId_index').on('Account').column('userId').execute().then(done).catch(warnExists);
-
-	opt.output('start', 'Creating table Session');
-	await db.schema
-		.createTable('Session')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.references('User.id').onDelete('cascade').notNull())
-		.addColumn('sessionToken', 'text', col => col.notNull().unique())
-		.addColumn('expires', 'timestamptz', col => col.notNull())
-		.execute()
-		.then(done)
-		.catch(warnExists);
-
-	opt.output('start', 'Creating index for Session.userId');
-	await db.schema.createIndex('Session_userId_index').on('Session').column('userId').execute().then(done).catch(warnExists);
-
-	opt.output('start', 'Creating table VerificationToken');
-	await db.schema
-		.createTable('VerificationToken')
-		.addColumn('identifier', 'text', col => col.notNull())
+		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
 		.addColumn('token', 'text', col => col.notNull().unique())
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.execute()
 		.then(done)
 		.catch(warnExists);
 
-	opt.output('start', 'Creating table Authenticator');
+	opt.output('start', 'Creating index for sessions.userId');
+	await db.schema.createIndex('sessions_userId_index').on('sessions').column('userId').execute().then(done).catch(warnExists);
+
+	opt.output('start', 'Creating table verifications');
 	await db.schema
-		.createTable('Authenticator')
-		.addColumn('credentialID', 'text', col => col.primaryKey().notNull())
-		.addColumn('userId', 'uuid', col => col.notNull().references('User.id').onDelete('cascade').onUpdate('cascade'))
-		.addColumn('providerAccountId', 'text', col => col.notNull())
-		.addColumn('credentialPublicKey', 'text', col => col.notNull())
+		.createTable('verifications')
+		.addColumn('id', 'text', col => col.notNull())
+		.addColumn('token', 'text', col => col.notNull().unique())
+		.addColumn('expires', 'timestamptz', col => col.notNull())
+		.execute()
+		.then(done)
+		.catch(warnExists);
+
+	opt.output('start', 'Creating table passkeys');
+	await db.schema
+		.createTable('passkeys')
+		.addColumn('id', 'text', col => col.primaryKey().notNull())
+		.addColumn('name', 'text')
+		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
+		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
+		.addColumn('webauthnUserID', 'text', col => col.notNull())
+		.addColumn('publicKey', 'bytea', col => col.notNull())
 		.addColumn('counter', 'integer', col => col.notNull())
-		.addColumn('credentialDeviceType', 'text', col => col.notNull())
-		.addColumn('credentialBackedUp', 'boolean', col => col.notNull())
+		.addColumn('deviceType', 'text', col => col.notNull())
+		.addColumn('backedUp', 'boolean', col => col.notNull())
 		.addColumn('transports', 'text')
 		.execute()
 		.then(done)
 		.catch(warnExists);
 
-	opt.output('start', 'Creating index for Authenticator.credentialID');
-	await db.schema.createIndex('Authenticator_credentialID_key').on('Authenticator').column('credentialID').execute().then(done).catch(warnExists);
+	opt.output('start', 'Creating index for passkeys.id');
+	await db.schema.createIndex('passkeys.id_key').on('passkeys').column('id').execute().then(done).catch(warnExists);
 
 	for (const plugin of plugins) {
 		if (!plugin.db_init) continue;
@@ -291,7 +257,7 @@ export async function wipe(opt: OpOptions): Promise<void> {
 		await plugin.db_wipe(opt, db);
 	}
 
-	for (const table of ['User', 'Account', 'Session', 'VerificationToken', 'Authenticator'] as const) {
+	for (const table of ['users', 'passkeys', 'sessions', 'verifications'] as const) {
 		opt.output('start', `Removing data from ${table}`);
 		await db.deleteFrom(table).execute();
 		opt.output('done');

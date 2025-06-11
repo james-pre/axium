@@ -12,7 +12,9 @@ export const Schema = z
 		auth: z.object({
 			credentials: z.boolean(),
 			debug: z.boolean(),
-			secret: z.string(),
+			origin: z.string(),
+			rp_id: z.string(),
+			rp_name: z.string(),
 			secure_cookies: z.boolean(),
 		}),
 		db: z.object({
@@ -57,7 +59,9 @@ export const config: Config & typeof configShortcuts = {
 	auth: {
 		credentials: false,
 		debug: false,
-		secret: '',
+		origin: 'https://localhost',
+		rp_id: 'localhost',
+		rp_name: 'Axium',
 		secure_cookies: true,
 	},
 	db: {

@@ -1,173 +1,161 @@
-import type { Adapter, AdapterAccount, AdapterAuthenticator } from '@auth/core/adapters';
-import { CredentialsSignin } from '@auth/core/errors';
-import type { Provider } from '@auth/core/providers';
-import Credentials from '@auth/core/providers/credentials';
-import Passkey from '@auth/core/providers/passkey';
-import type { AuthConfig } from '@auth/core/types';
-import { KyselyAdapter, type Database, type KyselyAuth } from '@auth/kysely-adapter';
-import { Login, Registration } from '@axium/core/schemas';
-import { genSaltSync, hashSync } from 'bcryptjs';
-import { randomBytes } from 'node:crypto';
-import { omit } from 'utilium';
-import config from './config.js';
-import * as db from './database.js';
-import { logger } from './io.js';
+import type { User } from '@axium/core/user';
+import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
+import { randomBytes, randomUUID } from 'node:crypto';
+import type { Optional } from 'utilium';
+import { connect, database as db } from './database.js';
 
-/**
- * User preferences.
- * Modify with `declare module ...`
- */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
-export interface Preferences {}
-
-declare module '@auth/core/adapters' {
-	interface AdapterUser {
-		password: string | null;
-		salt: string | null;
-		preferences: Preferences;
+declare module '@axium/core/user' {
+	interface User {
+		password?: string | null;
+		salt?: string | null;
 	}
 }
 
-export let adapter: Adapter;
-
-export function createAdapter(): void {
-	if (adapter) return;
-
-	const conn = db.connect();
-
-	adapter = Object.assign(KyselyAdapter(conn as any as KyselyAuth<Database>), {
-		async getAccount(providerAccountId: AdapterAccount['providerAccountId'], provider: AdapterAccount['provider']): Promise<AdapterAccount | null> {
-			const result = await conn.selectFrom('Account').selectAll().where('providerAccountId', '=', providerAccountId).where('provider', '=', provider).executeTakeFirst();
-			return result ?? null;
-		},
-		async getAuthenticator(credentialID: AdapterAuthenticator['credentialID']): Promise<AdapterAuthenticator | null> {
-			const result = await conn.selectFrom('Authenticator').selectAll().where('credentialID', '=', credentialID).executeTakeFirst();
-			return result ?? null;
-		},
-		async createAuthenticator(authenticator: AdapterAuthenticator): Promise<AdapterAuthenticator> {
-			await conn.insertInto('Authenticator').values(authenticator).executeTakeFirstOrThrow();
-			return authenticator;
-		},
-		async listAuthenticatorsByUserId(userId: AdapterAuthenticator['userId']): Promise<AdapterAuthenticator[]> {
-			const result = await conn.selectFrom('Authenticator').selectAll().where('userId', '=', userId).execute();
-			return result;
-		},
-		async updateAuthenticatorCounter(credentialID: AdapterAuthenticator['credentialID'], newCounter: AdapterAuthenticator['counter']): Promise<AdapterAuthenticator> {
-			await conn.updateTable('Authenticator').set({ counter: newCounter }).where('credentialID', '=', credentialID).executeTakeFirstOrThrow();
-			const authenticator = await adapter.getAuthenticator?.(credentialID);
-			if (!authenticator) throw new Error('Authenticator not found');
-			return authenticator;
-		},
-	});
+export interface Session {
+	id: string;
+	userId: string;
+	token: string;
+	expires: Date;
 }
 
-/**
- * Login using credentials
- */
-export async function register(credentials: Registration) {
-	const { email, password, name } = Registration.parse(credentials);
+export interface VerificationToken {
+	id: string;
+	token: string;
+	expires: Date;
+}
 
-	const existing = await adapter.getUserByEmail?.(email);
-	if (existing) throw 'User already exists';
+export interface Passkey {
+	id: string;
+	name?: string | null;
+	createdAt: Date;
+	userId: string;
+	publicKey: Uint8Array;
+	counter: number;
+	deviceType: string;
+	backedUp: boolean;
+	transports: AuthenticatorTransportFuture[];
+}
 
-	let id = crypto.randomUUID();
-	while (await adapter.getUser?.(id)) id = crypto.randomUUID();
+export async function createUser(data: Optional<User, 'id'>) {
+	connect();
+	const user = { ...data, id: randomUUID() };
+	await db.insertInto('users').values(user).executeTakeFirstOrThrow();
+	return user;
+}
 
-	const salt = genSaltSync(10);
+export async function getUser(id: string) {
+	connect();
+	const result = await db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirst();
+	if (!result) return null;
+	return result;
+}
 
-	const user = await adapter.createUser!({
-		id,
-		name,
-		email,
-		emailVerified: null,
-		salt: password ? salt : null,
-		password: password ? hashSync(password, salt) : null,
-		preferences: {},
-	});
+export async function getUserByEmail(email: string) {
+	connect();
+	const result = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();
+	if (!result) return null;
+	return result;
+}
 
-	const expires = new Date();
-	expires.setMonth(expires.getMonth() + 1);
+export async function updateUser({ id, ...user }: User) {
+	connect();
+	const query = db.updateTable('users').set(user).where('id', '=', id);
+	return await query.returningAll().executeTakeFirstOrThrow();
+}
 
-	const session = await adapter.createSession!({
-		sessionToken: randomBytes(64).toString('base64'),
-		userId: id,
-		expires,
-	});
+export async function deleteUser(id: string) {
+	connect();
+	await db.deleteFrom('users').where('users.id', '=', id).executeTakeFirst();
+}
 
+const in30days = () => new Date(Date.now() + 2592000000);
+
+export async function createSession(userId: string) {
+	connect();
+	const session: Session = {
+		id: randomUUID(),
+		userId,
+		token: randomBytes(64).toString('base64'),
+		expires: in30days(),
+	};
+	await db.insertInto('sessions').values(session).execute();
+	return session;
+}
+
+export async function getSessionAndUser(token: string) {
+	connect();
+	const result = await db
+		.selectFrom('sessions')
+		.innerJoin('users', 'users.id', 'sessions.userId')
+		.selectAll('users')
+		.select(['sessions.expires', 'sessions.userId'])
+		.where('sessions.token', '=', token)
+		.executeTakeFirst();
+	if (!result) return null;
+	const { userId, expires, ...user } = result;
+	const session = { token, userId, expires };
 	return { user, session };
 }
 
-/**
- * Authorize using credentials
- */
-export async function authorize(credentials: Partial<Record<string, unknown>>) {
-	const { success, error, data } = Login.safeParse(credentials);
-	if (!success) throw new CredentialsSignin(error);
-
-	const user = await adapter.getUserByEmail?.(data.email);
-	if (!user || !data.password || !user.salt) return null;
-
-	if (user.password !== hashSync(data.password, user.salt)) return null;
-
-	return omit(user, 'password', 'salt');
+export async function updateSession(session: Session) {
+	connect();
+	const query = db.updateTable('sessions').set(session).where('sessions.token', '=', session.token);
+	return await query.returningAll().executeTakeFirstOrThrow();
 }
 
-type Providers = Exclude<Provider, (...args: any[]) => any>[];
+export async function deleteSession(token: string) {
+	connect();
+	await db.deleteFrom('sessions').where('sessions.token', '=', token).executeTakeFirstOrThrow();
+}
 
-export function getConfig(): AuthConfig & { providers: Providers } {
-	createAdapter();
+export async function createVerificationToken(data: VerificationToken) {
+	connect();
+	await db.insertInto('verifications').values(data).execute();
+	return data;
+}
 
-	const providers: Providers = [Passkey({})];
+export async function useVerificationToken(id: string, token: string): Promise<VerificationToken | undefined> {
+	connect();
+	const query = db.deleteFrom('verifications').where('verifications.token', '=', token).where('verifications.id', '=', id);
+	return await query.returningAll().executeTakeFirst();
+}
 
-	if (config.auth.credentials) {
-		providers.push(
-			Credentials({
-				credentials: {
-					email: { label: 'Email', type: 'email' },
-					password: { label: 'Password', type: 'password' },
-				},
-				authorize,
-			})
-		);
-	}
-
-	const debug = config.auth.debug ?? config.debug;
-
+export async function getPasskey(id: string): Promise<Passkey | null> {
+	connect();
+	const result = await db.selectFrom('passkeys').selectAll().where('id', '=', id).executeTakeFirst();
+	if (!result) return null;
 	return {
-		adapter,
-		providers,
-		debug,
-		experimental: { enableWebAuthn: true },
-		secret: config.auth.secret,
-		useSecureCookies: config.auth.secure_cookies,
-		session: { strategy: 'database' },
-		logger: {
-			error(error: Error) {
-				logger.error('[auth] ' + error.message);
-			},
-			warn(code): void {
-				switch (code) {
-					case 'experimental-webauthn':
-					case 'debug-enabled':
-						return;
-					case 'csrf-disabled':
-						logger.warn('CSRF protection is disabled.');
-						break;
-					case 'env-url-basepath-redundant':
-					case 'env-url-basepath-mismatch':
-					default:
-						logger.warn('[auth] ' + code);
-				}
-			},
-			debug(message: string, metadata?: unknown) {
-				debug && logger.debug('[auth]', message, metadata ? JSON.stringify(metadata, (k, v) => (k && JSON.stringify(v).length > 100 ? '...' : v)) : '');
-			},
-		},
-		callbacks: {
-			signIn({ user }) {
-				logger.info('[auth] signin', user.id ?? '', user.email ? `(${user.email})` : '');
-				return true;
-			},
-		},
+		...result,
+		transports: result.transports?.split(',') as AuthenticatorTransportFuture[],
 	};
+}
+
+export async function createPasskey(passkey: Omit<Passkey, 'createdAt'>): Promise<Passkey> {
+	connect();
+	const result = await db
+		.insertInto('passkeys')
+		.values({ ...passkey, transports: passkey.transports?.join(',') })
+		.returningAll()
+		.executeTakeFirstOrThrow();
+	return {
+		...result,
+		transports: result.transports?.split(',') as AuthenticatorTransportFuture[],
+	};
+}
+
+export async function getPasskeysByUserId(userId: string): Promise<Passkey[]> {
+	connect();
+	const passkeys = await db.selectFrom('passkeys').selectAll().where('userId', '=', userId).execute();
+	return passkeys.map(passkey => ({
+		...passkey,
+		transports: passkey.transports?.split(',') as AuthenticatorTransportFuture[],
+	}));
+}
+
+export async function updatePasskeyCounter(id: Passkey['id'], newCounter: Passkey['counter']): Promise<Passkey> {
+	connect();
+	await db.updateTable('passkeys').set({ counter: newCounter }).where('id', '=', id).executeTakeFirstOrThrow();
+	const passkey = await getPasskey(id);
+	if (!passkey) throw new Error('Passkey not found');
+	return passkey;
 }

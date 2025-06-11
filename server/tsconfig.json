@@ -3,8 +3,7 @@
 	"compilerOptions": {
 		"target": "ES2024",
 		"rootDir": "src",
-		"outDir": "dist",
-		"skipLibCheck": true // See https://github.com/nextauthjs/next-auth/issues/12857
+		"outDir": "dist"
 	},
 	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules", "web"]

@@ -1,3 +1,25 @@
+/**
+ * User preferences.
+ * Modify with `declare module ...`
+ */
+
+import { z } from 'zod';
+
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
+export interface Preferences {}
+
+export const User = z.object({
+	id: z.string().uuid(),
+	email: z.string().email(),
+	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
+	image: z.string().url().nullable().optional(),
+	email_verified: z.date().nullable().optional(),
+});
+
+export interface User extends z.infer<typeof User> {
+	preferences?: Preferences;
+}
+
 export function getUserImage(user: { name?: string; image?: string }): string {
 	if (user.image) return user.image;
 	user.name ??= '\0';

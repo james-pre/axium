@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import { Argument, Option, program, type Command } from 'commander';
-import { randomBytes } from 'node:crypto';
 import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
@@ -27,10 +26,10 @@ program.hook('preAction', async function (_, action: Command) {
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');
 	if (opt.debug === false) config.set({ debug: false });
-	if (!config.auth.secret) {
+	/* if (!config.auth.secret) {
 		config.save({ auth: { secret: process.env.AUTH_SECRET || randomBytes(32).toString('base64') } }, true);
 		output.debug('Auto-generated a new auth secret');
-	}
+	} */
 });
 
 // Options shared by multiple (sub)commands
@@ -96,7 +95,7 @@ axiumDB
 		const stats = await db.status().catch(exit);
 
 		if (!opt.force)
-			for (const key of ['users', 'accounts', 'sessions'] as const) {
+			for (const key of ['users', 'passkeys', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
 				output.warn(`Database has existing ${key}. Use --force if you really want to drop the database.`);
@@ -115,7 +114,7 @@ axiumDB
 		const stats = await db.status().catch(exit);
 
 		if (!opt.force)
-			for (const key of ['users', 'accounts', 'sessions'] as const) {
+			for (const key of ['users', 'passkeys', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
 				output.warn(`Database has existing ${key}. Use --force if you really want to wipe the database.`);
@@ -285,7 +284,7 @@ program
 	.addOption(opts.force)
 	.addOption(opts.host)
 	.action(async (opt: OptDB & { dbSkip: boolean }) => {
-		config.save({ auth: { secret: randomBytes(32).toString('base64') } }, true);
+		/* config.save({ auth: { secret: randomBytes(32).toString('base64') } }, true); */
 		await db.init({ ...opt, skip: opt.dbSkip }).catch(handleError);
 		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(handleError);
 	});

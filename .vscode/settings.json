@@ -1,4 +1,4 @@
 {
 	"editor.formatOnSave": true,
-	"cSpell.words": ["axium", "kysely"]
+	"cSpell.words": ["axium", "kysely", "webauthn"]
 }
