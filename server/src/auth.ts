@@ -1,5 +1,5 @@
 import type { User } from '@axium/core/user';
-import type { AuthenticatorTransportFuture } from '@simplewebauthn/server';
+import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { Optional } from 'utilium';
 import { connect, database as db } from './database.js';
@@ -31,7 +31,7 @@ export interface Passkey {
 	userId: string;
 	publicKey: Uint8Array;
 	counter: number;
-	deviceType: string;
+	deviceType: CredentialDeviceType;
 	backedUp: boolean;
 	transports: AuthenticatorTransportFuture[];
 }
@@ -120,14 +120,31 @@ export async function useVerificationToken(id: string, token: string): Promise<V
 	return await query.returningAll().executeTakeFirst();
 }
 
+interface DBPasskey {
+	id: string;
+	name: string | null;
+	createdAt: Date;
+	userId: string;
+	publicKey: Uint8Array;
+	counter: number;
+	deviceType: string;
+	backedUp: boolean;
+	transports: string | null;
+}
+
+function parsePasskey(passkey: DBPasskey): Passkey {
+	return {
+		...passkey,
+		deviceType: passkey.deviceType as CredentialDeviceType,
+		transports: passkey.transports?.split(',') as AuthenticatorTransportFuture[],
+	};
+}
+
 export async function getPasskey(id: string): Promise<Passkey | null> {
 	connect();
 	const result = await db.selectFrom('passkeys').selectAll().where('id', '=', id).executeTakeFirst();
 	if (!result) return null;
-	return {
-		...result,
-		transports: result.transports?.split(',') as AuthenticatorTransportFuture[],
-	};
+	return parsePasskey(result);
 }
 
 export async function createPasskey(passkey: Omit<Passkey, 'createdAt'>): Promise<Passkey> {
@@ -137,19 +154,13 @@ export async function createPasskey(passkey: Omit<Passkey, 'createdAt'>): Promis
 		.values({ ...passkey, transports: passkey.transports?.join(',') })
 		.returningAll()
 		.executeTakeFirstOrThrow();
-	return {
-		...result,
-		transports: result.transports?.split(',') as AuthenticatorTransportFuture[],
-	};
+	return parsePasskey(result);
 }
 
 export async function getPasskeysByUserId(userId: string): Promise<Passkey[]> {
 	connect();
 	const passkeys = await db.selectFrom('passkeys').selectAll().where('userId', '=', userId).execute();
-	return passkeys.map(passkey => ({
-		...passkey,
-		transports: passkey.transports?.split(',') as AuthenticatorTransportFuture[],
-	}));
+	return passkeys.map(parsePasskey);
 }
 
 export async function updatePasskeyCounter(id: Passkey['id'], newCounter: Passkey['counter']): Promise<Passkey> {

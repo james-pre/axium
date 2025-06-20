@@ -13,8 +13,4 @@
 		<label for="email">Email</label>
 		<input name="email" type="email" value={form?.email || ''} required />
 	</div>
-	<div>
-		<label for="password">Password</label>
-		<input name="password" type="password" />
-	</div>
 </FormDialog>

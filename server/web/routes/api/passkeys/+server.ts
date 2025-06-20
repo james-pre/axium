@@ -45,6 +45,24 @@ export async function OPTIONS(event: RequestEvent): Promise<Response> {
 	});
 }
 
+/**
+ * Get passkeys for a user.
+ */
+export async function GET(event: RequestEvent): Promise<Response> {
+	const { userId } = await parseBody(event, z.object({ userId: z.uuid() }));
+
+	const user = await getUser(userId);
+	if (!user) error(404, { message: 'User does not exist' });
+
+	await checkAuth(event, userId);
+
+	const passkeys = await getPasskeysByUserId(userId);
+
+	return new Response(JSON.stringify({ userId, existing: passkeys.map(p => pick(p, 'id', 'name', 'createdAt')) }), {
+		headers: { 'Content-Type': 'application/json' },
+	});
+}
+
 const schema = z.object({
 	userId: z.uuid(),
 	name: z.string().optional(),

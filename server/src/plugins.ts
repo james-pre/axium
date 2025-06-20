@@ -35,7 +35,6 @@ export function pluginText(plugin: Plugin): string {
 		plugin.id,
 		`Version: ${plugin.version}`,
 		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
-		`Status text integration: ${plugin.statusText ? styleText('whiteBright', 'yes') : styleText('yellow', 'no')}`,
 		`Database integration: ${
 			[plugin.db_init, plugin.db_remove, plugin.db_wipe]
 				.filter(Boolean)
