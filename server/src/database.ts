@@ -6,7 +6,7 @@ import config from './config.js';
 import { _fixOutput, run, someWarnings, type MaybeOutput, type WithOutput } from './io.js';
 import { plugins } from './plugins.js';
 
-interface Schema {
+export interface Schema {
 	users: {
 		id: GeneratedAlways<string>;
 		email: string;

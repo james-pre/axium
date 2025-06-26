@@ -46,7 +46,7 @@ export function pluginText(plugin: Plugin): string {
 
 export async function loadPlugin(specifier: string) {
 	try {
-		const plugin = await Plugin.parseAsync(await import(specifier)).catch(e => {
+		const plugin = await Plugin.parseAsync(await import(/* @vite-ignore */ specifier)).catch(e => {
 			throw z.prettifyError(e);
 		});
 		plugins.add(plugin);

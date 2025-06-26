@@ -7,6 +7,7 @@ import config from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 import { loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
+import { apps } from './apps.js';
 
 program
 	.version($pkg.version)
@@ -228,6 +229,31 @@ axiumPlugin
 		const plugin = resolvePlugin(search);
 		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
 		console.log(pluginText(plugin));
+	});
+
+const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);
+
+axiumApps
+	.command('list')
+	.alias('ls')
+	.description('List apps added by plugins')
+	.option('-l, --long', 'use the long listing format')
+	.option('-b, --builtin', 'include built-in apps')
+	.action((opt: OptCommon & { long: boolean; builtin: boolean }) => {
+		if (!apps.size) {
+			console.log('No apps.');
+			return;
+		}
+
+		if (!opt.long) {
+			console.log(Array.from(apps.values().map(app => app.name)).join(', '));
+			return;
+		}
+
+		console.log(styleText('whiteBright', apps.size + ' app(s) loaded:'));
+		for (const app of apps.values()) {
+			console.log(app.name, styleText('dim', `(${app.id})`));
+		}
 	});
 
 program

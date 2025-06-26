@@ -1,9 +1,10 @@
 {
 	"extends": ["../tsconfig.json"],
 	"compilerOptions": {
-		"target": "ES2024",
+		"target": "ES2023",
 		"rootDir": "src",
-		"outDir": "dist"
+		"outDir": "dist",
+		"lib": ["DOM", "Decorators", "ESNext"]
 	},
 	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules", "web"]

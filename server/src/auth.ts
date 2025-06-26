@@ -82,18 +82,23 @@ export async function createSession(userId: string) {
 	return session;
 }
 
-export async function getSessionAndUser(token: string) {
+export interface SessionAndUser {
+	user: User;
+	session: Session;
+}
+
+export async function getSessionAndUser(token: string): Promise<SessionAndUser> {
 	connect();
 	const result = await db
 		.selectFrom('sessions')
 		.innerJoin('users', 'users.id', 'sessions.userId')
 		.selectAll('users')
-		.select(['sessions.expires', 'sessions.userId'])
+		.select(['sessions.expires', 'sessions.userId', 'sessions.id as sessionId'])
 		.where('sessions.token', '=', token)
 		.executeTakeFirst();
-	if (!result) return null;
-	const { userId, expires, ...user } = result;
-	const session = { token, userId, expires };
+	if (!result) throw new Error('Session not found');
+	const { userId, sessionId, expires, ...user } = result;
+	const session = { token, userId, expires, id: sessionId };
 	return { user, session };
 }
 

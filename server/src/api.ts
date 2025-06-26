@@ -1,6 +1,6 @@
-import { createSession, deleteSession, getSessionAndUser } from '@axium/server/auth.js';
-import { config } from '@axium/server/config.js';
-import { error, type RequestEvent } from '@sveltejs/kit';
+import { createSession, deleteSession, getSessionAndUser } from './auth.js';
+import { config } from './config.js';
+import { error, json, type RequestEvent } from '@sveltejs/kit';
 import type { z } from 'zod/v4';
 
 export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(event: RequestEvent, schema: Schema): Promise<Result> {
@@ -34,7 +34,5 @@ export async function createSessionResponse(event: RequestEvent, userId: string)
 		event.cookies.set('session_token', token, { httpOnly: true, path: '/' });
 	}
 
-	return new Response(JSON.stringify({ userId, token }), {
-		headers: { 'Content-Type': 'application/json' },
-	});
+	return json({ userId, token });
 }

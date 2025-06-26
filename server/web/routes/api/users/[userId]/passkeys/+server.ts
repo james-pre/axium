@@ -1,12 +1,12 @@
 /** Register a new passkey for a new or existing user. */
+import { checkAuth, parseBody } from '@axium/server/api.js';
 import { createPasskey, getPasskeysByUserId, getUser } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
-import { error, type RequestEvent } from '@sveltejs/kit';
+import { error, json, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
 import z from 'zod/v4';
-import { PasskeyRegistration } from '../schemas';
-import { checkAuth, parseBody } from '../utils';
+import { PasskeyRegistration } from '../../../schemas';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
@@ -15,7 +15,7 @@ const registrations = new Map<string, string>();
  * Get passkey registration options for a user.
  */
 export async function OPTIONS(event: RequestEvent): Promise<Response> {
-	const { userId } = await parseBody(event, z.object({ userId: z.uuid().optional() }));
+	const { userId } = event.params;
 
 	const user = await getUser(userId);
 	if (!user) error(404, { message: 'User does not exist' });
@@ -40,16 +40,14 @@ export async function OPTIONS(event: RequestEvent): Promise<Response> {
 
 	registrations.set(userId, options.challenge);
 
-	return new Response(JSON.stringify({ userId, options }), {
-		headers: { 'Content-Type': 'application/json' },
-	});
+	return json({ userId, options });
 }
 
 /**
  * Get passkeys for a user.
  */
 export async function GET(event: RequestEvent): Promise<Response> {
-	const { userId } = await parseBody(event, z.object({ userId: z.uuid() }));
+	const { userId } = event.params;
 
 	const user = await getUser(userId);
 	if (!user) error(404, { message: 'User does not exist' });
@@ -58,9 +56,7 @@ export async function GET(event: RequestEvent): Promise<Response> {
 
 	const passkeys = await getPasskeysByUserId(userId);
 
-	return new Response(JSON.stringify({ userId, existing: passkeys.map(p => pick(p, 'id', 'name', 'createdAt')) }), {
-		headers: { 'Content-Type': 'application/json' },
-	});
+	return json({ userId, existing: passkeys.map(p => pick(p, 'id', 'name', 'createdAt')) });
 }
 
 const schema = z.object({
@@ -73,7 +69,8 @@ const schema = z.object({
  * Register a new passkey for an existing user.
  */
 export async function PUT(event: RequestEvent): Promise<Response> {
-	const { userId, response } = await parseBody(event, schema);
+	const { userId } = event.params;
+	const { response } = await parseBody(event, schema);
 
 	const user = await getUser(userId);
 	if (!user) error(404, { message: 'User does not exist' });
@@ -100,7 +97,5 @@ export async function PUT(event: RequestEvent): Promise<Response> {
 		backedUp: registrationInfo.credentialBackedUp,
 	}).catch(() => error(500, { message: 'Failed to create passkey' }));
 
-	return new Response(JSON.stringify({ userId, verified }), {
-		headers: { 'Content-Type': 'application/json' },
-	});
+	return json({ userId, verified });
 }

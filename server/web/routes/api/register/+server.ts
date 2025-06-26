@@ -1,12 +1,12 @@
-/** Register a new passkey for a new or existing user. */
+/** Register a new user. */
+import { createSessionResponse, parseBody } from '@axium/server/api.js';
 import { createPasskey, createUser, getUser, getUserByEmail } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
-import { error, type RequestEvent } from '@sveltejs/kit';
+import { error, json, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod/v4';
 import { PasskeyRegistration } from '../schemas';
-import { createSessionResponse, parseBody } from '../utils';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
@@ -34,9 +34,7 @@ export async function OPTIONS(event: RequestEvent): Promise<Response> {
 
 	registrations.set(userId, options.challenge);
 
-	return new Response(JSON.stringify({ userId, options }), {
-		headers: { 'Content-Type': 'application/json' },
-	});
+	return json({ userId, options });
 }
 
 const schema = z.object({

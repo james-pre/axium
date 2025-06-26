@@ -7,3 +7,5 @@ build
 secrets.*
 logs
 *.log
+.tmp.*
+_tmp.*

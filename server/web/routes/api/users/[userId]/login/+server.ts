@@ -1,17 +1,17 @@
 /** Register a new passkey for a new or existing user. */
+import { checkAuth, createSessionResponse, parseBody } from '@axium/server/api.js';
 import { getPasskey, getPasskeysByUserId, getUser } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
 import { generateAuthenticationOptions, verifyAuthenticationResponse } from '@simplewebauthn/server';
-import { error, type RequestEvent } from '@sveltejs/kit';
+import { error, json, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
 import z from 'zod/v4';
-import { authenticatorAttachment } from '../schemas.js';
-import { checkAuth, createSessionResponse, parseBody } from '../utils.js';
+import { authenticatorAttachment } from '../../../schemas.js';
 
 const challenges = new Map<string, string>();
 
 export async function OPTIONS(event: RequestEvent): Promise<Response> {
-	const { userId } = await parseBody(event, z.object({ userId: z.uuid() }));
+	const { userId } = event.params;
 
 	const user = await getUser(userId);
 	if (!user) error(404, { message: 'User does not exist' });
@@ -29,13 +29,10 @@ export async function OPTIONS(event: RequestEvent): Promise<Response> {
 
 	challenges.set(userId, options.challenge);
 
-	return new Response(JSON.stringify({ userId, options }), {
-		headers: { 'Content-Type': 'application/json' },
-	});
+	return json({ userId, options });
 }
 
 const schema = z.object({
-	userId: z.uuid(),
 	response: z.object({
 		id: z.string(),
 		rawId: z.string(),
@@ -52,7 +49,8 @@ const schema = z.object({
 });
 
 export async function POST(event: RequestEvent): Promise<Response> {
-	const { userId, response } = await parseBody(event, schema);
+	const { userId } = event.params;
+	const { response } = await parseBody(event, schema);
 
 	const user = await getUser(userId);
 	if (!user) error(404, { message: 'User does not exist' });

@@ -1,13 +1,6 @@
 import type { ActionFailure, RequestEvent } from '@sveltejs/kit';
-import { fail, redirect } from '@sveltejs/kit';
+import { fail } from '@sveltejs/kit';
 import z from 'zod/v4';
-import type { Session } from '../src/auth';
-
-export async function loadSession(event: RequestEvent): Promise<{ session: Session }> {
-	const session = await event.locals.auth();
-	if (!session) redirect(307, '/auth/signin');
-	return { session };
-}
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface FormFail<S extends z.ZodType, E extends object = object> extends ActionFailure<z.infer<S> & { error: string } & E> {}
