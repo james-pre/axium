@@ -3,7 +3,7 @@
  * Modify with `declare module ...`
  */
 
-import { z } from 'zod';
+import z from 'zod/v4';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Preferences {}
