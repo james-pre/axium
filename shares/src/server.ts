@@ -41,7 +41,7 @@ export async function getShares(itemType: keyof Schema, itemId: string): Promise
 	if (!shares.length) return [];
 
 	const users = await database
-		.selectFrom('User')
+		.selectFrom('users')
 		.selectAll()
 		.where(
 			'id',

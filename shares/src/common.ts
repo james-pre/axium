@@ -1,4 +1,4 @@
-import type { User } from '@axium/core/schemas';
+import type { User } from '@axium/core/user';
 
 export interface Share {
 	itemId: string;
