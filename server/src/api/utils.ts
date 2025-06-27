@@ -1,7 +1,7 @@
-import { createSession, deleteSession, getSessionAndUser } from './auth.js';
-import { config } from './config.js';
-import { error, json, type RequestEvent } from '@sveltejs/kit';
+import { error, type RequestEvent } from '@sveltejs/kit';
 import type { z } from 'zod/v4';
+import { createSession, deleteSession, getSessionAndUser } from '../auth.js';
+import { config } from '../config.js';
 
 export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(event: RequestEvent, schema: Schema): Promise<Result> {
 	const contentType = event.request.headers.get('content-type');
@@ -27,12 +27,12 @@ export async function checkAuth(event: RequestEvent, userId?: string): Promise<v
 	if (user.id !== userId /* && !user.isAdmin */) error(403, { message: 'User ID mismatch' });
 }
 
-export async function createSessionResponse(event: RequestEvent, userId: string): Promise<Response> {
+export async function createSessionResponse(event: RequestEvent, userId: string) {
 	const { token } = await createSession(userId);
 
 	if (config.auth.secure_cookies) {
 		event.cookies.set('session_token', token, { httpOnly: true, path: '/' });
 	}
 
-	return json({ userId, token });
+	return { userId, token };
 }

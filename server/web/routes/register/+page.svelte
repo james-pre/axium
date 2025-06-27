@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import SignUp from '../../lib/SignUp.svelte';
-	import '../../lib/styles.css';
+	import SignUp from '$lib/SignUp.svelte';
+	import '$lib/styles.css';
 	let { form } = $props();
 	$effect(() => {
 		if (form?.success) goto('/');

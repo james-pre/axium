@@ -1,17 +1,18 @@
 /** Register a new user. */
-import { createSessionResponse, parseBody } from '@axium/server/api.js';
-import { createPasskey, createUser, getUser, getUserByEmail } from '@axium/server/auth.js';
-import { config } from '@axium/server/config.js';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
-import { error, json, type RequestEvent } from '@sveltejs/kit';
+import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod/v4';
-import { PasskeyRegistration } from '../schemas';
+import { createPasskey, createUser, getUser, getUserByEmail } from '../auth.js';
+import { config } from '../config.js';
+import { addRoute } from '../routes.js';
+import { PasskeyRegistration } from './schemas.js';
+import { createSessionResponse, parseBody } from './utils.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
-export async function OPTIONS(event: RequestEvent): Promise<Response> {
+async function OPTIONS(event: RequestEvent) {
 	const { name } = await parseBody(event, z.object({ name: z.string().optional() }));
 
 	const userId = randomUUID();
@@ -34,7 +35,7 @@ export async function OPTIONS(event: RequestEvent): Promise<Response> {
 
 	registrations.set(userId, options.challenge);
 
-	return json({ userId, options });
+	return { userId, options };
 }
 
 const schema = z.object({
@@ -44,7 +45,7 @@ const schema = z.object({
 	response: PasskeyRegistration,
 });
 
-export async function POST(event: RequestEvent): Promise<Response> {
+async function POST(event: RequestEvent) {
 	const { userId, email, name, response } = await parseBody(event, schema);
 
 	const existing = await getUserByEmail(email);
@@ -60,7 +61,7 @@ export async function POST(event: RequestEvent): Promise<Response> {
 		expectedOrigin: config.auth.origin,
 	}).catch(() => error(400, { message: 'Verification failed' }));
 
-	if (!verified) error(401, { message: 'Verification failed' });
+	if (!verified || !registrationInfo) error(401, { message: 'Verification failed' });
 
 	await createUser({ id: userId, name, email }).catch(() => error(500, { message: 'Failed to create user' }));
 
@@ -74,3 +75,10 @@ export async function POST(event: RequestEvent): Promise<Response> {
 
 	return await createSessionResponse(event, userId);
 }
+
+addRoute({
+	path: '/api/register',
+	params: {},
+	OPTIONS,
+	POST,
+});

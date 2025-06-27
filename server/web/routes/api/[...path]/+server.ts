@@ -1,68 +1,44 @@
-import { resolveRoute, type RequestMethod, type Route } from '@axium/server/routes.js';
-import { error, json } from '@sveltejs/kit';
-import type { RequestEvent } from '../../$types';
+import type { RequestMethod } from '@axium/core/requests';
+import { resolveRoute } from '@axium/server/routes.js';
+import { error, json, type RequestEvent, type RequestHandler } from '@sveltejs/kit';
 import z from 'zod/v4';
 
-const acceptable = (event: RequestEvent): boolean => event.request.headers.get('Accept')?.includes('application/json');
-
-const badAccept = json({ message: 'Only application/json is supported' }, { status: 406 });
-
-function getRoute(event: RequestEvent, method: RequestMethod): Route {
-	const route = resolveRoute(event);
-	if (!route) error(404, 'Route not found');
-	for (const [key, { type }] of Object.entries(route.params)) {
-		if (!type) continue;
-
-		try {
-			event.params[key] = type.parse(event.params[key]);
-		} catch (e) {
-			error(400, `Invalid parameter: ${z.prettifyError(e)}`);
+function handler(method: RequestMethod): RequestHandler {
+	return async function (event: RequestEvent): Promise<Response> {
+		const _warnings: string[] = [];
+		if (!event.request.headers.get('Accept')?.includes('application/json')) {
+			_warnings.push('Only application/json is supported');
+			event.request.headers.set('Accept', 'application/json');
 		}
-	}
 
-	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${event.url.pathname}`);
+		const route = resolveRoute(event);
 
-	return route;
+		if (!route) error(404, 'Route not found');
+		if (!route.server) error(503, 'Route is not a server route');
+
+		for (const [key, type] of Object.entries(route.params || {})) {
+			if (!type) continue;
+
+			try {
+				event.params[key] = type.parse(event.params[key]) as any;
+			} catch (e) {
+				error(400, `Invalid parameter: ${z.prettifyError(e)}`);
+			}
+		}
+
+		console.log(route.path, method);
+		if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${event.url.pathname}`);
+
+		const result = await route[method](event);
+
+		return json(_warnings ? { ...result, _warnings } : result);
+	};
 }
 
-export async function GET(event: RequestEvent): Promise<Response> {
-	if (!acceptable(event)) return badAccept;
-	const route = getRoute(event, 'GET');
-	return json(await route.GET(event));
-}
-
-export async function POST(event: RequestEvent): Promise<Response> {
-	if (!acceptable(event)) return badAccept;
-	const route = getRoute(event, 'POST');
-	return json(await route.POST(event));
-}
-
-export async function PUT(event: RequestEvent): Promise<Response> {
-	if (!acceptable(event)) return badAccept;
-	const route = getRoute(event, 'PUT');
-	return json(await route.PUT(event));
-}
-
-export async function DELETE(event: RequestEvent): Promise<Response> {
-	if (!acceptable(event)) return badAccept;
-	const route = getRoute(event, 'DELETE');
-	return json(await route.DELETE(event));
-}
-
-export async function PATCH(event: RequestEvent): Promise<Response> {
-	if (!acceptable(event)) return badAccept;
-	const route = getRoute(event, 'PATCH');
-	return json(await route.PATCH(event));
-}
-
-export async function OPTIONS(event: RequestEvent): Promise<Response> {
-	if (!acceptable(event)) return badAccept;
-	const route = getRoute(event, 'OPTIONS');
-	return json(await route.OPTIONS(event));
-}
-
-export async function HEAD(event: RequestEvent): Promise<Response> {
-	if (!acceptable(event)) return badAccept;
-	const route = getRoute(event, 'HEAD');
-	return json(await route.HEAD(event));
-}
+export const HEAD = handler('HEAD');
+export const GET = handler('GET');
+export const POST = handler('POST');
+export const PUT = handler('PUT');
+export const DELETE = handler('DELETE');
+export const PATCH = handler('PATCH');
+export const OPTIONS = handler('OPTIONS');

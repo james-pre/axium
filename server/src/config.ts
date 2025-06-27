@@ -12,6 +12,9 @@ export const Schema = z
 		api: z.object({
 			disable_metadata: z.boolean().optional(),
 		}),
+		apps: z.object({
+			disabled: z.array(z.string()),
+		}),
 		auth: z.object({
 			credentials: z.boolean(),
 			debug: z.boolean(),
@@ -61,6 +64,9 @@ export const config: Config & typeof configShortcuts = {
 	...configShortcuts,
 	api: {
 		disable_metadata: false,
+	},
+	apps: {
+		disabled: [],
 	},
 	auth: {
 		credentials: false,

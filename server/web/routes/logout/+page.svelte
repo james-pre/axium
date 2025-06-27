@@ -1,21 +1,10 @@
 <script lang="ts">
+	import { fetchAPI } from '@axium/core/requests';
+
 	async function onclick() {
-		const response = await fetch('/api/session', {
-			method: 'GET',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-		});
+		const session = await fetchAPI('GET', '/api/session');
 
-		const session = await response.json();
-
-		await fetch('/api/logout', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(session),
-		});
+		await fetchAPI('POST', '/api/logout', { session });
 	}
 </script>
 
