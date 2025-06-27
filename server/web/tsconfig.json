@@ -1,7 +1,8 @@
 {
 	"extends": "../.svelte-kit/tsconfig.json",
 	"compilerOptions": {
-		"target": "ES2021"
+		"target": "ES2021",
+		"lib": ["ESNext"]
 	},
 	"include": ["**/*.ts", "**/*.svelte"]
 }

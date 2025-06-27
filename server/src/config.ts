@@ -71,8 +71,8 @@ export const config: Config & typeof configShortcuts = {
 	auth: {
 		credentials: false,
 		debug: false,
-		origin: 'https://localhost',
-		rp_id: 'localhost',
+		origin: 'https://test.localhost',
+		rp_id: 'test.localhost',
 		rp_name: 'Axium',
 		secure_cookies: true,
 	},

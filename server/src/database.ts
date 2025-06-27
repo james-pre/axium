@@ -201,7 +201,6 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('name', 'text')
 		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
-		.addColumn('webauthnUserID', 'text', col => col.notNull())
 		.addColumn('publicKey', 'bytea', col => col.notNull())
 		.addColumn('counter', 'integer', col => col.notNull())
 		.addColumn('deviceType', 'text', col => col.notNull())

@@ -11,6 +11,7 @@ export function setToken(value: string | null): void {
 export async function fetchAPI<T>(method: RequestMethod, url: string, data?: object | null, init?: RequestInit): Promise<T> {
 	const options = {
 		...init,
+		method,
 		headers: {
 			'Content-Type': 'application/json',
 			Accept: 'application/json',

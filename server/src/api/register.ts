@@ -13,7 +13,7 @@ import { createSessionResponse, parseBody } from './utils.js';
 const registrations = new Map<string, string>();
 
 async function OPTIONS(event: RequestEvent) {
-	const { name } = await parseBody(event, z.object({ name: z.string().optional() }));
+	const { name, email } = await parseBody(event, z.object({ name: z.string().optional(), email: z.email().optional() }));
 
 	const userId = randomUUID();
 	const user = await getUser(userId);
@@ -22,7 +22,7 @@ async function OPTIONS(event: RequestEvent) {
 	const options = await generateRegistrationOptions({
 		rpName: config.auth.rp_name,
 		rpID: config.auth.rp_id,
-		userName: userId,
+		userName: email ?? userId,
 		userDisplayName: name,
 		attestationType: 'none',
 		excludeCredentials: [],
@@ -71,7 +71,7 @@ async function POST(event: RequestEvent) {
 		userId,
 		deviceType: registrationInfo.credentialDeviceType,
 		backedUp: registrationInfo.credentialBackedUp,
-	}).catch(() => error(500, { message: 'Failed to create passkey' }));
+	}).catch(e => error(500, { message: 'Failed to create passkey' + (config.debug ? `: ${e.message}` : '') }));
 
 	return await createSessionResponse(event, userId);
 }

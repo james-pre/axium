@@ -1,5 +1,5 @@
 import { error, type RequestEvent } from '@sveltejs/kit';
-import type { z } from 'zod/v4';
+import z from 'zod/v4';
 import { createSession, deleteSession, getSessionAndUser } from '../auth.js';
 import { config } from '../config.js';
 
@@ -9,11 +9,15 @@ export async function parseBody<const Schema extends z.ZodType, const Result ext
 
 	const body: unknown = await event.request.json().catch(() => error(415, { message: 'Invalid JSON' }));
 
-	return (await schema.parseAsync(body).catch(() => error(400, { message: 'Invalid request body' }))) as Result;
+	try {
+		return schema.parse(body) as Result;
+	} catch (e: any) {
+		error(400, { message: z.prettifyError(e) });
+	}
 }
 
 export async function checkAuth(event: RequestEvent, userId?: string): Promise<void> {
-	const token = event.request.headers.get('Authorization')?.replace('Bearer ', '');
+	const token = event.request.headers.get('Authorization')?.replace('Bearer ', '') || (config.debug ? event.cookies.get('session_token') : null);
 
 	if (!token) throw error(401, { message: 'Missing token' });
 

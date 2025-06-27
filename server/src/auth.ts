@@ -38,7 +38,7 @@ export interface Passkey {
 
 export async function createUser(data: Optional<User, 'id'>) {
 	connect();
-	const user = { ...data, id: randomUUID() };
+	const user = { id: randomUUID(), ...data };
 	await db.insertInto('users').values(user).executeTakeFirstOrThrow();
 	return user;
 }
