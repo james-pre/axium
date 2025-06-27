@@ -1,6 +1,6 @@
-import type { User } from '@axium/core';
+import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
 import type { NewSessionResponse } from '@axium/core/api';
-import { createSession, getSessionAndUser } from '@axium/server/auth.js';
+import { createSession, getSessionAndUser, type UserInternal } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
@@ -43,17 +43,11 @@ export async function checkAuth(event: RequestEvent, userId?: string): Promise<v
 export async function createSessionResponse(event: RequestEvent, userId: string): Promise<NewSessionResponse> {
 	const { token } = await createSession(userId);
 
-	if (config.auth.secure_cookies) {
-		event.cookies.set('session_token', token, { httpOnly: true, path: '/' });
-	}
+	event.cookies.set('session_token', token, { httpOnly: config.auth.secure_cookies, path: '/' });
 
 	return { userId, token };
 }
 
-export function stripUser(user: User, includeProtected: boolean = false) {
-	return pick(
-		user,
-		...(['id', 'name', 'image'] as const satisfies (keyof User)[]),
-		...(includeProtected ? (['email', 'emailVerified', 'preferences'] as const satisfies (keyof User)[]) : [])
-	);
+export function stripUser(user: UserInternal, includeProtected: boolean = false): User {
+	return pick(user, ...userPublicFields, ...(includeProtected ? userProtectedFields : []));
 }

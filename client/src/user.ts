@@ -1,4 +1,4 @@
-import { startRegistration } from '@simplewebauthn/browser';
+import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
 import z from 'zod/v4';
 import { fetchAPI } from './requests.js';
 
@@ -8,6 +8,16 @@ export async function session() {
 
 export async function login(userId: string) {
 	const options = await fetchAPI('OPTIONS', 'users/:id/login', {}, userId);
+	const response = await startAuthentication({ optionsJSON: options });
+	await fetchAPI('POST', 'users/:id/login', response, userId);
+}
+
+export async function loginByEmail(email: string) {
+	const { id: userId } = await fetchAPI('POST', 'user_id', {
+		using: 'email',
+		value: email,
+	});
+	return await login(userId);
 }
 
 export async function logout() {
@@ -38,6 +48,11 @@ export async function userInfo(userId: string) {
 	return await fetchAPI('GET', 'users/:id', {}, userId);
 }
 
-export async function fullUserInfo() {
-	return await fetchAPI('GET', 'users/from-session');
+export async function fullUserInfo(userId: string) {
+	try {
+		z.uuid().parse(userId);
+	} catch (e: any) {
+		throw z.prettifyError(e);
+	}
+	return await fetchAPI('GET', 'users/:id/full', {}, userId);
 }

@@ -1,12 +1,29 @@
-import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
+import type { AuthenticatorTransportFuture, CredentialDeviceType, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
 import type z from 'zod/v4';
 import type { RequestMethod } from './requests.js';
-import type { APILogin, APIUserRegistration } from './schemas.js';
-import type { UserProtected, UserPublic } from './user.js';
+import type { APIUserRegistration, PasskeyAuthenticationResponse } from './schemas.js';
+import type { User, UserPublic } from './user.js';
 
-export interface SessionInfo {
+export interface Session {
+	id: string;
+	userId: string;
+	expires: Date;
+	created: Date;
+}
+
+export interface VerificationToken {
 	id: string;
 	expires: Date;
+}
+
+export interface Passkey {
+	id: string;
+	name?: string | null;
+	createdAt: Date;
+	userId: string;
+	deviceType: CredentialDeviceType;
+	backedUp: boolean;
+	transports: AuthenticatorTransportFuture[];
 }
 
 export interface NewSessionResponse {
@@ -28,10 +45,10 @@ export interface _apiTypes {
 	};
 	session: {
 		GET: {
-			session: SessionInfo;
-			user: UserProtected;
+			session: Session;
+			user: User;
 		};
-		DELETE: SessionInfo & { userId: string };
+		DELETE: Session & { userId: string };
 	};
 	register: {
 		OPTIONS: {
@@ -41,18 +58,21 @@ export interface _apiTypes {
 		POST: [z.input<typeof APIUserRegistration>, NewSessionResponse];
 	};
 	'users/:id': {
-		GET: UserPublic & Partial<UserProtected>;
+		GET: UserPublic & Partial<User>;
+	};
+	'users/:id/full': {
+		GET: User & { sessions: Session[] };
 	};
 	'users/:id/login': {
 		OPTIONS: PublicKeyCredentialRequestOptionsJSON;
-		POST: [z.infer<typeof APILogin>, NewSessionResponse];
+		POST: [z.infer<typeof PasskeyAuthenticationResponse>, NewSessionResponse];
 	};
 	'users/:id/sessions': {
-		GET: SessionInfo[];
-		DELETE: [string, SessionInfo[]];
+		GET: Session[];
+		DELETE: [string, Session[]];
 	};
-	'users/from-session': {
-		GET: UserProtected & { sessions: SessionInfo[] };
+	user_id: {
+		POST: [{ using: 'email' | 'handle'; value: string }, { id: string }];
 	};
 }
 

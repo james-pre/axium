@@ -1,4 +1,5 @@
 /** Register a new user. */
+import type { Result } from '@axium/core/api';
 import { APIUserRegistration } from '@axium/core/schemas';
 import { createPasskey, createUser, getUser, getUserByEmail } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
@@ -8,7 +9,6 @@ import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod/v4';
 import { createSessionResponse, parseBody } from './utils.js';
-import type { Result } from '@axium/core/api';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();

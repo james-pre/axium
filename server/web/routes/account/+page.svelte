@@ -1,14 +1,8 @@
 <script lang="ts">
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
-	import '$lib/styles.css';
 	import { fullUserInfo, session } from '@axium/client/user';
 	import { getUserImage } from '@axium/core';
-
-	const data = session().then(async session => ({
-		session,
-		user: await fullUserInfo(),
-	}));
 
 	let changeEmail = $state(false);
 	let changeName = $state(false);
@@ -18,30 +12,11 @@
 	<title>Account</title>
 </svelte:head>
 
-<div class="Account flex-content">
-	{#await data}
-		<img class="pfp" alt="User profile loading" />
-		<p>Loading...</p>
-		<div class="section main">
-			<div class="item">
-				<p class="subtle">Name</p>
-				<p>Loading...</p>
-				<button style:display="contents" class="change"><Icon i="chevron-right" /></button>
-			</div>
-			<div class="item">
-				<p class="subtle">Email</p>
-				<p>Loading...</p>
-				<button style:display="contents" class="change"><Icon i="chevron-right" /></button>
-			</div>
-			<div class="item">
-				<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
-				<p>Loading...</p>
-			</div>
-			<a class="signout" href="/auth/signout"><button>Sign out</button></a>
-		</div>
-	{:then { user, session }}
+{#await session().then(s => fullUserInfo(s.user.id)) then user}
+	<div class="Account flex-content">
 		<img class="pfp" src={getUserImage(user)} alt="User profile" />
 		<p class="greeting">Welcome, {user.name}</p>
+
 		<div class="section main">
 			<div class="item">
 				<p class="subtle">Name</p>
@@ -59,27 +34,27 @@
 			</div>
 			<a class="signout" href="/auth/signout"><button>Sign out</button></a>
 		</div>
-	{:catch error}
-		<div class="error">
-			<h3>Failed to load your account</h3>
-			<p>{'message' in error ? error.message : error}</p>
+	</div>
+
+	<FormDialog bind:active={changeEmail} submitText="Change">
+		<div>
+			<label for="email">Email Address</label>
+			<input name="email" type="email" value={user.email || ''} required />
 		</div>
-	{/await}
-</div>
+	</FormDialog>
 
-<FormDialog bind:active={changeEmail} {form} submitText="Change">
-	<div>
-		<label for="email">Email Address</label>
-		<input name="email" type="email" value={form?.email || data.email || ''} required />
+	<FormDialog bind:active={changeName} submitText="Change">
+		<div>
+			<label for="name">What do you want to be called?</label>
+			<input name="name" type="text" value={user.name || ''} required />
+		</div>
+	</FormDialog>
+{:catch error}
+	<div class="error">
+		<h3>Failed to load your account</h3>
+		<p>{'message' in error ? error.message : error}</p>
 	</div>
-</FormDialog>
-
-<FormDialog bind:active={changeName} {form} submitText="Change">
-	<div>
-		<label for="name">What do you want to be called?</label>
-		<input name="name" type="text" value={form?.name || data.name || ''} required />
-	</div>
-</FormDialog>
+{/await}
 
 <style>
 	.pfp {

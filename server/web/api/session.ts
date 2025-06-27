@@ -1,9 +1,9 @@
 import { authenticate } from '$lib/auth';
 import type { Result } from '@axium/core/api';
-import { database as db } from '@axium/server/database.js';
+import { connect, database as db } from '@axium/server/database.js';
 import { addRoute } from '@axium/server/routes.js';
 import { error } from '@sveltejs/kit';
-import { pick } from 'utilium';
+import { omit } from 'utilium';
 import { getToken, stripUser } from './utils';
 
 addRoute({
@@ -14,12 +14,20 @@ addRoute({
 		if (!result) error(404, 'Session does not exist');
 
 		return {
-			session: pick(result.session, 'id', 'expires'),
+			session: omit(result.session, 'token'),
 			user: stripUser(result.user, true),
 		};
 	},
 	async DELETE(event): Promise<Result<'DELETE', 'session'>> {
 		const token = getToken(event);
-		return await db.deleteFrom('sessions').where('sessions.token', '=', token).returningAll().executeTakeFirstOrThrow();
+		connect();
+		const result = await db
+			.deleteFrom('sessions')
+			.where('sessions.token', '=', token)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch((e: Error) => (e.message == 'no result' ? error(404, 'Session does not exist') : error(400, 'Invalid session')));
+
+		return omit(result, 'token');
 	},
 });

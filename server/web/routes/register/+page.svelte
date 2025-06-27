@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import Dialog from '$lib/Dialog.svelte';
 	import { register } from '@axium/client/user';
-	import './styles.css';
 
 	let { active = $bindable(null), oncancel = () => {}, pageMode = true } = $props();
 

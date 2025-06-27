@@ -32,20 +32,18 @@ export const PasskeyRegistration = z.object({
 /**
  * POSTed to the `/users/:id/login` endpoint.
  */
-export const APILogin = z.object({
+export const PasskeyAuthenticationResponse = z.object({
+	id: z.string(),
+	rawId: z.string(),
 	response: z.object({
-		id: z.string(),
-		rawId: z.string(),
-		response: z.object({
-			clientDataJSON: z.string(),
-			authenticatorData: z.string(),
-			signature: z.string(),
-			userHandle: z.string().optional(),
-		}),
-		authenticatorAttachment,
-		clientExtensionResults: z.record(z.any(), z.any()),
-		type: z.literal('public-key'),
+		clientDataJSON: z.string(),
+		authenticatorData: z.string(),
+		signature: z.string(),
+		userHandle: z.string().optional(),
 	}),
+	authenticatorAttachment,
+	clientExtensionResults: z.record(z.any(), z.any()),
+	type: z.literal('public-key'),
 });
 
 export const APIUserRegistration = z.object({

@@ -4,7 +4,6 @@ import z from 'zod/v4';
  * User preferences.
  * Modify with `declare module ...`
  */
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Preferences {}
 
 export const User = z.object({
@@ -22,14 +21,9 @@ export interface User extends z.infer<typeof User> {
 export const userPublicFields = ['id', 'image', 'name'] as const satisfies (keyof User)[];
 
 type UserPublicField = (typeof userPublicFields)[number];
-
-export type UserPublic = Pick<User, UserPublicField>;
+export interface UserPublic extends Pick<User, UserPublicField> {}
 
 export const userProtectedFields = ['email', 'emailVerified', 'preferences'] as const satisfies (keyof User)[];
-
-type UserProtectedField = (typeof userProtectedFields)[number];
-
-export type UserProtected = Pick<User, UserPublicField | UserProtectedField>;
 
 export function getUserImage(user: { name?: string; image?: string }): string {
 	if (user.image) return user.image;

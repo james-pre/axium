@@ -26,7 +26,7 @@ function handler(method: RequestMethod): RequestHandler {
 			}
 		}
 
-		if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${event.url.pathname}`);
+		if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
 
 		const result = await route[method](event);
 

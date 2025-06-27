@@ -177,6 +177,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
 		.addColumn('token', 'text', col => col.notNull().unique())
+		.addColumn('created', 'timestamptz', col => col.notNull())
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.execute()
 		.then(done)

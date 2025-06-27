@@ -1,22 +1,34 @@
 /** Register a new passkey for a new or existing user. */
 import type { Result } from '@axium/core/api';
-import { APILogin } from '@axium/core/schemas';
+import { PasskeyAuthenticationResponse } from '@axium/core/schemas';
 import { createPasskey, getPasskey, getPasskeysByUserId, getSession, getSessions, getUser } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
-import { database as db } from '@axium/server/database.js';
+import { connect, database as db } from '@axium/server/database.js';
 import { addRoute } from '@axium/server/routes.js';
 import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
-import { pick } from 'utilium';
+import { omit, pick } from 'utilium';
 import z from 'zod/v4';
 import { PasskeyRegistration } from './schemas.js';
 import { checkAuth, createSessionResponse as createSessionData, parseBody, stripUser } from './utils.js';
 
 const challenges = new Map<string, string>();
 
-const params = {
-	id: z.uuid(),
-};
+const params = { id: z.uuid() };
+
+/**
+ * Resolve a user's UUID using their email (in the future this might also include handles)
+ */
+addRoute({
+	path: '/api/user_id',
+	async POST(event): Promise<Result<'POST', 'user_id'>> {
+		const { value } = await parseBody(event, z.object({ using: z.union([z.literal('email')]), value: z.email() }));
+
+		connect();
+		const { id } = await db.selectFrom('users').select('id').where('email', '=', value).executeTakeFirst();
+		return { id };
+	},
+});
 
 addRoute({
 	path: '/api/users/:id',
@@ -33,6 +45,25 @@ addRoute({
 });
 
 addRoute({
+	path: '/api/users/:id/full',
+	params,
+	async GET(event): Promise<Result<'GET', 'users/:id/full'>> {
+		const { id: userId } = event.params;
+
+		await checkAuth(event, userId);
+
+		const user = stripUser(await getUser(userId), true);
+
+		const sessions = await getSessions(userId);
+
+		return {
+			...user,
+			sessions: sessions.map(s => omit(s, 'token')),
+		};
+	},
+});
+
+addRoute({
 	path: '/api/users/:id/login',
 	params,
 	async OPTIONS(event): Promise<Result<'OPTIONS', 'users/:id/login'>> {
@@ -45,8 +76,6 @@ addRoute({
 
 		if (!passkeys) error(409, { message: 'No passkeys exists for this user' });
 
-		if (userId) await checkAuth(event, userId);
-
 		const options = await generateAuthenticationOptions({
 			rpID: config.auth.rp_id,
 			allowCredentials: passkeys.map(passkey => pick(passkey, 'id', 'transports')),
@@ -58,18 +87,19 @@ addRoute({
 	},
 	async POST(event: RequestEvent): Promise<Result<'POST', 'users/:id/login'>> {
 		const { id: userId } = event.params;
-		const { response } = await parseBody(event, APILogin);
+		const response = await parseBody(event, PasskeyAuthenticationResponse);
+
+		const expectedChallenge = challenges.get(userId);
+		if (!expectedChallenge) error(404, { message: 'No challenge found for this user' });
+		challenges.delete(userId);
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });
 
 		const passkey = await getPasskey(response.id);
 		if (!passkey) error(404, { message: 'Passkey does not exist' });
-		if (passkey.userId !== userId) error(403, { message: 'Passkey does not belong to this user' });
 
-		const expectedChallenge = challenges.get(userId);
-		if (!expectedChallenge) error(404, { message: 'No challenge found for this user' });
-		challenges.delete(userId);
+		if (passkey.userId !== userId) error(403, { message: 'Passkey does not belong to this user' });
 
 		const { verified } = await verifyAuthenticationResponse({
 			response,
