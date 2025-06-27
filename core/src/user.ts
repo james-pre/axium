@@ -1,18 +1,17 @@
+import z from 'zod/v4';
+
 /**
  * User preferences.
  * Modify with `declare module ...`
  */
-
-import z from 'zod/v4';
-
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Preferences {}
 
 export const User = z.object({
-	id: z.string().uuid(),
-	email: z.string().email(),
+	id: z.uuid(),
+	email: z.email(),
 	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
-	image: z.string().url().nullable().optional(),
+	image: z.url().nullable().optional(),
 	email_verified: z.date().nullable().optional(),
 });
 
