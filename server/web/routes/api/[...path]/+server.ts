@@ -30,6 +30,11 @@ function handler(method: RequestMethod): RequestHandler {
 
 		const result = await route[method](event);
 
+		if ('_warnings' in result && Array.isArray(result._warnings)) {
+			_warnings.push(...result._warnings);
+			delete result._warnings;
+		}
+
 		return json(_warnings ? { ...result, _warnings } : result);
 	};
 }

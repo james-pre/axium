@@ -4,7 +4,7 @@
 		"target": "ES2023",
 		"rootDir": "src",
 		"outDir": "dist",
-		"lib": ["DOM", "Decorators", "ESNext"]
+		"lib": ["DOM", "Decorators", "ESNext", "DOM.Iterable"]
 	},
 	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules", "web"]

@@ -1,5 +1,6 @@
 import type { RequestMethod } from '@axium/core/requests';
 import type { LoadEvent, RequestEvent } from '@sveltejs/kit';
+import type { Component } from 'svelte';
 import type z from 'zod/v4';
 
 type _Params = Partial<Record<string, string>>;
@@ -20,8 +21,8 @@ export interface ServerRouteOptions<Params extends _Params = _Params> extends Co
 
 export interface WebRouteOptions extends CommonRouteOptions {
 	load?(event: RequestEvent): object | Promise<object>;
-	/** Path to the Svelte page */
-	page?: string;
+	/** the Svelte page */
+	page?: Component;
 }
 
 export type RouteOptions = ServerRouteOptions | WebRouteOptions;
@@ -29,6 +30,7 @@ export type RouteOptions = ServerRouteOptions | WebRouteOptions;
 export interface RouteCommon {
 	path: string;
 	params?: Record<string, RouteParamOptions>;
+	[kBuiltin]: boolean;
 }
 
 export interface ServerRoute extends RouteCommon, EndpointHandlers {
@@ -38,7 +40,7 @@ export interface ServerRoute extends RouteCommon, EndpointHandlers {
 export interface WebRoute extends RouteCommon {
 	server: false;
 	load?(event: LoadEvent): object | Promise<object>;
-	page?: string;
+	page?: Component;
 }
 
 export type Route = ServerRoute | WebRoute;
@@ -48,8 +50,10 @@ export type Route = ServerRoute | WebRoute;
  */
 export const routes = new Map<string, Route>();
 
+const kBuiltin = Symbol('kBuiltin');
+
 export function addRoute(opt: RouteOptions, _routeMap = routes): void {
-	const route = { ...opt, server: !('page' in opt) };
+	const route = { ...opt, server: !('page' in opt), [kBuiltin]: false };
 
 	if (!route.path.startsWith('/')) {
 		throw new Error(`Route path must start with a slash: ${route.path}`);
@@ -95,5 +99,15 @@ export function resolveRoute<T extends Route>(event: RequestEvent | LoadEvent, _
 
 		event.params = params;
 		return route;
+	}
+}
+
+/**
+ * This function marks all existing routes as built-in.
+ * @internal
+ */
+export function _markDefaults() {
+	for (const route of routes.values()) {
+		route[kBuiltin] = true;
 	}
 }

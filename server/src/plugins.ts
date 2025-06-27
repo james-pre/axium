@@ -3,7 +3,7 @@ import { join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import z from 'zod/v4';
 import { findDir, output } from './io.js';
-import { zAsyncFunction } from '@axium/core/schema';
+import { zAsyncFunction } from '@axium/core/schemas';
 
 export const fn = z.custom<(...args: unknown[]) => any>(data => typeof data === 'function');
 

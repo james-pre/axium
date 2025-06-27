@@ -1,6 +1,6 @@
 {
 	"name": "@axium/client",
-	"version": "0.0.1",
+	"version": "0.0.2",
 	"author": "James Prevett <jp@jamespre.dev>",
 	"funding": {
 		"type": "individual",
@@ -20,10 +20,18 @@
 	"files": [
 		"dist"
 	],
+	"exports": {
+		".": "./dist/index.js",
+		"./*": "./dist/*.js"
+	},
 	"scripts": {
 		"build": "tsc"
 	},
 	"dependencies": {
-		"commander": "^13.1.0"
+		"@axium/core": ">=0.2.0",
+		"@simplewebauthn/browser": "^13.1.0",
+		"commander": "^13.1.0",
+		"utilium": "^2.3.8",
+		"zod": "^3.25.61"
 	}
 }

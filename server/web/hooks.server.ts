@@ -1,4 +1,7 @@
 import { loadDefaultConfigs } from '@axium/server/config.js';
-import '@axium/server/api/index.js';
+import { _markDefaults } from '@axium/server/routes.js';
+import './api/index.js';
+import './pages/index.js';
 
+_markDefaults();
 await loadDefaultConfigs();

@@ -16,6 +16,7 @@ export interface Session {
 	userId: string;
 	token: string;
 	expires: Date;
+	created: Date;
 }
 
 export interface VerificationToken {
@@ -77,9 +78,16 @@ export async function createSession(userId: string) {
 		userId,
 		token: randomBytes(64).toString('base64'),
 		expires: in30days(),
+		created: new Date(),
 	};
 	await db.insertInto('sessions').values(session).execute();
 	return session;
+}
+
+export async function checkExpiration(session: Session) {
+	if (session.expires.getTime() > Date.now()) return;
+	await db.deleteFrom('sessions').where('sessions.id', '=', session.id).executeTakeFirstOrThrow();
+	throw new Error('Session expired');
 }
 
 export interface SessionAndUser {
@@ -93,24 +101,33 @@ export async function getSessionAndUser(token: string): Promise<SessionAndUser> 
 		.selectFrom('sessions')
 		.innerJoin('users', 'users.id', 'sessions.userId')
 		.selectAll('users')
-		.select(['sessions.expires', 'sessions.userId', 'sessions.id as sessionId'])
+		.select(['sessions.expires', 'sessions.id as sessionId', 'created'])
 		.where('sessions.token', '=', token)
 		.executeTakeFirst();
 	if (!result) throw new Error('Session not found');
-	const { userId, sessionId, expires, ...user } = result;
-	const session = { token, userId, expires, id: sessionId };
+
+	const { sessionId, created, expires, ...user } = result;
+	const session = { token, userId: user.id, expires, id: sessionId, created };
+	await checkExpiration(session);
 	return { user, session };
+}
+
+export async function getSession(sessionId: string): Promise<Session> {
+	connect();
+	const session = await db.selectFrom('sessions').selectAll().where('id', '=', sessionId).executeTakeFirstOrThrow();
+	await checkExpiration(session);
+	return session;
+}
+
+export async function getSessions(userId: string): Promise<Session[]> {
+	connect();
+	return await db.selectFrom('sessions').selectAll().where('userId', '=', userId).execute();
 }
 
 export async function updateSession(session: Session) {
 	connect();
 	const query = db.updateTable('sessions').set(session).where('sessions.token', '=', session.token);
 	return await query.returningAll().executeTakeFirstOrThrow();
-}
-
-export async function deleteSession(token: string) {
-	connect();
-	await db.deleteFrom('sessions').where('sessions.token', '=', token).executeTakeFirstOrThrow();
 }
 
 export async function createVerificationToken(data: VerificationToken) {

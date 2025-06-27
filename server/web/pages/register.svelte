@@ -1,11 +1,8 @@
 <script lang="ts">
-	import Dialog from './Dialog.svelte';
-	import { fetchAPI } from '@axium/core/requests';
-	import { startRegistration } from '@simplewebauthn/browser';
-	import type { PublicKeyCredentialCreationOptionsJSON as OptionsJSON } from '@simplewebauthn/browser';
-	import './styles.css';
-	import type { UUID } from 'utilium';
 	import { goto } from '$app/navigation';
+	import Dialog from '$lib/Dialog.svelte';
+	import { register } from '@axium/client/user';
+	import './styles.css';
 
 	let { active = $bindable(null), oncancel = () => {}, pageMode = true } = $props();
 
@@ -19,23 +16,9 @@
 		oncancel(e);
 	}
 
-	async function register(data: Record<string, string>) {
-		const { options, userId } = await fetchAPI<{ userId: UUID; options: OptionsJSON }>('OPTIONS', '/api/register', data);
-
-		const response = await startRegistration({ optionsJSON: options });
-
-		await fetchAPI('POST', '/api/register', {
-			userId,
-			name: data.name,
-			email: data.email,
-			response,
-		});
-	}
-
 	function onsubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
 		e.preventDefault();
 
-		// @ts-ignore 2769 - FormData supports the iterator and iterable protocols, but TS doesn't know that for some reason
 		const data = Object.fromEntries(new FormData(e.currentTarget));
 
 		register(data)
@@ -48,6 +31,10 @@
 			});
 	}
 </script>
+
+<svelte:head>
+	<title>Sign Up</title>
+</svelte:head>
 
 <Dialog {show} onclose={() => (active = null)}>
 	<form {onsubmit} class="main">

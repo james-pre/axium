@@ -33,8 +33,8 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.0.2",
-		"@axium/server": ">=0.7.0"
+		"@axium/core": ">=0.2.0",
+		"@axium/server": ">=0.8.0"
 	},
 	"dependencies": {},
 	"devDependencies": {}

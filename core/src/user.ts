@@ -9,15 +9,27 @@ export interface Preferences {}
 
 export const User = z.object({
 	id: z.uuid(),
-	email: z.email(),
 	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
+	email: z.email(),
+	emailVerified: z.date().nullable().optional(),
 	image: z.url().nullable().optional(),
-	email_verified: z.date().nullable().optional(),
 });
 
 export interface User extends z.infer<typeof User> {
 	preferences?: Preferences;
 }
+
+export const userPublicFields = ['id', 'image', 'name'] as const satisfies (keyof User)[];
+
+type UserPublicField = (typeof userPublicFields)[number];
+
+export type UserPublic = Pick<User, UserPublicField>;
+
+export const userProtectedFields = ['email', 'emailVerified', 'preferences'] as const satisfies (keyof User)[];
+
+type UserProtectedField = (typeof userProtectedFields)[number];
+
+export type UserProtected = Pick<User, UserPublicField | UserProtectedField>;
 
 export function getUserImage(user: { name?: string; image?: string }): string {
 	if (user.image) return user.image;

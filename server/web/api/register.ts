@@ -1,18 +1,19 @@
 /** Register a new user. */
+import { APIUserRegistration } from '@axium/core/schemas';
+import { createPasskey, createUser, getUser, getUserByEmail } from '@axium/server/auth.js';
+import { config } from '@axium/server/config.js';
+import { addRoute } from '@axium/server/routes.js';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod/v4';
-import { createPasskey, createUser, getUser, getUserByEmail } from '../auth.js';
-import { config } from '../config.js';
-import { addRoute } from '../routes.js';
-import { PasskeyRegistration } from './schemas.js';
 import { createSessionResponse, parseBody } from './utils.js';
+import type { Result } from '@axium/core/api';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
-async function OPTIONS(event: RequestEvent) {
+async function OPTIONS(event: RequestEvent): Promise<Result<'OPTIONS', 'register'>> {
 	const { name, email } = await parseBody(event, z.object({ name: z.string().optional(), email: z.email().optional() }));
 
 	const userId = randomUUID();
@@ -38,15 +39,8 @@ async function OPTIONS(event: RequestEvent) {
 	return { userId, options };
 }
 
-const schema = z.object({
-	name: z.string().min(1).max(100),
-	email: z.email(),
-	userId: z.uuid(),
-	response: PasskeyRegistration,
-});
-
-async function POST(event: RequestEvent) {
-	const { userId, email, name, response } = await parseBody(event, schema);
+async function POST(event: RequestEvent): Promise<Result<'POST', 'register'>> {
+	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
 
 	const existing = await getUserByEmail(email);
 	if (existing) error(409, { message: 'Email already in use' });

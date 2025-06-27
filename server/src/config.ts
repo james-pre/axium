@@ -10,7 +10,8 @@ import { loadPlugin } from './plugins.js';
 export const Schema = z
 	.object({
 		api: z.object({
-			disable_metadata: z.boolean().optional(),
+			disable_metadata: z.boolean(),
+			cookie_auth: z.boolean(),
 		}),
 		apps: z.object({
 			disabled: z.array(z.string()),
@@ -64,6 +65,7 @@ export const config: Config & typeof configShortcuts = {
 	...configShortcuts,
 	api: {
 		disable_metadata: false,
+		cookie_auth: false,
 	},
 	apps: {
 		disabled: [],

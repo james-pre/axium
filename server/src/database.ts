@@ -19,6 +19,7 @@ export interface Schema {
 	};
 	sessions: {
 		id: GeneratedAlways<string>;
+		created: GeneratedAlways<Date>;
 		userId: string;
 		token: string;
 		expires: Date;

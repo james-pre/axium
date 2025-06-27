@@ -1,6 +1,6 @@
 import type { LoadEvent, RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
-import type { Route, WebRoute, WebRouteOptions } from './routes.js';
+import type { WebRoute, WebRouteOptions } from './routes.js';
 import { addRoute, resolveRoute } from './routes.js';
 
 export interface CreateAppOptions {

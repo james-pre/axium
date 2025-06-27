@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { enhance } from '$app/forms';
 	import Dialog from './Dialog.svelte';
 	import './styles.css';
 
-	let { children, active = $bindable(null), form, submitText = 'Submit', oncancel = () => {}, action = '', pageMode = false, ...rest } = $props();
+	let { children, active = $bindable(null), form, submitText = 'Submit', oncancel = () => {}, submit = (data: object) => {}, pageMode = false, ...rest } = $props();
 
 	$effect(() => {
 		if (form?.success) active = null;
@@ -16,10 +15,15 @@
 		active = null;
 		oncancel(e);
 	}
+
+	function onsubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
+		const data = Object.fromEntries(new FormData(e.currentTarget));
+		submit();
+	}
 </script>
 
 <Dialog {show} onclose={() => (active = null)}>
-	<form method="POST" {action} use:enhance class="main" {...rest}>
+	<form {onsubmit} class="main" {...rest}>
 		{#if form?.error}
 			<div class="error">{form.error}</div>
 		{/if}

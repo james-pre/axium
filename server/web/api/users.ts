@@ -1,14 +1,16 @@
 /** Register a new passkey for a new or existing user. */
+import type { Result } from '@axium/core/api';
+import { APILogin } from '@axium/core/schemas';
+import { createPasskey, getPasskey, getPasskeysByUserId, getSession, getSessions, getUser } from '@axium/server/auth.js';
+import { config } from '@axium/server/config.js';
+import { database as db } from '@axium/server/database.js';
+import { addRoute } from '@axium/server/routes.js';
 import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
 import z from 'zod/v4';
-import { createPasskey, getPasskey, getPasskeysByUserId, getUser } from '../auth.js';
-import { config } from '../config.js';
-import { connect, database as db } from '../database.js';
-import { addRoute } from '../routes.js';
-import { authenticatorAttachment, PasskeyRegistration } from './schemas.js';
-import { checkAuth, createSessionResponse as createSessionData, parseBody } from './utils.js';
+import { PasskeyRegistration } from './schemas.js';
+import { checkAuth, createSessionResponse as createSessionData, parseBody, stripUser } from './utils.js';
 
 const challenges = new Map<string, string>();
 
@@ -16,27 +18,25 @@ const params = {
 	id: z.uuid(),
 };
 
-const loginPostSchema = z.object({
-	response: z.object({
-		id: z.string(),
-		rawId: z.string(),
-		response: z.object({
-			clientDataJSON: z.string(),
-			authenticatorData: z.string(),
-			signature: z.string(),
-			userHandle: z.string().optional(),
-		}),
-		authenticatorAttachment,
-		clientExtensionResults: z.record(z.any(), z.any()),
-		type: z.literal('public-key'),
-	}),
+addRoute({
+	path: '/api/users/:id',
+	params,
+	async GET(event): Promise<Result<'GET', 'users/:id'>> {
+		const { id: userId } = event.params;
+
+		const authed = await checkAuth(event, userId)
+			.then(() => true)
+			.catch(() => false);
+
+		return stripUser(await getUser(userId), authed);
+	},
 });
 
 addRoute({
 	path: '/api/users/:id/login',
 	params,
-	async OPTIONS(event) {
-		const userId = event.params.id!;
+	async OPTIONS(event): Promise<Result<'OPTIONS', 'users/:id/login'>> {
+		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });
@@ -54,11 +54,11 @@ addRoute({
 
 		challenges.set(userId, options.challenge);
 
-		return { userId, options };
+		return options;
 	},
-	async POST(event: RequestEvent) {
-		const userId = event.params.id!;
-		const { response } = await parseBody(event, loginPostSchema);
+	async POST(event: RequestEvent): Promise<Result<'POST', 'users/:id/login'>> {
+		const { id: userId } = event.params;
+		const { response } = await parseBody(event, APILogin);
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });
@@ -85,39 +85,6 @@ addRoute({
 	},
 });
 
-addRoute({
-	path: '/api/users/:id/logout',
-	params,
-	async POST(event: RequestEvent) {
-		const userId = event.params.id!;
-		const { sessionId } = await parseBody(event, z.object({ sessionId: z.uuid() }));
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
-
-		await checkAuth(event, userId);
-
-		connect();
-
-		const session = await db
-			.selectFrom('sessions')
-			.selectAll()
-			.where('id', '=', sessionId)
-			.executeTakeFirstOrThrow()
-			.catch(() => error(404, { message: 'Invalid session' }));
-
-		if (session.userId !== userId) error(403, { message: 'Session does not belong to the user' });
-
-		await db
-			.deleteFrom('sessions')
-			.where('sessions.id', '=', session.id)
-			.executeTakeFirstOrThrow()
-			.catch(() => error(500, { message: 'Failed to delete session' }));
-
-		return { userId };
-	},
-});
-
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
@@ -128,7 +95,7 @@ addRoute({
 	 * Get passkey registration options for a user.
 	 */
 	async OPTIONS(event: RequestEvent) {
-		const userId = event.params.id!;
+		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });
@@ -160,7 +127,7 @@ addRoute({
 	 * Get passkeys for a user.
 	 */
 	async GET(event: RequestEvent) {
-		const userId = event.params.id!;
+		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });
@@ -176,7 +143,7 @@ addRoute({
 	 * Register a new passkey for an existing user.
 	 */
 	async PUT(event: RequestEvent) {
-		const userId = event.params.id!;
+		const { id: userId } = event.params;
 		const { response } = await parseBody(event, z.object({ userId: z.uuid(), name: z.string().optional(), response: PasskeyRegistration }));
 
 		const user = await getUser(userId);
@@ -205,5 +172,35 @@ addRoute({
 		}).catch(() => error(500, { message: 'Failed to create passkey' }));
 
 		return { userId, verified };
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/sessions',
+	params,
+	async GET(event): Promise<Result<'POST', 'users/:id/sessions'>> {
+		const { id: userId } = event.params;
+
+		await checkAuth(event, userId);
+
+		return (await getSessions(userId).catch(e => error(503, 'Failed to get sessions' + (config.debug ? ': ' + e : '')))).map(s => pick(s, 'id', 'expires'));
+	},
+	async DELETE(event: RequestEvent): Promise<Result<'DELETE', 'users/:id/sessions'>> {
+		const { id: userId } = event.params;
+		const { id: sessionId } = await parseBody(event, z.object({ id: z.uuid() }));
+
+		await checkAuth(event, userId);
+
+		const session = await getSession(sessionId).catch(() => error(404, { message: 'Invalid session' }));
+
+		if (session.userId !== userId) error(403, { message: 'Session does not belong to the user' });
+
+		await db
+			.deleteFrom('sessions')
+			.where('sessions.id', '=', session.id)
+			.executeTakeFirstOrThrow()
+			.catch(() => error(500, { message: 'Failed to delete session' }));
+
+		return;
 	},
 });
