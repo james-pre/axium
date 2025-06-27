@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { getUserImage } from '@axium/core';
-	import './account.css';
 	import FormDialog from './FormDialog.svelte';
 	import Icon from './icons/Icon.svelte';
 	import './styles.css';
@@ -72,5 +71,42 @@
 
 	.signout {
 		margin-top: 2em;
+	}
+
+	.account-section {
+		width: 50%;
+		padding-top: 4em;
+
+		> div:has(+ div) {
+			border-bottom: 1px solid #8888;
+		}
+	}
+
+	.account-section .account-item {
+		display: grid;
+		grid-template-columns: 10em 1fr 2em;
+		align-items: center;
+		width: 100%;
+		gap: 1em;
+		text-wrap: nowrap;
+		padding-bottom: 1em;
+
+		> :first-child {
+			margin: 0 5em 0 1em;
+			grid-column: 1;
+		}
+
+		> :nth-child(2) {
+			margin: 0;
+			grid-column: 2;
+		}
+
+		> :last-child:nth-child(3) {
+			margin: 0;
+			display: inline;
+			grid-column: 3;
+			font-size: 0.75em;
+			cursor: pointer;
+		}
 	}
 </style>
