@@ -19,9 +19,8 @@
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"exports": {
-		"./plugin": "./dist/plugin.js",
 		".": "./dist/index.js",
-		"./*": "./dist/*",
+		"./*": "./dist/*.js",
 		"./web": "./web/index.js",
 		"./web/*": "./web/*"
 	},

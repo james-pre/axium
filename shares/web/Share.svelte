@@ -1,9 +1,8 @@
 <script lang="ts">
-	import type { Permission } from '../dist/common.js';
-	import { permissionNames } from '../dist/common.js';
-	import type { Entries } from 'utilium';
 	import { UserCard } from '@axium/server/web';
-	import type { Share } from '../dist/common.js';
+	import type { Permission, Share } from '@axium/shares';
+	import { permissionNames } from '@axium/shares';
+	import type { Entries } from 'utilium';
 
 	const { share, editable }: { share: Share; editable: boolean } = $props();
 
