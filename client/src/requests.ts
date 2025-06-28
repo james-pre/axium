@@ -19,14 +19,15 @@ export async function fetchAPI<const M extends RequestMethod, const E extends En
 	data?: RequestBody<M, E>,
 	...params: APIParameters<E>
 ): Promise<Result<M, E>> {
-	const options = {
+	const options: RequestInit & { headers: Record<string, string> } = {
 		method,
 		headers: {
 			'Content-Type': 'application/json',
 			Accept: 'application/json',
-		} as Record<string, string>,
-		body: JSON.stringify(data),
-	} satisfies RequestInit;
+		},
+	};
+
+	if (method !== 'GET' && method !== 'OPTIONS') options.body = JSON.stringify(data);
 
 	if (token) options.headers.Authorization = 'Bearer ' + token;
 
