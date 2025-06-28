@@ -34,30 +34,30 @@
 			</div>
 			<a class="signout" href="/logout"><button>Sign out</button></a>
 		</div>
-	</div>
 
-	<div class="section main">
-		<h3>Passkeys</h3>
-		{#await getPasskeys(user.id) then passkeys}
-			{#each passkeys as passkey}
-				<div class="passkey">
-					{#if passkey.name}
-						<p>{passkey.name}</p>
-					{:else}
-						<p class="subtle"><i>Unnamed</i></p>
-					{/if}
-					<p>{passkey.createdAt.toLocaleString(navigator.language)}</p>
-					<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
-						<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} />
-					</dfn>
-					<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
-						<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} />
-					</dfn>
-				</div>
-			{/each}
-		{:catch}
-			<div class="error">Could not load your passkeys.</div>
-		{/await}
+		<div class="section main">
+			<h3>Passkeys</h3>
+			{#await getPasskeys(user.id) then passkeys}
+				{#each passkeys as passkey}
+					<div class="passkey">
+						{#if passkey.name}
+							<p>{passkey.name}</p>
+						{:else}
+							<p class="subtle"><i>Unnamed</i></p>
+						{/if}
+						<p>{passkey.createdAt.toLocaleString(navigator.language)}</p>
+						<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
+							<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} />
+						</dfn>
+						<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
+							<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} />
+						</dfn>
+					</div>
+				{/each}
+			{:catch}
+				<div class="error">Could not load your passkeys.</div>
+			{/await}
+		</div>
 	</div>
 
 	<FormDialog bind:active={changeEmail} submitText="Change">
