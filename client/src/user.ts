@@ -39,29 +39,35 @@ export async function register(_data: Record<string, FormDataEntryValue>): Promi
 	});
 }
 
-export async function userInfo(userId: string) {
+function _checkId(userId: string) {
 	try {
 		z.uuid().parse(userId);
 	} catch (e: any) {
 		throw z.prettifyError(e);
 	}
+}
+
+export async function userInfo(userId: string) {
+	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id', {}, userId);
 }
 
 export async function fullUserInfo(userId: string) {
-	try {
-		z.uuid().parse(userId);
-	} catch (e: any) {
-		throw z.prettifyError(e);
-	}
+	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/full', {}, userId);
 }
 
+export async function sendVerificationEmail(userId: string) {
+	_checkId(userId);
+	return await fetchAPI('GET', 'users/:id/verify_email', {}, userId);
+}
+
+export async function verifyEmail(userId: string, token: string) {
+	_checkId(userId);
+	return await fetchAPI('POST', 'users/:id/verify_email', { token }, userId);
+}
+
 export async function getPasskeys(userId: string) {
-	try {
-		z.uuid().parse(userId);
-	} catch (e: any) {
-		throw z.prettifyError(e);
-	}
+	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/passkeys', {}, userId);
 }

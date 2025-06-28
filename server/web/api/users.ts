@@ -1,7 +1,7 @@
 /** Register a new passkey for a new or existing user. */
 import type { Result } from '@axium/core/api';
 import { PasskeyAuthenticationResponse } from '@axium/core/schemas';
-import { createPasskey, getPasskey, getPasskeysByUserId, getSession, getSessions, getUser } from '@axium/server/auth.js';
+import { createPasskey, createVerification, getPasskey, getPasskeysByUserId, getSession, getSessions, getUser, useVerification } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
 import { connect, database as db } from '@axium/server/database.js';
 import { addRoute } from '@axium/server/routes.js';
@@ -232,5 +232,39 @@ addRoute({
 			.catch(() => error(500, { message: 'Failed to delete session' }));
 
 		return;
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/verify_email',
+	params,
+	async GET(event): Promise<Result<'GET', 'users/:id/verify_email'>> {
+		const { id: userId } = event.params;
+
+		await checkAuth(event, userId);
+
+		const user = await getUser(userId);
+		if (!user) error(404, { message: 'User does not exist' });
+
+		if (user.emailVerified) error(409, { message: 'Email already verified' });
+
+		const verification = await createVerification('verify_email', userId, config.auth.verification_timeout * 60);
+
+		return omit(verification, 'token', 'role');
+	},
+	async POST(event: RequestEvent): Promise<Result<'POST', 'users/:id/verify_email'>> {
+		const { id: userId } = event.params;
+		const { token } = await parseBody(event, z.object({ token: z.string() }));
+
+		await checkAuth(event, userId);
+
+		const user = await getUser(userId);
+		if (!user) error(404, { message: 'User does not exist' });
+
+		if (user.emailVerified) error(409, { message: 'Email already verified' });
+
+		await useVerification('verify_email', userId, token).catch(() => error(400, { message: 'Invalid or expired verification token' }));
+
+		return {};
 	},
 });

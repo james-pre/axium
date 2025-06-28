@@ -5,6 +5,7 @@ import pg from 'pg';
 import config from './config.js';
 import { _fixOutput, run, someWarnings, type MaybeOutput, type WithOutput } from './io.js';
 import { plugins } from './plugins.js';
+import type { VerificationRole } from './auth.js';
 
 export interface Schema {
 	users: {
@@ -25,9 +26,10 @@ export interface Schema {
 		expires: Date;
 	};
 	verifications: {
-		id: string;
+		userId: string;
 		token: string;
 		expires: Date;
+		role: VerificationRole;
 	};
 	passkeys: {
 		id: string;
@@ -189,9 +191,10 @@ export async function init(opt: InitOptions): Promise<void> {
 	opt.output('start', 'Creating table verifications');
 	await db.schema
 		.createTable('verifications')
-		.addColumn('id', 'text', col => col.notNull())
+		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
 		.addColumn('token', 'text', col => col.notNull().unique())
 		.addColumn('expires', 'timestamptz', col => col.notNull())
+		.addColumn('role', 'text', col => col.notNull())
 		.execute()
 		.then(done)
 		.catch(warnExists);

@@ -23,6 +23,8 @@ export const Schema = z
 			rp_id: z.string(),
 			rp_name: z.string(),
 			secure_cookies: z.boolean(),
+			/** In minutes */
+			verification_timeout: z.number(),
 		}),
 		db: z.object({
 			host: z.string(),
@@ -77,6 +79,7 @@ export const config: Config & typeof configShortcuts = {
 		rp_id: 'test.localhost',
 		rp_name: 'Axium',
 		secure_cookies: true,
+		verification_timeout: 60,
 	},
 	db: {
 		database: process.env.PGDATABASE || 'axium',

@@ -11,8 +11,8 @@ export interface Session {
 	created: Date;
 }
 
-export interface VerificationToken {
-	id: string;
+export interface Verification {
+	userId: string;
 	expires: Date;
 }
 
@@ -48,7 +48,7 @@ export interface _apiTypes {
 			session: Session;
 			user: User;
 		};
-		DELETE: Session & { userId: string };
+		DELETE: Session;
 	};
 	register: {
 		OPTIONS: {
@@ -75,6 +75,10 @@ export interface _apiTypes {
 		OPTIONS: PublicKeyCredentialCreationOptionsJSON;
 		GET: Passkey[];
 		PUT: [z.input<typeof APIUserRegistration>, Passkey];
+	};
+	'users/:id/verify_email': {
+		GET: Verification;
+		POST: [{ token: string }, {}];
 	};
 	user_id: {
 		POST: [{ using: 'email' | 'handle'; value: string }, { id: string }];

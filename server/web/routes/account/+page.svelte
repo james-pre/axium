@@ -1,16 +1,34 @@
 <script lang="ts">
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
-	import { currentSession, getPasskeys } from '@axium/client/user';
+	import { currentSession, getPasskeys, sendVerificationEmail, verifyEmail } from '@axium/client/user';
 	import { getUserImage } from '@axium/core';
+	import type { Passkey } from '@axium/core/api';
 
-	let changeEmail = $state(false);
-	let changeName = $state(false);
+	let activeDialog: 'email' | 'name' | 'passkey' | null = $state(null);
+	let activeItem: Passkey | null = $state(null);
+
+	let is_email = $derived(activeDialog === 'email');
+	let is_name = $derived(activeDialog === 'name');
+	let is_passkey = $derived(activeDialog === 'passkey');
+
+	let verificationSent = $state(false);
 </script>
 
 <svelte:head>
 	<title>Account</title>
 </svelte:head>
+
+{#snippet edit(thing: typeof activeDialog, item?: typeof activeItem)}
+	<button
+		style:display="contents"
+		class="change"
+		onclick={() => {
+			activeDialog = thing;
+			activeItem = item;
+		}}><Icon i="chevron-right" /></button
+	>
+{/snippet}
 
 {#await currentSession() then { session, user }}
 	<div class="Account flex-content">
@@ -21,12 +39,21 @@
 			<div class="item">
 				<p class="subtle">Name</p>
 				<p>{user.name}</p>
-				<button style:display="contents" class="change" onclick={() => (changeName = true)}><Icon i="chevron-right" /></button>
+				{@render edit('name')}
 			</div>
 			<div class="item">
 				<p class="subtle">Email</p>
-				<p>{user.email}</p>
-				<button style:display="contents" class="change" onclick={() => (changeEmail = true)}><Icon i="chevron-right" /></button>
+				<p>
+					{user.email}
+					{#if user.emailVerified}
+						<dfn title="Email verified on {new Date(user.emailVerified).toLocaleDateString()}"><Icon i="circle-check" /></dfn>
+					{:else}
+						<button onclick={() => sendVerificationEmail(user.id).then(() => (verificationSent = true))}>
+							{verificationSent ? 'Verification email sent' : 'Verify'}
+						</button>
+					{/if}
+				</p>
+				{@render edit('email')}
 			</div>
 			<div class="item">
 				<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
@@ -40,18 +67,19 @@
 			{#await getPasskeys(user.id) then passkeys}
 				{#each passkeys as passkey}
 					<div class="passkey">
-						{#if passkey.name}
-							<p>{passkey.name}</p>
-						{:else}
-							<p class="subtle"><i>Unnamed</i></p>
-						{/if}
-						<p>{passkey.createdAt.toLocaleString(navigator.language)}</p>
 						<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
 							<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} />
 						</dfn>
 						<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
 							<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} />
 						</dfn>
+						<p>Created {new Date(passkey.createdAt).toLocaleString()}</p>
+						{#if passkey.name}
+							<p>{passkey.name}</p>
+						{:else}
+							<p class="subtle"><i>Unnamed</i></p>
+						{/if}
+						{@render edit('passkey', passkey)}
 					</div>
 				{/each}
 			{:catch}
@@ -60,18 +88,29 @@
 		</div>
 	</div>
 
-	<FormDialog bind:active={changeEmail} submitText="Change">
+	<FormDialog bind:active={is_email} submitText="Change">
 		<div>
 			<label for="email">Email Address</label>
 			<input name="email" type="email" value={user.email || ''} required />
 		</div>
 	</FormDialog>
 
-	<FormDialog bind:active={changeName} submitText="Change">
+	<FormDialog bind:active={is_name} submitText="Change">
 		<div>
 			<label for="name">What do you want to be called?</label>
 			<input name="name" type="text" value={user.name || ''} required />
 		</div>
+	</FormDialog>
+
+	<FormDialog bind:active={is_passkey} submitText="Change">
+		{#if activeItem}
+			<div>
+				<label for="name">Passkey Name</label>
+				<input name="name" type="text" value={activeItem.name || ''} />
+			</div>
+		{:else}
+			<p class="error">No passkey selected.</p>
+		{/if}
 	</FormDialog>
 {:catch error}
 	<div class="error">
@@ -136,11 +175,15 @@
 
 	.passkey {
 		display: grid;
-		grid-template-columns: 10em 1fr 2em 2em;
+		grid-template-columns: 1em 1em 1fr 1fr 2em;
 		align-items: center;
 		width: 100%;
 		gap: 1em;
 		text-wrap: nowrap;
 		padding-bottom: 1em;
+
+		dfn {
+			cursor: help;
+		}
 	}
 </style>

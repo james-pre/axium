@@ -1,4 +1,4 @@
-import type { Passkey, Session, VerificationToken } from '@axium/core/auth';
+import type { Passkey, Session, Verification } from '@axium/core/auth';
 import type { User } from '@axium/core/user';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -8,19 +8,6 @@ import { connect, database as db } from './database.js';
 export interface UserInternal extends User {
 	password?: string | null;
 	salt?: string | null;
-}
-
-export interface PasskeyInternal extends Passkey {
-	publicKey: Uint8Array;
-	counter: number;
-}
-
-export interface SessionInternal extends Session {
-	token: string;
-}
-
-export interface VerificationTokenInternal extends VerificationToken {
-	token: string;
 }
 
 export async function createUser(data: Optional<UserInternal, 'id'>) {
@@ -53,6 +40,10 @@ export async function updateUser({ id, ...user }: UserInternal) {
 export async function deleteUser(id: string) {
 	connect();
 	await db.deleteFrom('users').where('users.id', '=', id).executeTakeFirst();
+}
+
+export interface SessionInternal extends Session {
+	token: string;
 }
 
 const in30days = () => new Date(Date.now() + 2592000000);
@@ -116,15 +107,31 @@ export async function updateSession(session: SessionInternal) {
 	return await query.returningAll().executeTakeFirstOrThrow();
 }
 
-export async function createVerificationToken(data: VerificationTokenInternal) {
-	connect();
-	await db.insertInto('verifications').values(data).execute();
-	return data;
+export type VerificationRole = 'verify_email' | 'login';
+
+export interface VerificationInternal extends Verification {
+	token: string;
+	role: VerificationRole;
 }
 
-export async function useVerificationToken(id: string, token: string): Promise<VerificationTokenInternal | undefined> {
+/**
+ * Create a verification
+ * @param expires How long the token should be valid for in seconds
+ */
+export async function createVerification(role: VerificationRole, userId: string, expires: number): Promise<VerificationInternal> {
+	const token = randomBytes(64).toString('base64url');
+	const verification: VerificationInternal = { userId, token, expires: new Date(Date.now() + expires * 1000), role };
 	connect();
-	const query = db.deleteFrom('verifications').where('verifications.token', '=', token).where('verifications.id', '=', id);
+	await db.insertInto('verifications').values(verification).executeTakeFirstOrThrow();
+	setTimeout(() => {
+		void db.deleteFrom('verifications').where('verifications.token', '=', verification.token).execute();
+	}, expires * 1000);
+	return verification;
+}
+
+export async function useVerification(role: VerificationRole, userId: string, token: string): Promise<VerificationInternal | undefined> {
+	connect();
+	const query = db.deleteFrom('verifications').where('verifications.token', '=', token).where('verifications.userId', '=', userId).where('verifications.role', '=', role);
 	return await query.returningAll().executeTakeFirst();
 }
 
@@ -138,6 +145,11 @@ interface DBPasskey {
 	deviceType: string;
 	backedUp: boolean;
 	transports: string | null;
+}
+
+export interface PasskeyInternal extends Passkey {
+	publicKey: Uint8Array;
+	counter: number;
 }
 
 function parsePasskey(passkey: DBPasskey): PasskeyInternal {
