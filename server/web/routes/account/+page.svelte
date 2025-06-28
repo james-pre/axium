@@ -32,7 +32,7 @@
 				<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
 				<p>{user.id}</p>
 			</div>
-			<a class="signout" href="/auth/signout"><button>Sign out</button></a>
+			<a class="signout" href="/logout"><button>Sign out</button></a>
 		</div>
 	</div>
 
