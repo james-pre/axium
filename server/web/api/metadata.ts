@@ -4,7 +4,7 @@ import { config } from '@axium/server/config.js';
 import { plugins } from '@axium/server/plugins.js';
 import { addRoute, routes } from '@axium/server/routes.js';
 import { error } from '@sveltejs/kit';
-import pkg from '../../../package.json' with { type: 'json' };
+import pkg from '../../package.json' with { type: 'json' };
 
 addRoute({
 	path: '/api/metadata',

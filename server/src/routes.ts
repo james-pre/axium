@@ -95,7 +95,7 @@ export function resolveRoute<T extends Route>(event: RequestEvent | LoadEvent, _
 		}
 
 		// we didn't find a match, since an exact match would have been found already
-		if (!Object.keys(params).length) continue;
+		if (pathParts.length || !Object.keys(params).length) continue;
 
 		event.params = params;
 		return route;
