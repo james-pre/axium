@@ -1,4 +1,13 @@
+import type { _apiTypes } from '@axium/core/api';
 import type { User } from '@axium/core/user';
+
+declare module '@axium/core/api' {
+	export interface _apiTypes {
+		'share/:itemType': {
+			PUT: [{ itemId: string; userId: string; permission: number }, Share];
+		};
+	}
+}
 
 export interface Share {
 	itemId: string;

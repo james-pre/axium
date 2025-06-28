@@ -1,9 +1,14 @@
-import type { Database, InitOptions, OpOptions, PluginShortcuts } from '@axium/server/database.js';
-import { count } from '@axium/server/database.js';
-import pkg from '../package.json' with { type: 'json' };
-import type { WithOutput } from '@axium/server/io.js';
 import config from '@axium/server/config.js';
-import { sharesTableFor } from './server.js';
+import type { Database, InitOptions, OpOptions, PluginShortcuts, Schema } from '@axium/server/database.js';
+import { count } from '@axium/server/database.js';
+import type { WithOutput } from '@axium/server/io.js';
+import { addRoute } from '@axium/server/routes.js';
+import { parseBody } from '@axium/server/web/api/utils.js';
+import { error } from '@sveltejs/kit';
+import z from 'zod/v4';
+import pkg from '../package.json' with { type: 'json' };
+import { createShare, sharesTableFor } from './server.js';
+import type { Result } from '@axium/core/api';
 
 export const id = pkg.name;
 export const name = 'Axium Shares';
@@ -51,3 +56,30 @@ export async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
 		opt.output('done');
 	}
 }
+
+addRoute({
+	path: '/api/share/:itemType',
+	params: {
+		itemType: z.string(),
+	},
+	async PUT(event): Promise<Result<'PUT', 'share/:itemType'>> {
+		const type = event.params.itemType as keyof Schema;
+
+		if (!config.shares.includes(type)) {
+			error(400, 'Invalid item type');
+		}
+
+		const data = await parseBody(
+			event,
+			z.object({
+				itemId: z.uuid(),
+				userId: z.uuid(),
+				permission: z.number().int().min(0).max(5),
+			})
+		);
+
+		const share = await createShare(type, data).catch(e => error(503, 'Could not create share'));
+
+		return share;
+	},
+});

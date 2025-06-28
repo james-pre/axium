@@ -35,6 +35,8 @@
 		"@axium/core": ">=0.2.0",
 		"@axium/server": ">=0.8.0"
 	},
-	"dependencies": {},
-	"devDependencies": {}
+	"dependencies": {
+		"@sveltejs/kit": "^2.22.2",
+		"zod": "^3.25.67"
+	}
 }

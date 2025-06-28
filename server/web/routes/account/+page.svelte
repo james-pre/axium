@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
-	import { fullUserInfo, session } from '@axium/client/user';
+	import { fullUserInfo, currentSession } from '@axium/client/user';
 	import { getUserImage } from '@axium/core';
 
 	let changeEmail = $state(false);
@@ -12,7 +12,7 @@
 	<title>Account</title>
 </svelte:head>
 
-{#await session().then(s => fullUserInfo(s.user.id)) then user}
+{#await currentSession().then(s => fullUserInfo(s.user.id)) then user}
 	<div class="Account flex-content">
 		<img class="pfp" src={getUserImage(user)} alt="User profile" />
 		<p class="greeting">Welcome, {user.name}</p>

@@ -27,11 +27,11 @@ export function sharesTableFor(itemType: keyof Schema): `shares.${string}` {
 	return `shares.${table}`;
 }
 
-export async function share(itemType: keyof Schema, itemId: string, userId: string, permission: number): Promise<void> {
-	await database.insertInto(sharesTableFor(itemType)).values({ itemId, userId, permission }).execute();
+export async function createShare(itemType: keyof Schema, data: Omit<Share, 'sharedAt'>): Promise<Share> {
+	return await database.insertInto(sharesTableFor(itemType)).values(data).returningAll().executeTakeFirstOrThrow();
 }
 
-export async function unshare(itemType: keyof Schema, itemId: string, userId: string): Promise<void> {
+export async function deleteShare(itemType: keyof Schema, itemId: string, userId: string): Promise<void> {
 	await database.deleteFrom(sharesTableFor(itemType)).where('itemId', '=', itemId).where('userId', '=', userId).execute();
 }
 
