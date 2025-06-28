@@ -56,3 +56,12 @@ export async function fullUserInfo(userId: string) {
 	}
 	return await fetchAPI('GET', 'users/:id/full', {}, userId);
 }
+
+export async function getPasskeys(userId: string) {
+	try {
+		z.uuid().parse(userId);
+	} catch (e: any) {
+		throw z.prettifyError(e);
+	}
+	return await fetchAPI('GET', 'users/:id/passkeys', {}, userId);
+}

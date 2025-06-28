@@ -124,7 +124,7 @@ addRoute({
 	/**
 	 * Get passkey registration options for a user.
 	 */
-	async OPTIONS(event: RequestEvent) {
+	async OPTIONS(event: RequestEvent): Promise<Result<'OPTIONS', 'users/:id/passkeys'>> {
 		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
@@ -150,13 +150,13 @@ addRoute({
 
 		registrations.set(userId, options.challenge);
 
-		return { userId, options };
+		return options;
 	},
 
 	/**
 	 * Get passkeys for a user.
 	 */
-	async GET(event: RequestEvent) {
+	async GET(event: RequestEvent): Promise<Result<'GET', 'users/:id/passkeys'>> {
 		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
@@ -166,13 +166,13 @@ addRoute({
 
 		const passkeys = await getPasskeysByUserId(userId);
 
-		return { userId, existing: passkeys.map(p => pick(p, 'id', 'name', 'createdAt')) };
+		return passkeys.map(p => omit(p, 'publicKey', 'counter'));
 	},
 
 	/**
 	 * Register a new passkey for an existing user.
 	 */
-	async PUT(event: RequestEvent) {
+	async PUT(event: RequestEvent): Promise<Result<'PUT', 'users/:id/passkeys'>> {
 		const { id: userId } = event.params;
 		const { response } = await parseBody(event, z.object({ userId: z.uuid(), name: z.string().optional(), response: PasskeyRegistration }));
 
@@ -193,7 +193,7 @@ addRoute({
 
 		if (!verified || !registrationInfo) error(401, { message: 'Verification failed' });
 
-		await createPasskey({
+		const passkey = await createPasskey({
 			transports: [],
 			...registrationInfo.credential,
 			userId,
@@ -201,7 +201,7 @@ addRoute({
 			backedUp: registrationInfo.credentialBackedUp,
 		}).catch(() => error(500, { message: 'Failed to create passkey' }));
 
-		return { userId, verified };
+		return omit(passkey, 'publicKey', 'counter');
 	},
 });
 

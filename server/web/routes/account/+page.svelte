@@ -1,7 +1,7 @@
 <script lang="ts">
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
-	import { fullUserInfo, currentSession } from '@axium/client/user';
+	import { currentSession, getPasskeys } from '@axium/client/user';
 	import { getUserImage } from '@axium/core';
 
 	let changeEmail = $state(false);
@@ -12,7 +12,7 @@
 	<title>Account</title>
 </svelte:head>
 
-{#await currentSession().then(s => fullUserInfo(s.user.id)) then user}
+{#await currentSession() then { session, user }}
 	<div class="Account flex-content">
 		<img class="pfp" src={getUserImage(user)} alt="User profile" />
 		<p class="greeting">Welcome, {user.name}</p>
@@ -34,6 +34,30 @@
 			</div>
 			<a class="signout" href="/logout"><button>Sign out</button></a>
 		</div>
+	</div>
+
+	<div class="section main">
+		<h3>Passkeys</h3>
+		{#await getPasskeys(user.id) then passkeys}
+			{#each passkeys as passkey}
+				<div class="passkey">
+					{#if passkey.name}
+						<p>{passkey.name}</p>
+					{:else}
+						<p class="subtle"><i>Unnamed</i></p>
+					{/if}
+					<p>{passkey.createdAt.toLocaleString(navigator.language)}</p>
+					<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
+						<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} />
+					</dfn>
+					<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
+						<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} />
+					</dfn>
+				</div>
+			{/each}
+		{:catch}
+			<div class="error">Could not load your passkeys.</div>
+		{/await}
 	</div>
 
 	<FormDialog bind:active={changeEmail} submitText="Change">
@@ -108,5 +132,15 @@
 			font-size: 0.75em;
 			cursor: pointer;
 		}
+	}
+
+	.passkey {
+		display: grid;
+		grid-template-columns: 10em 1fr 2em 2em;
+		align-items: center;
+		width: 100%;
+		gap: 1em;
+		text-wrap: nowrap;
+		padding-bottom: 1em;
 	}
 </style>

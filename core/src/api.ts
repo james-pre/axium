@@ -71,6 +71,11 @@ export interface _apiTypes {
 		GET: Session[];
 		DELETE: [string, Session[]];
 	};
+	'users/:id/passkeys': {
+		OPTIONS: PublicKeyCredentialCreationOptionsJSON;
+		GET: Passkey[];
+		PUT: [z.input<typeof APIUserRegistration>, Passkey];
+	};
 	user_id: {
 		POST: [{ using: 'email' | 'handle'; value: string }, { id: string }];
 	};

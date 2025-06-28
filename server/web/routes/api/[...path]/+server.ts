@@ -1,5 +1,6 @@
 import type { RequestMethod } from '@axium/core/requests';
 import { resolveRoute } from '@axium/server/routes.js';
+import { config } from '@axium/server/config.js';
 import { error, json, type RequestEvent, type RequestHandler } from '@sveltejs/kit';
 import z from 'zod/v4';
 
@@ -16,6 +17,8 @@ function handler(method: RequestMethod): RequestHandler {
 		if (!route) error(404, 'Route not found');
 		if (!route.server) error(503, 'Route is not a server route');
 
+		if (config.debug) console.log(event.request.method, route.path);
+
 		for (const [key, type] of Object.entries(route.params || {})) {
 			if (!type) continue;
 
@@ -28,14 +31,12 @@ function handler(method: RequestMethod): RequestHandler {
 
 		if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
 
-		const result = await route[method](event);
+		const result: object & { _warnings?: string[] } = await route[method](event);
 
-		if ('_warnings' in result && Array.isArray(result._warnings)) {
-			_warnings.push(...result._warnings);
-			delete result._warnings;
-		}
+		result._warnings ||= [];
+		result._warnings.push(..._warnings);
 
-		return json(_warnings ? { ...result, _warnings } : result);
+		return json(result);
 	};
 }
 
