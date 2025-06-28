@@ -1,8 +1,8 @@
-import { startRegistration, startAuthentication } from '@simplewebauthn/browser';
+import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import z from 'zod/v4';
 import { fetchAPI } from './requests.js';
 
-export async function session() {
+export async function currentSession() {
 	return await fetchAPI('GET', 'session');
 }
 
@@ -20,7 +20,7 @@ export async function loginByEmail(email: string) {
 	return await login(userId);
 }
 
-export async function logout() {
+export async function logoutCurrentSession() {
 	return await fetchAPI('DELETE', 'session');
 }
 

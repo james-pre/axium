@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { logout } from '@axium/client/user';
+	import { goto } from '$app/navigation';
+	import { logoutCurrentSession } from '@axium/client/user';
 </script>
 
 <svelte:head>
@@ -8,5 +9,5 @@
 
 <div class="main">
 	<p>Are you sure you want to log out?</p>
-	<button onclick={logout}>Log Out</button>
+	<button onclick={() => logoutCurrentSession().finally(() => goto('/'))}>Log Out</button>
 </div>
