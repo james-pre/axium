@@ -1,4 +1,4 @@
-import type { Passkey, Session, Verification } from '@axium/core/auth';
+import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import { randomBytes, randomUUID } from 'node:crypto';
