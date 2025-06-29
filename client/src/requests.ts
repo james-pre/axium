@@ -27,7 +27,7 @@ export async function fetchAPI<const M extends RequestMethod, const E extends En
 		},
 	};
 
-	if (method !== 'GET' && method !== 'OPTIONS') options.body = JSON.stringify(data);
+	if (method !== 'GET' && method !== 'HEAD') options.body = JSON.stringify(data);
 
 	if (token) options.headers.Authorization = 'Bearer ' + token;
 

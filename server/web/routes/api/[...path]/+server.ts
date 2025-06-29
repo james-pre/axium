@@ -24,7 +24,7 @@ function handler(method: RequestMethod): RequestHandler {
 
 			try {
 				event.params[key] = type.parse(event.params[key]) as any;
-			} catch (e) {
+			} catch (e: any) {
 				error(400, `Invalid parameter: ${z.prettifyError(e)}`);
 			}
 		}
