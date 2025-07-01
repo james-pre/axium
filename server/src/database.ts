@@ -1,6 +1,7 @@
 import type { Preferences } from '@axium/core';
 import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
 import { randomBytes } from 'node:crypto';
+import { readFileSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
 import type { VerificationRole } from './auth.js';
 import config from './config.js';
@@ -117,10 +118,43 @@ export function shouldRecreate(opt: InitOptions & WithOutput): boolean {
 	throw 2;
 }
 
+export async function getHBA(opt: OpOptions & WithOutput): Promise<[content: string, writeBack: (newContent: string) => void]> {
+	const hbaShowResult = await run(opt, 'Finding pg_hba.conf', `sudo -u postgres psql -c "SHOW hba_file"`);
+
+	opt.output('start', 'Resolving pg_hba.conf path');
+
+	const hbaPath = hbaShowResult.match(/^\s*(.+\.conf)\s*$/m)?.[1]?.trim();
+
+	if (!hbaPath) {
+		throw 'failed. You will need to add password-based auth for the axium user manually.';
+	}
+
+	opt.output('done');
+	opt.output('debug', `Found pg_hba.conf at ${hbaPath}`);
+
+	opt.output('start', 'Reading HBA configuration');
+	const content = readFileSync(hbaPath, 'utf-8');
+	opt.output('done');
+
+	const writeBack = (newContent: string): void => {
+		opt.output('start', 'Writing HBA configuration');
+		writeFileSync(hbaPath, newContent);
+		opt.output('done');
+	};
+
+	return [content, writeBack];
+}
+
 export interface PluginShortcuts {
 	done: () => void;
 	warnExists: (error: string | Error) => void;
 }
+
+const pgHba = `
+local axium axium md5
+host  axium axium 127.0.0.1/32 md5
+host  axium axium ::1/128 md5
+`;
 
 export async function init(opt: InitOptions): Promise<void> {
 	_fixOutput(opt);
@@ -130,7 +164,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	}
 
 	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
-	const warnExists = someWarnings(opt.output, [/(schema|relation) "\w+" already exists/, 'already exists.']);
+	const warnExists = someWarnings(opt.output, [/(schema|relation) "[\w.]+" already exists/, 'already exists.']);
 	const done = () => opt.output('done');
 
 	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
@@ -154,6 +188,20 @@ export async function init(opt: InitOptions): Promise<void> {
 	await _sql('GRANT ALL PRIVILEGES ON DATABASE axium TO axium', 'Granting database privileges');
 	await _sql('GRANT ALL PRIVILEGES ON SCHEMA public TO axium', 'Granting schema privileges');
 	await _sql('ALTER DATABASE axium OWNER TO axium', 'Setting database owner');
+
+	await getHBA(opt)
+		.then(([content, writeBack]) => {
+			opt.output('start', 'Checking for Axium HBA configuration');
+			if (content.includes(pgHba)) throw 'already exists.';
+			done();
+
+			opt.output('start', 'Adding Axium HBA configuration');
+			const newContent = content.replace(/^local\s+all\s+all.*$/m, `$&\n${pgHba}`);
+			done();
+
+			writeBack(newContent);
+		})
+		.catch(e => opt.output('warn', e));
 
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
@@ -216,7 +264,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.catch(warnExists);
 
 	opt.output('start', 'Creating index for passkeys.id');
-	await db.schema.createIndex('passkeys.id_key').on('passkeys').column('id').execute().then(done).catch(warnExists);
+	await db.schema.createIndex('passkeys_id_key').on('passkeys').column('id').execute().then(done).catch(warnExists);
 
 	for (const plugin of plugins) {
 		if (!plugin.db_init) continue;
@@ -245,6 +293,20 @@ export async function uninstall(opt: OpOptions): Promise<void> {
 	await _sql('DROP DATABASE axium', 'Dropping database');
 	await _sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
 	await _sql('DROP USER axium', 'Dropping user');
+
+	await getHBA(opt)
+		.then(([content, writeBack]) => {
+			opt.output('start', 'Checking for Axium HBA configuration');
+			if (!content.includes(pgHba)) throw 'missing.';
+			opt.output('done');
+
+			opt.output('start', 'Removing Axium HBA configuration');
+			const newContent = content.replace(pgHba, '');
+			opt.output('done');
+
+			writeBack(newContent);
+		})
+		.catch(e => opt.output('warn', e));
 }
 
 /**
