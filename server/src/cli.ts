@@ -126,6 +126,13 @@ axiumDB
 		await db.database.destroy();
 	});
 
+axiumDB
+	.command('check')
+	.description('Check the structure of the database')
+	.action(async (opt: OptDB) => {
+		await db.check(opt).catch(exit);
+	});
+
 interface OptConfig extends OptCommon {
 	global: boolean;
 	json: boolean;

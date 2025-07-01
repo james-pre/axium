@@ -163,6 +163,9 @@ export async function init(opt: InitOptions): Promise<void> {
 		opt.output('debug', 'Generated password and wrote to global config');
 	}
 
+	await run(opt, 'Checking for sudo', 'which sudo');
+	await run(opt, 'Checking for psql', 'which psql');
+
 	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
 	const warnExists = someWarnings(opt.output, [/(schema|relation) "[\w.]+" already exists/, 'already exists.']);
 	const done = () => opt.output('done');
@@ -271,6 +274,44 @@ export async function init(opt: InitOptions): Promise<void> {
 		opt.output('plugin', plugin.name);
 		await plugin.db_init(opt, db, { warnExists, done } satisfies PluginShortcuts);
 	}
+}
+
+export async function check(opt: OpOptions): Promise<void> {
+	_fixOutput(opt);
+
+	await run(opt, 'Checking for sudo', 'which sudo');
+	await run(opt, 'Checking for psql', 'which psql');
+
+	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
+	const done = () => opt.output('done');
+	const throwUnlessRows = (text: string) => {
+		if (text.includes('(0 rows)')) throw 'missing.';
+		return text;
+	};
+
+	await _sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database').then(throwUnlessRows);
+
+	await _sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
+
+	opt.output('start', 'Connecting to database');
+	await using db = connect();
+	done();
+
+	opt.output('start', `Checking users table`);
+	await db.selectFrom('users').select(['id', 'email', 'emailVerified', 'image', 'name', 'preferences']).execute().then(done);
+
+	opt.output('start', `Checking sessions table`);
+	await db.selectFrom('sessions').select(['id', 'userId', 'token', 'created', 'expires', 'elevated']).execute().then(done);
+
+	opt.output('start', `Checking verifications table`);
+	await db.selectFrom('verifications').select(['userId', 'token', 'expires', 'role']).execute().then(done);
+
+	opt.output('start', `Checking passkeys table`);
+	await db
+		.selectFrom('passkeys')
+		.select(['id', 'name', 'createdAt', 'userId', 'publicKey', 'counter', 'deviceType', 'backedUp', 'transports'])
+		.execute()
+		.then(done);
 }
 
 /**
