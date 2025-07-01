@@ -210,10 +210,7 @@ addRoute({
 	 */
 	async PUT(event: RequestEvent): Result<'PUT', 'users/:id/passkeys'> {
 		const { id: userId } = event.params;
-		const { response } = await parseBody(
-			event,
-			z.object({ userId: z.uuid(), name: z.string().optional(), response: PasskeyRegistration })
-		);
+		const response = await parseBody(event, PasskeyRegistration);
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });

@@ -82,8 +82,22 @@ export async function getPasskeys(userId: string) {
 	return await fetchAPI('GET', 'users/:id/passkeys', {}, userId);
 }
 
-export async function createPasskey(userId: string, data: Record<string, FormDataEntryValue>) {}
+/**
+ * Create a new passkey for an existing user.
+ */
+export async function createPasskey(userId: string) {
+	_checkId(userId);
+	const options = await fetchAPI('OPTIONS', 'users/:id/passkeys', {}, userId);
+
+	const response = await startRegistration({ optionsJSON: options });
+
+	return await fetchAPI('PUT', 'users/:id/passkeys', response, userId);
+}
 
 export async function updatePasskey(passkeyId: string, data: z.input<typeof PasskeyChangeable>) {
 	return await fetchAPI('PATCH', 'passkeys/:id', data, passkeyId);
+}
+
+export async function deletePasskey(passkeyId: string) {
+	return await fetchAPI('DELETE', 'passkeys/:id', {}, passkeyId);
 }

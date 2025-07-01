@@ -10,14 +10,20 @@
 		cancel = () => {},
 		submit = (data: object): Promise<any> => Promise.resolve(),
 		pageMode = false,
+		submitDanger = false,
 		...rest
 	}: {
 		children(): any;
 		dialog?: HTMLDialogElement;
+		/** Change the text displayed for the submit button */
 		submitText?: string;
+		/** Basically a callback for when the dialog is canceled */
 		cancel?(): unknown;
+		/** Called on submission, this should do the actual submission */
 		submit?(data: Record<string, FormDataEntryValue>): Promise<any>;
+		/** Whether to display the dialog as a full-page form */
 		pageMode?: boolean;
+		submitDanger?: boolean;
 	} = $props();
 
 	let success = $state(false);
@@ -49,6 +55,10 @@
 	}
 </script>
 
+{#snippet submitButton()}
+	<button type="submit" class={['submit', submitDanger && 'danger']}>{submitText}</button>
+{/snippet}
+
 <Dialog bind:dialog {onclose} {...rest}>
 	<form {onsubmit} class="main" method="dialog">
 		{#if error}
@@ -56,11 +66,11 @@
 		{/if}
 		{@render children()}
 		{#if pageMode}
-			<button type="submit" class="submit">{submitText}</button>
+			{@render submitButton()}
 		{:else}
 			<div class="actions">
 				<button type="button" onclick={() => dialog.close()}>Cancel</button>
-				<button type="submit" class="submit">{submitText}</button>
+				{@render submitButton()}
 			</div>
 		{/if}
 	</form>

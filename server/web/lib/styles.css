@@ -83,3 +83,14 @@ button:hover {
 	gap: 1em;
 	overflow-y: scroll;
 }
+
+.danger {
+	border: 1px solid #d99;
+	background-color: #322;
+	color: #dbb;
+	accent-color: #dbb;
+}
+
+.danger:hover {
+	background-color: #633;
+}

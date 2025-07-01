@@ -22,6 +22,6 @@
 		width: var(--size, 1em);
 		height: var(--size, 1em);
 		display: inline-block;
-		fill: #bbb;
+		fill: var(--fill, #bbb);
 	}
 </style>

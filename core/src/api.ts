@@ -6,7 +6,7 @@ import type {
 } from '@simplewebauthn/types';
 import type z from 'zod/v4';
 import type { RequestMethod } from './requests.js';
-import type { APIUserRegistration, PasskeyAuthenticationResponse, PasskeyChangeable } from './schemas.js';
+import type { APIUserRegistration, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './schemas.js';
 import type { User, UserChangeable, UserPublic } from './user.js';
 
 export interface Session {
@@ -80,7 +80,7 @@ export interface _apiTypes {
 	'users/:id/passkeys': {
 		OPTIONS: PublicKeyCredentialCreationOptionsJSON;
 		GET: Passkey[];
-		PUT: [z.input<typeof APIUserRegistration>, Passkey];
+		PUT: [z.input<typeof PasskeyRegistration>, Passkey];
 	};
 	'users/:id/verify_email': {
 		GET: Verification;
