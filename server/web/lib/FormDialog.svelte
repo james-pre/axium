@@ -26,12 +26,10 @@
 		submitDanger?: boolean;
 	} = $props();
 
-	let success = $state(false);
 	let error = $state(null);
 
 	$effect(() => {
-		if (success) dialog.close();
-		else if (pageMode) dialog.showModal();
+		if (pageMode) dialog.showModal();
 	});
 
 	function onclose(e?: MouseEvent) {
@@ -40,10 +38,10 @@
 	}
 
 	function onsubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
+		e.preventDefault();
 		const data = Object.fromEntries(new FormData(e.currentTarget));
 		submit(data)
 			.then(result => {
-				success = true;
 				if (pageMode) goto('/');
 				else dialog.close();
 			})

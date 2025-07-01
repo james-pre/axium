@@ -94,10 +94,15 @@
 				<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
 				<p>{user.id}</p>
 			</div>
-			<a class="signout" href="/logout"><button>Sign out</button></a>
-			<FormDialog bind:dialog={dialogs.delete} submit={() => deleteUser(user.id)} submitText="Delete Account" submitDanger>
-				<p>Are you sure you want to delete your account?<br />This action can't be undone.</p>
-			</FormDialog>
+			<span>
+				<a class="signout" href="/logout"><button>Sign out</button></a>
+				<button style:cursor="pointer" onclick={() => dialogs.delete.showModal()} style:width="fit-content" class="danger"
+					>Delete Account</button
+				>
+				<FormDialog bind:dialog={dialogs.delete} submit={() => deleteUser(user.id)} submitText="Delete Account" submitDanger>
+					<p>Are you sure you want to delete your account?<br />This action can't be undone.</p>
+				</FormDialog>
+			</span>
 		</div>
 
 		<div class="section main">
