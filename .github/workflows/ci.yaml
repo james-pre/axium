@@ -39,6 +39,9 @@ jobs:
             - name: Build Core
               run: npx tsc -p core
 
+            - name: Build Client
+              run: npx tsc -p client
+
             - name: Build Server
               run: npx tsc -p server
 
