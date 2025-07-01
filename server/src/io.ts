@@ -193,7 +193,7 @@ export async function restrictedPorts(opt: PortOptions) {
 					return '/usr/sbin/setcap';
 				});
 
-			opt.output('debug', 'Using setup at ' + setcap);
+			opt.output('debug', 'Using setcap at ' + setcap);
 
 			let { node } = opt;
 			node ||= await run(opt, 'Finding node', 'command -v node')
