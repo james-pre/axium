@@ -24,7 +24,7 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "eslint shares client core server",
-		"build": "tsc -p core && tsc -p server && tsc -p client -p cas -p shares"
+		"build": "tsc -p core && tsc -p server && tsc -p client && tsc -p cas && tsc -p shares"
 	},
 	"workspaces": [
 		"client",
