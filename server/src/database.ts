@@ -2,20 +2,20 @@ import type { Preferences } from '@axium/core';
 import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
 import { randomBytes } from 'node:crypto';
 import pg from 'pg';
-import config from './config.js';
-import { _fixOutput, run, someWarnings, type MaybeOutput, type WithOutput } from './io.js';
-import { plugins } from './plugins.js';
 import type { VerificationRole } from './auth.js';
+import config from './config.js';
+import type { MaybeOutput, WithOutput } from './io.js';
+import { _fixOutput, run, someWarnings } from './io.js';
+import { plugins } from './plugins.js';
+import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 
 export interface Schema {
 	users: {
-		id: GeneratedAlways<string>;
+		id: GeneratedAlways<string> & string;
 		email: string;
 		name: string;
 		image?: string | null;
 		emailVerified?: Date | null;
-		password: string | null;
-		salt: string | null;
 		preferences?: Preferences;
 	};
 	sessions: {
@@ -38,9 +38,9 @@ export interface Schema {
 		userId: string;
 		publicKey: Uint8Array;
 		counter: number;
-		deviceType: string;
+		deviceType: CredentialDeviceType;
 		backedUp: boolean;
-		transports: string | null;
+		transports: AuthenticatorTransportFuture[];
 	};
 }
 
@@ -166,8 +166,6 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('email', 'text', col => col.unique().notNull())
 		.addColumn('emailVerified', 'timestamptz')
 		.addColumn('image', 'text')
-		.addColumn('password', 'text')
-		.addColumn('salt', 'text')
 		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo(sql`'{}'::jsonb`))
 		.execute()
 		.then(done)
@@ -210,7 +208,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('counter', 'integer', col => col.notNull())
 		.addColumn('deviceType', 'text', col => col.notNull())
 		.addColumn('backedUp', 'boolean', col => col.notNull())
-		.addColumn('transports', 'text')
+		.addColumn('transports', sql`text[]`)
 		.execute()
 		.then(done)
 		.catch(warnExists);

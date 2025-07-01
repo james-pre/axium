@@ -8,7 +8,7 @@ import { getToken, stripUser } from './utils';
 
 addRoute({
 	path: '/api/session',
-	async GET(event): Promise<Result<'GET', 'session'>> {
+	async GET(event): Result<'GET', 'session'> {
 		const result = await authenticate(event);
 
 		if (!result) error(404, 'Session does not exist');
@@ -18,7 +18,7 @@ addRoute({
 			user: stripUser(result.user, true),
 		};
 	},
-	async DELETE(event): Promise<Result<'DELETE', 'session'>> {
+	async DELETE(event): Result<'DELETE', 'session'> {
 		const token = getToken(event);
 		connect();
 		const result = await db

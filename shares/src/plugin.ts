@@ -62,7 +62,7 @@ addRoute({
 	params: {
 		itemType: z.string(),
 	},
-	async PUT(event): Promise<Result<'PUT', 'share/:itemType'>> {
+	async PUT(event): Result<'PUT', 'share/:itemType'> {
 		const type = event.params.itemType as keyof Schema;
 
 		if (!config.shares.includes(type)) {

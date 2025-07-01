@@ -1,7 +1,12 @@
-import type { AuthenticatorTransportFuture, CredentialDeviceType, PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
+import type {
+	AuthenticatorTransportFuture,
+	CredentialDeviceType,
+	PublicKeyCredentialCreationOptionsJSON,
+	PublicKeyCredentialRequestOptionsJSON,
+} from '@simplewebauthn/types';
 import type z from 'zod/v4';
 import type { RequestMethod } from './requests.js';
-import type { APIUserRegistration, PasskeyAuthenticationResponse } from './schemas.js';
+import type { APIUserRegistration, PasskeyAuthenticationResponse, PasskeyChangeable } from './schemas.js';
 import type { User, UserChangeable, UserPublic } from './user.js';
 
 export interface Session {
@@ -56,7 +61,7 @@ export interface _apiTypes {
 	};
 	'users/:id': {
 		GET: UserPublic & Partial<User>;
-		PATCH: [Partial<UserChangeable>, User];
+		PATCH: [z.input<typeof UserChangeable>, User];
 		DELETE: User & {
 			nonRecoverableAt: Date;
 		};
@@ -66,7 +71,7 @@ export interface _apiTypes {
 	};
 	'users/:id/login': {
 		OPTIONS: PublicKeyCredentialRequestOptionsJSON;
-		POST: [z.infer<typeof PasskeyAuthenticationResponse>, NewSessionResponse];
+		POST: [z.input<typeof PasskeyAuthenticationResponse>, NewSessionResponse];
 	};
 	'users/:id/sessions': {
 		GET: Session[];
@@ -80,6 +85,11 @@ export interface _apiTypes {
 	'users/:id/verify_email': {
 		GET: Verification;
 		POST: [{ token: string }, {}];
+	};
+	'passkeys/:id': {
+		GET: Passkey;
+		PATCH: [z.input<typeof PasskeyChangeable>, Passkey];
+		DELETE: Passkey;
 	};
 	user_id: {
 		POST: [{ using: 'email' | 'handle'; value: string }, { id: string }];
@@ -100,10 +110,8 @@ export type RequestBody<Method extends RequestMethod, E extends Endpoint> = Meth
 		: any
 	: unknown;
 
-export type Result<Method extends RequestMethod, E extends Endpoint> = Method extends keyof _apiTypes[E]
-	? _apiTypes[E][Method] extends [unknown, infer R]
-		? R
-		: _apiTypes[E][Method]
-	: unknown;
+export type Result<Method extends RequestMethod, E extends Endpoint> = Promise<
+	Method extends keyof _apiTypes[E] ? (_apiTypes[E][Method] extends [unknown, infer R] ? R : _apiTypes[E][Method]) : unknown
+>;
 
 export type APIParameters<S extends string> = S extends `${string}/:${infer Right}` ? [string, ...APIParameters<Right>] : [];

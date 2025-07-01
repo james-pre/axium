@@ -6,7 +6,10 @@ import { error, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
 import z from 'zod/v4';
 
-export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(event: RequestEvent, schema: Schema): Promise<Result> {
+export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(
+	event: RequestEvent,
+	schema: Schema
+): Promise<Result> {
 	const contentType = event.request.headers.get('content-type');
 	if (!contentType || !contentType.includes('application/json')) error(415, { message: 'Invalid content type' });
 

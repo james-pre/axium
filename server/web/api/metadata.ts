@@ -8,7 +8,7 @@ import pkg from '../../package.json' with { type: 'json' };
 
 addRoute({
 	path: '/api/metadata',
-	GET(): Result<'GET', 'metadata'> {
+	async GET(): Result<'GET', 'metadata'> {
 		if (config.api.disable_metadata) {
 			error(401, { message: 'API metadata is disabled' });
 		}
@@ -22,7 +22,9 @@ addRoute({
 					.map(([path, route]) => [
 						path,
 						{
-							params: Object.fromEntries(Object.entries(route.params || {}).map(([key, type]) => [key, type ? type.def.type : null])),
+							params: Object.fromEntries(
+								Object.entries(route.params || {}).map(([key, type]) => [key, type ? type.def.type : null])
+							),
 							methods: requestMethods.filter(m => m in route),
 						},
 					])

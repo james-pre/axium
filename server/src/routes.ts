@@ -5,7 +5,9 @@ import type z from 'zod/v4';
 
 type _Params = Partial<Record<string, string>>;
 
-export type EndpointHandlers<Params extends _Params = _Params> = Partial<Record<RequestMethod, (event: RequestEvent<Params>) => object | Promise<object>>>;
+export type EndpointHandlers<Params extends _Params = _Params> = Partial<
+	Record<RequestMethod, (event: RequestEvent<Params>) => object | Promise<object>>
+>;
 
 export type RouteParamOptions = z.ZodType;
 
@@ -70,7 +72,10 @@ export function addRoute(opt: RouteOptions, _routeMap = routes): void {
  * Resolve a request URL into a route.
  * This handles parsing of parameters in the URL.
  */
-export function resolveRoute<T extends Route>(event: RequestEvent | LoadEvent, _routeMap: Map<string, T> = routes as Map<string, T>): T | undefined {
+export function resolveRoute<T extends Route>(
+	event: RequestEvent | LoadEvent,
+	_routeMap: Map<string, T> = routes as Map<string, T>
+): T | undefined {
 	const { pathname } = event.url;
 
 	if (_routeMap.has(pathname) && !pathname.split('/').some(p => p.startsWith(':'))) return _routeMap.get(pathname);

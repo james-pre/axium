@@ -1,21 +1,12 @@
 import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
-import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
-import { randomBytes, randomUUID } from 'node:crypto';
-import type { Optional } from 'utilium';
-import { connect, database as db } from './database.js';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { connect, database as db } from './database.js';
 
 export interface UserInternal extends User {
 	password?: string | null;
 	salt?: string | null;
-}
-
-export async function createUser(data: Optional<UserInternal, 'id'>) {
-	connect();
-	const user = { id: randomUUID(), ...data };
-	await db.insertInto('users').values(user).executeTakeFirstOrThrow();
-	return user;
 }
 
 export async function getUser(id: string) {
@@ -124,20 +115,12 @@ export async function createVerification(role: VerificationRole, userId: string,
 
 export async function useVerification(role: VerificationRole, userId: string, token: string): Promise<VerificationInternal | undefined> {
 	connect();
-	const query = db.deleteFrom('verifications').where('verifications.token', '=', token).where('verifications.userId', '=', userId).where('verifications.role', '=', role);
+	const query = db
+		.deleteFrom('verifications')
+		.where('verifications.token', '=', token)
+		.where('verifications.userId', '=', userId)
+		.where('verifications.role', '=', role);
 	return await query.returningAll().executeTakeFirst();
-}
-
-interface DBPasskey {
-	id: string;
-	name: string | null;
-	createdAt: Date;
-	userId: string;
-	publicKey: Uint8Array;
-	counter: number;
-	deviceType: string;
-	backedUp: boolean;
-	transports: string | null;
 }
 
 export interface PasskeyInternal extends Passkey {
@@ -145,35 +128,22 @@ export interface PasskeyInternal extends Passkey {
 	counter: number;
 }
 
-function parsePasskey(passkey: DBPasskey): PasskeyInternal {
-	return {
-		...passkey,
-		deviceType: passkey.deviceType as CredentialDeviceType,
-		transports: passkey.transports?.split(',') as AuthenticatorTransportFuture[],
-	};
-}
-
 export async function getPasskey(id: string): Promise<PasskeyInternal | null> {
 	connect();
 	const result = await db.selectFrom('passkeys').selectAll().where('id', '=', id).executeTakeFirst();
 	if (!result) return null;
-	return parsePasskey(result);
+	return result;
 }
 
 export async function createPasskey(passkey: Omit<PasskeyInternal, 'createdAt'>): Promise<PasskeyInternal> {
 	connect();
-	const result = await db
-		.insertInto('passkeys')
-		.values({ ...passkey, transports: passkey.transports?.join(',') })
-		.returningAll()
-		.executeTakeFirstOrThrow();
-	return parsePasskey(result);
+	const result = await db.insertInto('passkeys').values(passkey).returningAll().executeTakeFirstOrThrow();
+	return result;
 }
 
 export async function getPasskeysByUserId(userId: string): Promise<PasskeyInternal[]> {
 	connect();
-	const passkeys = await db.selectFrom('passkeys').selectAll().where('userId', '=', userId).execute();
-	return passkeys.map(parsePasskey);
+	return await db.selectFrom('passkeys').selectAll().where('userId', '=', userId).execute();
 }
 
 export async function updatePasskeyCounter(id: PasskeyInternal['id'], newCounter: PasskeyInternal['counter']): Promise<PasskeyInternal> {

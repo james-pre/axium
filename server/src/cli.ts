@@ -276,7 +276,10 @@ program
 			output.error('Unavailable');
 		}
 
-		console.log(styleText('whiteBright', 'Credentials authentication:'), config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled');
+		console.log(
+			styleText('whiteBright', 'Credentials authentication:'),
+			config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled'
+		);
 
 		console.log(
 			styleText('whiteBright', 'Loaded plugins:'),

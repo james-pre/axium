@@ -9,7 +9,14 @@
 </script>
 
 {#if show}
-	<div class="Toast" in:fade|global={{ duration }} onintroend={() => (hiding = true)} out:fade|global={{ delay, duration }} onoutroend={() => (hiding = false)} {...rest}>
+	<div
+		class="Toast"
+		in:fade|global={{ duration }}
+		onintroend={() => (hiding = true)}
+		out:fade|global={{ delay, duration }}
+		onoutroend={() => (hiding = false)}
+		{...rest}
+	>
 		{@render children()}
 	</div>
 {/if}

@@ -65,7 +65,11 @@ export async function run(opts: WithOutput & { timeout?: number }, message: stri
 		opts.output('done');
 		return value;
 	} catch (error: any) {
-		throw error == '[command]' ? stderr?.slice(0, 100) || 'failed.' : typeof error == 'object' && 'message' in error ? error.message : error;
+		throw error == '[command]'
+			? stderr?.slice(0, 100) || 'failed.'
+			: typeof error == 'object' && 'message' in error
+				? error.message
+				: error;
 	}
 }
 

@@ -1,19 +1,20 @@
 /** Register a new user. */
 import type { Result } from '@axium/core/api';
 import { APIUserRegistration } from '@axium/core/schemas';
-import { createPasskey, createUser, getUser, getUserByEmail } from '@axium/server/auth.js';
-import { config } from '@axium/server/config.js';
+import { createPasskey, getUser, getUserByEmail } from '@axium/server/auth.js';
+import config from '@axium/server/config.js';
+import { database as db, type Schema } from '@axium/server/database.js';
 import { addRoute } from '@axium/server/routes.js';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
-import { z } from 'zod/v4';
-import { createSessionData, parseBody } from './utils.js';
+import z from 'zod/v4';
+import { createSessionData, parseBody, withError } from './utils.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
-async function OPTIONS(event: RequestEvent): Promise<Result<'OPTIONS', 'register'>> {
+async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 	const { name, email } = await parseBody(event, z.object({ name: z.string().optional(), email: z.email().optional() }));
 
 	const userId = randomUUID();
@@ -39,7 +40,7 @@ async function OPTIONS(event: RequestEvent): Promise<Result<'OPTIONS', 'register
 	return { userId, options };
 }
 
-async function POST(event: RequestEvent): Promise<Result<'POST', 'register'>> {
+async function POST(event: RequestEvent): Result<'POST', 'register'> {
 	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
 
 	const existing = await getUserByEmail(email);
@@ -57,7 +58,11 @@ async function POST(event: RequestEvent): Promise<Result<'POST', 'register'>> {
 
 	if (!verified || !registrationInfo) error(401, { message: 'Verification failed' });
 
-	await createUser({ id: userId, name, email }).catch(() => error(500, { message: 'Failed to create user' }));
+	await db
+		.insertInto('users')
+		.values({ id: userId, name, email } as Schema['users'])
+		.executeTakeFirstOrThrow()
+		.catch(withError('Failed to create user'));
 
 	await createPasskey({
 		transports: [],

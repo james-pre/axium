@@ -2,11 +2,25 @@
 import type { Result } from '@axium/core/api';
 import { PasskeyAuthenticationResponse } from '@axium/core/schemas';
 import { UserChangeable, type User } from '@axium/core/user';
-import { createPasskey, createVerification, getPasskey, getPasskeysByUserId, getSession, getSessions, getUser, useVerification } from '@axium/server/auth.js';
+import {
+	createPasskey,
+	createVerification,
+	getPasskey,
+	getPasskeysByUserId,
+	getSession,
+	getSessions,
+	getUser,
+	useVerification,
+} from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
 import { connect, database as db } from '@axium/server/database.js';
 import { addRoute } from '@axium/server/routes.js';
-import { generateAuthenticationOptions, generateRegistrationOptions, verifyAuthenticationResponse, verifyRegistrationResponse } from '@simplewebauthn/server';
+import {
+	generateAuthenticationOptions,
+	generateRegistrationOptions,
+	verifyAuthenticationResponse,
+	verifyRegistrationResponse,
+} from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import z from 'zod/v4';
@@ -22,7 +36,7 @@ const params = { id: z.uuid() };
  */
 addRoute({
 	path: '/api/user_id',
-	async POST(event): Promise<Result<'POST', 'user_id'>> {
+	async POST(event): Result<'POST', 'user_id'> {
 		const { value } = await parseBody(event, z.object({ using: z.union([z.literal('email')]), value: z.email() }));
 
 		connect();
@@ -34,7 +48,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id',
 	params,
-	async GET(event): Promise<Result<'GET', 'users/:id'>> {
+	async GET(event): Result<'GET', 'users/:id'> {
 		const { id: userId } = event.params;
 
 		const authed = await checkAuth(event, userId)
@@ -43,7 +57,7 @@ addRoute({
 
 		return stripUser(await getUser(userId), authed);
 	},
-	async PATCH(event): Promise<Result<'PATCH', 'users/:id'>> {
+	async PATCH(event): Result<'PATCH', 'users/:id'> {
 		const { id: userId } = event.params;
 		const body: UserChangeable & Pick<User, 'emailVerified'> = await parseBody(event, UserChangeable);
 
@@ -54,7 +68,13 @@ addRoute({
 
 		if ('email' in body) body.emailVerified = null;
 
-		const result = await db.updateTable('users').set(body).where('id', '=', userId).returningAll().executeTakeFirstOrThrow().catch(withError('Failed to update user'));
+		const result = await db
+			.updateTable('users')
+			.set(body)
+			.where('id', '=', userId)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch(withError('Failed to update user'));
 
 		return stripUser(result, true);
 	},
@@ -63,7 +83,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/full',
 	params,
-	async GET(event): Promise<Result<'GET', 'users/:id/full'>> {
+	async GET(event): Result<'GET', 'users/:id/full'> {
 		const { id: userId } = event.params;
 
 		await checkAuth(event, userId);
@@ -82,7 +102,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/login',
 	params,
-	async OPTIONS(event): Promise<Result<'OPTIONS', 'users/:id/login'>> {
+	async OPTIONS(event): Result<'OPTIONS', 'users/:id/login'> {
 		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
@@ -101,7 +121,7 @@ addRoute({
 
 		return options;
 	},
-	async POST(event: RequestEvent): Promise<Result<'POST', 'users/:id/login'>> {
+	async POST(event: RequestEvent): Result<'POST', 'users/:id/login'> {
 		const { id: userId } = event.params;
 		const response = await parseBody(event, PasskeyAuthenticationResponse);
 
@@ -140,7 +160,7 @@ addRoute({
 	/**
 	 * Get passkey registration options for a user.
 	 */
-	async OPTIONS(event: RequestEvent): Promise<Result<'OPTIONS', 'users/:id/passkeys'>> {
+	async OPTIONS(event: RequestEvent): Result<'OPTIONS', 'users/:id/passkeys'> {
 		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
@@ -172,7 +192,7 @@ addRoute({
 	/**
 	 * Get passkeys for a user.
 	 */
-	async GET(event: RequestEvent): Promise<Result<'GET', 'users/:id/passkeys'>> {
+	async GET(event: RequestEvent): Result<'GET', 'users/:id/passkeys'> {
 		const { id: userId } = event.params;
 
 		const user = await getUser(userId);
@@ -188,9 +208,12 @@ addRoute({
 	/**
 	 * Register a new passkey for an existing user.
 	 */
-	async PUT(event: RequestEvent): Promise<Result<'PUT', 'users/:id/passkeys'>> {
+	async PUT(event: RequestEvent): Result<'PUT', 'users/:id/passkeys'> {
 		const { id: userId } = event.params;
-		const { response } = await parseBody(event, z.object({ userId: z.uuid(), name: z.string().optional(), response: PasskeyRegistration }));
+		const { response } = await parseBody(
+			event,
+			z.object({ userId: z.uuid(), name: z.string().optional(), response: PasskeyRegistration })
+		);
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });
@@ -224,14 +247,16 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/sessions',
 	params,
-	async GET(event): Promise<Result<'POST', 'users/:id/sessions'>> {
+	async GET(event): Result<'POST', 'users/:id/sessions'> {
 		const { id: userId } = event.params;
 
 		await checkAuth(event, userId);
 
-		return (await getSessions(userId).catch(e => error(503, 'Failed to get sessions' + (config.debug ? ': ' + e : '')))).map(s => pick(s, 'id', 'expires'));
+		return (await getSessions(userId).catch(e => error(503, 'Failed to get sessions' + (config.debug ? ': ' + e : '')))).map(s =>
+			pick(s, 'id', 'expires')
+		);
 	},
-	async DELETE(event: RequestEvent): Promise<Result<'DELETE', 'users/:id/sessions'>> {
+	async DELETE(event: RequestEvent): Result<'DELETE', 'users/:id/sessions'> {
 		const { id: userId } = event.params;
 		const { id: sessionId } = await parseBody(event, z.object({ id: z.uuid() }));
 
@@ -241,7 +266,11 @@ addRoute({
 
 		if (session.userId !== userId) error(403, { message: 'Session does not belong to the user' });
 
-		await db.deleteFrom('sessions').where('sessions.id', '=', session.id).executeTakeFirstOrThrow().catch(withError('Failed to delete session'));
+		await db
+			.deleteFrom('sessions')
+			.where('sessions.id', '=', session.id)
+			.executeTakeFirstOrThrow()
+			.catch(withError('Failed to delete session'));
 
 		return;
 	},
@@ -250,7 +279,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/verify_email',
 	params,
-	async GET(event): Promise<Result<'GET', 'users/:id/verify_email'>> {
+	async GET(event): Result<'GET', 'users/:id/verify_email'> {
 		const { id: userId } = event.params;
 
 		await checkAuth(event, userId);
@@ -264,7 +293,7 @@ addRoute({
 
 		return omit(verification, 'token', 'role');
 	},
-	async POST(event: RequestEvent): Promise<Result<'POST', 'users/:id/verify_email'>> {
+	async POST(event: RequestEvent): Result<'POST', 'users/:id/verify_email'> {
 		const { id: userId } = event.params;
 		const { token } = await parseBody(event, z.object({ token: z.string() }));
 

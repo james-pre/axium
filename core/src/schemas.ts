@@ -52,3 +52,5 @@ export const APIUserRegistration = z.object({
 	userId: z.uuid(),
 	response: PasskeyRegistration,
 });
+
+export const PasskeyChangeable = z.object({ name: z.string() }).partial();
