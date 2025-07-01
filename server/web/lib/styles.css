@@ -15,7 +15,7 @@ body {
 	gap: 1em;
 }
 
-div:has(form.main) {
+div:not(.main):has(form.main) {
 	position: absolute;
 	inset: 0;
 	display: flex;

@@ -13,14 +13,12 @@
 	<link rel="preload" href={url} />
 </svelte:head>
 
-<span>
-	<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em">
-		<use href="{url}#{id}" />
-	</svg>
-</span>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em">
+	<use href="{url}#{id}" />
+</svg>
 
 <style>
-	span {
+	svg {
 		width: var(--size, 1em);
 		height: var(--size, 1em);
 		display: inline-block;

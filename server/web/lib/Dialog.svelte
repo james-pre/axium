@@ -1,5 +1,6 @@
 <script>
 	let { children, dialog = $bindable(), ...rest } = $props();
+	import './styles.css';
 </script>
 
 <dialog bind:this={dialog} {...rest}>

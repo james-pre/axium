@@ -1,11 +1,9 @@
 <script lang="ts">
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
-	import { currentSession, getPasskeys, sendVerificationEmail, updateUser } from '@axium/client/user';
+	import { currentSession, getPasskeys, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
 	import type { Passkey } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
-
-	let activeItem: Passkey | null = $state(null);
 
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
@@ -16,13 +14,17 @@
 		user = session.user;
 	});
 
+	let passkeys = $state<Passkey[]>([]);
+
+	const passkeysReady = ready
+		.then(() => getPasskeys(user.id))
+		.then(pk => {
+			passkeys = pk;
+		});
+
 	async function _editUser(data) {
 		const result = await updateUser(user.id, data);
 		user = result;
-	}
-
-	async function _editPasskey(data) {
-		if (!activeItem) return;
 	}
 </script>
 
@@ -59,7 +61,9 @@
 				<p>
 					{user.email}
 					{#if user.emailVerified}
-						<dfn title="Email verified on {new Date(user.emailVerified).toLocaleDateString()}"><Icon i="circle-check" /></dfn>
+						<dfn title="Email verified on {new Date(user.emailVerified).toLocaleDateString()}">
+							<Icon i="regular/circle-check" />
+						</dfn>
 					{:else}
 						<button onclick={() => sendVerificationEmail(user.id).then(() => (verificationSent = true))}>
 							{verificationSent ? 'Verification email sent' : 'Verify'}
@@ -77,7 +81,7 @@
 
 		<div class="section main">
 			<h3>Passkeys</h3>
-			{#await getPasskeys(user.id) then passkeys}
+			{#await passkeysReady then}
 				{#each passkeys as passkey}
 					<div class="passkey">
 						<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
@@ -92,10 +96,22 @@
 						{:else}
 							<p class="subtle"><i>Unnamed</i></p>
 						{/if}
-						{@render edit('passkey', () => {
-							activeItem = passkey;
-						})}
+						{@render edit('passkey#' + passkey.id)}
 					</div>
+					<FormDialog
+						bind:dialog={dialogs['passkey#' + passkey.id]}
+						submit={data => {
+							if (typeof data.name != 'string') throw 'Passkey name must be a string';
+							passkey.name = data.name;
+							return updatePasskey(passkey.id, data);
+						}}
+						submitText="Change"
+					>
+						<div>
+							<label for="name">Passkey Name</label>
+							<input name="name" type="text" value={passkey.name || ''} />
+						</div>
+					</FormDialog>
 				{/each}
 			{:catch}
 				<div class="error">Could not load your passkeys.</div>
@@ -115,17 +131,6 @@
 			<label for="name">What do you want to be called?</label>
 			<input name="name" type="text" value={user.name || ''} required />
 		</div>
-	</FormDialog>
-
-	<FormDialog bind:dialog={dialogs.passkey} submit={_editPasskey} submitText="Change">
-		{#if activeItem}
-			<div>
-				<label for="name">Passkey Name</label>
-				<input name="name" type="text" value={activeItem.name || ''} />
-			</div>
-		{:else}
-			<p class="error">No passkey selected.</p>
-		{/if}
 	</FormDialog>
 {:catch error}
 	<div class="error">

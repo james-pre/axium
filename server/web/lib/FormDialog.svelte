@@ -11,6 +11,13 @@
 		submit = (data: object): Promise<any> => Promise.resolve(),
 		pageMode = false,
 		...rest
+	}: {
+		children(): any;
+		dialog?: HTMLDialogElement;
+		submitText?: string;
+		cancel?(): unknown;
+		submit?(data: Record<string, FormDataEntryValue>): Promise<any>;
+		pageMode?: boolean;
 	} = $props();
 
 	let success = $state(false);
@@ -27,7 +34,6 @@
 	}
 
 	function onsubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
-		e.preventDefault();
 		const data = Object.fromEntries(new FormData(e.currentTarget));
 		submit(data)
 			.then(result => {
@@ -44,7 +50,7 @@
 </script>
 
 <Dialog bind:dialog {onclose} {...rest}>
-	<form {onsubmit} class="main">
+	<form {onsubmit} class="main" method="dialog">
 		{#if error}
 			<div class="error">{error}</div>
 		{/if}
