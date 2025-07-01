@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import Dialog from './Dialog.svelte';
 	import './styles.css';
 
@@ -17,6 +18,7 @@
 
 	$effect(() => {
 		if (success) dialog.close();
+		else if (pageMode) dialog.showModal();
 	});
 
 	function onclose(e?: MouseEvent) {
@@ -25,19 +27,23 @@
 	}
 
 	function onsubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
+		e.preventDefault();
 		const data = Object.fromEntries(new FormData(e.currentTarget));
 		submit(data)
 			.then(result => {
 				success = true;
-				dialog.close();
+				if (pageMode) goto('/');
+				else dialog.close();
 			})
-			.catch(e => {
-				error = e;
+			.catch((e: unknown) => {
+				if (!e) error = 'An unknown error occurred';
+				else if (typeof e == 'object' && 'message' in e) error = e.message;
+				else error = e;
 			});
 	}
 </script>
 
-<Dialog bind:dialog show={pageMode} {onclose} {...rest}>
+<Dialog bind:dialog {onclose} {...rest}>
 	<form {onsubmit} class="main">
 		{#if error}
 			<div class="error">{error}</div>
