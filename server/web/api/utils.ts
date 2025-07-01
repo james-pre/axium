@@ -22,31 +22,37 @@ export async function parseBody<const Schema extends z.ZodType, const Result ext
 	}
 }
 
-export function getToken(event: RequestEvent): string | undefined {
+export function getToken(event: RequestEvent, sensitive: boolean = false): string | undefined {
 	const header_token = event.request.headers.get('Authorization')?.replace('Bearer ', '');
 	if (header_token) return header_token;
 
 	if (config.debug || config.api.cookie_auth) {
-		return event.cookies.get('session_token');
+		return event.cookies.get(sensitive ? 'elevated_token' : 'session_token');
 	}
 }
 
-export async function checkAuth(event: RequestEvent, userId?: string): Promise<void> {
-	const token = getToken(event);
+export async function checkAuth(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<void> {
+	const token = getToken(event, sensitive);
 
 	if (!token) throw error(401, { message: 'Missing token' });
 
-	const { user } = await getSessionAndUser(token).catch(() => error(401, { message: 'Invalid or expired session' }));
+	const { user, elevated } = await getSessionAndUser(token).catch(() => error(401, { message: 'Invalid or expired session' }));
 
 	if (user?.id !== userId /* && !user.isAdmin */) error(403, { message: 'User ID mismatch' });
+
+	if (!elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
 }
 
-export async function createSessionData(event: RequestEvent, userId: string): Promise<NewSessionResponse> {
-	const { token } = await createSession(userId);
+export async function createSessionData(event: RequestEvent, userId: string, elevated: boolean = false): Promise<NewSessionResponse> {
+	const { token } = await createSession(userId, elevated);
 
-	event.cookies.set('session_token', token, { httpOnly: config.auth.secure_cookies, path: '/' });
-
-	return { userId, token };
+	if (elevated) {
+		event.cookies.set('elevated_token', token, { httpOnly: true, path: '/', expires: new Date(Date.now() + 10 * 60_000) });
+		return { userId, token: '[[redacted:elevated]]' };
+	} else {
+		event.cookies.set('session_token', token, { httpOnly: config.auth.secure_cookies, path: '/' });
+		return { userId, token };
+	}
 }
 
 export function stripUser(user: UserInternal, includeProtected: boolean = false): User {

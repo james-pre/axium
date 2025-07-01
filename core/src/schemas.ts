@@ -11,7 +11,7 @@ export function zAsyncFunction<T extends z.core.$ZodFunction>(schema: T) {
 
 const transports = ['ble', 'cable', 'hybrid', 'internal', 'nfc', 'smart-card', 'usb'] satisfies AuthenticatorTransportFuture[];
 
-export const authenticatorAttachment = z.enum(['platform', 'cross-platform'] satisfies AuthenticatorAttachment[]).optional();
+export const authenticatorAttachment = z.literal(['platform', 'cross-platform'] satisfies AuthenticatorAttachment[]).optional();
 
 export const PasskeyRegistration = z.object({
 	id: z.string(),
@@ -54,3 +54,7 @@ export const APIUserRegistration = z.object({
 });
 
 export const PasskeyChangeable = z.object({ name: z.string() }).partial();
+
+export const UserAuthOptions = z.object({ type: z.literal(['login', 'action']) });
+
+export type UserAuthOptions = z.infer<typeof UserAuthOptions>;

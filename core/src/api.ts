@@ -6,7 +6,13 @@ import type {
 } from '@simplewebauthn/types';
 import type z from 'zod/v4';
 import type { RequestMethod } from './requests.js';
-import type { APIUserRegistration, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './schemas.js';
+import type {
+	APIUserRegistration,
+	PasskeyAuthenticationResponse,
+	PasskeyChangeable,
+	PasskeyRegistration,
+	UserAuthOptions,
+} from './schemas.js';
 import type { User, UserChangeable, UserPublic } from './user.js';
 
 export interface Session {
@@ -62,15 +68,13 @@ export interface _apiTypes {
 	'users/:id': {
 		GET: UserPublic & Partial<User>;
 		PATCH: [z.input<typeof UserChangeable>, User];
-		DELETE: User & {
-			nonRecoverableAt: Date;
-		};
+		DELETE: User;
 	};
 	'users/:id/full': {
 		GET: User & { sessions: Session[] };
 	};
-	'users/:id/login': {
-		OPTIONS: PublicKeyCredentialRequestOptionsJSON;
+	'users/:id/auth': {
+		OPTIONS: [z.input<typeof UserAuthOptions>, PublicKeyCredentialRequestOptionsJSON];
 		POST: [z.input<typeof PasskeyAuthenticationResponse>, NewSessionResponse];
 	};
 	'users/:id/sessions': {

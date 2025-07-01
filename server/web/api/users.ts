@@ -1,6 +1,6 @@
 /** Register a new passkey for a new or existing user. */
 import type { Result } from '@axium/core/api';
-import { PasskeyAuthenticationResponse } from '@axium/core/schemas';
+import { PasskeyAuthenticationResponse, UserAuthOptions } from '@axium/core/schemas';
 import { UserChangeable, type User } from '@axium/core/user';
 import {
 	createPasskey,
@@ -27,7 +27,12 @@ import z from 'zod/v4';
 import { PasskeyRegistration } from './schemas.js';
 import { checkAuth, createSessionData, parseBody, stripUser, withError } from './utils.js';
 
-const challenges = new Map<string, string>();
+interface UserAuth {
+	data: string;
+	type: UserAuthOptions['type'];
+}
+
+const challenges = new Map<string, UserAuth>();
 
 const params = { id: z.uuid() };
 
@@ -37,7 +42,7 @@ const params = { id: z.uuid() };
 addRoute({
 	path: '/api/user_id',
 	async POST(event): Result<'POST', 'user_id'> {
-		const { value } = await parseBody(event, z.object({ using: z.union([z.literal('email')]), value: z.email() }));
+		const { value } = await parseBody(event, z.object({ using: z.literal('email'), value: z.email() }));
 
 		connect();
 		const { id } = await db.selectFrom('users').select('id').where('email', '=', value).executeTakeFirst();
@@ -78,6 +83,23 @@ addRoute({
 
 		return stripUser(result, true);
 	},
+	async DELETE(event): Result<'DELETE', 'users/:id'> {
+		const { id: userId } = event.params;
+
+		await checkAuth(event, userId, true);
+
+		const user = await getUser(userId);
+		if (!user) error(404, { message: 'User does not exist' });
+
+		const result = await db
+			.deleteFrom('users')
+			.where('id', '=', userId)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch(withError('Failed to delete user'));
+
+		return result;
+	},
 });
 
 addRoute({
@@ -100,10 +122,11 @@ addRoute({
 });
 
 addRoute({
-	path: '/api/users/:id/login',
+	path: '/api/users/:id/auth',
 	params,
-	async OPTIONS(event): Result<'OPTIONS', 'users/:id/login'> {
+	async OPTIONS(event): Result<'OPTIONS', 'users/:id/auth'> {
 		const { id: userId } = event.params;
+		const { type } = await parseBody(event, UserAuthOptions);
 
 		const user = await getUser(userId);
 		if (!user) error(404, { message: 'User does not exist' });
@@ -117,16 +140,17 @@ addRoute({
 			allowCredentials: passkeys.map(passkey => pick(passkey, 'id', 'transports')),
 		});
 
-		challenges.set(userId, options.challenge);
+		challenges.set(userId, { data: options.challenge, type });
 
 		return options;
 	},
-	async POST(event: RequestEvent): Result<'POST', 'users/:id/login'> {
+	async POST(event: RequestEvent): Result<'POST', 'users/:id/auth'> {
 		const { id: userId } = event.params;
 		const response = await parseBody(event, PasskeyAuthenticationResponse);
 
-		const expectedChallenge = challenges.get(userId);
-		if (!expectedChallenge) error(404, { message: 'No challenge found for this user' });
+		const auth = challenges.get(userId);
+		if (!auth) error(404, { message: 'No challenge found for this user' });
+		const { data: expectedChallenge, type } = auth;
 		challenges.delete(userId);
 
 		const user = await getUser(userId);
@@ -147,7 +171,15 @@ addRoute({
 
 		if (!verified) error(401, { message: 'Verification failed' });
 
-		return await createSessionData(event, userId);
+		switch (type) {
+			case 'login':
+				return await createSessionData(event, userId);
+			case 'action':
+				if ((Date.now() - passkey.createdAt.getTime()) / 60_000 < config.auth.passkey_probation)
+					error(403, { message: 'You can not authorize sensitive actions with a newly created passkey' });
+
+				return await createSessionData(event, userId, true);
+		}
 	},
 });
 
@@ -174,7 +206,7 @@ addRoute({
 			rpName: config.auth.rp_name,
 			rpID: config.auth.rp_id,
 			userName: userId,
-			userDisplayName: user.name,
+			userDisplayName: user.email,
 			attestationType: 'none',
 			excludeCredentials: existing.map(passkey => pick(passkey, 'id', 'transports')),
 			authenticatorSelection: {

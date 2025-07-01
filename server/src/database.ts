@@ -24,6 +24,7 @@ export interface Schema {
 		userId: string;
 		token: string;
 		expires: Date;
+		elevated: boolean;
 	};
 	verifications: {
 		userId: string;
@@ -179,6 +180,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('token', 'text', col => col.notNull().unique())
 		.addColumn('created', 'timestamptz', col => col.notNull())
 		.addColumn('expires', 'timestamptz', col => col.notNull())
+		.addColumn('elevated', 'boolean', col => col.notNull())
 		.execute()
 		.then(done)
 		.catch(warnExists);

@@ -8,9 +8,9 @@ export async function currentSession() {
 }
 
 export async function login(userId: string) {
-	const options = await fetchAPI('OPTIONS', 'users/:id/login', {}, userId);
+	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'login' }, userId);
 	const response = await startAuthentication({ optionsJSON: options });
-	await fetchAPI('POST', 'users/:id/login', response, userId);
+	await fetchAPI('POST', 'users/:id/auth', response, userId);
 }
 
 export async function loginByEmail(email: string) {
@@ -65,6 +65,14 @@ export async function updateUser(userId: string, data: Record<string, FormDataEn
 export async function fullUserInfo(userId: string) {
 	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/full', {}, userId);
+}
+
+export async function deleteUser(userId: string) {
+	_checkId(userId);
+	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'action' }, userId);
+	const response = await startAuthentication({ optionsJSON: options });
+	await fetchAPI('POST', 'users/:id/auth', response, userId);
+	return await fetchAPI('DELETE', 'users/:id', response, userId);
 }
 
 export async function sendVerificationEmail(userId: string) {

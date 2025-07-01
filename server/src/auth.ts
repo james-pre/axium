@@ -29,24 +29,22 @@ export async function updateUser({ id, ...user }: UserInternal) {
 	return await query.returningAll().executeTakeFirstOrThrow();
 }
 
-export async function deleteUser(id: string) {
-	connect();
-	await db.deleteFrom('users').where('users.id', '=', id).executeTakeFirst();
-}
-
 export interface SessionInternal extends Session {
 	token: string;
+	elevated: boolean;
 }
 
 const in30days = () => new Date(Date.now() + 2592000000);
+const in10minutes = () => new Date(Date.now() + 600000);
 
-export async function createSession(userId: string) {
+export async function createSession(userId: string, elevated: boolean = false) {
 	connect();
 	const session: SessionInternal = {
 		id: randomUUID(),
 		userId,
 		token: randomBytes(64).toString('base64'),
-		expires: in30days(),
+		expires: elevated ? in10minutes() : in30days(),
+		elevated,
 		created: new Date(),
 	};
 	await db.insertInto('sessions').values(session).execute();

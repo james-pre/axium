@@ -20,6 +20,8 @@ export const Schema = z
 			credentials: z.boolean(),
 			debug: z.boolean(),
 			origin: z.string(),
+			/** In minutes */
+			passkey_probation: z.number(),
 			rp_id: z.string(),
 			rp_name: z.string(),
 			secure_cookies: z.boolean(),
@@ -76,6 +78,7 @@ export const config: Config & typeof configShortcuts = {
 		credentials: false,
 		debug: false,
 		origin: 'https://test.localhost',
+		passkey_probation: 60,
 		rp_id: 'test.localhost',
 		rp_name: 'Axium',
 		secure_cookies: true,

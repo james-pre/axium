@@ -9,6 +9,7 @@
 		updatePasskey,
 		updateUser,
 		createPasskey,
+		deleteUser,
 	} from '@axium/client/user';
 	import type { Passkey } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
@@ -60,6 +61,12 @@
 				<span>{user.name}</span>
 				{@render action('edit_name')}
 			</div>
+			<FormDialog bind:dialog={dialogs.edit_name} submit={_editUser} submitText="Change">
+				<div>
+					<label for="name">What do you want to be called?</label>
+					<input name="name" type="text" value={user.name || ''} required />
+				</div>
+			</FormDialog>
 			<div class="item">
 				<span class="subtle">Email</span>
 				<span>
@@ -76,11 +83,21 @@
 				</span>
 				{@render action('edit_email')}
 			</div>
+			<FormDialog bind:dialog={dialogs.edit_email} submit={_editUser} submitText="Change">
+				<div>
+					<label for="email">Email Address</label>
+					<input name="email" type="email" value={user.email || ''} required />
+				</div>
+			</FormDialog>
+
 			<div class="item">
 				<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
 				<p>{user.id}</p>
 			</div>
 			<a class="signout" href="/logout"><button>Sign out</button></a>
+			<FormDialog bind:dialog={dialogs.delete} submit={() => deleteUser(user.id)} submitText="Delete Account" submitDanger>
+				<p>Are you sure you want to delete your account?<br />This action can't be undone.</p>
+			</FormDialog>
 		</div>
 
 		<div class="section main">
@@ -128,27 +145,12 @@
 					submitText="Delete"
 					submitDanger={true}
 				>
-					<p>Are you sure you want to delete this passkey?</p>
-					<p>This action cannot be undone.</p>
+					<p>Are you sure you want to delete this passkey?<br />This action can't be undone.</p>
 				</FormDialog>
 			{/each}
 			<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))}><Icon i="plus" /> Create</button>
 		</div>
 	</div>
-
-	<FormDialog bind:dialog={dialogs.edit_email} submit={_editUser} submitText="Change">
-		<div>
-			<label for="email">Email Address</label>
-			<input name="email" type="email" value={user.email || ''} required />
-		</div>
-	</FormDialog>
-
-	<FormDialog bind:dialog={dialogs.edit_name} submit={_editUser} submitText="Change">
-		<div>
-			<label for="name">What do you want to be called?</label>
-			<input name="name" type="text" value={user.name || ''} required />
-		</div>
-	</FormDialog>
 {:catch error}
 	<div class="error">
 		<h3>Failed to load your account</h3>
