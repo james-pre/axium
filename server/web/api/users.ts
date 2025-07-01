@@ -1,6 +1,7 @@
 /** Register a new passkey for a new or existing user. */
 import type { Result } from '@axium/core/api';
 import { PasskeyAuthenticationResponse } from '@axium/core/schemas';
+import { UserChangeable, type User } from '@axium/core/user';
 import { createPasskey, createVerification, getPasskey, getPasskeysByUserId, getSession, getSessions, getUser, useVerification } from '@axium/server/auth.js';
 import { config } from '@axium/server/config.js';
 import { connect, database as db } from '@axium/server/database.js';
@@ -10,7 +11,7 @@ import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import z from 'zod/v4';
 import { PasskeyRegistration } from './schemas.js';
-import { checkAuth, createSessionResponse as createSessionData, parseBody, stripUser } from './utils.js';
+import { checkAuth, createSessionData, parseBody, stripUser, withError } from './utils.js';
 
 const challenges = new Map<string, string>();
 
@@ -41,6 +42,21 @@ addRoute({
 			.catch(() => false);
 
 		return stripUser(await getUser(userId), authed);
+	},
+	async PATCH(event): Promise<Result<'PATCH', 'users/:id'>> {
+		const { id: userId } = event.params;
+		const body: UserChangeable & Pick<User, 'emailVerified'> = await parseBody(event, UserChangeable);
+
+		await checkAuth(event, userId);
+
+		const user = await getUser(userId);
+		if (!user) error(404, { message: 'User does not exist' });
+
+		if ('email' in body) body.emailVerified = null;
+
+		const result = await db.updateTable('users').set(body).where('id', '=', userId).returningAll().executeTakeFirstOrThrow().catch(withError('Failed to update user'));
+
+		return stripUser(result, true);
 	},
 });
 
@@ -107,7 +123,7 @@ addRoute({
 			expectedChallenge,
 			expectedOrigin: config.auth.origin,
 			expectedRPID: config.auth.rp_id,
-		}).catch(() => error(400, { message: 'Verification failed' }));
+		}).catch(withError('Verification failed', 400));
 
 		if (!verified) error(401, { message: 'Verification failed' });
 
@@ -189,7 +205,7 @@ addRoute({
 			response,
 			expectedChallenge,
 			expectedOrigin: config.auth.origin,
-		}).catch(() => error(400, { message: 'Verification failed' }));
+		}).catch(withError('Verification failed', 400));
 
 		if (!verified || !registrationInfo) error(401, { message: 'Verification failed' });
 
@@ -199,7 +215,7 @@ addRoute({
 			userId,
 			deviceType: registrationInfo.credentialDeviceType,
 			backedUp: registrationInfo.credentialBackedUp,
-		}).catch(() => error(500, { message: 'Failed to create passkey' }));
+		}).catch(withError('Failed to create passkey'));
 
 		return omit(passkey, 'publicKey', 'counter');
 	},
@@ -221,15 +237,11 @@ addRoute({
 
 		await checkAuth(event, userId);
 
-		const session = await getSession(sessionId).catch(() => error(404, { message: 'Invalid session' }));
+		const session = await getSession(sessionId).catch(withError('Session does not exist', 404));
 
 		if (session.userId !== userId) error(403, { message: 'Session does not belong to the user' });
 
-		await db
-			.deleteFrom('sessions')
-			.where('sessions.id', '=', session.id)
-			.executeTakeFirstOrThrow()
-			.catch(() => error(500, { message: 'Failed to delete session' }));
+		await db.deleteFrom('sessions').where('sessions.id', '=', session.id).executeTakeFirstOrThrow().catch(withError('Failed to delete session'));
 
 		return;
 	},
@@ -263,7 +275,7 @@ addRoute({
 
 		if (user.emailVerified) error(409, { message: 'Email already verified' });
 
-		await useVerification('verify_email', userId, token).catch(() => error(400, { message: 'Invalid or expired verification token' }));
+		await useVerification('verify_email', userId, token).catch(withError('Invalid or expired verification token', 400));
 
 		return {};
 	},

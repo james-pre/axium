@@ -8,7 +8,7 @@ import { generateRegistrationOptions, verifyRegistrationResponse } from '@simple
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod/v4';
-import { createSessionResponse, parseBody } from './utils.js';
+import { createSessionData, parseBody } from './utils.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
@@ -67,7 +67,7 @@ async function POST(event: RequestEvent): Promise<Result<'POST', 'register'>> {
 		backedUp: registrationInfo.credentialBackedUp,
 	}).catch(e => error(500, { message: 'Failed to create passkey' + (config.debug ? `: ${e.message}` : '') }));
 
-	return await createSessionResponse(event, userId);
+	return await createSessionData(event, userId);
 }
 
 addRoute({

@@ -2,7 +2,7 @@ import type { AuthenticatorTransportFuture, CredentialDeviceType, PublicKeyCrede
 import type z from 'zod/v4';
 import type { RequestMethod } from './requests.js';
 import type { APIUserRegistration, PasskeyAuthenticationResponse } from './schemas.js';
-import type { User, UserPublic } from './user.js';
+import type { User, UserChangeable, UserPublic } from './user.js';
 
 export interface Session {
 	id: string;
@@ -44,10 +44,7 @@ export interface _apiTypes {
 		};
 	};
 	session: {
-		GET: {
-			session: Session;
-			user: User;
-		};
+		GET: Session & { user: User };
 		DELETE: Session;
 	};
 	register: {
@@ -59,6 +56,10 @@ export interface _apiTypes {
 	};
 	'users/:id': {
 		GET: UserPublic & Partial<User>;
+		PATCH: [Partial<UserChangeable>, User];
+		DELETE: User & {
+			nonRecoverableAt: Date;
+		};
 	};
 	'users/:id/full': {
 		GET: User & { sessions: Session[] };

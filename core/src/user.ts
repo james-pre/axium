@@ -25,6 +25,14 @@ export interface UserPublic extends Pick<User, UserPublicField> {}
 
 export const userProtectedFields = ['email', 'emailVerified', 'preferences'] as const satisfies (keyof User)[];
 
+export const UserChangeable = User.pick({
+	name: true,
+	email: true,
+	image: true,
+}).partial();
+
+export type UserChangeable = z.infer<typeof UserChangeable>;
+
 export function getUserImage(user: { name?: string; image?: string }): string {
 	if (user.image) return user.image;
 	user.name ??= '\0';

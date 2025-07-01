@@ -1,36 +1,49 @@
 <script lang="ts">
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
-	import { currentSession, getPasskeys, sendVerificationEmail, verifyEmail } from '@axium/client/user';
-	import { getUserImage } from '@axium/core';
+	import { currentSession, getPasskeys, sendVerificationEmail, updateUser } from '@axium/client/user';
 	import type { Passkey } from '@axium/core/api';
+	import { getUserImage, type User } from '@axium/core/user';
 
-	let activeDialog: 'email' | 'name' | 'passkey' | null = $state(null);
 	let activeItem: Passkey | null = $state(null);
 
-	let is_email = $derived(activeDialog === 'email');
-	let is_name = $derived(activeDialog === 'name');
-	let is_passkey = $derived(activeDialog === 'passkey');
+	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
 	let verificationSent = $state(false);
+	let user = $state<User>();
+
+	const ready = currentSession().then(session => {
+		user = session.user;
+	});
+
+	async function _editUser(data) {
+		const result = await updateUser(user.id, data);
+		user = result;
+	}
+
+	async function _editPasskey(data) {
+		if (!activeItem) return;
+	}
 </script>
 
 <svelte:head>
 	<title>Account</title>
 </svelte:head>
 
-{#snippet edit(thing: typeof activeDialog, item?: typeof activeItem)}
+{#snippet edit(name: string, onclick?: () => any)}
 	<button
 		style:display="contents"
 		class="change"
 		onclick={() => {
-			activeDialog = thing;
-			activeItem = item;
-		}}><Icon i="chevron-right" /></button
+			dialogs[name].showModal();
+			onclick?.();
+		}}
 	>
+		<Icon i="chevron-right" />
+	</button>
 {/snippet}
 
-{#await currentSession() then { session, user }}
+{#await ready then}
 	<div class="Account flex-content">
 		<img class="pfp" src={getUserImage(user)} alt="User profile" />
 		<p class="greeting">Welcome, {user.name}</p>
@@ -79,7 +92,9 @@
 						{:else}
 							<p class="subtle"><i>Unnamed</i></p>
 						{/if}
-						{@render edit('passkey', passkey)}
+						{@render edit('passkey', () => {
+							activeItem = passkey;
+						})}
 					</div>
 				{/each}
 			{:catch}
@@ -88,21 +103,21 @@
 		</div>
 	</div>
 
-	<FormDialog bind:active={is_email} submitText="Change">
+	<FormDialog bind:dialog={dialogs.email} submit={_editUser} submitText="Change">
 		<div>
 			<label for="email">Email Address</label>
 			<input name="email" type="email" value={user.email || ''} required />
 		</div>
 	</FormDialog>
 
-	<FormDialog bind:active={is_name} submitText="Change">
+	<FormDialog bind:dialog={dialogs.name} submit={_editUser} submitText="Change">
 		<div>
 			<label for="name">What do you want to be called?</label>
 			<input name="name" type="text" value={user.name || ''} required />
 		</div>
 	</FormDialog>
 
-	<FormDialog bind:active={is_passkey} submitText="Change">
+	<FormDialog bind:dialog={dialogs.passkey} submit={_editPasskey} submitText="Change">
 		{#if activeItem}
 			<div>
 				<label for="name">Passkey Name</label>

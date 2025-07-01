@@ -14,7 +14,7 @@ addRoute({
 		if (!result) error(404, 'Session does not exist');
 
 		return {
-			session: omit(result.session, 'token'),
+			...omit(result, 'token'),
 			user: stripUser(result.user, true),
 		};
 	},

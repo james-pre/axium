@@ -40,7 +40,7 @@ export async function checkAuth(event: RequestEvent, userId?: string): Promise<v
 	if (user.id !== userId /* && !user.isAdmin */) error(403, { message: 'User ID mismatch' });
 }
 
-export async function createSessionResponse(event: RequestEvent, userId: string): Promise<NewSessionResponse> {
+export async function createSessionData(event: RequestEvent, userId: string): Promise<NewSessionResponse> {
 	const { token } = await createSession(userId);
 
 	event.cookies.set('session_token', token, { httpOnly: config.auth.secure_cookies, path: '/' });
@@ -50,4 +50,10 @@ export async function createSessionResponse(event: RequestEvent, userId: string)
 
 export function stripUser(user: UserInternal, includeProtected: boolean = false): User {
 	return pick(user, ...userPublicFields, ...(includeProtected ? userProtectedFields : []));
+}
+
+export function withError(text: string, code: number = 500) {
+	return function (e: Error) {
+		error(code, { message: text + (config.debug ? `: ${e.message}` : '') });
+	};
 }

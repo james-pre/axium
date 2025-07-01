@@ -4,6 +4,7 @@ import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simple
 import { randomBytes, randomUUID } from 'node:crypto';
 import type { Optional } from 'utilium';
 import { connect, database as db } from './database.js';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 
 export interface UserInternal extends User {
 	password?: string | null;
@@ -67,26 +68,18 @@ export async function checkExpiration(session: SessionInternal) {
 	throw new Error('Session expired');
 }
 
-export interface SessionAndUser {
-	user: UserInternal;
-	session: SessionInternal;
-}
-
-export async function getSessionAndUser(token: string): Promise<SessionAndUser> {
+export async function getSessionAndUser(token: string): Promise<SessionInternal & { user: UserInternal | null }> {
 	connect();
 	const result = await db
 		.selectFrom('sessions')
-		.innerJoin('users', 'users.id', 'sessions.userId')
-		.selectAll('users')
-		.select(['sessions.expires', 'sessions.id as sessionId', 'created'])
+		.selectAll()
+		.select(eb => jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('users.id', '=', 'sessions.userId')).as('user'))
 		.where('sessions.token', '=', token)
 		.executeTakeFirst();
 	if (!result) throw new Error('Session not found');
 
-	const { sessionId, created, expires, ...user } = result;
-	const session = { token, userId: user.id, expires, id: sessionId, created };
-	await checkExpiration(session);
-	return { user, session };
+	await checkExpiration(result);
+	return result;
 }
 
 export async function getSession(sessionId: string): Promise<SessionInternal> {

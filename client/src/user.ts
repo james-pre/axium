@@ -1,6 +1,7 @@
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import z from 'zod/v4';
 import { fetchAPI } from './requests.js';
+import { UserChangeable } from '@axium/core';
 
 export async function currentSession() {
 	return await fetchAPI('GET', 'session');
@@ -52,6 +53,15 @@ export async function userInfo(userId: string) {
 	return await fetchAPI('GET', 'users/:id', {}, userId);
 }
 
+export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>) {
+	_checkId(userId);
+	const body = await UserChangeable.parseAsync(data).catch(e => {
+		throw z.prettifyError(e);
+	});
+
+	return await fetchAPI('PATCH', 'users/:id', body, userId);
+}
+
 export async function fullUserInfo(userId: string) {
 	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/full', {}, userId);
@@ -71,3 +81,7 @@ export async function getPasskeys(userId: string) {
 	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/passkeys', {}, userId);
 }
+
+export async function createPasskey(userId: string, data: Record<string, FormDataEntryValue>) {}
+
+export async function updatePasskey(userId: string, data: Record<string, FormDataEntryValue>) {}

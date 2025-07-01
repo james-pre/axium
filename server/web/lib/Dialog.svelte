@@ -1,12 +1,8 @@
 <script>
-	let { show, children, onclose = () => (show = false), ...rest } = $props();
-
-	let dialog = $state();
-	$effect(() => show && dialog.showModal());
-	$effect(() => !show && dialog.close());
+	let { children, dialog = $bindable(), ...rest } = $props();
 </script>
 
-<dialog bind:this={dialog} {onclose} {...rest}>
+<dialog bind:this={dialog} {...rest}>
 	{@render children()}
 </dialog>
 

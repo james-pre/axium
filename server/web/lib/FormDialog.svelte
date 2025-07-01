@@ -2,29 +2,34 @@
 	import Dialog from './Dialog.svelte';
 	import './styles.css';
 
-	let { children, active = $bindable(null), submitText = 'Submit', cancel = () => {}, submit = (data: object) => {}, pageMode = false, ...rest } = $props();
+	let {
+		children,
+		dialog = $bindable(),
+		submitText = 'Submit',
+		cancel = () => {},
+		submit = (data: object): Promise<any> => Promise.resolve(),
+		pageMode = false,
+		...rest
+	} = $props();
 
-	let dialog;
 	let success = $state(false);
 	let error = $state(null);
 
 	$effect(() => {
-		if (success) active = null;
+		if (success) dialog.close();
 	});
-
-	const show = $derived(!!active || pageMode);
 
 	function onclose(e?: MouseEvent) {
 		e.preventDefault();
-		active = null;
 		cancel();
 	}
 
 	function onsubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
 		const data = Object.fromEntries(new FormData(e.currentTarget));
-		Promise.resolve(submit(data))
+		submit(data)
 			.then(result => {
 				success = true;
+				dialog.close();
 			})
 			.catch(e => {
 				error = e;
@@ -32,8 +37,8 @@
 	}
 </script>
 
-<Dialog bind:this={dialog} {show} {onclose}>
-	<form {onsubmit} class="main" {...rest}>
+<Dialog bind:dialog show={pageMode} {onclose} {...rest}>
+	<form {onsubmit} class="main">
 		{#if error}
 			<div class="error">{error}</div>
 		{/if}
