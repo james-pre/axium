@@ -34,7 +34,7 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 		await db.schema
 			.createTable(shareTable)
 			.addColumn('itemId', 'uuid', col => col.notNull().references(`${table}.id`).onDelete('cascade').onUpdate('cascade'))
-			.addColumn('userId', 'uuid', col => col.notNull().references('User.id').onDelete('cascade').onUpdate('cascade'))
+			.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
 			.addColumn('sharedAt', 'timestamptz', col => col.notNull())
 			.addColumn('permission', 'integer', col => col.notNull())
 			.execute()

@@ -16,7 +16,7 @@ export interface DBContentAddressableFile {
 
 declare module '@axium/server/database' {
 	export interface Schema {
-		ContentAddressableFile: DBContentAddressableFile;
+		cas: DBContentAddressableFile;
 	}
 }
 
@@ -33,16 +33,16 @@ declare module '@axium/server/config' {
 
 export async function currentUsage(userId: string): Promise<number> {
 	const result = await database
-		.selectFrom('ContentAddressableFile')
+		.selectFrom('cas')
 		.where('ownerId', '=', userId)
 		.select(eb => eb.fn.sum('size').as('size'))
-		.executeTakeFirst();
+		.executeTakeFirstOrThrow();
 
-	return Number(result?.size);
+	return Number(result.size);
 }
 
 export async function fileMetadata(fileId: string): Promise<ContentAddressableFile | undefined> {
-	return await database.selectFrom('ContentAddressableFile').where('fileId', '=', fileId).selectAll().executeTakeFirst();
+	return await database.selectFrom('cas').where('fileId', '=', fileId).selectAll().executeTakeFirst();
 }
 
 export async function addFile(ownerId: string, file: File): Promise<void> {
@@ -50,5 +50,5 @@ export async function addFile(ownerId: string, file: File): Promise<void> {
 
 	const hash = createHash('BLAKE2b512').update(content).digest();
 
-	await database.insertInto('ContentAddressableFile').values({ ownerId, hash }).execute();
+	await database.insertInto('cas').values({ ownerId, hash }).execute();
 }

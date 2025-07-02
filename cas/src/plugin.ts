@@ -10,9 +10,9 @@ export const version = pkg.version;
 export const description = pkg.description;
 
 export async function statusText(): Promise<string> {
-	const items = await count('ContentAddressableFile');
+	const items = await count('cas');
 	const result = await database
-		.selectFrom('ContentAddressableFile')
+		.selectFrom('cas')
 		.select(eb => eb.fn.sum('size').as('size'))
 		.executeTakeFirst();
 	const size = BigInt(result!.size).toLocaleString('en-US', {
@@ -25,11 +25,11 @@ export async function statusText(): Promise<string> {
 }
 
 export async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
-	opt.output('start', 'Creating table ContentAddressableFile');
+	opt.output('start', 'Creating table cas');
 	await db.schema
-		.createTable('ContentAddressableFile')
+		.createTable('cas')
 		.addColumn('fileId', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('ownerId', 'uuid', col => col.notNull().references('User.id').onDelete('cascade').onUpdate('cascade'))
+		.addColumn('ownerId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
 		.addColumn('lastModified', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('restricted', 'boolean', col => col.notNull().defaultTo(false))
 		.addColumn('size', 'integer', col => col.notNull().defaultTo(0))
@@ -41,7 +41,7 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 }
 
 export async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
-	opt.output('start', 'Removing data from ContentAddressableFile');
-	await db.deleteFrom('ContentAddressableFile').execute();
+	opt.output('start', 'Removing data from cas');
+	await db.deleteFrom('cas').execute();
 	opt.output('done');
 }

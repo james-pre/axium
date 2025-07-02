@@ -1,4 +1,4 @@
-import type { _apiTypes } from '@axium/core/api';
+import type {} from '@axium/core/api';
 import type { User } from '@axium/core/user';
 
 declare module '@axium/core/api' {
