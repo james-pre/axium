@@ -308,6 +308,20 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/verify_email',
 	params,
+	async OPTIONS(event): Result<'OPTIONS', 'users/:id/verify_email'> {
+		const { id: userId } = event.params;
+
+		if (!config.auth.email_verification) return { enabled: false };
+
+		await checkAuth(event, userId);
+
+		const user = await getUser(userId);
+		if (!user) error(404, { message: 'User does not exist' });
+
+		if (!config.auth.email_verification) return { enabled: false };
+
+		return { enabled: true };
+	},
 	async GET(event): Result<'GET', 'users/:id/verify_email'> {
 		const { id: userId } = event.params;
 

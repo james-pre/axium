@@ -87,6 +87,7 @@ export interface _apiTypes {
 		PUT: [z.input<typeof PasskeyRegistration>, Passkey];
 	};
 	'users/:id/verify_email': {
+		OPTIONS: { enabled: boolean };
 		GET: Verification;
 		POST: [{ token: string }, {}];
 	};

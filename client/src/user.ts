@@ -75,6 +75,12 @@ export async function deleteUser(userId: string) {
 	return await fetchAPI('DELETE', 'users/:id', response, userId);
 }
 
+export async function emailVerificationEnabled(userId: string) {
+	_checkId(userId);
+	const { enabled } = await fetchAPI('OPTIONS', 'users/:id/verify_email', {}, userId);
+	return enabled;
+}
+
 export async function sendVerificationEmail(userId: string) {
 	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/verify_email', {}, userId);

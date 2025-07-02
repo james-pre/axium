@@ -2,14 +2,15 @@
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import {
+		createPasskey,
 		currentSession,
 		deletePasskey,
+		deleteUser,
+		emailVerificationEnabled,
 		getPasskeys,
 		sendVerificationEmail,
 		updatePasskey,
 		updateUser,
-		createPasskey,
-		deleteUser,
 	} from '@axium/client/user';
 	import type { Passkey } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
@@ -18,12 +19,15 @@
 
 	let verificationSent = $state(false);
 	let user = $state<User>();
+	let canVerify = $state(false);
 
 	async function ready() {
 		const session = await currentSession();
 		user = session.user;
 
 		passkeys = await getPasskeys(user.id);
+
+		canVerify = await emailVerificationEnabled(user.id);
 	}
 
 	let passkeys = $state<Passkey[]>([]);
@@ -75,7 +79,7 @@
 						<dfn title="Email verified on {new Date(user.emailVerified).toLocaleDateString()}">
 							<Icon i="regular/circle-check" />
 						</dfn>
-					{:else}
+					{:else if canVerify}
 						<button onclick={() => sendVerificationEmail(user.id).then(() => (verificationSent = true))}>
 							{verificationSent ? 'Verification email sent' : 'Verify'}
 						</button>

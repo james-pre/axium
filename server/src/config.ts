@@ -1,52 +1,49 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { deepAssign, omit, type PartialRecursive } from 'utilium';
-import * as z from 'zod';
+import * as z from 'zod/v4';
 import { findDir, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 
-export const Schema = z
-	.object({
-		api: z.object({
-			disable_metadata: z.boolean(),
-			cookie_auth: z.boolean(),
-		}),
-		apps: z.object({
-			disabled: z.array(z.string()),
-		}),
-		auth: z.object({
-			credentials: z.boolean(),
-			debug: z.boolean(),
-			origin: z.string(),
-			/** In minutes */
-			passkey_probation: z.number(),
-			rp_id: z.string(),
-			rp_name: z.string(),
-			secure_cookies: z.boolean(),
-			/** In minutes */
-			verification_timeout: z.number(),
-		}),
-		db: z.object({
-			host: z.string(),
-			port: z.number(),
-			password: z.string(),
-			user: z.string(),
-			database: z.string(),
-		}),
-		debug: z.boolean(),
-		log: z.object({
-			level: z.enum(levelText),
-			console: z.boolean(),
-		}),
-		web: z.object({
-			prefix: z.string(),
-		}),
-	})
-	.passthrough();
-
-export interface Config extends Record<string, unknown>, z.infer<typeof Schema> {}
+export interface Config extends Record<string, unknown> {
+	api: {
+		disable_metadata: boolean;
+		cookie_auth: boolean;
+	};
+	apps: {
+		disabled: string[];
+	};
+	auth: {
+		credentials: boolean;
+		debug: boolean;
+		origin: string;
+		/** In minutes */
+		passkey_probation: number;
+		rp_id: string;
+		rp_name: string;
+		secure_cookies: boolean;
+		/** In minutes */
+		verification_timeout: number;
+		/** Whether users can verify emails */
+		email_verification: boolean;
+	};
+	db: {
+		host: string;
+		port: number;
+		password: string;
+		user: string;
+		database: string;
+	};
+	debug: boolean;
+	log: {
+		level: (typeof levelText)[number];
+		console: boolean;
+	};
+	web: {
+		prefix: string;
+	};
+}
 
 export const configFiles = new Map<string, PartialRecursive<Config>>();
 
@@ -83,6 +80,7 @@ export const config: Config & typeof configShortcuts = {
 		rp_name: 'Axium',
 		secure_cookies: true,
 		verification_timeout: 60,
+		email_verification: false,
 	},
 	db: {
 		database: process.env.PGDATABASE || 'axium',
@@ -103,12 +101,60 @@ export const config: Config & typeof configShortcuts = {
 export default config;
 
 // config from file
-export const File = Schema.deepPartial()
-	.extend({
+export const File = z
+	.looseObject({
+		api: z
+			.object({
+				disable_metadata: z.boolean(),
+				cookie_auth: z.boolean(),
+			})
+			.partial(),
+		apps: z
+			.object({
+				disabled: z.array(z.string()),
+			})
+			.partial(),
+		auth: z
+			.object({
+				credentials: z.boolean(),
+				debug: z.boolean(),
+				origin: z.string(),
+				/** In minutes */
+				passkey_probation: z.number(),
+				rp_id: z.string(),
+				rp_name: z.string(),
+				secure_cookies: z.boolean(),
+				/** In minutes */
+				verification_timeout: z.number(),
+				/** Whether users can verify emails */
+				email_verification: z.boolean(),
+			})
+			.partial(),
+		db: z
+			.object({
+				host: z.string(),
+				port: z.number(),
+				password: z.string(),
+				user: z.string(),
+				database: z.string(),
+			})
+			.partial(),
+		debug: z.boolean(),
+		log: z
+			.object({
+				level: z.enum(levelText),
+				console: z.boolean(),
+			})
+			.partial(),
+		web: z
+			.object({
+				prefix: z.string(),
+			})
+			.partial(),
 		include: z.array(z.string()).optional(),
 		plugins: z.array(z.string()).optional(),
 	})
-	.passthrough();
+	.partial();
 export interface File extends PartialRecursive<Config>, z.infer<typeof File> {}
 
 /**

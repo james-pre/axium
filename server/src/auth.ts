@@ -83,12 +83,6 @@ export async function getSessions(userId: string): Promise<SessionInternal[]> {
 	return await db.selectFrom('sessions').selectAll().where('userId', '=', userId).execute();
 }
 
-export async function updateSession(session: SessionInternal) {
-	connect();
-	const query = db.updateTable('sessions').set(session).where('sessions.token', '=', session.token);
-	return await query.returningAll().executeTakeFirstOrThrow();
-}
-
 export type VerificationRole = 'verify_email' | 'login';
 
 export interface VerificationInternal extends Verification {

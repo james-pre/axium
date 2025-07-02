@@ -1,5 +1,5 @@
 import type { Preferences } from '@axium/core';
-import { Kysely, PostgresDialect, sql, type GeneratedAlways } from 'kysely';
+import { Kysely, PostgresDialect, sql, type GeneratedAlways, type SelectQueryBuilder } from 'kysely';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
@@ -46,7 +46,7 @@ export interface Schema {
 	};
 }
 
-export interface Database extends Kysely<Schema>, AsyncDisposable {}
+export type Database = Kysely<Schema> & AsyncDisposable;
 
 export let database: Database;
 
@@ -72,9 +72,13 @@ export interface Stats {
 	sessions: number;
 }
 
-export async function count(table: keyof Schema): Promise<number> {
+export async function count<const T extends keyof Schema>(table: T): Promise<number> {
 	const db = connect();
-	return (await db.selectFrom(table).select(db.fn.countAll<number>().as('count')).executeTakeFirstOrThrow()).count;
+	return (
+		await (db.selectFrom(table) as SelectQueryBuilder<Schema, T, {}>)
+			.select(db.fn.countAll<number>().as('count'))
+			.executeTakeFirstOrThrow()
+	).count;
 }
 
 export async function status(): Promise<Stats> {
