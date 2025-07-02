@@ -1,11 +1,11 @@
 {
-	"extends": ["../tsconfig.json"],
+	"extends": "../tsconfig.json",
 	"compilerOptions": {
-		"target": "ES2023",
+		"composite": true,
 		"rootDir": "src",
-		"outDir": "dist",
-		"lib": ["DOM", "Decorators", "ESNext", "DOM.Iterable"]
+		"outDir": "dist"
 	},
 	"include": ["src/**/*.ts"],
-	"exclude": ["node_modules", "web"]
+	"exclude": ["web"],
+	"references": [{ "path": "../core" }, { "path": "../client" }]
 }
