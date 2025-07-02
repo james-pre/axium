@@ -55,7 +55,7 @@
 
 {#snippet action(name: string, i: string = 'pen')}
 	<button style:display="contents" onclick={() => dialogs[name].showModal()}>
-		<Icon {i} />
+		<Icon {i} --size="16px" />
 	</button>
 {/snippet}
 
@@ -103,7 +103,7 @@
 			<div class="item info">
 				<p class="subtle">User ID <dfn title="This is your UUID. It can't be changed."><Icon i="regular/circle-info" /></dfn></p>
 				<p>{user.id}</p>
-				<ClipboardCopy value={user.id} />
+				<ClipboardCopy value={user.id} --size="16px" />
 			</div>
 			<span>
 				<a class="signout" href="/logout"><button>Sign out</button></a>
@@ -124,10 +124,10 @@
 			{#each passkeys as passkey}
 				<div class="item passkey">
 					<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
-						<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} />
+						<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} --size="16px" />
 					</dfn>
 					<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
-						<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} />
+						<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} --size="16px" />
 					</dfn>
 					{#if passkey.name}
 						<p>{passkey.name}</p>
@@ -140,7 +140,7 @@
 						{@render action('delete_passkey#' + passkey.id, 'trash')}
 					{:else}
 						<dfn title="You must have at least one passkey" class="disabled">
-							<Icon i="trash-slash" --fill="#888" />
+							<Icon i="trash-slash" --fill="#888" --size="16px" />
 						</dfn>
 					{/if}
 				</div>
@@ -187,7 +187,7 @@
 					</p>
 					<p>Created {session.created.toLocaleString()}</p>
 					<p>Expires {session.expires.toLocaleString()}</p>
-					{@render action('logout#' + session.id, 'regular/right-from-bracket')}
+					{@render action('logout#' + session.id, 'right-from-bracket')}
 				</div>
 				<FormDialog
 					bind:dialog={dialogs['logout#' + session.id]}
@@ -255,10 +255,6 @@
 		text-wrap: nowrap;
 		border-top: 1px solid #8888;
 		padding-bottom: 1em;
-
-		.disabled {
-			cursor: not-allowed;
-		}
 	}
 
 	.info {
@@ -272,7 +268,7 @@
 	.passkey {
 		grid-template-columns: 1em 1em 1fr 1fr 1em 1em;
 
-		dfn {
+		dfn:not(.disabled) {
 			cursor: help;
 		}
 	}

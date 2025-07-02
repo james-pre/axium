@@ -95,3 +95,8 @@ button:hover {
 .danger:hover {
 	background-color: #633;
 }
+
+:disabled,
+.disabled {
+	cursor: not-allowed;
+}
