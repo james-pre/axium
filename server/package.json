@@ -34,7 +34,7 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.2.0",
+		"@axium/core": ">=0.3.0",
 		"@axium/client": ">=0.0.2",
 		"utilium": "^2.3.8",
 		"zod": "^3.25.61"
