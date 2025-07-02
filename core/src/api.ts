@@ -8,6 +8,7 @@ import type z from 'zod/v4';
 import type { RequestMethod } from './requests.js';
 import type {
 	APIUserRegistration,
+	LogoutSessions,
 	PasskeyAuthenticationResponse,
 	PasskeyChangeable,
 	PasskeyRegistration,
@@ -20,6 +21,7 @@ export interface Session {
 	userId: string;
 	expires: Date;
 	created: Date;
+	elevated: boolean;
 }
 
 export interface Verification {
@@ -79,7 +81,7 @@ export interface _apiTypes {
 	};
 	'users/:id/sessions': {
 		GET: Session[];
-		DELETE: [string, Session[]];
+		DELETE: [z.input<typeof LogoutSessions>, Session[]];
 	};
 	'users/:id/passkeys': {
 		OPTIONS: PublicKeyCredentialCreationOptionsJSON;

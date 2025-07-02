@@ -4,6 +4,7 @@ body {
 	background-color: #222;
 	color: #bbb;
 	accent-color: #bbb;
+	overflow-y: scroll;
 }
 
 .main {
@@ -15,7 +16,7 @@ body {
 	gap: 1em;
 }
 
-div:not(.main):has(form.main) {
+.main-container:has(form.main) {
 	position: absolute;
 	inset: 0;
 	display: flex;

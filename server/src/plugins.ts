@@ -16,6 +16,7 @@ export const Plugin = z.object({
 	db_init: fn.optional(),
 	db_remove: fn.optional(),
 	db_wipe: fn.optional(),
+	db_clean: fn.optional(),
 });
 
 export interface Plugin extends z.infer<typeof Plugin> {}

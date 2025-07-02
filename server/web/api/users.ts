@@ -1,13 +1,12 @@
 /** Register a new passkey for a new or existing user. */
 import type { Result } from '@axium/core/api';
-import { PasskeyAuthenticationResponse, UserAuthOptions } from '@axium/core/schemas';
+import { LogoutSessions, PasskeyAuthenticationResponse, UserAuthOptions } from '@axium/core/schemas';
 import { UserChangeable, type User } from '@axium/core/user';
 import {
 	createPasskey,
 	createVerification,
 	getPasskey,
 	getPasskeysByUserId,
-	getSession,
 	getSessions,
 	getUser,
 	useVerification,
@@ -282,26 +281,24 @@ addRoute({
 		await checkAuth(event, userId);
 
 		return (await getSessions(userId).catch(e => error(503, 'Failed to get sessions' + (config.debug ? ': ' + e : '')))).map(s =>
-			pick(s, 'id', 'expires')
+			omit(s, 'token')
 		);
 	},
 	async DELETE(event: RequestEvent): Result<'DELETE', 'users/:id/sessions'> {
 		const { id: userId } = event.params;
-		const { id: sessionId } = await parseBody(event, z.object({ id: z.uuid() }));
+		const { id: sessionIds } = await parseBody(event, LogoutSessions);
 
 		await checkAuth(event, userId);
 
-		const session = await getSession(sessionId).catch(withError('Session does not exist', 404));
-
-		if (session.userId !== userId) error(403, { message: 'Session does not belong to the user' });
-
-		await db
+		const result = await db
 			.deleteFrom('sessions')
-			.where('sessions.id', '=', session.id)
-			.executeTakeFirstOrThrow()
-			.catch(withError('Failed to delete session'));
+			.where('sessions.id', 'in', sessionIds)
+			.where('sessions.userId', '=', userId)
+			.returningAll()
+			.execute()
+			.catch(withError('Failed to delete one or more sessions'));
 
-		return;
+		return result.map(s => omit(s, 'token'));
 	},
 });
 

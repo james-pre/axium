@@ -3,7 +3,7 @@
 	import Icon from '$lib/icons/Icon.svelte';
 	import {
 		createPasskey,
-		currentSession,
+		getCurrentSession,
 		deletePasskey,
 		deleteUser,
 		emailVerificationEnabled,
@@ -11,26 +11,31 @@
 		sendVerificationEmail,
 		updatePasskey,
 		updateUser,
+		getSessions,
+		logout,
 	} from '@axium/client/user';
-	import type { Passkey } from '@axium/core/api';
+	import type { Passkey, Session } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
 
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
 	let verificationSent = $state(false);
+	let currentSession = $state<Session & { user: User }>();
 	let user = $state<User>();
 	let canVerify = $state(false);
+	let passkeys = $state<Passkey[]>([]);
+	let sessions = $state<Session[]>([]);
 
 	async function ready() {
-		const session = await currentSession();
-		user = session.user;
+		currentSession = await getCurrentSession();
+		user = currentSession.user;
 
 		passkeys = await getPasskeys(user.id);
 
+		sessions = await getSessions(user.id);
+
 		canVerify = await emailVerificationEnabled(user.id);
 	}
-
-	let passkeys = $state<Passkey[]>([]);
 
 	async function _editUser(data) {
 		const result = await updateUser(user.id, data);
@@ -60,9 +65,10 @@
 		<p class="greeting">Welcome, {user.name}</p>
 
 		<div class="section main">
-			<div class="item">
-				<span class="subtle">Name</span>
-				<span>{user.name}</span>
+			<h3>Personal Information</h3>
+			<div class="item info">
+				<p class="subtle">Name</p>
+				<p>{user.name}</p>
 				{@render action('edit_name')}
 			</div>
 			<FormDialog bind:dialog={dialogs.edit_name} submit={_editUser} submitText="Change">
@@ -71,12 +77,12 @@
 					<input name="name" type="text" value={user.name || ''} required />
 				</div>
 			</FormDialog>
-			<div class="item">
-				<span class="subtle">Email</span>
-				<span>
+			<div class="item info">
+				<p class="subtle">Email</p>
+				<p>
 					{user.email}
 					{#if user.emailVerified}
-						<dfn title="Email verified on {new Date(user.emailVerified).toLocaleDateString()}">
+						<dfn title="Email verified on {user.emailVerified.toLocaleDateString()}">
 							<Icon i="regular/circle-check" />
 						</dfn>
 					{:else if canVerify}
@@ -84,7 +90,7 @@
 							{verificationSent ? 'Verification email sent' : 'Verify'}
 						</button>
 					{/if}
-				</span>
+				</p>
 				{@render action('edit_email')}
 			</div>
 			<FormDialog bind:dialog={dialogs.edit_email} submit={_editUser} submitText="Change">
@@ -94,7 +100,7 @@
 				</div>
 			</FormDialog>
 
-			<div class="item">
+			<div class="item info">
 				<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
 				<p>{user.id}</p>
 			</div>
@@ -112,19 +118,19 @@
 		<div class="section main">
 			<h3>Passkeys</h3>
 			{#each passkeys as passkey}
-				<div class="passkey">
+				<div class="item passkey">
 					<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
 						<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} />
 					</dfn>
 					<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
 						<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} />
 					</dfn>
-					<p>Created {new Date(passkey.createdAt).toLocaleString()}</p>
 					{#if passkey.name}
 						<p>{passkey.name}</p>
 					{:else}
 						<p class="subtle"><i>Unnamed</i></p>
 					{/if}
+					<p>Created {passkey.createdAt.toLocaleString()}</p>
 					{@render action('edit_passkey#' + passkey.id)}
 					{#if passkeys.length > 1}
 						{@render action('delete_passkey#' + passkey.id, 'trash')}
@@ -158,6 +164,29 @@
 				</FormDialog>
 			{/each}
 			<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))}><Icon i="plus" /> Create</button>
+		</div>
+
+		<div class="section main">
+			<h3>Sessions</h3>
+			{#each sessions as session}
+				<div class="item session">
+					<p>
+						{session.id.slice(0, 4)}...{session.id.slice(-4)}
+						{#if session.id == currentSession.id}
+							<span class="current">Current</span>
+						{/if}
+						{#if session.elevated}
+							<span class="elevated">Elevated</span>
+						{/if}
+					</p>
+					<p>Created {session.created.toLocaleString()}</p>
+					<p>Expires {session.expires.toLocaleString()}</p>
+					{@render action('logout#' + session.id, 'regular/right-from-bracket')}
+				</div>
+				<FormDialog bind:dialog={dialogs['logout#' + session.id]} submit={() => logout(user.id, session.id)} submitText="Logout">
+					<p>Are you sure you want to log out this session?</p>
+				</FormDialog>
+			{/each}
 		</div>
 	</div>
 {:catch error}
@@ -195,12 +224,20 @@
 
 	.section .item {
 		display: grid;
-		grid-template-columns: 10em 1fr 2em;
 		align-items: center;
 		width: 100%;
 		gap: 1em;
 		text-wrap: nowrap;
+		border-top: 1px solid #8888;
 		padding-bottom: 1em;
+
+		.disabled {
+			cursor: not-allowed;
+		}
+	}
+
+	.info {
+		grid-template-columns: 10em 1fr 2em;
 
 		> :first-child {
 			margin-left: 1em;
@@ -208,21 +245,26 @@
 	}
 
 	.passkey {
-		display: grid;
 		grid-template-columns: 1em 1em 1fr 1fr 1em 1em;
-		border-top: 1px solid #8888;
-		align-items: center;
-		width: 100%;
-		gap: 1em;
-		text-wrap: nowrap;
-		padding-bottom: 1em;
 
 		dfn {
 			cursor: help;
 		}
+	}
 
-		dfn.disabled {
-			cursor: not-allowed;
+	.session {
+		grid-template-columns: 1fr 1fr 1fr 1em;
+
+		.current {
+			border-radius: 2em;
+			padding: 0 0.5em;
+			background-color: #337;
+		}
+
+		.elevated {
+			border-radius: 2em;
+			padding: 0 0.5em;
+			background-color: #733;
 		}
 	}
 </style>

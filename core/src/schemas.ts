@@ -58,3 +58,7 @@ export const PasskeyChangeable = z.object({ name: z.string() }).partial();
 export const UserAuthOptions = z.object({ type: z.literal(['login', 'action']) });
 
 export type UserAuthOptions = z.infer<typeof UserAuthOptions>;
+
+export const LogoutSessions = z.object({
+	id: z.array(z.uuid()).optional(),
+});

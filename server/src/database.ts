@@ -318,21 +318,40 @@ export async function check(opt: OpOptions): Promise<void> {
 		.then(done);
 }
 
+export async function clean(opt: Partial<OpOptions>): Promise<void> {
+	_fixOutput(opt);
+
+	const done = () => opt.output('done');
+	const now = new Date();
+
+	const db = connect();
+
+	opt.output('start', 'Removing expired sessions');
+	await db.deleteFrom('sessions').where('sessions.expires', '<', now).execute().then(done);
+
+	opt.output('start', 'Removing expired verifications');
+	await db.deleteFrom('verifications').where('verifications.expires', '<', now).execute().then(done);
+
+	for (const plugin of plugins) {
+		if (!plugin.db_clean) continue;
+		opt.output('plugin', plugin.name);
+		await plugin.db_clean(opt, db);
+	}
+}
+
 /**
  * Completely remove Axium from the database.
  */
 export async function uninstall(opt: OpOptions): Promise<void> {
 	_fixOutput(opt);
 
-	const db = connect();
+	await using db = connect();
 
 	for (const plugin of plugins) {
 		if (!plugin.db_remove) continue;
 		opt.output('plugin', plugin.name);
 		await plugin.db_remove(opt, db);
 	}
-
-	await db.destroy();
 
 	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
 	await _sql('DROP DATABASE axium', 'Dropping database');

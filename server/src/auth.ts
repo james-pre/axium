@@ -31,7 +31,6 @@ export async function updateUser({ id, ...user }: UserInternal) {
 
 export interface SessionInternal extends Session {
 	token: string;
-	elevated: boolean;
 }
 
 const in30days = () => new Date(Date.now() + 2592000000);
@@ -51,12 +50,6 @@ export async function createSession(userId: string, elevated: boolean = false) {
 	return session;
 }
 
-export async function checkExpiration(session: SessionInternal) {
-	if (session.expires.getTime() > Date.now()) return;
-	await db.deleteFrom('sessions').where('sessions.id', '=', session.id).executeTakeFirstOrThrow();
-	throw new Error('Session expired');
-}
-
 export async function getSessionAndUser(token: string): Promise<SessionInternal & { user: UserInternal | null }> {
 	connect();
 	const result = await db
@@ -64,23 +57,26 @@ export async function getSessionAndUser(token: string): Promise<SessionInternal 
 		.selectAll()
 		.select(eb => jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('users.id', '=', 'sessions.userId')).as('user'))
 		.where('sessions.token', '=', token)
+		.where('sessions.expires', '>', new Date())
 		.executeTakeFirst();
 	if (!result) throw new Error('Session not found');
 
-	await checkExpiration(result);
 	return result;
 }
 
 export async function getSession(sessionId: string): Promise<SessionInternal> {
 	connect();
-	const session = await db.selectFrom('sessions').selectAll().where('id', '=', sessionId).executeTakeFirstOrThrow();
-	await checkExpiration(session);
-	return session;
+	return await db
+		.selectFrom('sessions')
+		.selectAll()
+		.where('id', '=', sessionId)
+		.where('sessions.expires', '>', new Date())
+		.executeTakeFirstOrThrow();
 }
 
 export async function getSessions(userId: string): Promise<SessionInternal[]> {
 	connect();
-	return await db.selectFrom('sessions').selectAll().where('userId', '=', userId).execute();
+	return await db.selectFrom('sessions').selectAll().where('userId', '=', userId).where('sessions.expires', '>', new Date()).execute();
 }
 
 export type VerificationRole = 'verify_email' | 'login';

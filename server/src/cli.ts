@@ -93,6 +93,7 @@ axiumDB
 	.description('Drop the Axium database and user')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
+		await using _ = db.connect();
 		const stats = await db.status().catch(exit);
 
 		if (!opt.force)
@@ -104,7 +105,6 @@ axiumDB
 			}
 
 		await db.uninstall(opt).catch(exit);
-		await db.database.destroy();
 	});
 
 axiumDB
@@ -112,6 +112,7 @@ axiumDB
 	.description('Wipe the database')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
+		await using _ = db.connect();
 		const stats = await db.status().catch(exit);
 
 		if (!opt.force)
@@ -123,7 +124,6 @@ axiumDB
 			}
 
 		await db.wipe(opt).catch(exit);
-		await db.database.destroy();
 	});
 
 axiumDB
@@ -131,6 +131,15 @@ axiumDB
 	.description('Check the structure of the database')
 	.action(async (opt: OptDB) => {
 		await db.check(opt).catch(exit);
+	});
+
+axiumDB
+	.command('clean')
+	.description('Remove expired rows')
+	.addOption(opts.force)
+	.action(async (opt: OptDB) => {
+		await using _ = db.connect();
+		await db.clean(opt).catch(exit);
 	});
 
 interface OptConfig extends OptCommon {
@@ -276,6 +285,8 @@ program
 
 		process.stdout.write(styleText('whiteBright', 'Database: '));
 
+		await using _ = db.connect();
+
 		try {
 			console.log(await db.statusText());
 		} catch {
@@ -299,8 +310,6 @@ program
 			console.log(styleText('bold', plugin.name), plugin.version + ':');
 			console.log(await plugin.statusText());
 		}
-
-		await db.database.destroy();
 	});
 
 program
