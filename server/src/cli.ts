@@ -148,7 +148,6 @@ const axiumConfig = program
 
 function configReplacer(opt: OptConfig) {
 	return (key: string, value: any) => {
-		// eslint-disable-next-line @typescript-eslint/no-unsafe-return
 		return opt.redact && ['password', 'secret'].includes(key) ? '[redacted]' : value;
 	};
 }
