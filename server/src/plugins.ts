@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import z from 'zod/v4';
-import { findDir, output } from './io.js';
+import { dirs, output } from './io.js';
 
 export const fn = z.custom<(...args: unknown[]) => any>(data => typeof data === 'function');
 
@@ -80,6 +80,7 @@ export async function loadPlugins(dir: string) {
 }
 
 export async function loadDefaultPlugins() {
-	await loadPlugins(join(findDir(true), 'plugins'));
-	await loadPlugins(join(findDir(false), 'plugins'));
+	for (const dir of dirs) {
+		await loadPlugins(join(dir, 'plugins'));
+	}
 }

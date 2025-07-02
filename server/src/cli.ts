@@ -6,7 +6,7 @@ import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
 import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
-import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
+import { _portActions, _portMethods, defaultOutput, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 import { getSpecifier, loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
 
 program
@@ -254,7 +254,8 @@ axiumPlugin
 		const specifier = getSpecifier(plugin);
 
 		await using _ = db.connect();
-		plugin.db_remove?.(opt, db.database);
+
+		await plugin.db_remove?.({ ...opt, output: defaultOutput }, db.database);
 
 		for (const [path, data] of configFiles) {
 			if (!data.plugins) continue;

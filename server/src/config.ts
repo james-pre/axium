@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { deepAssign, omit, type PartialRecursive } from 'utilium';
 import * as z from 'zod/v4';
-import { findDir, logger, output } from './io.js';
+import { dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 
 export interface Config extends Record<string, unknown> {
@@ -51,7 +51,7 @@ export function plainConfig(): Omit<Config, keyof typeof configShortcuts> {
 }
 
 const configShortcuts = {
-	findPath: findConfigPath,
+	findPath: findConfigPaths,
 	load: loadConfig,
 	loadDefaults: loadDefaultConfigs,
 	plain: plainConfig,
@@ -201,7 +201,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 }
 
 export async function loadDefaultConfigs() {
-	for (const path of [findConfigPath(true), findConfigPath(false)]) {
+	for (const path of findConfigPaths()) {
 		if (!existsSync(path)) writeFileSync(path, '{}');
 		await loadConfig(path, { optional: true });
 	}
@@ -211,7 +211,7 @@ export async function loadDefaultConfigs() {
  * Update the current config and write the updated config to the appropriate file
  */
 export function saveConfig(changed: PartialRecursive<Config>, global: boolean = false) {
-	saveConfigTo(process.env.AXIUM_CONFIG ?? findConfigPath(global), changed);
+	saveConfigTo(findConfigPaths().at(global ? 0 : -1)!, changed);
 }
 
 /**
@@ -229,9 +229,10 @@ export function saveConfigTo(path: string, changed: PartialRecursive<Config>) {
 /**
  * Find the path to the config file
  */
-export function findConfigPath(global: boolean): string {
-	if (process.env.AXIUM_CONFIG) return process.env.AXIUM_CONFIG;
-	return join(findDir(global), 'config.json');
+export function findConfigPaths(): string[] {
+	const paths = dirs.map(dir => join(dir, 'config.json'));
+	if (process.env.AXIUM_CONFIG) paths.push(process.env.AXIUM_CONFIG);
+	return paths;
 }
 
 if (process.env.AXIUM_CONFIG) await loadConfig(process.env.AXIUM_CONFIG);

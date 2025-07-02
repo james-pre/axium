@@ -6,20 +6,18 @@ import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import config from './config.js';
 
-/**
- * Find the Axium directory.
- * This directory includes things like config files, secrets, etc.
- */
-export function findDir(global: boolean): string {
-	if (process.env.AXIUM_DIR) return process.env.AXIUM_DIR;
-	if (global && process.getuid?.() === 0) return '/etc/axium';
-	if (global) return join(homedir(), '.axium');
-	return '.axium';
-}
+export const systemDir = '/etc/axium';
+export const userDir = join(homedir(), '.axium');
 
-if (process.getuid?.() === 0) fs.mkdirSync('/etc/axium', { recursive: true });
-fs.mkdirSync(findDir(true), { recursive: true });
-fs.mkdirSync(findDir(false), { recursive: true });
+export const dirs = [systemDir, userDir];
+if (process.env.AXIUM_DIR) dirs.push(process.env.AXIUM_DIR);
+
+try {
+	fs.mkdirSync(systemDir, { recursive: true });
+} catch {
+	// Missing permissions
+}
+fs.mkdirSync(userDir, { recursive: true });
 
 export const logger = new Logger({
 	hideWarningStack: true,
