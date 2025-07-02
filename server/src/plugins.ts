@@ -18,7 +18,6 @@ export const Plugin = z.object({
 	db_wipe: fn.optional(),
 });
 
-// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface Plugin extends z.infer<typeof Plugin> {}
 
 export const plugins = new Set<Plugin>();

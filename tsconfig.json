@@ -10,7 +10,6 @@
 		"strict": true,
 		"resolveJsonModule": true,
 		"declaration": true,
-		"outDir": "dist",
 		"paths": {
 			"@axium/core": ["./core/*"],
 			"@axium/client": ["./client/*"],
