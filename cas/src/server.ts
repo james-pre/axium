@@ -22,7 +22,7 @@ declare module '@axium/server/database' {
 
 export interface ContentAddressableConfig {
 	/** Path to data directory */
-	data: string;
+	cas_data: string;
 }
 
 declare module '@axium/server/config' {

@@ -44,7 +44,7 @@ export interface Config extends Record<string, unknown> {
 	};
 }
 
-export const configFiles = new Map<string, PartialRecursive<Config>>();
+export const configFiles = new Map<string, File>();
 
 export function plainConfig(): Omit<Config, keyof typeof configShortcuts> {
 	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);

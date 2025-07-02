@@ -4,10 +4,10 @@ import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
-import config from './config.js';
+import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
-import { loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
+import { getSpecifier, loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
 
 program
 	.version($pkg.version)
@@ -202,11 +202,7 @@ axiumConfig
 		for (const path of config.files.keys()) console.log(path);
 	});
 
-const axiumPlugin = program
-	.command('plugins')
-	.description('Manage plugins')
-	.addOption(opts.global)
-	.option('--safe', 'do not perform actions that would execute code from plugins.');
+const axiumPlugin = program.command('plugins').description('Manage plugins').addOption(opts.global);
 
 axiumPlugin
 	.command('list')
@@ -244,6 +240,30 @@ axiumPlugin
 		const plugin = resolvePlugin(search);
 		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
 		console.log(pluginText(plugin));
+	});
+
+axiumPlugin
+	.command('remove')
+	.alias('rm')
+	.description('Remove a plugin')
+	.argument('<plugin>', 'the plugin to remove')
+	.action(async (search: string, opt: OptCommon & { safe: boolean }) => {
+		const plugin = resolvePlugin(search);
+		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
+
+		const specifier = getSpecifier(plugin);
+
+		await using _ = db.connect();
+		plugin.db_remove?.(opt, db.database);
+
+		for (const [path, data] of configFiles) {
+			if (!data.plugins) continue;
+
+			data.plugins = data.plugins.filter(p => p !== specifier);
+			saveConfigTo(path, data);
+		}
+
+		plugins.delete(plugin);
 	});
 
 const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);

@@ -14,8 +14,8 @@ export async function statusText(): Promise<string> {
 	const result = await database
 		.selectFrom('cas')
 		.select(eb => eb.fn.sum('size').as('size'))
-		.executeTakeFirst();
-	const size = BigInt(result!.size).toLocaleString('en-US', {
+		.executeTakeFirstOrThrow();
+	const size = BigInt(result.size ?? 0).toLocaleString('en-US', {
 		notation: 'compact',
 		maximumFractionDigits: 2,
 		unit: 'byte',
@@ -43,5 +43,11 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 export async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
 	opt.output('start', 'Removing data from cas');
 	await db.deleteFrom('cas').execute();
+	opt.output('done');
+}
+
+export async function db_remove(opt: OpOptions & WithOutput, db: Database) {
+	opt.output('start', 'Dropping table cas');
+	await db.schema.dropTable('cas').execute();
 	opt.output('done');
 }
