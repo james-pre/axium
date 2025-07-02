@@ -9,6 +9,15 @@ export async function login(userId: string) {
 	await fetchAPI('POST', 'users/:id/auth', response, userId);
 }
 
+/**
+ * Create an elevated session for the user to perform sensitive actions.
+ */
+export async function elevate(userId: string) {
+	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'action' }, userId);
+	const response = await startAuthentication({ optionsJSON: options });
+	await fetchAPI('POST', 'users/:id/auth', response, userId);
+}
+
 export async function loginByEmail(email: string) {
 	const { id: userId } = await fetchAPI('POST', 'user_id', {
 		using: 'email',
@@ -36,7 +45,18 @@ export async function getSessions(userId: string) {
 
 export async function logout(userId: string, ...sessionId: string[]) {
 	_checkId(userId);
-	const result = await fetchAPI('DELETE', 'users/:id/sessions', sessionId.length ? { id: sessionId } : {}, userId);
+	const result = await fetchAPI('DELETE', 'users/:id/sessions', { id: sessionId }, userId);
+	for (const session of result) {
+		session.created = new Date(session.created);
+		session.expires = new Date(session.expires);
+	}
+	return result;
+}
+
+export async function logoutAll(userId: string) {
+	_checkId(userId);
+	await elevate(userId);
+	const result = await fetchAPI('DELETE', 'users/:id/sessions', { confirm_all: true }, userId);
 	for (const session of result) {
 		session.created = new Date(session.created);
 		session.expires = new Date(session.expires);

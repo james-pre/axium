@@ -61,4 +61,5 @@ export type UserAuthOptions = z.infer<typeof UserAuthOptions>;
 
 export const LogoutSessions = z.object({
 	id: z.array(z.uuid()).optional(),
+	confirm_all: z.boolean().optional(),
 });

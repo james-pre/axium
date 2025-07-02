@@ -1,7 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { page } from '$app/state';
 	import Dialog from './Dialog.svelte';
 	import './styles.css';
+
+	function resolveRedirectAfter() {
+		const maybe = page.url.searchParams.get('after');
+		if (!maybe || maybe == page.url.pathname) return '/';
+		for (const prefix of ['/api/']) if (maybe.startsWith(prefix)) return '/';
+		return maybe || '/';
+	}
 
 	let {
 		children,
@@ -42,7 +50,7 @@
 		const data = Object.fromEntries(new FormData(e.currentTarget));
 		submit(data)
 			.then(result => {
-				if (pageMode) goto('/');
+				if (pageMode) goto(resolveRedirectAfter());
 				else dialog.close();
 			})
 			.catch((e: unknown) => {

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import {
@@ -13,6 +14,7 @@
 		updateUser,
 		getSessions,
 		logout,
+		logoutAll,
 	} from '@axium/client/user';
 	import type { Passkey, Session } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
@@ -27,7 +29,10 @@
 	let sessions = $state<Session[]>([]);
 
 	async function ready() {
-		currentSession = await getCurrentSession();
+		currentSession = await getCurrentSession().catch(() => {
+			goto('/login?after=/account');
+			return null;
+		})!;
 		user = currentSession.user;
 
 		passkeys = await getPasskeys(user.id);
@@ -106,10 +111,13 @@
 			</div>
 			<span>
 				<a class="signout" href="/logout"><button>Sign out</button></a>
-				<button style:cursor="pointer" onclick={() => dialogs.delete.showModal()} style:width="fit-content" class="danger"
-					>Delete Account</button
+				<button style:cursor="pointer" onclick={() => dialogs.delete.showModal()} class="danger">Delete Account</button>
+				<FormDialog
+					bind:dialog={dialogs.delete}
+					submit={() => deleteUser(user.id).then(() => goto('/'))}
+					submitText="Delete Account"
+					submitDanger
 				>
-				<FormDialog bind:dialog={dialogs.delete} submit={() => deleteUser(user.id)} submitText="Delete Account" submitDanger>
 					<p>Are you sure you want to delete your account?<br />This action can't be undone.</p>
 				</FormDialog>
 			</span>
@@ -163,7 +171,9 @@
 					<p>Are you sure you want to delete this passkey?<br />This action can't be undone.</p>
 				</FormDialog>
 			{/each}
-			<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))}><Icon i="plus" /> Create</button>
+			<span>
+				<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))}><Icon i="plus" /> Create</button>
+			</span>
 		</div>
 
 		<div class="section main">
@@ -183,10 +193,29 @@
 					<p>Expires {session.expires.toLocaleString()}</p>
 					{@render action('logout#' + session.id, 'regular/right-from-bracket')}
 				</div>
-				<FormDialog bind:dialog={dialogs['logout#' + session.id]} submit={() => logout(user.id, session.id)} submitText="Logout">
+				<FormDialog
+					bind:dialog={dialogs['logout#' + session.id]}
+					submit={() =>
+						logout(user.id, session.id).then(() => {
+							if (session.id == currentSession.id) goto('/');
+							else sessions.splice(sessions.indexOf(session), 1);
+						})}
+					submitText="Logout"
+				>
 					<p>Are you sure you want to log out this session?</p>
 				</FormDialog>
 			{/each}
+			<span>
+				<button onclick={() => dialogs.logout_all.showModal()} class="danger">Logout All</button>
+			</span>
+			<FormDialog
+				bind:dialog={dialogs['logout_all']}
+				submit={() => logoutAll(user.id).then(() => goto('/'))}
+				submitText="Logout All Sessions"
+				submitDanger
+			>
+				<p>Are you sure you want to log out all sessions?</p>
+			</FormDialog>
 		</div>
 	</div>
 {:catch error}

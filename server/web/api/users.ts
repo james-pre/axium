@@ -286,13 +286,13 @@ addRoute({
 	},
 	async DELETE(event: RequestEvent): Result<'DELETE', 'users/:id/sessions'> {
 		const { id: userId } = event.params;
-		const { id: sessionIds } = await parseBody(event, LogoutSessions);
+		const body = await parseBody(event, LogoutSessions);
 
-		await checkAuth(event, userId);
+		await checkAuth(event, userId, body.confirm_all);
 
-		const result = await db
-			.deleteFrom('sessions')
-			.where('sessions.id', 'in', sessionIds)
+		const query = body.confirm_all ? db.deleteFrom('sessions') : db.deleteFrom('sessions').where('sessions.id', 'in', body.id);
+
+		const result = await query
 			.where('sessions.userId', '=', userId)
 			.returningAll()
 			.execute()
