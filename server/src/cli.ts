@@ -3,11 +3,11 @@ import { Argument, Option, program, type Command } from 'commander';
 import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
+import { apps } from './apps.js';
 import config from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 import { loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
-import { apps } from './apps.js';
 
 program
 	.version($pkg.version)

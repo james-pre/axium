@@ -18,6 +18,7 @@ export function findDir(global: boolean): string {
 }
 
 if (process.getuid?.() === 0) fs.mkdirSync('/etc/axium', { recursive: true });
+fs.mkdirSync(findDir(true), { recursive: true });
 fs.mkdirSync(findDir(false), { recursive: true });
 
 export const logger = new Logger({
