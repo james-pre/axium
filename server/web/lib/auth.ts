@@ -1,5 +1,5 @@
-import type { SessionInternal, UserInternal } from '@axium/server/auth.js';
-import { getSessionAndUser } from '@axium/server/auth.js';
+import type { SessionInternal, UserInternal } from '@axium/server/auth';
+import { getSessionAndUser } from '@axium/server/auth';
 import type { RequestEvent } from '@sveltejs/kit';
 
 export async function authenticate(event: RequestEvent): Promise<(SessionInternal & { user: UserInternal | null }) | null> {

@@ -1,7 +1,7 @@
 import { authenticate } from '$lib/auth';
 import type { Result } from '@axium/core/api';
-import { connect, database as db } from '@axium/server/database.js';
-import { addRoute } from '@axium/server/routes.js';
+import { connect, database as db } from '@axium/server/database';
+import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
 import { getToken, stripUser } from './utils';

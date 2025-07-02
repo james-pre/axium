@@ -1,5 +1,5 @@
-import type {} from '@axium/server/config.js';
-import { database } from '@axium/server/database.js';
+import type {} from '@axium/server/config';
+import { database } from '@axium/server/database';
 import type { Generated } from 'kysely';
 import { createHash } from 'node:crypto';
 import type { ContentAddressableFile } from './common.js';
@@ -14,7 +14,7 @@ export interface DBContentAddressableFile {
 	hash: Uint8Array;
 }
 
-declare module '@axium/server/database.js' {
+declare module '@axium/server/database' {
 	export interface Schema {
 		ContentAddressableFile: DBContentAddressableFile;
 	}
@@ -25,7 +25,7 @@ export interface ContentAddressableConfig {
 	data: string;
 }
 
-declare module '@axium/server/config.js' {
+declare module '@axium/server/config' {
 	export interface Config {
 		cas: ContentAddressableConfig;
 	}

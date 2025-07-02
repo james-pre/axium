@@ -1,14 +1,14 @@
-import config from '@axium/server/config.js';
-import type { Database, InitOptions, OpOptions, PluginShortcuts, Schema } from '@axium/server/database.js';
-import { count } from '@axium/server/database.js';
-import type { WithOutput } from '@axium/server/io.js';
-import { addRoute } from '@axium/server/routes.js';
+import type { Result } from '@axium/core/api';
+import config from '@axium/server/config';
+import type { Database, InitOptions, OpOptions, PluginShortcuts, Schema } from '@axium/server/database';
+import { count } from '@axium/server/database';
+import type { WithOutput } from '@axium/server/io';
+import { addRoute } from '@axium/server/routes';
 import { parseBody } from '@axium/server/web/api/utils.js';
 import { error } from '@sveltejs/kit';
 import z from 'zod/v4';
 import pkg from '../package.json' with { type: 'json' };
 import { createShare, sharesTableFor } from './server.js';
-import type { Result } from '@axium/core/api';
 
 export const id = pkg.name;
 export const name = 'Axium Shares';

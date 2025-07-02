@@ -1,5 +1,5 @@
-import type { Schema } from '@axium/server/database.js';
-import { database } from '@axium/server/database.js';
+import type { Schema } from '@axium/server/database';
+import { database } from '@axium/server/database';
 import type { Generated } from 'kysely';
 import type { Share } from './common.js';
 
@@ -10,13 +10,13 @@ export interface DBShare {
 	permission: number;
 }
 
-declare module '@axium/server/database.js' {
+declare module '@axium/server/database' {
 	export interface Schema {
 		[key: `shares.${string}`]: DBShare;
 	}
 }
 
-declare module '@axium/server/config.js' {
+declare module '@axium/server/config' {
 	export interface Config {
 		shares: (keyof Schema)[];
 	}

@@ -11,10 +11,10 @@ import {
 	getSessions,
 	getUser,
 	useVerification,
-} from '@axium/server/auth.js';
-import { config } from '@axium/server/config.js';
-import { connect, database as db } from '@axium/server/database.js';
-import { addRoute } from '@axium/server/routes.js';
+} from '@axium/server/auth';
+import { config } from '@axium/server/config';
+import { connect, database as db } from '@axium/server/database';
+import { addRoute } from '@axium/server/routes';
 import {
 	generateAuthenticationOptions,
 	generateRegistrationOptions,

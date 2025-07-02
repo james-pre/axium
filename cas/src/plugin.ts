@@ -1,6 +1,6 @@
-import type { Database, InitOptions, OpOptions, PluginShortcuts } from '@axium/server/database.js';
-import { count, database } from '@axium/server/database.js';
-import type { WithOutput } from '@axium/server/io.js';
+import type { Database, InitOptions, OpOptions, PluginShortcuts } from '@axium/server/database';
+import { count, database } from '@axium/server/database';
+import type { WithOutput } from '@axium/server/io';
 import { sql } from 'kysely';
 import pkg from '../package.json' with { type: 'json' };
 

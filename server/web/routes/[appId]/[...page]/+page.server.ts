@@ -1,5 +1,5 @@
 import { error, type LoadEvent } from '@sveltejs/kit';
-import { apps } from '@axium/server/apps.js';
+import { apps } from '@axium/server/apps';
 
 export async function load(event: LoadEvent) {
 	const app = apps.get(event.params.appId);

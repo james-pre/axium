@@ -1,6 +1,6 @@
 import type { RequestMethod } from '@axium/core/requests';
-import { resolveRoute } from '@axium/server/routes.js';
-import { config } from '@axium/server/config.js';
+import { resolveRoute } from '@axium/server/routes';
+import { config } from '@axium/server/config';
 import { error, json, type RequestEvent, type RequestHandler } from '@sveltejs/kit';
 import z from 'zod/v4';
 

@@ -1,10 +1,10 @@
 /** Register a new user. */
 import type { Result } from '@axium/core/api';
 import { APIUserRegistration } from '@axium/core/schemas';
-import { createPasskey, getUser, getUserByEmail } from '@axium/server/auth.js';
-import config from '@axium/server/config.js';
-import { database as db, type Schema } from '@axium/server/database.js';
-import { addRoute } from '@axium/server/routes.js';
+import { createPasskey, getUser, getUserByEmail } from '@axium/server/auth';
+import config from '@axium/server/config';
+import { database as db, type Schema } from '@axium/server/database';
+import { addRoute } from '@axium/server/routes';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';

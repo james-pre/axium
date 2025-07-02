@@ -1,5 +1,5 @@
-import { loadDefaultConfigs } from '@axium/server/config.js';
-import { _markDefaults } from '@axium/server/routes.js';
+import { loadDefaultConfigs } from '@axium/server/config';
+import { _markDefaults } from '@axium/server/routes';
 import './api/index.js';
 
 _markDefaults();

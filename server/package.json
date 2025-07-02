@@ -19,7 +19,7 @@
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": "./dist/index.js",
-		"./*": "./dist/*",
+		"./*": "./dist/*.js",
 		"./web": "./web/index.js",
 		"./web/*": "./web/*"
 	},

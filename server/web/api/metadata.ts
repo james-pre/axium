@@ -1,8 +1,8 @@
 import type { Result } from '@axium/core/api';
 import { requestMethods } from '@axium/core/requests';
-import { config } from '@axium/server/config.js';
-import { plugins } from '@axium/server/plugins.js';
-import { addRoute, routes } from '@axium/server/routes.js';
+import { config } from '@axium/server/config';
+import { plugins } from '@axium/server/plugins';
+import { addRoute, routes } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import pkg from '../../package.json' with { type: 'json' };
 
