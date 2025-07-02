@@ -294,11 +294,6 @@ program
 		}
 
 		console.log(
-			styleText('whiteBright', 'Credentials authentication:'),
-			config.auth.credentials ? styleText('yellow', 'enabled') : 'disabled'
-		);
-
-		console.log(
 			styleText('whiteBright', 'Loaded plugins:'),
 			Array.from(plugins)
 				.map(plugin => plugin.id)

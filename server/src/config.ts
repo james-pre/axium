@@ -15,7 +15,6 @@ export interface Config extends Record<string, unknown> {
 		disabled: string[];
 	};
 	auth: {
-		credentials: boolean;
 		debug: boolean;
 		origin: string;
 		/** In minutes */
@@ -72,7 +71,6 @@ export const config: Config & typeof configShortcuts = {
 		disabled: [],
 	},
 	auth: {
-		credentials: false,
 		debug: false,
 		origin: 'https://test.localhost',
 		passkey_probation: 60,
@@ -116,7 +114,6 @@ export const File = z
 			.partial(),
 		auth: z
 			.object({
-				credentials: z.boolean(),
 				debug: z.boolean(),
 				origin: z.string(),
 				/** In minutes */
