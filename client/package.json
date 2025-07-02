@@ -27,11 +27,13 @@
 	"scripts": {
 		"build": "tsc"
 	},
-	"dependencies": {
+	"peerDependencies": {
 		"@axium/core": ">=0.2.0",
-		"@simplewebauthn/browser": "^13.1.0",
-		"commander": "^13.1.0",
 		"utilium": "^2.3.8",
 		"zod": "^3.25.61"
+	},
+	"dependencies": {
+		"@simplewebauthn/browser": "^13.1.0",
+		"commander": "^13.1.0"
 	}
 }

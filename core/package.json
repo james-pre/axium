@@ -27,8 +27,10 @@
 	"scripts": {
 		"build": "tsc"
 	},
-	"dependencies": {
-		"@simplewebauthn/types": "^12.0.0",
+	"peerDependencies": {
 		"zod": "^3.25.61"
+	},
+	"dependencies": {
+		"@simplewebauthn/types": "^12.0.0"
 	}
 }
