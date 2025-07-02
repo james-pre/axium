@@ -7,7 +7,7 @@ export default tseslint.config(
 	{
 		name: 'Axium',
 		extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
-		files: ['./*/src/**/*.ts'],
+		files: ['*/src/**/*.ts'],
 		languageOptions: {
 			globals: { ...globals.browser, ...globals.node },
 			ecmaVersion: 'latest',
