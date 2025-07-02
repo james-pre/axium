@@ -1,20 +1,21 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import ClipboardCopy from '$lib/ClipboardCopy.svelte';
 	import FormDialog from '$lib/FormDialog.svelte';
 	import Icon from '$lib/icons/Icon.svelte';
 	import {
 		createPasskey,
-		getCurrentSession,
 		deletePasskey,
 		deleteUser,
 		emailVerificationEnabled,
+		getCurrentSession,
 		getPasskeys,
-		sendVerificationEmail,
-		updatePasskey,
-		updateUser,
 		getSessions,
 		logout,
 		logoutAll,
+		sendVerificationEmail,
+		updatePasskey,
+		updateUser,
 	} from '@axium/client/user';
 	import type { Passkey, Session } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
@@ -53,13 +54,7 @@
 </svelte:head>
 
 {#snippet action(name: string, i: string = 'pen')}
-	<button
-		style:display="contents"
-		style:cursor="pointer"
-		onclick={() => {
-			dialogs[name].showModal();
-		}}
-	>
+	<button style:display="contents" onclick={() => dialogs[name].showModal()}>
 		<Icon {i} />
 	</button>
 {/snippet}
@@ -106,8 +101,9 @@
 			</FormDialog>
 
 			<div class="item info">
-				<p class="subtle">User ID <dfn title="This is your UUID."><Icon i="regular/circle-info" /></dfn></p>
+				<p class="subtle">User ID <dfn title="This is your UUID. It can't be changed."><Icon i="regular/circle-info" /></dfn></p>
 				<p>{user.id}</p>
+				<ClipboardCopy value={user.id} />
 			</div>
 			<span>
 				<a class="signout" href="/logout"><button>Sign out</button></a>
@@ -220,7 +216,7 @@
 	</div>
 {:catch error}
 	<div class="error">
-		<h3>Failed to load your account</h3>
+		<h3>Failed to load account</h3>
 		<p>{'message' in error ? error.message : error}</p>
 	</div>
 {/await}

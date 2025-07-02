@@ -5,13 +5,9 @@
 	const urls = { light, solid, regular };
 	const { i } = $props();
 
-	const [style, id] = i.includes('/') ? i.split('/') : ['solid', i];
-	const url = urls[style];
+	const [style, id] = $derived(i.includes('/') ? i.split('/') : ['solid', i]);
+	const url = $derived(urls[style]);
 </script>
-
-<svelte:head>
-	<link rel="preload" href={url} />
-</svelte:head>
 
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em">
 	<use href="{url}#{id}" />
