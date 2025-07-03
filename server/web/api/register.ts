@@ -5,11 +5,11 @@ import { createPasskey, getUser, getUserByEmail } from '@axium/server/auth';
 import config from '@axium/server/config';
 import { database as db, type Schema } from '@axium/server/database';
 import { addRoute } from '@axium/server/routes';
+import { createSessionData, parseBody, withError } from '@axium/server/utils';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import z from 'zod/v4';
-import { createSessionData, parseBody, withError } from './utils.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();

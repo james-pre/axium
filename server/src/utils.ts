@@ -1,7 +1,7 @@
 import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
 import type { NewSessionResponse } from '@axium/core/api';
-import { createSession, getSessionAndUser, type UserInternal } from '@axium/server/auth';
-import { config } from '@axium/server/config';
+import { createSession, getSessionAndUser, type UserInternal } from './auth.js';
+import { config } from './config.js';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
 import z from 'zod/v4';

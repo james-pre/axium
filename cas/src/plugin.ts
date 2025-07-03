@@ -1,9 +1,9 @@
+import config from '@axium/server/config';
 import type { Database, InitOptions, OpOptions, PluginShortcuts } from '@axium/server/database';
 import { count, database } from '@axium/server/database';
 import type { WithOutput } from '@axium/server/io';
 import { sql } from 'kysely';
 import pkg from '../package.json' with { type: 'json' };
-import config from '@axium/server/config';
 import './common.js';
 import './server.js';
 
@@ -34,11 +34,12 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 		.addColumn('fileId', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('ownerId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
 		.addColumn('lastModified', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('restricted', 'boolean', col => col.notNull().defaultTo(false))
-		.addColumn('size', 'integer', col => col.notNull().defaultTo(0))
+		.addColumn('restricted', 'boolean', col => col.notNull())
+		.addColumn('size', 'integer', col => col.notNull())
 		.addColumn('trashedAt', 'timestamptz', col => col.defaultTo(null))
 		.addColumn('hash', 'bytea', col => col.notNull())
 		.addColumn('name', 'text', col => col.defaultTo(null))
+		.addColumn('type', 'text', col => col.notNull())
 		.execute()
 		.then(done)
 		.catch(warnExists);

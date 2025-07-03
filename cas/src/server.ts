@@ -1,14 +1,16 @@
 import type { Result } from '@axium/core/api';
+import { getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
 import { addRoute } from '@axium/server/routes';
-import { checkAuth, parseBody, withError } from '@axium/server/web/api/utils.js';
+import { checkAuth, getToken, parseBody, withError } from '@axium/server/utils';
 import { error } from '@sveltejs/kit';
 import type { Generated } from 'kysely';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
+import { pick } from 'utilium';
 import z from 'zod/v4';
 import { CASUpdate, type CASMetadata } from './common.js';
 import './polyfills.js';
@@ -20,10 +22,11 @@ declare module '@axium/server/database' {
 			ownerId: string;
 			lastModified: Generated<Date>;
 			restricted: Generated<boolean>;
-			size: Generated<number>;
+			size: number;
 			trashedAt: Date | null;
 			hash: Uint8Array;
 			name: string | null;
+			type: string;
 		};
 	}
 }
@@ -76,24 +79,30 @@ export async function get(fileId: string): Promise<CASMetadata> {
 	});
 }
 
-export async function add(ownerId: string, file: File): Promise<CASMetadata> {
-	if (file.size > config.cas.max_item_size * 1048576) throw new Error('File size exceeds maximum size');
+export async function add(ownerId: string, blob: Blob): Promise<CASMetadata> {
+	if (blob.size > config.cas.max_item_size * 1048576) throw new Error('File size exceeds maximum size');
 
 	connect();
 
-	const content = new Uint8Array(await file.arrayBuffer());
+	const content = await blob.bytes();
 
 	const hash = createHash('BLAKE2b512').update(content).digest();
 
 	writeFileSync(join(config.cas.data, hash.toHex()), content);
 
-	return await database.insertInto('cas').values({ ownerId, hash }).returningAll().executeTakeFirstOrThrow();
+	return await database
+		.insertInto('cas')
+		.values({ ownerId, hash, ...pick(blob, 'size', 'type') })
+		.returningAll()
+		.executeTakeFirstOrThrow();
 }
 
 addRoute({
 	path: '/api/cas/item/:id',
 	params: { id: z.uuid() },
 	async GET(event): Result<'GET', 'cas/item/:id'> {
+		if (!config.cas.enabled) error(503, 'CAS is disabled');
+
 		const itemId = event.params.id!;
 
 		const item = await get(itemId);
@@ -104,6 +113,8 @@ addRoute({
 		return item;
 	},
 	async PATCH(event): Result<'PATCH', 'cas/item/:id'> {
+		if (!config.cas.enabled) error(503, 'CAS is disabled');
+
 		const itemId = event.params.id!;
 
 		const body = await parseBody(event, CASUpdate);
@@ -127,6 +138,8 @@ addRoute({
 			.catch(withError('Could not update CAS item'));
 	},
 	async DELETE(event): Result<'DELETE', 'cas/item/:id'> {
+		if (!config.cas.enabled) error(503, 'CAS is disabled');
+
 		const itemId = event.params.id!;
 
 		const item = await get(itemId);
@@ -134,7 +147,28 @@ addRoute({
 
 		await checkAuth(event, item.ownerId);
 
-		return await database.deleteFrom('cas').where('fileId', '=', itemId).returningAll().executeTakeFirstOrThrow();
+		return await database
+			.deleteFrom('cas')
+			.where('fileId', '=', itemId)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not delete CAS item'));
+	},
+});
+
+addRoute({
+	path: '/raw/cas/upload',
+	async PUT(event): Promise<CASMetadata> {
+		if (!config.cas.enabled) error(403, 'CAS is disabled');
+
+		const token = getToken(event);
+		if (!token) error(401, 'Unauthorized');
+
+		const { userId } = await getSessionAndUser(token);
+
+		const blob = await event.request.blob();
+
+		return await add(userId, blob);
 	},
 });
 
@@ -142,6 +176,8 @@ addRoute({
 	path: '/raw/cas/:id',
 	params: { id: z.uuid() },
 	async GET(event) {
+		if (!config.cas.enabled) error(503, 'CAS is disabled');
+
 		const itemId = event.params.id!;
 
 		const item = await get(itemId);

@@ -14,6 +14,7 @@ import {
 import { config } from '@axium/server/config';
 import { connect, database as db } from '@axium/server/database';
 import { addRoute } from '@axium/server/routes';
+import { checkAuth, createSessionData, parseBody, stripUser, withError } from '@axium/server/utils';
 import {
 	generateAuthenticationOptions,
 	generateRegistrationOptions,
@@ -24,7 +25,6 @@ import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import z from 'zod/v4';
 import { PasskeyRegistration } from './schemas.js';
-import { checkAuth, createSessionData, parseBody, stripUser, withError } from './utils.js';
 
 interface UserAuth {
 	data: string;

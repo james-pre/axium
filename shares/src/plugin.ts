@@ -4,7 +4,7 @@ import type { Database, InitOptions, OpOptions, PluginShortcuts, Schema } from '
 import { count } from '@axium/server/database';
 import type { WithOutput } from '@axium/server/io';
 import { addRoute } from '@axium/server/routes';
-import { parseBody } from '@axium/server/web/api/utils.js';
+import { parseBody } from '@axium/server/utils';
 import { error } from '@sveltejs/kit';
 import z from 'zod/v4';
 import pkg from '../package.json' with { type: 'json' };
