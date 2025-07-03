@@ -4,11 +4,13 @@ This is a Content Addressable Storage (CAS) plugin for Axium, which provides a w
 
 ## Usage
 
-Update the configuration with the path to the CAS data directory:
+Update the configuration to include the CAS data directory:
 
 ```json
 {
-	"cas_data": "/path/to/cas/data"
+	"cas": {
+		"data": "/path/to/cas/data"
+	}
 }
 ```
 
