@@ -1,7 +1,7 @@
 import type { RequestMethod } from '@axium/core/requests';
 import type { Endpoint, RequestBody, Result, APIParameters } from '@axium/core/api';
 
-let token: string | null = null;
+export let token: string | null = null;
 
 export function setToken(value: string | null): void {
 	token = value;

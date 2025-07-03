@@ -8,13 +8,14 @@ export interface ServeOptions {
 	ssl_cert: string;
 }
 
+const _handlerPath = '../build/handler.js';
+
 export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
-	// @ts-ignore 2307 - The SvelteKit server can be built after `tsc -b` is run
-	const { handler } = await import('../build/handler.js');
+	const { handler } = await import(_handlerPath);
 
-	if (!opt.secure) return createServer(handler as any);
+	if (!opt.secure) return createServer(handler);
 
-	return createSecureServer({ key: opt.ssl_key, cert: opt.ssl_cert }, handler as any);
+	return createSecureServer({ key: opt.ssl_key, cert: opt.ssl_cert }, handler);
 }
 
 export default serve;
