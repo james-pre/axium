@@ -4,7 +4,7 @@ import * as fs from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
-import config from './config.js';
+import { config } from './config.js';
 
 export const systemDir = '/etc/axium';
 export const userDir = join(homedir(), '.axium');

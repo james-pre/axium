@@ -351,8 +351,8 @@ program
 	.description('Start the Axium server')
 	.option('-p, --port <port>', 'the port to listen on')
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
-	.action((opt: OptCommon & { ssl?: string; port?: string }) => {
-		const server = serve({
+	.action(async (opt: OptCommon & { ssl?: string; port?: string }) => {
+		const server = await serve({
 			secure: opt.ssl ? true : config.web.secure,
 			ssl_cert: opt.ssl ? join(opt.ssl, 'cert.pem') : config.web.ssl_cert,
 			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,

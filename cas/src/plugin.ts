@@ -5,6 +5,7 @@ import { sql } from 'kysely';
 import pkg from '../package.json' with { type: 'json' };
 import config from '@axium/server/config';
 import './common.js';
+import './server.js';
 
 export const id = pkg.name;
 export const name = 'Axium CAS';

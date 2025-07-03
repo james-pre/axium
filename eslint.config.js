@@ -50,6 +50,7 @@ export default tseslint.config(
 			'@typescript-eslint/only-throw-error': 'off',
 			'@typescript-eslint/no-unused-expressions': 'off',
 			'@typescript-eslint/no-empty-object-type': 'off',
+			'@typescript-eslint/ban-ts-comment': 'warn',
 		},
 	}
 );

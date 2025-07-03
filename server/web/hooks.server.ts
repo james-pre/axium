@@ -1,17 +1,17 @@
 import type { RequestMethod } from '@axium/core/requests';
 import { config, loadDefaultConfigs } from '@axium/server/config';
 import { clean, database } from '@axium/server/database';
+import { dirs, logger } from '@axium/server/io';
 import { _markDefaults, resolveRoute, type ServerRoute } from '@axium/server/routes';
 import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
 import { error, isHttpError, json, redirect } from '@sveltejs/kit';
 import { allLogLevels } from 'logzen';
 import { createWriteStream } from 'node:fs';
 import { join } from 'node:path/posix';
-import z from 'zod/v4';
-import { dirs, logger } from '../dist/io.js';
-import './api/index.js';
 import { render } from 'svelte/server';
+import z from 'zod/v4';
 import { options } from '../.svelte-kit/generated/server/internal.js';
+import './api/index.js';
 
 _markDefaults();
 await loadDefaultConfigs();

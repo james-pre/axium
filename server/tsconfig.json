@@ -7,6 +7,6 @@
 		"allowJs": true
 	},
 	"include": ["src/**/*.ts"],
-	"exclude": ["web"],
+	"exclude": ["web", "build"],
 	"references": [{ "path": "../core" }, { "path": "../client" }]
 }
