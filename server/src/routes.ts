@@ -1,5 +1,5 @@
 import type { RequestMethod } from '@axium/core/requests';
-import type { LoadEvent, RequestEvent } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
 import type { Component } from 'svelte';
 import type z from 'zod/v4';
 import { apps } from './apps.js';
@@ -78,7 +78,7 @@ export function addRoute(opt: RouteOptions): void {
  * Resolve a request URL into a route.
  * This handles parsing of parameters in the URL.
  */
-export function resolveRoute(event: RequestEvent | LoadEvent): Route | undefined {
+export function resolveRoute(event: { url: URL; params?: object }): Route | undefined {
 	const { pathname } = event.url;
 
 	if (routes.has(pathname) && !pathname.split('/').some(p => p.startsWith(':'))) return routes.get(pathname);

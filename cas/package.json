@@ -21,9 +21,7 @@
 	"exports": {
 		"./plugin": "./dist/plugin.js",
 		".": "./dist/index.js",
-		"./*": "./dist/*",
-		"./web": "./web/index.js",
-		"./web/*": "./web/*"
+		"./*": "./dist/*.js"
 	},
 	"files": [
 		"dist",

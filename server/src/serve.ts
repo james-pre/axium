@@ -15,7 +15,7 @@ const _handlerPath = '../build/handler.js';
 export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
 	const { handler } = await import(_handlerPath);
 
-	if (!opt.secure) return createServer(handler);
+	if (!opt.secure && !config.web.secure) return createServer(handler);
 
 	return createSecureServer(
 		{ key: readFileSync(opt.ssl_key || config.web.ssl_key), cert: readFileSync(opt.ssl_cert || config.web.ssl_cert) },
