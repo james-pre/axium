@@ -60,3 +60,7 @@ export async function unrestrictItem(fileId: string): Promise<CASMetadata> {
 export async function deleteItem(fileId: string): Promise<CASMetadata> {
 	return fetchAPI('DELETE', 'cas/item/:id', undefined, fileId);
 }
+
+export async function listUserItems(userId: string): Promise<CASMetadata[]> {
+	return fetchAPI('GET', 'users/:id/cas_items', undefined, userId);
+}

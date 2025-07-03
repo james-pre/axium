@@ -1,6 +1,8 @@
+import { readFileSync } from 'node:fs';
 import type { Server } from 'node:http';
 import { createServer } from 'node:http';
 import { createServer as createSecureServer } from 'node:https';
+import config from './config.js';
 
 export interface ServeOptions {
 	secure: boolean;
@@ -15,7 +17,10 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
 
 	if (!opt.secure) return createServer(handler);
 
-	return createSecureServer({ key: opt.ssl_key, cert: opt.ssl_cert }, handler);
+	return createSecureServer(
+		{ key: readFileSync(opt.ssl_key || config.web.ssl_key), cert: readFileSync(opt.ssl_cert || config.web.ssl_cert) },
+		handler
+	);
 }
 
 export default serve;

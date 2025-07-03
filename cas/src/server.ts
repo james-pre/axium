@@ -1,5 +1,5 @@
 import type { Result } from '@axium/core/api';
-import { getSessionAndUser } from '@axium/server/auth';
+import { getSessionAndUser, getUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
@@ -193,5 +193,20 @@ addRoute({
 				'Content-Disposition': `attachment; filename="${itemId}"`,
 			},
 		});
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/cas_items',
+	params: { id: z.uuid() },
+	async GET(event): Result<'GET', 'users/:id/cas_items'> {
+		if (!config.cas.enabled) error(503, 'CAS is disabled');
+
+		const user = await getUser(event.params.id!);
+		if (!user) error(404, 'User not found');
+
+		await checkAuth(event, user.id);
+
+		return await database.selectFrom('cas').where('ownerId', '=', user.id).selectAll().execute();
 	},
 });

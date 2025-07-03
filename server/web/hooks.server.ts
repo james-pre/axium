@@ -54,7 +54,14 @@ async function apiHandler(event: RequestEvent, route: ServerRoute): Promise<Resp
 }
 
 function failure(e: Error) {
+	console.error(e);
 	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
+}
+
+function handleError(e: Error) {
+	if (!isHttpError(e)) return failure(e);
+	console.error(e);
+	return json(e.body, { status: e.status });
 }
 
 export async function handle({
@@ -70,11 +77,10 @@ export async function handle({
 
 	if (config.debug) console.log(event.request.method.padEnd(7), route ? route.path : event.url.pathname);
 
-	if (!route) return await resolve(event);
+	if (!route) return await resolve(event).catch(handleError);
 
 	if (route.server == true) {
-		if (route.api)
-			return await apiHandler(event, route).catch((e: Error) => (isHttpError(e) ? json(e.body, { status: e.status }) : failure(e)));
+		if (route.api) return await apiHandler(event, route).catch(handleError);
 
 		try {
 			const result = await route[event.request.method as RequestMethod](event);

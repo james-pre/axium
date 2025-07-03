@@ -12,9 +12,4 @@ export default {
 		target: 'es2022',
 		sourceRoot: 'web',
 	},
-	build: {
-		rollupOptions: {
-			external: /@axium\/(server|client|core)(\/.*)?/,
-		},
-	},
 } satisfies UserConfig;

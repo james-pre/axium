@@ -24,6 +24,9 @@ export interface CASMetadata {
 
 declare module '@axium/core/api' {
 	export interface _apiTypes {
+		'users/:id/cas_items': {
+			GET: CASMetadata[];
+		};
 		'cas/item/:id': {
 			GET: CASMetadata;
 			DELETE: CASMetadata;
