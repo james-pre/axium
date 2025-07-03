@@ -8,6 +8,8 @@ import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, defaultOutput, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 import { getSpecifier, loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
+import serve from './serve.js';
+import { join } from 'node:path/posix';
 
 program
 	.version($pkg.version)
@@ -27,10 +29,6 @@ program.hook('preAction', async function (_, action: Command) {
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');
 	if (opt.debug === false) config.set({ debug: false });
-	/* if (!config.auth.secret) {
-		config.save({ auth: { secret: process.env.AUTH_SECRET || randomBytes(32).toString('base64') } }, true);
-		output.debug('Auto-generated a new auth secret');
-	} */
 });
 
 // Options shared by multiple (sub)commands
@@ -344,9 +342,27 @@ program
 	.addOption(opts.force)
 	.addOption(opts.host)
 	.action(async (opt: OptDB & { dbSkip: boolean }) => {
-		/* config.save({ auth: { secret: randomBytes(32).toString('base64') } }, true); */
 		await db.init({ ...opt, skip: opt.dbSkip }).catch(handleError);
 		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(handleError);
+	});
+
+program
+	.command('serve')
+	.description('Start the Axium server')
+	.option('-p, --port <port>', 'the port to listen on')
+	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
+	.action((opt: OptCommon & { ssl?: string; port?: string }) => {
+		const server = serve({
+			secure: opt.ssl ? true : config.web.secure,
+			ssl_cert: opt.ssl ? join(opt.ssl, 'cert.pem') : config.web.ssl_cert,
+			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,
+		});
+
+		const port = !Number.isNaN(Number.parseInt(opt.port ?? '')) ? Number.parseInt(opt.port!) : config.web.port;
+
+		server.listen(port, () => {
+			console.log('Server is listening on port ' + port);
+		});
 	});
 
 program.parse();

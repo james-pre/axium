@@ -15,7 +15,6 @@ export interface Config extends Record<string, unknown> {
 		disabled: string[];
 	};
 	auth: {
-		debug: boolean;
 		origin: string;
 		/** In minutes */
 		passkey_probation: number;
@@ -42,6 +41,10 @@ export interface Config extends Record<string, unknown> {
 	web: {
 		prefix: string;
 		assets: string;
+		secure: boolean;
+		port: number;
+		ssl_key: string;
+		ssl_cert: string;
 	};
 }
 
@@ -66,13 +69,12 @@ export const config: Config & typeof configShortcuts = {
 	...configShortcuts,
 	api: {
 		disable_metadata: false,
-		cookie_auth: false,
+		cookie_auth: true,
 	},
 	apps: {
 		disabled: [],
 	},
 	auth: {
-		debug: false,
 		origin: 'https://test.localhost',
 		passkey_probation: 60,
 		rp_id: 'test.localhost',
@@ -96,6 +98,10 @@ export const config: Config & typeof configShortcuts = {
 	web: {
 		prefix: '',
 		assets: '/',
+		secure: true,
+		port: 443,
+		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
+		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
 	},
 };
 export default config;
@@ -116,7 +122,6 @@ export const File = z
 			.partial(),
 		auth: z
 			.object({
-				debug: z.boolean(),
 				origin: z.string(),
 				/** In minutes */
 				passkey_probation: z.number(),
@@ -149,6 +154,10 @@ export const File = z
 			.object({
 				prefix: z.string(),
 				assets: z.string(),
+				secure: z.boolean(),
+				port: z.number().min(1).max(65535),
+				ssl_key: z.string(),
+				ssl_cert: z.string(),
 			})
 			.partial(),
 		include: z.array(z.string()).optional(),
