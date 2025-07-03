@@ -41,6 +41,7 @@ export interface Config extends Record<string, unknown> {
 	};
 	web: {
 		prefix: string;
+		assets: string;
 	};
 }
 
@@ -94,6 +95,7 @@ export const config: Config & typeof configShortcuts = {
 	},
 	web: {
 		prefix: '',
+		assets: '/',
 	},
 };
 export default config;
@@ -146,6 +148,7 @@ export const File = z
 		web: z
 			.object({
 				prefix: z.string(),
+				assets: z.string(),
 			})
 			.partial(),
 		include: z.array(z.string()).optional(),
@@ -153,6 +156,19 @@ export const File = z
 	})
 	.partial();
 export interface File extends PartialRecursive<Config>, z.infer<typeof File> {}
+
+export function addConfigDefaults(other: PartialRecursive<Config>, _target: Record<string, any> = config): void {
+	for (const [key, value] of Object.entries(other)) {
+		if (!(key in _target) || _target[key] === null || _target[key] === undefined || Number.isNaN(_target[key])) {
+			_target[key] = value;
+			continue;
+		}
+
+		if (typeof value == 'object' && value != null && typeof _target[key] == 'object') {
+			addConfigDefaults(value, _target[key]);
+		}
+	}
+}
 
 /**
  * Update the current config

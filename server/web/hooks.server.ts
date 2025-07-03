@@ -1,12 +1,92 @@
-import { loadDefaultConfigs } from '@axium/server/config';
+import type { RequestMethod } from '@axium/core/requests';
+import { config, loadDefaultConfigs } from '@axium/server/config';
 import { clean, database } from '@axium/server/database';
-import { _markDefaults } from '@axium/server/routes';
+import { _markDefaults, resolveRoute, type ServerRoute } from '@axium/server/routes';
+import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
+import { error, isHttpError, json, redirect } from '@sveltejs/kit';
+import { allLogLevels } from 'logzen';
+import { createWriteStream } from 'node:fs';
+import { join } from 'node:path/posix';
+import z from 'zod/v4';
+import { dirs, logger } from '../dist/io.js';
 import './api/index.js';
+import { render } from 'svelte/server';
+import { options } from '../.svelte-kit/generated/server/internal.js';
 
 _markDefaults();
 await loadDefaultConfigs();
+logger.attach(createWriteStream(join(dirs.at(-1), 'server.log')), { output: allLogLevels });
 await clean({});
 
 process.on('beforeExit', async () => {
 	await database.destroy();
 });
+
+async function apiHandler(event: RequestEvent, route: ServerRoute): Promise<Response> {
+	const { method } = event.request;
+
+	const _warnings: string[] = [];
+	if (route.api && !event.request.headers.get('Accept')?.includes('application/json')) {
+		_warnings.push('Only application/json is supported');
+		event.request.headers.set('Accept', 'application/json');
+	}
+
+	for (const [key, type] of Object.entries(route.params || {})) {
+		if (!type) continue;
+
+		try {
+			event.params[key] = type.parse(event.params[key]) as any;
+		} catch (e: any) {
+			error(400, `Invalid parameter: ${z.prettifyError(e)}`);
+		}
+	}
+
+	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
+
+	const result: (object & { _warnings?: string[] }) | Response = await route[method](event);
+
+	if (result instanceof Response) return result;
+
+	result._warnings ||= [];
+	result._warnings.push(..._warnings);
+
+	return json(result);
+}
+
+function failure(e: Error) {
+	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
+}
+
+export async function handle({
+	event,
+	resolve,
+}: {
+	event: RequestEvent;
+	resolve: (event: RequestEvent, opts?: ResolveOptions) => Promise<Response>;
+}) {
+	const route = resolveRoute(event);
+
+	if (!route && event.url.pathname === '/') redirect(303, '/_axium/default');
+
+	if (config.debug) console.log(event.request.method.padEnd(7), route ? route.path : event.url.pathname);
+
+	if (!route) return await resolve(event);
+
+	if (route.server == true) {
+		if (route.api)
+			return await apiHandler(event, route).catch((e: Error) => (isHttpError(e) ? json(e.body, { status: e.status }) : failure(e)));
+
+		try {
+			const result = await route[event.request.method as RequestMethod](event);
+			if (result instanceof Response) return result;
+			return json(result);
+		} catch (e) {
+			return failure(e);
+		}
+	}
+
+	const data = await route.load(event);
+
+	const { head, body } = render(route.page);
+	options.template.app({ head, body, assets: config.web.assets });
+}
