@@ -4,6 +4,7 @@ import type { Component } from 'svelte';
 import type z from 'zod/v4';
 import { apps } from './apps.js';
 import config from './config.js';
+import { output } from './io.js';
 
 type _Params = Partial<Record<string, string>>;
 
@@ -69,6 +70,7 @@ export function addRoute(opt: RouteOptions): void {
 	if (route.api && !route.server) throw new Error(`API routes cannot have a client page: ${route.path}`);
 
 	routes.set(route.path, route);
+	output.debug('Added route: ' + route.path);
 }
 
 /**

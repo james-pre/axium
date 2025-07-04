@@ -1,8 +1,9 @@
 import type { RequestMethod } from '@axium/core/requests';
+import '@axium/server/api/index';
 import { config, loadDefaultConfigs } from '@axium/server/config';
 import { clean, database } from '@axium/server/database';
 import { dirs, logger } from '@axium/server/io';
-import { resolveRoute, routes, type ServerRoute } from '@axium/server/routes';
+import { resolveRoute, type ServerRoute } from '@axium/server/routes';
 import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
 import { error, isHttpError, json, redirect } from '@sveltejs/kit';
 import { allLogLevels } from 'logzen';
@@ -11,7 +12,6 @@ import { join } from 'node:path/posix';
 import { render } from 'svelte/server';
 import z from 'zod/v4';
 import { options } from '../.svelte-kit/generated/server/internal.js';
-import '@axium/server/api/index';
 
 logger.attach(createWriteStream(join(dirs.at(-1), 'server.log')), { output: allLogLevels });
 await loadDefaultConfigs();
@@ -90,8 +90,8 @@ export async function handle({
 		}
 	}
 
-	const data = await route.load(event);
+	const data = await route.load?.(event);
 
 	const { head, body } = render(route.page);
-	options.template.app({ head, body, assets: config.web.assets });
+	options.templates.app({ head, body, assets: config.web.assets });
 }

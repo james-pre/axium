@@ -7,6 +7,9 @@ export default {
 		runes: true,
 	},
 	preprocess: vitePreprocess({ script: true }),
+	vitePlugin: {
+		exclude: '@axium/server/**',
+	},
 	kit: {
 		adapter: node({
 			fallback: 'index.html',
