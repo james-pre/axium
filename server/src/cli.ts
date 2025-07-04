@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { Argument, Option, program, type Command } from 'commander';
+import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
 import $pkg from '../package.json' with { type: 'json' };
@@ -9,7 +10,6 @@ import * as db from './database.js';
 import { _portActions, _portMethods, defaultOutput, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 import { getSpecifier, loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serve } from './serve.js';
-import { join } from 'node:path/posix';
 
 program
 	.version($pkg.version)

@@ -3,7 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { deepAssign, omit, type PartialRecursive } from 'utilium';
 import * as z from 'zod/v4';
-import { dirs, logger, output } from './io.js';
+import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 
 export interface Config extends Record<string, unknown> {
@@ -186,6 +186,7 @@ export function setConfig(other: PartialRecursive<Config>) {
 	deepAssign(config, other);
 	logger.detach(output);
 	if (config.log.console) logger.attach(output, { output: config.log.level });
+	_setDebugOutput(config.debug);
 }
 
 export interface LoadOptions {

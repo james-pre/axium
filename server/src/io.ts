@@ -4,7 +4,6 @@ import * as fs from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
-import { config } from './config.js';
 
 export const systemDir = '/etc/axium';
 export const userDir = join(homedir(), '.axium');
@@ -27,6 +26,9 @@ export const logger = new Logger({
 	noGlobalConsole: true,
 });
 
+/**
+ * @internal
+ */
 export const output = {
 	constructor: { name: 'Console' },
 	error(message: string): void {
@@ -42,7 +44,7 @@ export const output = {
 		console.log(message);
 	},
 	debug(message: string): void {
-		console.debug(message.startsWith('\x1b') ? message : styleText('gray', message));
+		_debugOutput && console.debug(message.startsWith('\x1b') ? message : styleText('gray', message));
 	},
 } satisfies LoggerConsole;
 
@@ -111,12 +113,18 @@ export interface WithOutput {
 	output: Output;
 }
 
+let _debugOutput = false;
+
+export function _setDebugOutput(enabled: boolean) {
+	_debugOutput = enabled;
+}
+
 export function defaultOutput(tag: 'done'): void;
 export function defaultOutput(tag: Exclude<OutputTag, 'done'>, message: string): void;
 export function defaultOutput(tag: OutputTag, message: string = ''): void {
 	switch (tag) {
 		case 'debug':
-			config.debug && output.debug(message);
+			_debugOutput && output.debug(message);
 			break;
 		case 'info':
 			console.log(message);
