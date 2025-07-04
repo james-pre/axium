@@ -92,6 +92,15 @@ export async function handle({
 
 	const data = await route.load?.(event);
 
-	const { head, body } = render(route.page);
-	options.templates.app({ head, body, assets: config.web.assets });
+	const body = options.templates.app({ ...render(route.page), assets: config.web.assets, nonce: null, env: {} });
+
+	return new Response(body, {
+		headers: {
+			'Content-Type': 'text/html; charset=utf-8',
+			'Cache-Control': 'no-cache, no-store, must-revalidate',
+			Pragma: 'no-cache',
+			Expires: '0',
+		},
+		status: 200,
+	});
 }
