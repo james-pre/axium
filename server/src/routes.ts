@@ -1,17 +1,17 @@
 import type { RequestMethod } from '@axium/core/requests';
-import type { RequestEvent } from '@sveltejs/kit';
 import type { Component } from 'svelte';
 import type z from 'zod/v4';
 import { apps } from './apps.js';
 import config from './config.js';
 import { output } from './io.js';
+import type { AxiumRequest } from './requests.js';
 
 type _Params = Partial<Record<string, string>>;
 
 type MaybePromise<T> = T | Promise<T>;
 
 export type EndpointHandlers<Params extends _Params = _Params> = Partial<
-	Record<RequestMethod, (event: RequestEvent<Params>) => MaybePromise<object | Response>>
+	Record<RequestMethod, (request: AxiumRequest<Params>) => MaybePromise<object | Response>>
 >;
 
 export type RouteParamOptions = z.ZodType;
@@ -29,7 +29,7 @@ export interface ServerRouteOptions<Params extends _Params = _Params> extends Co
 }
 
 export interface WebRouteOptions extends CommonRouteOptions {
-	load?(event: RequestEvent): object | Promise<object>;
+	load?(request: AxiumRequest): object | Promise<object>;
 	/** the Svelte page */
 	page?: Component;
 }
@@ -48,7 +48,7 @@ export interface ServerRoute extends RouteCommon, EndpointHandlers {
 
 export interface WebRoute extends RouteCommon {
 	server: false;
-	load?(event: RequestEvent): object | Promise<object>;
+	load?(request: AxiumRequest): object | Promise<object>;
 	page?: Component;
 }
 
@@ -77,8 +77,8 @@ export function addRoute(opt: RouteOptions): void {
  * Resolve a request URL into a route.
  * This handles parsing of parameters in the URL.
  */
-export function resolveRoute(event: { url: URL; params?: object }): Route | undefined {
-	const { pathname } = event.url;
+export function resolveRoute(request: { url: URL; params?: object }): Route | undefined {
+	const { pathname } = request.url;
 
 	if (routes.has(pathname) && !pathname.split('/').some(p => p.startsWith(':'))) return routes.get(pathname);
 
@@ -107,7 +107,7 @@ export function resolveRoute(event: { url: URL; params?: object }): Route | unde
 		// we didn't find a match, since an exact match would have been found already
 		if (pathParts.length || !Object.keys(params).length) continue;
 
-		event.params = params;
+		request.params = params;
 		return route;
 	}
 }

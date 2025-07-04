@@ -8,7 +8,6 @@ import {
 	verifyAuthenticationResponse,
 	verifyRegistrationResponse,
 } from '@simplewebauthn/server';
-import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import z from 'zod/v4';
 import {
@@ -23,8 +22,8 @@ import {
 } from '../auth.js';
 import { config } from '../config.js';
 import { connect, database as db } from '../database.js';
+import { checkAuth, createSessionData, error, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { checkAuth, createSessionData, parseBody, stripUser, withError } from '../requests.js';
 
 interface UserAuth {
 	data: string;
@@ -138,7 +137,7 @@ addRoute({
 
 		return options;
 	},
-	async POST(event: RequestEvent): Result<'POST', 'users/:id/auth'> {
+	async POST(event): Result<'POST', 'users/:id/auth'> {
 		const userId = event.params.id!;
 		const response = await parseBody(event, PasskeyAuthenticationResponse);
 
@@ -182,7 +181,7 @@ addRoute({
 	/**
 	 * Get passkey registration options for a user.
 	 */
-	async OPTIONS(event: RequestEvent): Result<'OPTIONS', 'users/:id/passkeys'> {
+	async OPTIONS(event): Result<'OPTIONS', 'users/:id/passkeys'> {
 		const userId = event.params.id!;
 
 		const existing = await getPasskeysByUserId(userId);
@@ -211,7 +210,7 @@ addRoute({
 	/**
 	 * Get passkeys for a user.
 	 */
-	async GET(event: RequestEvent): Result<'GET', 'users/:id/passkeys'> {
+	async GET(event): Result<'GET', 'users/:id/passkeys'> {
 		const userId = event.params.id!;
 
 		await checkAuth(event, userId);
@@ -224,7 +223,7 @@ addRoute({
 	/**
 	 * Register a new passkey for an existing user.
 	 */
-	async PUT(event: RequestEvent): Result<'PUT', 'users/:id/passkeys'> {
+	async PUT(event): Result<'PUT', 'users/:id/passkeys'> {
 		const userId = event.params.id!;
 		const response = await parseBody(event, PasskeyRegistration);
 
@@ -266,7 +265,7 @@ addRoute({
 			omit(s, 'token')
 		);
 	},
-	async DELETE(event: RequestEvent): Result<'DELETE', 'users/:id/sessions'> {
+	async DELETE(event): Result<'DELETE', 'users/:id/sessions'> {
 		const userId = event.params.id!;
 		const body = await parseBody(event, LogoutSessions);
 
@@ -310,7 +309,7 @@ addRoute({
 
 		return omit(verification, 'token', 'role');
 	},
-	async POST(event: RequestEvent): Result<'POST', 'users/:id/verify_email'> {
+	async POST(event): Result<'POST', 'users/:id/verify_email'> {
 		const userId = event.params.id!;
 		const { token } = await parseBody(event, z.object({ token: z.string() }));
 

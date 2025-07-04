@@ -3,9 +3,8 @@ import { getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
+import { checkAuth, error, getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import { error } from '@sveltejs/kit';
-import { checkAuth, getToken, parseBody, withError } from '@axium/server/requests';
 import type { Generated } from 'kysely';
 import { createHash } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
@@ -100,29 +99,29 @@ export async function add(ownerId: string, blob: Blob): Promise<CASMetadata> {
 addRoute({
 	path: '/api/cas/item/:id',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'cas/item/:id'> {
+	async GET(req): Result<'GET', 'cas/item/:id'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = req.params.id!;
 
 		const item = await get(itemId);
 		if (!item) error(404, 'CAS item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(req, item.ownerId);
 
 		return item;
 	},
-	async PATCH(event): Result<'PATCH', 'cas/item/:id'> {
+	async PATCH(req): Result<'PATCH', 'cas/item/:id'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = req.params.id!;
 
-		const body = await parseBody(event, CASUpdate);
+		const body = await parseBody(req, CASUpdate);
 
 		const item = await get(itemId);
 		if (!item) error(404, 'CAS item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(req, item.ownerId);
 
 		const values: Partial<CASMetadata> = {};
 		if ('restrict' in body) values.restricted = body.restrict;
@@ -137,15 +136,15 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update CAS item'));
 	},
-	async DELETE(event): Result<'DELETE', 'cas/item/:id'> {
+	async DELETE(req): Result<'DELETE', 'cas/item/:id'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = req.params.id!;
 
 		const item = await get(itemId);
 		if (!item) error(404, 'CAS item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(req, item.ownerId);
 
 		return await database
 			.deleteFrom('cas')
@@ -158,15 +157,15 @@ addRoute({
 
 addRoute({
 	path: '/raw/cas/upload',
-	async PUT(event): Promise<CASMetadata> {
+	async PUT(req): Promise<CASMetadata> {
 		if (!config.cas.enabled) error(403, 'CAS is disabled');
 
-		const token = getToken(event);
+		const token = getToken(req);
 		if (!token) error(401, 'Unauthorized');
 
 		const { userId } = await getSessionAndUser(token);
 
-		const blob = await event.request.blob();
+		const blob = await req.raw.blob();
 
 		return await add(userId, blob);
 	},
@@ -175,15 +174,15 @@ addRoute({
 addRoute({
 	path: '/raw/cas/:id',
 	params: { id: z.uuid() },
-	async GET(event) {
+	async GET(req) {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = req.params.id!;
 
 		const item = await get(itemId);
 		if (!item) error(404, 'CAS item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(req, item.ownerId);
 
 		const content = new Uint8Array(readFileSync(join(config.cas.data, item.hash.toHex())));
 
@@ -199,10 +198,10 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/cas_items',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'users/:id/cas_items'> {
+	async GET(req): Result<'GET', 'users/:id/cas_items'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
-		const { user } = await checkAuth(event, event.params.id!);
+		const { user } = await checkAuth(req, req.params.id!);
 
 		return await database.selectFrom('cas').where('ownerId', '=', user.id).selectAll().execute();
 	},

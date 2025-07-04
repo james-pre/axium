@@ -1,10 +1,9 @@
 import type { Result } from '@axium/core/api';
-import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
 import { authenticate } from '../auth.js';
 import { connect, database as db } from '../database.js';
+import { error, getToken, stripUser } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { getToken, stripUser } from '../requests.js';
 
 addRoute({
 	path: '/api/session',

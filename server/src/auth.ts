@@ -1,9 +1,9 @@
 import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
-import type { RequestEvent } from '@sveltejs/kit';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { connect, database as db } from './database.js';
+import type { AxiumRequest } from './requests.js';
 
 export interface UserInternal extends User {
 	password?: string | null;
@@ -136,9 +136,9 @@ export async function updatePasskeyCounter(id: PasskeyInternal['id'], newCounter
 	return passkey;
 }
 
-export async function authenticate(event: RequestEvent): Promise<SessionAndUser | null> {
-	const maybe_header = event.request.headers.get('Authorization');
-	const token = maybe_header?.startsWith('Bearer ') ? maybe_header.slice(7) : event.cookies.get('session_token');
+export async function authenticate(request: AxiumRequest): Promise<SessionAndUser | null> {
+	const maybe_header = request.raw.headers.get('Authorization');
+	const token = maybe_header?.startsWith('Bearer ') ? maybe_header.slice(7) : request.cookies.get('session_token');
 
 	if (!token) return null;
 

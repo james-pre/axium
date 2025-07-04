@@ -1,9 +1,9 @@
 import type { Result } from '@axium/core/api';
 import { requestMethods } from '@axium/core/requests';
-import { error } from '@sveltejs/kit';
 import pkg from '../../package.json' with { type: 'json' };
 import { config } from '../config.js';
 import { plugins } from '../plugins.js';
+import { error } from '../requests.js';
 import { addRoute, routes } from '../routes.js';
 
 addRoute({

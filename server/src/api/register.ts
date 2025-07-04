@@ -2,19 +2,19 @@
 import type { Result } from '@axium/core/api';
 import { APIUserRegistration } from '@axium/core/schemas';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
-import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import z from 'zod/v4';
 import { createPasskey, getUser } from '../auth.js';
 import config from '../config.js';
 import { database as db, type Schema } from '../database.js';
+import type { AxiumRequest } from '../requests.js';
+import { createSessionData, error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { createSessionData, parseBody, withError } from '../requests.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
-async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
+async function OPTIONS(event: AxiumRequest): Result<'OPTIONS', 'register'> {
 	const { name, email } = await parseBody(event, z.object({ name: z.string().optional(), email: z.email().optional() }));
 
 	const userId = randomUUID();
@@ -40,7 +40,7 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 	return { userId, options };
 }
 
-async function POST(event: RequestEvent): Result<'POST', 'register'> {
+async function POST(event: AxiumRequest): Result<'POST', 'register'> {
 	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
 
 	const existing = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();

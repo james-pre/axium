@@ -1,12 +1,11 @@
 import type { Result } from '@axium/core/api';
 import { PasskeyChangeable } from '@axium/core/schemas';
-import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
 import z from 'zod/v4';
 import { getPasskey } from '../auth.js';
 import { database as db } from '../database.js';
+import { checkAuth, error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { checkAuth, parseBody, withError } from '../requests.js';
 
 addRoute({
 	path: '/api/passkeys/:id',

@@ -4,8 +4,8 @@ import { config, loadDefaultConfigs } from '@axium/server/config';
 import { clean, database } from '@axium/server/database';
 import { dirs, logger } from '@axium/server/io';
 import { resolveRoute, type ServerRoute } from '@axium/server/routes';
-import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
-import { error, isHttpError, json, redirect } from '@sveltejs/kit';
+import type { AxiumRequest, HttpError } from '@axium/server/requests';
+import { error, json, redirect } from '@axium/server/requests';
 import { allLogLevels } from 'logzen';
 import { createWriteStream } from 'node:fs';
 import { join } from 'node:path/posix';
@@ -21,20 +21,20 @@ process.on('beforeExit', async () => {
 	await database.destroy();
 });
 
-async function apiHandler(event: RequestEvent, route: ServerRoute): Promise<Response> {
-	const { method } = event.request;
+async function apiHandler(request: AxiumRequest, route: ServerRoute): Promise<Response> {
+	const { method } = request;
 
 	const _warnings: string[] = [];
-	if (route.api && !event.request.headers.get('Accept')?.includes('application/json')) {
+	if (route.api && !request.raw.headers.get('Accept')?.includes('application/json')) {
 		_warnings.push('Only application/json is supported');
-		event.request.headers.set('Accept', 'application/json');
+		request.raw.headers.set('Accept', 'application/json');
 	}
 
 	for (const [key, type] of Object.entries(route.params || {})) {
 		if (!type) continue;
 
 		try {
-			event.params[key] = type.parse(event.params[key]) as any;
+			request.params[key] = type.parse(request.params[key]) as any;
 		} catch (e: any) {
 			error(400, `Invalid parameter: ${z.prettifyError(e)}`);
 		}
@@ -42,7 +42,7 @@ async function apiHandler(event: RequestEvent, route: ServerRoute): Promise<Resp
 
 	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
 
-	const result: (object & { _warnings?: string[] }) | Response = await route[method](event);
+	const result: (object & { _warnings?: string[] }) | Response = await route[method](request);
 
 	if (result instanceof Response) return result;
 
@@ -57,32 +57,26 @@ function failure(e: Error) {
 	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
 }
 
-function handleError(e: Error) {
-	if (!isHttpError(e)) return failure(e);
+function handleError(e: Error | HttpError): Response {
+	if (!('body' in e)) return failure(e);
 	console.error(e);
 	return json(e.body, { status: e.status });
 }
 
-export async function handle({
-	event,
-	resolve,
-}: {
-	event: RequestEvent;
-	resolve: (event: RequestEvent, opts?: ResolveOptions) => Promise<Response>;
-}) {
-	const route = resolveRoute(event);
+export async function handle(request: AxiumRequest): Promise<Response> {
+	const route = resolveRoute(request);
 
-	if (!route && event.url.pathname === '/') redirect(303, '/_axium/default');
+	if (!route && request.url.pathname === '/') redirect(303, '/_axium/default');
 
-	if (config.debug) console.log(event.request.method.padEnd(7), route ? route.path : event.url.pathname);
+	if (config.debug) console.log(request.method.padEnd(7), route ? route.path : request.url.pathname);
 
-	if (!route) return await resolve(event).catch(handleError);
+	if (!route) return new Response('Not Found', { status: 404 });
 
 	if (route.server == true) {
-		if (route.api) return await apiHandler(event, route).catch(handleError);
+		if (route.api) return await apiHandler(request, route).catch(handleError);
 
 		try {
-			const result = await route[event.request.method as RequestMethod](event);
+			const result = await route[request.method](request);
 			if (result instanceof Response) return result;
 			return json(result);
 		} catch (e) {
@@ -90,7 +84,7 @@ export async function handle({
 		}
 	}
 
-	const data = await route.load?.(event);
+	const data = await route.load?.(request);
 
 	const { head, body } = render(route.page);
 	options.templates.app({ head, body, assets: config.web.assets });
