@@ -3,19 +3,6 @@ import type { Result } from '@axium/core/api';
 import { LogoutSessions, PasskeyAuthenticationResponse, UserAuthOptions } from '@axium/core/schemas';
 import { UserChangeable, type User } from '@axium/core/user';
 import {
-	createPasskey,
-	createVerification,
-	getPasskey,
-	getPasskeysByUserId,
-	getSessions,
-	getUser,
-	useVerification,
-} from '@axium/server/auth';
-import { config } from '@axium/server/config';
-import { connect, database as db } from '@axium/server/database';
-import { addRoute } from '@axium/server/routes';
-import { checkAuth, createSessionData, parseBody, stripUser, withError } from '@axium/server/utils';
-import {
 	generateAuthenticationOptions,
 	generateRegistrationOptions,
 	verifyAuthenticationResponse,
@@ -24,6 +11,20 @@ import {
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import z from 'zod/v4';
+import {
+	createPasskey,
+	createVerification,
+	getPasskey,
+	getPasskeysByUserId,
+	getSessions,
+	getUser,
+	useVerification,
+	type SessionAndUser,
+} from '../auth.js';
+import { config } from '../config.js';
+import { connect, database as db } from '../database.js';
+import { addRoute } from '../routes.js';
+import { checkAuth, createSessionData, parseBody, stripUser, withError } from '../utils.js';
 import { PasskeyRegistration } from './schemas.js';
 
 interface UserAuth {
@@ -44,7 +45,12 @@ addRoute({
 		const { value } = await parseBody(event, z.object({ using: z.literal('email'), value: z.email() }));
 
 		connect();
-		const { id } = await db.selectFrom('users').select('id').where('email', '=', value).executeTakeFirst();
+		const { id } = await db
+			.selectFrom('users')
+			.select('id')
+			.where('email', '=', value)
+			.executeTakeFirstOrThrow()
+			.catch(withError('User not found', 404));
 		return { id };
 	},
 });
@@ -53,22 +59,19 @@ addRoute({
 	path: '/api/users/:id',
 	params,
 	async GET(event): Result<'GET', 'users/:id'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 
-		const authed = await checkAuth(event, userId)
-			.then(() => true)
-			.catch(() => false);
+		const authed: SessionAndUser | null = await checkAuth(event, userId).catch(() => null);
 
-		return stripUser(await getUser(userId), authed);
+		const user = authed?.user || (await getUser(userId).catch(withError('User does not exist', 404)));
+
+		return stripUser(user, !!authed);
 	},
 	async PATCH(event): Result<'PATCH', 'users/:id'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 		const body: UserChangeable & Pick<User, 'emailVerified'> = await parseBody(event, UserChangeable);
 
 		await checkAuth(event, userId);
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
 
 		if ('email' in body) body.emailVerified = null;
 
@@ -83,12 +86,9 @@ addRoute({
 		return stripUser(result, true);
 	},
 	async DELETE(event): Result<'DELETE', 'users/:id'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 
 		await checkAuth(event, userId, true);
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
 
 		const result = await db
 			.deleteFrom('users')
@@ -105,16 +105,13 @@ addRoute({
 	path: '/api/users/:id/full',
 	params,
 	async GET(event): Result<'GET', 'users/:id/full'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 
-		await checkAuth(event, userId);
-
-		const user = stripUser(await getUser(userId), true);
-
+		const { user } = await checkAuth(event, userId);
 		const sessions = await getSessions(userId);
 
 		return {
-			...user,
+			...stripUser(user, true),
 			sessions: sessions.map(s => omit(s, 'token')),
 		};
 	},
@@ -124,11 +121,10 @@ addRoute({
 	path: '/api/users/:id/auth',
 	params,
 	async OPTIONS(event): Result<'OPTIONS', 'users/:id/auth'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 		const { type } = await parseBody(event, UserAuthOptions);
 
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
+		await getUser(userId).catch(withError('User does not exist', 404));
 
 		const passkeys = await getPasskeysByUserId(userId);
 
@@ -144,19 +140,15 @@ addRoute({
 		return options;
 	},
 	async POST(event: RequestEvent): Result<'POST', 'users/:id/auth'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 		const response = await parseBody(event, PasskeyAuthenticationResponse);
 
 		const auth = challenges.get(userId);
-		if (!auth) error(404, { message: 'No challenge found for this user' });
+		if (!auth) error(404, { message: 'No challenge' });
 		const { data: expectedChallenge, type } = auth;
 		challenges.delete(userId);
 
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
-
-		const passkey = await getPasskey(response.id);
-		if (!passkey) error(404, { message: 'Passkey does not exist' });
+		const passkey = await getPasskey(response.id).catch(withError('Passkey does not exist', 404));
 
 		if (passkey.userId !== userId) error(403, { message: 'Passkey does not belong to this user' });
 
@@ -192,14 +184,11 @@ addRoute({
 	 * Get passkey registration options for a user.
 	 */
 	async OPTIONS(event: RequestEvent): Result<'OPTIONS', 'users/:id/passkeys'> {
-		const { id: userId } = event.params;
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
+		const userId = event.params.id!;
 
 		const existing = await getPasskeysByUserId(userId);
 
-		await checkAuth(event, userId);
+		const { user } = await checkAuth(event, userId);
 
 		const options = await generateRegistrationOptions({
 			rpName: config.auth.rp_name,
@@ -224,10 +213,7 @@ addRoute({
 	 * Get passkeys for a user.
 	 */
 	async GET(event: RequestEvent): Result<'GET', 'users/:id/passkeys'> {
-		const { id: userId } = event.params;
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
+		const userId = event.params.id!;
 
 		await checkAuth(event, userId);
 
@@ -240,11 +226,8 @@ addRoute({
 	 * Register a new passkey for an existing user.
 	 */
 	async PUT(event: RequestEvent): Result<'PUT', 'users/:id/passkeys'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 		const response = await parseBody(event, PasskeyRegistration);
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
 
 		await checkAuth(event, userId);
 
@@ -276,7 +259,7 @@ addRoute({
 	path: '/api/users/:id/sessions',
 	params,
 	async GET(event): Result<'POST', 'users/:id/sessions'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 
 		await checkAuth(event, userId);
 
@@ -285,12 +268,13 @@ addRoute({
 		);
 	},
 	async DELETE(event: RequestEvent): Result<'DELETE', 'users/:id/sessions'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 		const body = await parseBody(event, LogoutSessions);
 
 		await checkAuth(event, userId, body.confirm_all);
 
-		const query = body.confirm_all ? db.deleteFrom('sessions') : db.deleteFrom('sessions').where('sessions.id', 'in', body.id);
+		if (!body.confirm_all && !Array.isArray(body.id)) error(400, { message: 'Invalid request body' });
+		const query = body.confirm_all ? db.deleteFrom('sessions') : db.deleteFrom('sessions').where('sessions.id', 'in', body.id!);
 
 		const result = await query
 			.where('sessions.userId', '=', userId)
@@ -306,26 +290,20 @@ addRoute({
 	path: '/api/users/:id/verify_email',
 	params,
 	async OPTIONS(event): Result<'OPTIONS', 'users/:id/verify_email'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 
 		if (!config.auth.email_verification) return { enabled: false };
 
 		await checkAuth(event, userId);
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
 
 		if (!config.auth.email_verification) return { enabled: false };
 
 		return { enabled: true };
 	},
 	async GET(event): Result<'GET', 'users/:id/verify_email'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 
-		await checkAuth(event, userId);
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
+		const { user } = await checkAuth(event, userId);
 
 		if (user.emailVerified) error(409, { message: 'Email already verified' });
 
@@ -334,13 +312,10 @@ addRoute({
 		return omit(verification, 'token', 'role');
 	},
 	async POST(event: RequestEvent): Result<'POST', 'users/:id/verify_email'> {
-		const { id: userId } = event.params;
+		const userId = event.params.id!;
 		const { token } = await parseBody(event, z.object({ token: z.string() }));
 
-		await checkAuth(event, userId);
-
-		const user = await getUser(userId);
-		if (!user) error(404, { message: 'User does not exist' });
+		const { user } = await checkAuth(event, userId);
 
 		if (user.emailVerified) error(409, { message: 'Email already verified' });
 

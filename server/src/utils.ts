@@ -1,10 +1,10 @@
-import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
 import type { NewSessionResponse } from '@axium/core/api';
-import { createSession, getSessionAndUser, type UserInternal } from './auth.js';
-import { config } from './config.js';
+import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
 import z from 'zod/v4';
+import { createSession, getSessionAndUser, type SessionAndUser, type UserInternal } from './auth.js';
+import { config } from './config.js';
 
 export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(
 	event: RequestEvent,
@@ -31,16 +31,18 @@ export function getToken(event: RequestEvent, sensitive: boolean = false): strin
 	}
 }
 
-export async function checkAuth(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<void> {
+export async function checkAuth(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<SessionAndUser> {
 	const token = getToken(event, sensitive);
 
 	if (!token) throw error(401, { message: 'Missing token' });
 
-	const { user, elevated } = await getSessionAndUser(token).catch(() => error(401, { message: 'Invalid or expired session' }));
+	const session = await getSessionAndUser(token).catch(() => error(401, { message: 'Invalid or expired session' }));
 
-	if (user?.id !== userId /* && !user.isAdmin */) error(403, { message: 'User ID mismatch' });
+	if (session.user?.id !== userId /* && !user.isAdmin */) error(403, { message: 'User ID mismatch' });
 
-	if (!elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
+	if (!session.elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
+
+	return session;
 }
 
 export async function createSessionData(event: RequestEvent, userId: string, elevated: boolean = false): Promise<NewSessionResponse> {

@@ -1,15 +1,15 @@
 /** Register a new user. */
 import type { Result } from '@axium/core/api';
 import { APIUserRegistration } from '@axium/core/schemas';
-import { createPasskey, getUser, getUserByEmail } from '@axium/server/auth';
-import config from '@axium/server/config';
-import { database as db, type Schema } from '@axium/server/database';
-import { addRoute } from '@axium/server/routes';
-import { createSessionData, parseBody, withError } from '@axium/server/utils';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import z from 'zod/v4';
+import { createPasskey, getUser } from '../auth.js';
+import config from '../config.js';
+import { database as db, type Schema } from '../database.js';
+import { addRoute } from '../routes.js';
+import { createSessionData, parseBody, withError } from '../utils.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
@@ -18,7 +18,7 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 	const { name, email } = await parseBody(event, z.object({ name: z.string().optional(), email: z.email().optional() }));
 
 	const userId = randomUUID();
-	const user = await getUser(userId);
+	const user = await getUser(userId).catch(() => null);
 	if (user) error(409, { message: 'Generated UUID is already in use, please retry.' });
 
 	const options = await generateRegistrationOptions({
@@ -43,7 +43,7 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 async function POST(event: RequestEvent): Result<'POST', 'register'> {
 	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
 
-	const existing = await getUserByEmail(email);
+	const existing = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();
 	if (existing) error(409, { message: 'Email already in use' });
 
 	const expectedChallenge = registrations.get(userId);

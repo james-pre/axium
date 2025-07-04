@@ -1,10 +1,10 @@
-import { authenticate } from '$lib/auth';
 import type { Result } from '@axium/core/api';
-import { connect, database as db } from '@axium/server/database';
-import { addRoute } from '@axium/server/routes';
-import { getToken, stripUser } from '@axium/server/utils';
 import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
+import { authenticate } from '../auth.js';
+import { connect, database as db } from '../database.js';
+import { addRoute } from '../routes.js';
+import { getToken, stripUser } from '../utils.js';
 
 addRoute({
 	path: '/api/session',
@@ -20,6 +20,7 @@ addRoute({
 	},
 	async DELETE(event): Result<'DELETE', 'session'> {
 		const token = getToken(event);
+		if (!token) error(401, 'Missing token');
 		connect();
 		const result = await db
 			.deleteFrom('sessions')

@@ -1,10 +1,10 @@
 import type { Result } from '@axium/core/api';
 import { requestMethods } from '@axium/core/requests';
-import { config } from '@axium/server/config';
-import { plugins } from '@axium/server/plugins';
-import { addRoute, routes } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import pkg from '../../package.json' with { type: 'json' };
+import { config } from '../config.js';
+import { plugins } from '../plugins.js';
+import { addRoute, routes } from '../routes.js';
 
 addRoute({
 	path: '/api/metadata',

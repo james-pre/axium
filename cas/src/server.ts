@@ -1,5 +1,5 @@
 import type { Result } from '@axium/core/api';
-import { getSessionAndUser, getUser } from '@axium/server/auth';
+import { getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
@@ -202,10 +202,7 @@ addRoute({
 	async GET(event): Result<'GET', 'users/:id/cas_items'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
-		const user = await getUser(event.params.id!);
-		if (!user) error(404, 'User not found');
-
-		await checkAuth(event, user.id);
+		const { user } = await checkAuth(event, event.params.id!);
 
 		return await database.selectFrom('cas').where('ownerId', '=', user.id).selectAll().execute();
 	},

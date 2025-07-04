@@ -1,12 +1,12 @@
 import type { Result } from '@axium/core/api';
 import { PasskeyChangeable } from '@axium/core/schemas';
-import { getPasskey } from '@axium/server/auth';
-import { database as db } from '@axium/server/database';
-import { addRoute } from '@axium/server/routes';
-import { checkAuth, parseBody, withError } from '@axium/server/utils';
 import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
 import z from 'zod/v4';
+import { getPasskey } from '../auth.js';
+import { database as db } from '../database.js';
+import { addRoute } from '../routes.js';
+import { checkAuth, parseBody, withError } from '../utils.js';
 
 addRoute({
 	path: '/api/passkeys/:id',
@@ -14,13 +14,13 @@ addRoute({
 		id: z.string(),
 	},
 	async GET(event): Result<'GET', 'passkeys/:id'> {
-		const passkey = await getPasskey(event.params.id);
+		const passkey = await getPasskey(event.params.id!);
 		await checkAuth(event, passkey.userId);
 		return omit(passkey, 'counter', 'publicKey');
 	},
 	async PATCH(event): Result<'PATCH', 'passkeys/:id'> {
 		const body = await parseBody(event, PasskeyChangeable);
-		const passkey = await getPasskey(event.params.id);
+		const passkey = await getPasskey(event.params.id!);
 		await checkAuth(event, passkey.userId);
 		const result = await db
 			.updateTable('passkeys')
@@ -33,7 +33,7 @@ addRoute({
 		return omit(result, 'counter', 'publicKey');
 	},
 	async DELETE(event): Result<'DELETE', 'passkeys/:id'> {
-		const passkey = await getPasskey(event.params.id);
+		const passkey = await getPasskey(event.params.id!);
 		await checkAuth(event, passkey.userId);
 
 		const { count } = await db

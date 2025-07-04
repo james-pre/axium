@@ -11,7 +11,7 @@ import { join } from 'node:path/posix';
 import { render } from 'svelte/server';
 import z from 'zod/v4';
 import { options } from '../.svelte-kit/generated/server/internal.js';
-import './api/index.js';
+import '@axium/server/api/index';
 
 _markDefaults();
 await loadDefaultConfigs();

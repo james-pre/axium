@@ -1,5 +1,6 @@
 import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
+import type { RequestEvent } from '@sveltejs/kit';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { connect, database as db } from './database.js';
@@ -9,18 +10,9 @@ export interface UserInternal extends User {
 	salt?: string | null;
 }
 
-export async function getUser(id: string) {
+export async function getUser(id: string): Promise<UserInternal> {
 	connect();
-	const result = await db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirst();
-	if (!result) return null;
-	return result;
-}
-
-export async function getUserByEmail(email: string) {
-	connect();
-	const result = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();
-	if (!result) return null;
-	return result;
+	return await db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 }
 
 export async function updateUser({ id, ...user }: UserInternal) {
@@ -50,7 +42,11 @@ export async function createSession(userId: string, elevated: boolean = false) {
 	return session;
 }
 
-export async function getSessionAndUser(token: string): Promise<SessionInternal & { user: UserInternal | null }> {
+export interface SessionAndUser extends SessionInternal {
+	user: UserInternal;
+}
+
+export async function getSessionAndUser(token: string): Promise<SessionAndUser> {
 	connect();
 	const result = await db
 		.selectFrom('sessions')
@@ -58,10 +54,10 @@ export async function getSessionAndUser(token: string): Promise<SessionInternal 
 		.select(eb => jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('users.id', '=', 'sessions.userId')).as('user'))
 		.where('sessions.token', '=', token)
 		.where('sessions.expires', '>', new Date())
-		.executeTakeFirst();
-	if (!result) throw new Error('Session not found');
+		.executeTakeFirstOrThrow();
 
-	return result;
+	if (!result.user) throw new Error('Session references non-existing user');
+	return result as typeof result & { user: UserInternal };
 }
 
 export async function getSession(sessionId: string): Promise<SessionInternal> {
@@ -116,11 +112,9 @@ export interface PasskeyInternal extends Passkey {
 	counter: number;
 }
 
-export async function getPasskey(id: string): Promise<PasskeyInternal | null> {
+export async function getPasskey(id: string): Promise<PasskeyInternal> {
 	connect();
-	const result = await db.selectFrom('passkeys').selectAll().where('id', '=', id).executeTakeFirst();
-	if (!result) return null;
-	return result;
+	return await db.selectFrom('passkeys').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 }
 
 export async function createPasskey(passkey: Omit<PasskeyInternal, 'createdAt'>): Promise<PasskeyInternal> {
@@ -140,4 +134,13 @@ export async function updatePasskeyCounter(id: PasskeyInternal['id'], newCounter
 	const passkey = await getPasskey(id);
 	if (!passkey) throw new Error('Passkey not found');
 	return passkey;
+}
+
+export async function authenticate(event: RequestEvent): Promise<SessionAndUser | null> {
+	const maybe_header = event.request.headers.get('Authorization');
+	const token = maybe_header?.startsWith('Bearer ') ? maybe_header.slice(7) : event.cookies.get('session_token');
+
+	if (!token) return null;
+
+	return await getSessionAndUser(token).catch(() => null);
 }
