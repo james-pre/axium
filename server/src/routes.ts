@@ -38,7 +38,6 @@ export type RouteOptions = ServerRouteOptions | WebRouteOptions;
 export interface RouteCommon {
 	path: string;
 	params?: Record<string, RouteParamOptions>;
-	[kBuiltin]: boolean;
 }
 
 export interface ServerRoute extends RouteCommon, EndpointHandlers {
@@ -59,10 +58,8 @@ export type Route = ServerRoute | WebRoute;
  */
 export const routes = new Map<string, Route>();
 
-const kBuiltin = Symbol('kBuiltin');
-
 export function addRoute(opt: RouteOptions): void {
-	const route = { ...opt, server: !('page' in opt), [kBuiltin]: false } as Route & { api?: boolean };
+	const route = { ...opt, server: !('page' in opt) } as Route & { api?: boolean };
 
 	if (!route.path.startsWith('/')) {
 		throw new Error(`Route path must start with a slash: ${route.path}`);
@@ -110,15 +107,5 @@ export function resolveRoute(event: { url: URL; params?: object }): Route | unde
 
 		event.params = params;
 		return route;
-	}
-}
-
-/**
- * This function marks all existing routes as built-in.
- * @internal
- */
-export function _markDefaults() {
-	for (const route of routes.values()) {
-		route[kBuiltin] = true;
 	}
 }

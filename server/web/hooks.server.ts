@@ -2,7 +2,7 @@ import type { RequestMethod } from '@axium/core/requests';
 import { config, loadDefaultConfigs } from '@axium/server/config';
 import { clean, database } from '@axium/server/database';
 import { dirs, logger } from '@axium/server/io';
-import { _markDefaults, resolveRoute, type ServerRoute } from '@axium/server/routes';
+import { resolveRoute, routes, type ServerRoute } from '@axium/server/routes';
 import type { RequestEvent, ResolveOptions } from '@sveltejs/kit';
 import { error, isHttpError, json, redirect } from '@sveltejs/kit';
 import { allLogLevels } from 'logzen';
@@ -13,9 +13,8 @@ import z from 'zod/v4';
 import { options } from '../.svelte-kit/generated/server/internal.js';
 import '@axium/server/api/index';
 
-_markDefaults();
-await loadDefaultConfigs();
 logger.attach(createWriteStream(join(dirs.at(-1), 'server.log')), { output: allLogLevels });
+await loadDefaultConfigs();
 await clean({});
 
 process.on('beforeExit', async () => {
