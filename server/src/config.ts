@@ -209,6 +209,8 @@ export interface LoadOptions {
  * Load the config from the provided path
  */
 export async function loadConfig(path: string, options: LoadOptions = {}) {
+	if (configFiles.has(path)) return;
+
 	let json;
 	try {
 		json = JSON.parse(readFileSync(path, 'utf8'));
