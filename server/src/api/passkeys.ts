@@ -6,7 +6,7 @@ import z from 'zod/v4';
 import { getPasskey } from '../auth.js';
 import { database as db } from '../database.js';
 import { addRoute } from '../routes.js';
-import { checkAuth, parseBody, withError } from '../utils.js';
+import { checkAuth, parseBody, withError } from '../requests.js';
 
 addRoute({
 	path: '/api/passkeys/:id',

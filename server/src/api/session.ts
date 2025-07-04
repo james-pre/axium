@@ -4,7 +4,7 @@ import { omit } from 'utilium';
 import { authenticate } from '../auth.js';
 import { connect, database as db } from '../database.js';
 import { addRoute } from '../routes.js';
-import { getToken, stripUser } from '../utils.js';
+import { getToken, stripUser } from '../requests.js';
 
 addRoute({
 	path: '/api/session',

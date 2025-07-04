@@ -9,7 +9,7 @@ import { createPasskey, getUser } from '../auth.js';
 import config from '../config.js';
 import { database as db, type Schema } from '../database.js';
 import { addRoute } from '../routes.js';
-import { createSessionData, parseBody, withError } from '../utils.js';
+import { createSessionData, parseBody, withError } from '../requests.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();

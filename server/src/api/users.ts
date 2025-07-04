@@ -1,6 +1,6 @@
 /** Register a new passkey for a new or existing user. */
 import type { Result } from '@axium/core/api';
-import { LogoutSessions, PasskeyAuthenticationResponse, UserAuthOptions } from '@axium/core/schemas';
+import { LogoutSessions, PasskeyAuthenticationResponse, PasskeyRegistration, UserAuthOptions } from '@axium/core/schemas';
 import { UserChangeable, type User } from '@axium/core/user';
 import {
 	generateAuthenticationOptions,
@@ -24,8 +24,7 @@ import {
 import { config } from '../config.js';
 import { connect, database as db } from '../database.js';
 import { addRoute } from '../routes.js';
-import { checkAuth, createSessionData, parseBody, stripUser, withError } from '../utils.js';
-import { PasskeyRegistration } from './schemas.js';
+import { checkAuth, createSessionData, parseBody, stripUser, withError } from '../requests.js';
 
 interface UserAuth {
 	data: string;

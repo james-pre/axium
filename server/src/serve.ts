@@ -22,5 +22,3 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
 		handler
 	);
 }
-
-export default serve;

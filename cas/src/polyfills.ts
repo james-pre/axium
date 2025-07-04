@@ -8,6 +8,8 @@ https://github.com/microsoft/TypeScript/issues/61695
 @todo Remove when TypeScript 5.9 is released
 */
 
+import { output } from '@axium/server/io';
+
 declare global {
 	interface Uint8ArrayConstructor {
 		/**
@@ -67,13 +69,13 @@ declare global {
 }
 
 Uint8Array.prototype.toHex ??=
-	(console.warn('Using a polyfill of Uint8Array.prototype.toHex'),
+	(output.warn('Using a polyfill of Uint8Array.prototype.toHex'),
 	function toHex(this: Uint8Array): string {
 		return [...this].map(b => b.toString(16).padStart(2, '0')).join('');
 	});
 
 Uint8Array.fromHex ??=
-	(console.warn('Using a polyfill of Uint8Array.fromHex'),
+	(output.warn('Using a polyfill of Uint8Array.fromHex'),
 	function fromHex(this: Uint8Array, hex: string): Uint8Array {
 		const bytes = new Uint8Array(hex.length / 2);
 		for (let i = 0; i < hex.length; i += 2) {

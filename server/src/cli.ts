@@ -8,7 +8,7 @@ import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, defaultOutput, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 import { getSpecifier, loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
-import serve from './serve.js';
+import { serve } from './serve.js';
 import { join } from 'node:path/posix';
 
 program
