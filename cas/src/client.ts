@@ -30,7 +30,9 @@ export async function uploadItem(file: File): Promise<CASMetadata> {
 }
 
 export async function getItemMetadata(fileId: string): Promise<CASMetadata> {
-	return fetchAPI('GET', 'cas/item/:id', undefined, fileId);
+	const result = await fetchAPI('GET', 'cas/item/:id', undefined, fileId);
+	result.lastModified = new Date(result.lastModified);
+	return result;
 }
 
 export async function downloadItem(fileId: string): Promise<Uint8Array> {
@@ -53,5 +55,9 @@ export async function deleteItem(fileId: string): Promise<CASMetadata> {
 }
 
 export async function listUserItems(userId: string): Promise<CASMetadata[]> {
-	return fetchAPI('GET', 'users/:id/cas_items', undefined, userId);
+	const result = await fetchAPI('GET', 'users/:id/cas_items', undefined, userId);
+	for (const item of result) {
+		item.lastModified = new Date(item.lastModified);
+	}
+	return result;
 }
