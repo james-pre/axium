@@ -50,7 +50,7 @@ function handleError(e: Error | HttpError) {
 	return json(e.body, { status: e.status });
 }
 
-const templatePath = join(import.meta.dirname, '../template.html');
+const templatePath = join(import.meta.dirname, '../web/template.html');
 const template = readFileSync(templatePath, 'utf-8');
 
 function fillTemplate({ head, body }: Record<'head' | 'body', string>, env: Record<string, string> = {}, nonce: string = ''): string {

@@ -3,10 +3,9 @@
 	"compilerOptions": {
 		"composite": true,
 		"rootDir": "src",
-		"outDir": "dist",
-		"allowJs": true
+		"outDir": "dist"
 	},
-	"include": ["src/**/*.ts"],
+	"include": ["src"],
 	"exclude": ["web", "build"],
 	"references": [{ "path": "../core" }, { "path": "../client" }]
 }

@@ -14,4 +14,4 @@ process.on('beforeExit', async () => {
 	await database.destroy();
 });
 
-export { handle } from '@axium/server/requests';
+export { handle } from '@axium/server/sveltekit';

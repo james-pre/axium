@@ -20,15 +20,15 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
-		"./lib/*": "./lib/*",
+		"./web/*": "./web/*",
 		"./$routes": "./routes",
 		"./svelte.config.js": "./svelte.config.js"
 	},
 	"files": [
 		"assets",
 		"dist",
-		"lib",
 		"routes",
+		"web",
 		"svelte.config.js"
 	],
 	"bin": {

@@ -8,7 +8,7 @@ import { join } from 'node:path/posix';
  */
 const fixed = p => join(import.meta.dirname, p);
 
-/** @type {import('@sveltejs/kit').SvelteKitConfig} */
+/** @type {import('@sveltejs/kit').Config} */
 export default {
 	compilerOptions: {
 		runes: true,
@@ -20,16 +20,16 @@ export default {
 	kit: {
 		adapter: node(),
 		alias: {
-			$stores: fixed('stores'),
-			$lib: fixed('lib'),
+			$stores: fixed('web/stores'),
+			$lib: fixed('web/lib'),
 		},
 		files: {
 			routes: 'routes',
-			lib: fixed('lib'),
+			lib: fixed('web/lib'),
 			assets: fixed('assets'),
-			appTemplate: fixed('template.html'),
+			appTemplate: fixed('web/template.html'),
 			hooks: {
-				server: fixed('hooks.server.ts'),
+				server: fixed('web/hooks.server.ts'),
 			},
 		},
 	},
