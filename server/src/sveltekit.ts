@@ -1,6 +1,6 @@
 import type { RequestMethod } from '@axium/core/requests';
 import type { HttpError, RequestEvent, ResolveOptions } from '@sveltejs/kit';
-import { error, isHttpError, json, redirect } from '@sveltejs/kit';
+import { error, json, redirect } from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import { render } from 'svelte/server';
@@ -39,15 +39,10 @@ async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promis
 	return json(result);
 }
 
-function failure(e: Error) {
+function handleError(e: Error | HttpError) {
+	if ('body' in e) return json(e.body, { status: e.status });
 	console.error(e);
 	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
-}
-
-function handleError(e: Error | HttpError) {
-	if (!isHttpError(e)) return failure(e);
-	console.error(e);
-	return json(e.body, { status: e.status });
 }
 
 const templatePath = join(import.meta.dirname, '../web/template.html');
@@ -86,16 +81,16 @@ export async function handle({
 	if (route.server == true) {
 		if (route.api) return await handleAPIRequest(event, route).catch(handleError);
 
+		const run = route[event.request.method as RequestMethod];
+		if (typeof run !== 'function') {
+			error(405, `Method ${event.request.method} not allowed for ${route.path}`);
+		}
 		try {
-			const run = route[event.request.method as RequestMethod];
-			if (typeof run !== 'function') {
-				error(405, `Method ${event.request.method} not allowed for ${route.path}`);
-			}
 			const result = await run(event);
 			if (result instanceof Response) return result;
 			return json(result);
 		} catch (e: any) {
-			return failure(e);
+			return handleError(e);
 		}
 	}
 

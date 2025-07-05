@@ -9,7 +9,7 @@ declare const globalThis: {
 	[sym]: Record<string, UniqueState<any>> & { _errored: boolean };
 };
 
-const sym = Symbol.for('Axium.state');
+const sym = Symbol.for('Axium:state');
 globalThis[sym] ||= Object.create({ _errored: false });
 
 /**

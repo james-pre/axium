@@ -2,16 +2,21 @@ import { fetchAPI, token } from '@axium/client/requests';
 import type { CASMetadata, CASUpdate } from './common.js';
 
 export async function uploadItem(file: File): Promise<CASMetadata> {
-	const response = await fetch('/raw/cas/upload', {
+	const init = {
 		method: 'PUT',
 		headers: {
 			'Content-Type': 'application/octet-stream',
 			'Content-Length': file.size.toString(),
 			'X-File-Name': file.name,
-			Authorization: 'Bearer ' + token,
-		},
+		} as Record<string, string>,
 		body: file,
-	});
+	};
+
+	if (token) {
+		init.headers.Authorization = 'Bearer ' + token;
+	}
+
+	const response = await fetch('/raw/cas/upload', init);
 
 	if (!response.headers.get('Content-Type')?.includes('application/json')) {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
@@ -30,9 +35,7 @@ export async function getItemMetadata(fileId: string): Promise<CASMetadata> {
 
 export async function downloadItem(fileId: string): Promise<Uint8Array> {
 	const response = await fetch('/raw/cas/' + fileId, {
-		headers: {
-			Authorization: 'Bearer ' + token,
-		},
+		headers: token ? { Authorization: 'Bearer ' + token } : {},
 	});
 
 	if (!response.ok) throw new Error('Failed to download item: ' + response.statusText);

@@ -1,6 +1,6 @@
 import type { NewSessionResponse } from '@axium/core/api';
 import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
-import { error, type RequestEvent } from '@sveltejs/kit';
+import { error, type HttpError, type RequestEvent } from '@sveltejs/kit';
 import { pick } from 'utilium';
 import z from 'zod/v4';
 import { createSession, getSessionAndUser, type SessionAndUser, type UserInternal } from './auth.js';
@@ -62,7 +62,8 @@ export function stripUser(user: UserInternal, includeProtected: boolean = false)
 }
 
 export function withError(text: string, code: number = 500) {
-	return function (e: Error) {
-		error(code, { message: text + (config.debug ? `: ${e.message}` : '') });
+	return function (e: Error | HttpError) {
+		if ('body' in e) throw e;
+		error(code, { message: text + (config.debug && e.message ? `: ${e.message}` : '') });
 	};
 }

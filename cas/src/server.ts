@@ -1,5 +1,5 @@
 import type { Result } from '@axium/core/api';
-import { getSessionAndUser } from '@axium/server/auth';
+import { authenticate, getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
@@ -40,6 +40,8 @@ export interface CASConfig {
 	max_item_size: number;
 	/** How many days files are kept in the trash */
 	trash_duration: number;
+	/** The maximum storage size per user in MiB */
+	max_user_size: number;
 }
 
 declare module '@axium/server/config' {
@@ -54,6 +56,7 @@ addConfigDefaults({
 		data: dirs.at(-1)! + '/cas',
 		max_item_size: 100,
 		trash_duration: 30,
+		max_user_size: 1024,
 	},
 });
 
@@ -61,6 +64,9 @@ export interface CASItem extends CASMetadata {
 	data: Uint8Array<ArrayBufferLike>;
 }
 
+/**
+ * Returns the current usage of the CAS for a user in bytes.
+ */
 export async function currentUsage(userId: string): Promise<number> {
 	connect();
 	const result = await database
@@ -162,11 +168,15 @@ addRoute({
 		if (!config.cas.enabled) error(403, 'CAS is disabled');
 
 		const token = getToken(event);
-		if (!token) error(401, 'Unauthorized');
+		if (!token) error(401, 'Missing session token');
 
-		const { userId } = await getSessionAndUser(token);
+		const { userId } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
+
+		const using = (await currentUsage(userId)) / 1048576;
 
 		const blob = await event.request.blob();
+
+		if (using + blob.size >= config.cas.max_user_size) error(409, 'Not enough space');
 
 		return await add(userId, blob);
 	},
