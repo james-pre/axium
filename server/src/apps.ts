@@ -1,11 +1,12 @@
 import { pick } from 'utilium';
+import { _unique } from './state.js';
 
 export interface CreateAppOptions {
 	id: string;
 	name?: string;
 }
 
-export const apps = new Map<string, App>();
+export const apps = _unique('apps', new Map<string, App>());
 
 export class App {
 	public readonly id!: string;

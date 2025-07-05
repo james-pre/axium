@@ -5,6 +5,7 @@ import { deepAssign, omit, type PartialRecursive } from 'utilium';
 import * as z from 'zod/v4';
 import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
+import { _unique } from './state.js';
 
 export interface Config extends Record<string, unknown> {
 	api: {
@@ -48,7 +49,7 @@ export interface Config extends Record<string, unknown> {
 	};
 }
 
-export const configFiles = new Map<string, File>();
+export const configFiles = _unique('configFiles', new Map<string, File>());
 
 export function plainConfig(): Omit<Config, keyof typeof configShortcuts> {
 	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);
@@ -65,7 +66,7 @@ const configShortcuts = {
 	files: configFiles,
 };
 
-export const config: Config & typeof configShortcuts = {
+export const config: Config & typeof configShortcuts = _unique('config', {
 	...configShortcuts,
 	api: {
 		disable_metadata: false,
@@ -103,7 +104,7 @@ export const config: Config & typeof configShortcuts = {
 		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
 	},
-};
+});
 export default config;
 
 // config from file

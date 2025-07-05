@@ -5,6 +5,7 @@ import type z from 'zod/v4';
 import { apps } from './apps.js';
 import config from './config.js';
 import { output } from './io.js';
+import { _unique } from './state.js';
 
 type _Params = Partial<Record<string, string>>;
 
@@ -57,7 +58,7 @@ export type Route = ServerRoute | WebRoute;
 /**
  * @internal
  */
-export const routes = new Map<string, Route>();
+export const routes = _unique('routes', new Map<string, Route>());
 
 export function addRoute(opt: RouteOptions): void {
 	const route = { ...opt, server: !('page' in opt) } as Route & { api?: boolean };

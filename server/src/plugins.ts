@@ -1,9 +1,10 @@
 import { zAsyncFunction } from '@axium/core/schemas';
 import * as fs from 'node:fs';
-import { join, resolve } from 'node:path/posix';
+import { resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import z from 'zod/v4';
-import { dirs, output } from './io.js';
+import { output } from './io.js';
+import { _unique } from './state.js';
 
 export const fn = z.custom<(...args: unknown[]) => any>(data => typeof data === 'function');
 
@@ -24,7 +25,7 @@ export interface Plugin extends z.infer<typeof Plugin> {
 	[kSpecifier]: string;
 }
 
-export const plugins = new Set<Plugin>();
+export const plugins = _unique('plugins', new Set<Plugin>());
 
 export function resolvePlugin(search: string): Plugin | undefined {
 	for (const plugin of plugins) {
