@@ -33,7 +33,7 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 		.addColumn('fileId', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('ownerId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
 		.addColumn('lastModified', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('restricted', 'boolean', col => col.notNull())
+		.addColumn('restricted', 'boolean', col => col.notNull().defaultTo(false))
 		.addColumn('size', 'integer', col => col.notNull())
 		.addColumn('trashedAt', 'timestamptz', col => col.defaultTo(null))
 		.addColumn('hash', 'bytea', col => col.notNull())

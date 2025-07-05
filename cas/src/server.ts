@@ -1,14 +1,14 @@
 import type { Result } from '@axium/core/api';
-import { authenticate, getSessionAndUser } from '@axium/server/auth';
+import { getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
+import { checkAuth, getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
-import { checkAuth, getToken, parseBody, withError } from '@axium/server/requests';
 import type { Generated } from 'kysely';
 import { createHash } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import { pick } from 'utilium';
 import z from 'zod/v4';
@@ -93,6 +93,8 @@ export async function add(ownerId: string, blob: Blob): Promise<CASMetadata> {
 	const content = await blob.bytes();
 
 	const hash = createHash('BLAKE2b512').update(content).digest();
+
+	mkdirSync(config.cas.data, { recursive: true });
 
 	writeFileSync(join(config.cas.data, hash.toHex()), content);
 
