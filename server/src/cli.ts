@@ -8,7 +8,7 @@ import { apps } from './apps.js';
 import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, defaultOutput, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
-import { getSpecifier, loadDefaultPlugins, plugins, pluginText, resolvePlugin } from './plugins.js';
+import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serve } from './serve.js';
 
 program
@@ -25,7 +25,6 @@ program.on('option:config', () => void config.load(program.opts<OptCommon>().con
 
 program.hook('preAction', async function (_, action: Command) {
 	await config.loadDefaults();
-	await loadDefaultPlugins();
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');
 	if (opt.debug === false) config.set({ debug: false });

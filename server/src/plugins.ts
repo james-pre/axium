@@ -81,9 +81,3 @@ export async function loadPlugins(dir: string) {
 		await loadPlugin(path);
 	}
 }
-
-export async function loadDefaultPlugins() {
-	for (const dir of dirs) {
-		await loadPlugins(join(dir, 'plugins'));
-	}
-}
