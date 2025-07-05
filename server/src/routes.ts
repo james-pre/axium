@@ -49,7 +49,7 @@ export interface ServerRoute extends RouteCommon, EndpointHandlers {
 export interface WebRoute extends RouteCommon {
 	server: false;
 	load?(event: RequestEvent): object | Promise<object>;
-	page?: Component;
+	page: Component;
 }
 
 export type Route = ServerRoute | WebRoute;
