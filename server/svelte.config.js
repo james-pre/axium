@@ -22,7 +22,7 @@ export default {
 		files: {
 			routes: 'web/routes',
 			lib: 'web/lib',
-			assets: 'web/static',
+			assets: 'web/assets',
 			appTemplate: 'web/app.html',
 			hooks: {
 				server: 'web/hooks.server.ts',

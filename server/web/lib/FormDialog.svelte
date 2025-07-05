@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import Dialog from './Dialog.svelte';
-	import './styles.css';
 
 	function resolveRedirectAfter() {
 		const maybe = page.url.searchParams.get('after');
