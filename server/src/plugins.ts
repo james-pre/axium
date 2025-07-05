@@ -8,7 +8,6 @@ import { dirs, output } from './io.js';
 export const fn = z.custom<(...args: unknown[]) => any>(data => typeof data === 'function');
 
 export const Plugin = z.object({
-	id: z.string(),
 	name: z.string(),
 	version: z.string(),
 	description: z.string().optional(),
@@ -29,14 +28,13 @@ export const plugins = new Set<Plugin>();
 
 export function resolvePlugin(search: string): Plugin | undefined {
 	for (const plugin of plugins) {
-		if (plugin.name.startsWith(search) || plugin.id.startsWith(search)) return plugin;
+		if (plugin.name.startsWith(search)) return plugin;
 	}
 }
 
 export function pluginText(plugin: Plugin): string {
 	return [
 		styleText('whiteBright', plugin.name),
-		plugin.id,
 		`Version: ${plugin.version}`,
 		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
 		`Database integration: ${
@@ -50,14 +48,19 @@ export function pluginText(plugin: Plugin): string {
 
 export async function loadPlugin(specifier: string) {
 	try {
+		const imported = await import(/* @vite-ignore */ specifier);
+
+		const maybePlugin = 'default' in imported ? imported.default : imported;
+
 		const plugin: Plugin = Object.assign(
-			await Plugin.parseAsync(await import(/* @vite-ignore */ specifier)).catch(e => {
+			await Plugin.parseAsync(maybePlugin).catch(e => {
 				throw z.prettifyError(e);
 			}),
 			{ [kSpecifier]: specifier }
 		);
+
 		plugins.add(plugin);
-		output.debug(`Loaded plugin: "${plugin.name}" (${plugin.id}) ${plugin.version}`);
+		output.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
 	} catch (e: any) {
 		output.debug(`Failed to load plugin from ${specifier}: ${e.message || e}`);
 	}

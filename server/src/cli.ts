@@ -226,7 +226,7 @@ axiumPlugin
 		console.log(styleText('whiteBright', plugins.size + ' plugin(s) loaded:'));
 
 		for (const plugin of plugins) {
-			console.log(plugin.name, styleText('dim', `(${plugin.id})`), opt.versions ? plugin.version : '');
+			console.log(plugin.name, opt.versions ? plugin.version : '');
 		}
 	});
 
@@ -315,7 +315,7 @@ program
 		console.log(
 			styleText('whiteBright', 'Loaded plugins:'),
 			Array.from(plugins)
-				.map(plugin => plugin.id)
+				.map(plugin => plugin.name)
 				.join(', ') || styleText('dim', '(none)')
 		);
 

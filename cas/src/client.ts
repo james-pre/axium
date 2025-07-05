@@ -1,5 +1,5 @@
 import { fetchAPI, token } from '@axium/client/requests';
-import type { CASMetadata } from './common.js';
+import type { CASMetadata, CASUpdate } from './common.js';
 
 export async function uploadItem(file: File): Promise<CASMetadata> {
 	const response = await fetch('/raw/cas/upload', {
@@ -41,20 +41,8 @@ export async function downloadItem(fileId: string): Promise<Uint8Array> {
 	return new Uint8Array(data);
 }
 
-export async function trashItem(fileId: string): Promise<CASMetadata> {
-	return fetchAPI('PATCH', 'cas/item/:id', { trash: true }, fileId);
-}
-
-export async function restoreItem(fileId: string): Promise<CASMetadata> {
-	return fetchAPI('PATCH', 'cas/item/:id', { trash: false }, fileId);
-}
-
-export async function restrictItem(fileId: string): Promise<CASMetadata> {
-	return fetchAPI('PATCH', 'cas/item/:id', { restrict: true }, fileId);
-}
-
-export async function unrestrictItem(fileId: string): Promise<CASMetadata> {
-	return fetchAPI('PATCH', 'cas/item/:id', { restrict: false }, fileId);
+export async function updateItem(fileId: string, metadata: CASUpdate): Promise<CASMetadata> {
+	return fetchAPI('PATCH', 'cas/item/:id', metadata, fileId);
 }
 
 export async function deleteItem(fileId: string): Promise<CASMetadata> {

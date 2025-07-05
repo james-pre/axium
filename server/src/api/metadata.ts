@@ -29,7 +29,7 @@ addRoute({
 						},
 					])
 			),
-			plugins: Object.fromEntries(plugins.values().map(plugin => [plugin.id, plugin.version])),
+			plugins: Object.fromEntries(plugins.values().map(plugin => [plugin.name, plugin.version])),
 		};
 	},
 });

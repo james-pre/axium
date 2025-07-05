@@ -7,8 +7,7 @@ import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
 
-export const id = pkg.name;
-export const name = 'Axium CAS';
+export const name = pkg.name;
 export const version = pkg.version;
 export const description = pkg.description;
 

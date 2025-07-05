@@ -97,7 +97,7 @@ export const config: Config & typeof configShortcuts = {
 	},
 	web: {
 		prefix: '',
-		assets: '/',
+		assets: '',
 		secure: true,
 		port: 443,
 		ssl_key: resolve(dirs[0], 'ssl_key.pem'),

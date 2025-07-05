@@ -10,8 +10,7 @@ import z from 'zod/v4';
 import pkg from '../package.json' with { type: 'json' };
 import { createShare, sharesTableFor } from './server.js';
 
-export const id = pkg.name;
-export const name = 'Axium Shares';
+export const name = pkg.name;
 export const version = pkg.version;
 export const description = pkg.description;
 
