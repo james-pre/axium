@@ -2,8 +2,7 @@
 	"include": ["secrets.json"],
 	"debug": true,
 	"auth": {
-		"secure_cookies": false,
-		"debug": true
+		"secure_cookies": false
 	},
 	"log": {
 		"level": "debug"
