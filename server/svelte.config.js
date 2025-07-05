@@ -2,9 +2,13 @@ import node from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { join } from 'node:path/posix';
 
-const web = join(import.meta.dirname, 'web');
+/**
+ * Paths relative to the directory of this file.
+ * This allows this file to be imported from other projects and still resolve to the correct paths.
+ */
+const fixed = p => join(import.meta.dirname, p);
 
-/** @type {import('@sveltejs/kit').Config} */
+/** @type {import('@sveltejs/kit').SvelteKitConfig} */
 export default {
 	compilerOptions: {
 		runes: true,
@@ -14,21 +18,18 @@ export default {
 		exclude: '@axium/server/**',
 	},
 	kit: {
-		adapter: node({
-			fallback: 'index.html',
-			strict: true,
-		}),
+		adapter: node(),
 		alias: {
-			$stores: web + '/stores',
-			$lib: web + '/lib',
+			$stores: fixed('stores'),
+			$lib: fixed('lib'),
 		},
 		files: {
-			routes: web + '/routes',
-			lib: web + '/lib',
-			assets: web + '/assets',
-			appTemplate: web + '/template.html',
+			routes: 'routes',
+			lib: fixed('lib'),
+			assets: fixed('assets'),
+			appTemplate: fixed('template.html'),
 			hooks: {
-				server: web + '/hooks.server.ts',
+				server: fixed('hooks.server.ts'),
 			},
 		},
 	},

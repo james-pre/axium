@@ -20,13 +20,16 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
-		"./web": "./web",
-		"./web/*": "./web/*",
+		"./lib/*": "./lib/*",
+		"./$routes": "./routes",
 		"./svelte.config.js": "./svelte.config.js"
 	},
 	"files": [
+		"assets",
 		"dist",
-		"web"
+		"lib",
+		"routes",
+		"svelte.config.js"
 	],
 	"bin": {
 		"axium": "dist/cli.js"
