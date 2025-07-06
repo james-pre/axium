@@ -6,8 +6,8 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { connect, database as db } from './database.js';
 
 export interface UserInternal extends User {
-	password?: string | null;
-	salt?: string | null;
+	isAdmin: boolean;
+	tags: string[];
 }
 
 export async function getUser(id: string): Promise<UserInternal> {

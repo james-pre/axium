@@ -38,7 +38,7 @@ export async function checkAuth(event: RequestEvent, userId: string, sensitive: 
 
 	const session = await getSessionAndUser(token).catch(() => error(401, { message: 'Invalid or expired session' }));
 
-	if (session.user?.id !== userId /* && !user.isAdmin */) error(403, { message: 'User ID mismatch' });
+	if (session.user?.id !== userId && !session.user?.isAdmin) error(403, { message: 'User ID mismatch' });
 
 	if (!session.elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
 

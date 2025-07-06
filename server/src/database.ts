@@ -17,7 +17,10 @@ export interface Schema {
 		name: string;
 		image?: string | null;
 		emailVerified?: Date | null;
-		preferences?: Preferences;
+		preferences: Preferences;
+		isAdmin: boolean;
+		roles: string[];
+		tags: string[];
 	};
 	sessions: {
 		id: GeneratedAlways<string>;
@@ -230,6 +233,9 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('email', 'text', col => col.unique().notNull())
 		.addColumn('emailVerified', 'timestamptz')
 		.addColumn('image', 'text')
+		.addColumn('isAdmin', 'boolean', col => col.notNull().defaultTo(false))
+		.addColumn('roles', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
+		.addColumn('tags', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
 		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo(sql`'{}'::jsonb`))
 		.execute()
 		.then(done)

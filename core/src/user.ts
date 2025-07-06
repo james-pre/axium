@@ -12,10 +12,12 @@ export const User = z.object({
 	email: z.email(),
 	emailVerified: z.date().nullable().optional(),
 	image: z.url().nullable().optional(),
+	preferences: z.record(z.string(), z.any()),
+	roles: z.array(z.string()),
 });
 
 export interface User extends z.infer<typeof User> {
-	preferences?: Preferences;
+	preferences: Preferences;
 }
 
 export const userPublicFields = ['id', 'image', 'name'] as const satisfies (keyof User)[];
@@ -23,12 +25,13 @@ export const userPublicFields = ['id', 'image', 'name'] as const satisfies (keyo
 type UserPublicField = (typeof userPublicFields)[number];
 export interface UserPublic extends Pick<User, UserPublicField> {}
 
-export const userProtectedFields = ['email', 'emailVerified', 'preferences'] as const satisfies (keyof User)[];
+export const userProtectedFields = ['email', 'emailVerified', 'preferences', 'roles'] as const satisfies (keyof User)[];
 
 export const UserChangeable = User.pick({
 	name: true,
 	email: true,
 	image: true,
+	preferences: true,
 }).partial();
 
 export type UserChangeable = z.infer<typeof UserChangeable>;
