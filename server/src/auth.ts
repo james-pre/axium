@@ -3,10 +3,12 @@ import type { User } from '@axium/core/user';
 import type { RequestEvent } from '@sveltejs/kit';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { connect, database as db } from './database.js';
+import { connect, database as db, type Schema } from './database.js';
+import type { Insertable } from 'kysely';
 
 export interface UserInternal extends User {
 	isAdmin: boolean;
+	/** Tags are internal, roles are public */
 	tags: string[];
 }
 
@@ -15,7 +17,7 @@ export async function getUser(id: string): Promise<UserInternal> {
 	return await db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 }
 
-export async function updateUser({ id, ...user }: UserInternal) {
+export async function updateUser({ id, ...user }: Insertable<Schema['users']>): Promise<UserInternal> {
 	connect();
 	const query = db.updateTable('users').set(user).where('id', '=', id);
 	return await query.returningAll().executeTakeFirstOrThrow();

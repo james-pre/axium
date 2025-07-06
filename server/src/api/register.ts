@@ -43,7 +43,7 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 async function POST(event: RequestEvent) {
 	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
 
-	const existing = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();
+	const existing = await db.selectFrom('users').selectAll().where('email', '=', email.toLowerCase()).executeTakeFirst();
 	if (existing) error(409, { message: 'Email already in use' });
 
 	const expectedChallenge = registrations.get(userId);
@@ -60,7 +60,7 @@ async function POST(event: RequestEvent) {
 
 	await db
 		.insertInto('users')
-		.values({ id: userId, name, email } as Schema['users'])
+		.values({ id: userId, name, email: email.toLowerCase() } as Schema['users'])
 		.executeTakeFirstOrThrow()
 		.catch(withError('Failed to create user'));
 

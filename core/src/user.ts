@@ -14,13 +14,14 @@ export const User = z.object({
 	image: z.url().nullable().optional(),
 	preferences: z.record(z.string(), z.any()),
 	roles: z.array(z.string()),
+	registeredAt: z.date(),
 });
 
 export interface User extends z.infer<typeof User> {
 	preferences: Preferences;
 }
 
-export const userPublicFields = ['id', 'image', 'name'] as const satisfies (keyof User)[];
+export const userPublicFields = ['id', 'image', 'name', 'registeredAt'] as const satisfies (keyof User)[];
 
 type UserPublicField = (typeof userPublicFields)[number];
 export interface UserPublic extends Pick<User, UserPublicField> {}

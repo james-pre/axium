@@ -12,7 +12,7 @@ import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simple
 
 export interface Schema {
 	users: {
-		id: GeneratedAlways<string> & string;
+		id: string;
 		email: string;
 		name: string;
 		image?: string | null;
@@ -21,6 +21,7 @@ export interface Schema {
 		isAdmin: boolean;
 		roles: string[];
 		tags: string[];
+		registeredAt: GeneratedAlways<Date>;
 	};
 	sessions: {
 		id: GeneratedAlways<string>;
@@ -237,6 +238,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('roles', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
 		.addColumn('tags', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
 		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo(sql`'{}'::jsonb`))
+		.addColumn('registeredAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.execute()
 		.then(done)
 		.catch(warnExists);
