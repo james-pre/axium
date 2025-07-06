@@ -2,7 +2,6 @@ import type { RequestMethod } from '@axium/core/requests';
 import type { HttpError, RequestEvent, ResolveOptions } from '@sveltejs/kit';
 import { error, json, redirect } from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
-import { join } from 'node:path/posix';
 import { render } from 'svelte/server';
 import z from 'zod/v4';
 import { config } from './config.js';
@@ -45,10 +44,10 @@ function handleError(e: Error | HttpError) {
 	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
 }
 
-const templatePath = join(import.meta.dirname, '../web/template.html');
-const template = readFileSync(templatePath, 'utf-8');
+let template = null;
 
 function fillTemplate({ head, body }: Record<'head' | 'body', string>, env: Record<string, string> = {}, nonce: string = ''): string {
+	template ||= readFileSync(config.web.template, 'utf-8');
 	return (
 		template
 			.replace('%sveltekit.head%', head)
@@ -56,7 +55,7 @@ function fillTemplate({ head, body }: Record<'head' | 'body', string>, env: Reco
 			.replace(/%sveltekit\.assets%/g, config.web.assets)
 			// Unused for now.
 			.replace(/%sveltekit\.nonce%/g, nonce)
-			.replace(/%sveltekit\.env\.([^%]+)%/g, (_match, capture) => env[capture] ?? '')
+			.replace(/%sveltekit\.env\.([^%]+)%/g, (_match: string[], key: string) => env[key] ?? '')
 	);
 }
 

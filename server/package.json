@@ -20,8 +20,10 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
-		"./web/*": "./web/*",
+		"./lib/*": "./web/lib/*",
+		"./$hooks": "./web/hooks.server.ts",
 		"./$routes": "./routes",
+		"./$template": "./web/template.html",
 		"./svelte.config.js": "./svelte.config.js"
 	},
 	"files": [

@@ -40,12 +40,13 @@ export interface Config extends Record<string, unknown> {
 		console: boolean;
 	};
 	web: {
-		prefix: string;
 		assets: string;
-		secure: boolean;
 		port: number;
+		prefix: string;
+		secure: boolean;
 		ssl_key: string;
 		ssl_cert: string;
+		template: string;
 	};
 }
 
@@ -97,12 +98,13 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 		level: 'info',
 	},
 	web: {
-		prefix: '',
 		assets: '',
-		secure: true,
 		port: 443,
+		prefix: '',
+		secure: true,
 		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
+		template: join(import.meta.dirname, '../web/template.html'),
 	},
 });
 export default config;
@@ -159,6 +161,7 @@ export const File = z
 				port: z.number().min(1).max(65535),
 				ssl_key: z.string(),
 				ssl_cert: z.string(),
+				template: z.string(),
 			})
 			.partial(),
 		include: z.array(z.string()).optional(),
