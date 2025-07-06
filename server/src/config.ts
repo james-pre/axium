@@ -43,6 +43,7 @@ export interface Config extends Record<string, unknown> {
 		assets: string;
 		port: number;
 		prefix: string;
+		routes: string;
 		secure: boolean;
 		ssl_key: string;
 		ssl_cert: string;
@@ -101,6 +102,7 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 		assets: '',
 		port: 443,
 		prefix: '',
+		routes: 'routes',
 		secure: true,
 		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
@@ -155,10 +157,11 @@ export const File = z
 			.partial(),
 		web: z
 			.object({
-				prefix: z.string(),
 				assets: z.string(),
-				secure: z.boolean(),
 				port: z.number().min(1).max(65535),
+				prefix: z.string(),
+				routes: z.string(),
+				secure: z.boolean(),
 				ssl_key: z.string(),
 				ssl_cert: z.string(),
 				template: z.string(),
