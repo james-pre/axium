@@ -41,6 +41,7 @@ export interface Config extends Record<string, unknown> {
 	};
 	web: {
 		assets: string;
+		disable_cache: boolean;
 		port: number;
 		prefix: string;
 		routes: string;
@@ -100,6 +101,7 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 	},
 	web: {
 		assets: '',
+		disable_cache: false,
 		port: 443,
 		prefix: '',
 		routes: 'routes',
@@ -158,6 +160,7 @@ export const File = z
 		web: z
 			.object({
 				assets: z.string(),
+				disable_cache: z.boolean(),
 				port: z.number().min(1).max(65535),
 				prefix: z.string(),
 				routes: z.string(),

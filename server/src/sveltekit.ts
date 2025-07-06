@@ -2,6 +2,7 @@ import type { RequestMethod } from '@axium/core/requests';
 import type { HttpError, RequestEvent, ResolveOptions } from '@sveltejs/kit';
 import { error, json, redirect } from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
+import { styleText } from 'node:util';
 import { render } from 'svelte/server';
 import z from 'zod/v4';
 import { config } from './config.js';
@@ -73,7 +74,7 @@ export async function handle({
 
 	if (!route && event.url.pathname === '/') redirect(303, '/_axium/default');
 
-	if (config.debug) console.log(event.request.method.padEnd(7), route ? route.path : event.url.pathname);
+	if (config.debug) console.log(styleText('blueBright', event.request.method.padEnd(7)), route ? route.path : event.url.pathname);
 
 	if (!route) return await resolve(event).catch(handleError);
 
@@ -98,12 +99,14 @@ export async function handle({
 	const body = fillTemplate(render(route.page));
 
 	return new Response(body, {
-		headers: {
-			'Content-Type': 'text/html; charset=utf-8',
-			'Cache-Control': 'no-cache, no-store, must-revalidate',
-			Pragma: 'no-cache',
-			Expires: '0',
-		},
+		headers: config.web.disable_cache
+			? {
+					'Content-Type': 'text/html; charset=utf-8',
+					'Cache-Control': 'no-cache, no-store, must-revalidate',
+					Pragma: 'no-cache',
+					Expires: '0',
+				}
+			: {},
 		status: 200,
 	});
 }
