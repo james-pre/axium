@@ -1,6 +1,6 @@
 import type { RequestMethod } from '@axium/core/requests';
-import type { HttpError, RequestEvent, ResolveOptions } from '@sveltejs/kit';
-import { error, json, redirect } from '@sveltejs/kit';
+import type { HttpError, Redirect, RequestEvent, ResolveOptions } from '@sveltejs/kit';
+import { error, json } from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
@@ -39,8 +39,9 @@ async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promis
 	return json(result);
 }
 
-function handleError(e: Error | HttpError) {
+function handleError(e: Error | HttpError | Redirect) {
 	if ('body' in e) return json(e.body, { status: e.status });
+	if ('location' in e) return Response.redirect(e.location, e.status);
 	console.error(e);
 	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
 }
@@ -72,7 +73,8 @@ export async function handle({
 }) {
 	const route = resolveRoute(event);
 
-	if (!route && event.url.pathname === '/') redirect(303, '/_axium/default');
+	if (!route && event.url.pathname === '/' && config.debug)
+		return new Response(null, { status: 303, headers: { Location: '/_axium/default' } });
 
 	if (config.debug) console.log(styleText('blueBright', event.request.method.padEnd(7)), route ? route.path : event.url.pathname);
 
