@@ -42,3 +42,13 @@ declare module '@axium/core/api' {
 		};
 	}
 }
+
+export function formatBytes(bytes: number): string {
+	const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+
+	const i = Math.floor(Math.log10(bytes) / 3);
+
+	const value = bytes / Math.pow(1000, i);
+
+	return `${value.toFixed(2)} ${units[i]}`;
+}

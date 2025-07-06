@@ -36,11 +36,11 @@ export interface CASConfig {
 	enabled?: boolean;
 	/** Path to data directory */
 	data: string;
-	/** The maximum size per file in MiB */
+	/** The maximum size per file in MB */
 	max_item_size: number;
 	/** How many days files are kept in the trash */
 	trash_duration: number;
-	/** The maximum storage size per user in MiB */
+	/** The maximum storage size per user in MB */
 	max_user_size: number;
 }
 
@@ -56,7 +56,7 @@ addConfigDefaults({
 		data: dirs.at(-1)! + '/cas',
 		max_item_size: 100,
 		trash_duration: 30,
-		max_user_size: 1024,
+		max_user_size: 1000,
 	},
 });
 
@@ -86,7 +86,7 @@ export async function get(fileId: string): Promise<CASMetadata> {
 }
 
 export async function add(ownerId: string, blob: Blob, name: string | null): Promise<CASMetadata> {
-	if (blob.size > config.cas.max_item_size * 1048576) throw new Error('File size exceeds maximum size');
+	if (blob.size > config.cas.max_item_size * 1_000_000) throw new Error('File size exceeds maximum size');
 
 	connect();
 
@@ -181,7 +181,7 @@ addRoute({
 
 		const blob = await event.request.blob();
 
-		if ((using + blob.size) / 1048576 >= config.cas.max_user_size) error(409, 'Not enough space');
+		if ((using + blob.size) / 1_000_000 >= config.cas.max_user_size) error(409, 'Not enough space');
 
 		return await add(userId, blob, event.request.headers.get('x-name'));
 	},
@@ -223,7 +223,7 @@ addRoute({
 
 		const usage = await currentUsage(user.id);
 
-		const limit = config.cas.max_user_size * 1048576; // Convert to bytes
+		const limit = config.cas.max_user_size * 1_000_000;
 
 		return { usage, limit, items };
 	},
