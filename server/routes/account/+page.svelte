@@ -191,11 +191,12 @@
 				</div>
 				<FormDialog
 					bind:dialog={dialogs['logout#' + session.id]}
-					submit={() =>
-						logout(user.id, session.id).then(() => {
-							if (session.id == currentSession.id) goto('/');
-							else sessions.splice(sessions.indexOf(session), 1);
-						})}
+					submit={async () => {
+						await logout(user.id, session.id);
+						dialogs['logout#' + session.id].remove();
+						sessions.splice(sessions.indexOf(session), 1);
+						if (session.id == currentSession.id) goto('/');
+					}}
 					submitText="Logout"
 				>
 					<p>Are you sure you want to log out this session?</p>
