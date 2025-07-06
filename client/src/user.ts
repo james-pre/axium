@@ -6,7 +6,7 @@ import { UserChangeable, type PasskeyChangeable } from '@axium/core';
 export async function login(userId: string) {
 	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'login' }, userId);
 	const response = await startAuthentication({ optionsJSON: options });
-	await fetchAPI('POST', 'users/:id/auth', response, userId);
+	return await fetchAPI('POST', 'users/:id/auth', response, userId);
 }
 
 /**
