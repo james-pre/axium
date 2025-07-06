@@ -1,13 +1,13 @@
 import { fetchAPI, token } from '@axium/client/requests';
-import type { CASMetadata, CASUpdate } from './common.js';
+import type { CASMetadata, CASUpdate, UserCASInfo } from './common.js';
 
 export async function uploadItem(file: File): Promise<CASMetadata> {
 	const init = {
 		method: 'PUT',
 		headers: {
-			'Content-Type': 'application/octet-stream',
+			'Content-Type': file.type,
 			'Content-Length': file.size.toString(),
-			'X-File-Name': file.name,
+			'X-Name': file.name,
 		} as Record<string, string>,
 		body: file,
 	};
@@ -54,9 +54,9 @@ export async function deleteItem(fileId: string): Promise<CASMetadata> {
 	return fetchAPI('DELETE', 'cas/item/:id', undefined, fileId);
 }
 
-export async function listUserItems(userId: string): Promise<CASMetadata[]> {
-	const result = await fetchAPI('GET', 'users/:id/cas_items', undefined, userId);
-	for (const item of result) {
+export async function getUserCAS(userId: string): Promise<UserCASInfo> {
+	const result = await fetchAPI('GET', 'users/:id/cas', undefined, userId);
+	for (const item of result.items) {
 		item.lastModified = new Date(item.lastModified);
 	}
 	return result;

@@ -24,10 +24,16 @@ export interface CASMetadata {
 	data_url?: string;
 }
 
+export interface UserCASInfo {
+	usage: number;
+	limit: number;
+	items: CASMetadata[];
+}
+
 declare module '@axium/core/api' {
 	export interface _apiTypes {
-		'users/:id/cas_items': {
-			GET: CASMetadata[];
+		'users/:id/cas': {
+			GET: UserCASInfo;
 		};
 		'cas/item/:id': {
 			GET: CASMetadata;

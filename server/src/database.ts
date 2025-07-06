@@ -48,10 +48,17 @@ export interface Schema {
 
 export type Database = Kysely<Schema> & AsyncDisposable;
 
+const sym = Symbol.for('Axium:database');
+
+declare const globalThis: {
+	[sym]?: Database;
+};
+
 export let database: Database;
 
 export function connect(): Database {
 	if (database) return database;
+	if (globalThis[sym]) return (database = globalThis[sym]);
 
 	const _db = new Kysely<Schema>({
 		dialect: new PostgresDialect({ pool: new pg.Pool(config.db) }),
@@ -63,6 +70,7 @@ export function connect(): Database {
 		},
 	});
 
+	globalThis[sym] = database;
 	return database;
 }
 

@@ -85,7 +85,7 @@ export async function get(fileId: string): Promise<CASMetadata> {
 	});
 }
 
-export async function add(ownerId: string, blob: Blob): Promise<CASMetadata> {
+export async function add(ownerId: string, blob: Blob, name: string | null): Promise<CASMetadata> {
 	if (blob.size > config.cas.max_item_size * 1048576) throw new Error('File size exceeds maximum size');
 
 	connect();
@@ -100,7 +100,7 @@ export async function add(ownerId: string, blob: Blob): Promise<CASMetadata> {
 
 	return await database
 		.insertInto('cas')
-		.values({ ownerId, hash, ...pick(blob, 'size', 'type') })
+		.values({ ownerId, hash, name, ...pick(blob, 'size', 'type') })
 		.returningAll()
 		.executeTakeFirstOrThrow();
 }
@@ -177,13 +177,13 @@ addRoute({
 
 		const { userId } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
 
-		const using = (await currentUsage(userId)) / 1048576;
+		const using = await currentUsage(userId);
 
 		const blob = await event.request.blob();
 
-		if (using + blob.size >= config.cas.max_user_size) error(409, 'Not enough space');
+		if ((using + blob.size) / 1048576 >= config.cas.max_user_size) error(409, 'Not enough space');
 
-		return await add(userId, blob);
+		return await add(userId, blob, event.request.headers.get('x-name'));
 	},
 });
 
@@ -212,13 +212,19 @@ addRoute({
 });
 
 addRoute({
-	path: '/api/users/:id/cas_items',
+	path: '/api/users/:id/cas',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'users/:id/cas_items'> {
+	async GET(event): Result<'GET', 'users/:id/cas'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
 		const { user } = await checkAuth(event, event.params.id!);
 
-		return await database.selectFrom('cas').where('ownerId', '=', user.id).selectAll().execute();
+		const items = await database.selectFrom('cas').where('ownerId', '=', user.id).selectAll().execute();
+
+		const usage = await currentUsage(user.id);
+
+		const limit = config.cas.max_user_size * 1048576; // Convert to bytes
+
+		return { usage, limit, items };
 	},
 });
