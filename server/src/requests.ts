@@ -1,6 +1,6 @@
-import type { NewSessionResponse } from '@axium/core/api';
 import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
-import { error, type HttpError, type RequestEvent } from '@sveltejs/kit';
+import { error, json, type HttpError, type RequestEvent } from '@sveltejs/kit';
+import { serialize as serializeCookie } from 'cookie';
 import { pick } from 'utilium';
 import z from 'zod/v4';
 import { createSession, getSessionAndUser, type SessionAndUser, type UserInternal } from './auth.js';
@@ -45,16 +45,21 @@ export async function checkAuth(event: RequestEvent, userId: string, sensitive: 
 	return session;
 }
 
-export async function createSessionData(event: RequestEvent, userId: string, elevated: boolean = false): Promise<NewSessionResponse> {
-	const { token } = await createSession(userId, elevated);
+export async function createSessionData(userId: string, elevated: boolean = false): Promise<Response> {
+	const { token, expires } = await createSession(userId, elevated);
 
-	if (elevated) {
-		event.cookies.set('elevated_token', token, { httpOnly: true, path: '/', expires: new Date(Date.now() + 10 * 60_000) });
-		return { userId, token: '[[redacted:elevated]]' };
-	} else {
-		event.cookies.set('session_token', token, { httpOnly: config.auth.secure_cookies, path: '/' });
-		return { userId, token };
-	}
+	const response = json({ userId, token: elevated ? '[[redacted:elevated]]' : token }, { status: 201 });
+
+	const cookies = serializeCookie(elevated ? 'elevated_token' : 'session_token', token, {
+		httpOnly: true,
+		path: '/',
+		expires,
+		secure: config.auth.secure_cookies,
+		sameSite: 'lax',
+	});
+
+	response.headers.set('Set-Cookie', cookies);
+	return response;
 }
 
 export function stripUser(user: UserInternal, includeProtected: boolean = false): User {

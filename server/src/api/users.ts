@@ -138,7 +138,7 @@ addRoute({
 
 		return options;
 	},
-	async POST(event: RequestEvent): Result<'POST', 'users/:id/auth'> {
+	async POST(event: RequestEvent) {
 		const userId = event.params.id!;
 		const response = await parseBody(event, PasskeyAuthenticationResponse);
 
@@ -163,12 +163,12 @@ addRoute({
 
 		switch (type) {
 			case 'login':
-				return await createSessionData(event, userId);
+				return await createSessionData(userId);
 			case 'action':
 				if ((Date.now() - passkey.createdAt.getTime()) / 60_000 < config.auth.passkey_probation)
 					error(403, { message: 'You can not authorize sensitive actions with a newly created passkey' });
 
-				return await createSessionData(event, userId, true);
+				return await createSessionData(userId, true);
 		}
 	},
 });

@@ -40,7 +40,7 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 	return { userId, options };
 }
 
-async function POST(event: RequestEvent): Result<'POST', 'register'> {
+async function POST(event: RequestEvent) {
 	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
 
 	const existing = await db.selectFrom('users').selectAll().where('email', '=', email).executeTakeFirst();
@@ -72,7 +72,7 @@ async function POST(event: RequestEvent): Result<'POST', 'register'> {
 		backedUp: registrationInfo.credentialBackedUp,
 	}).catch(e => error(500, { message: 'Failed to create passkey' + (config.debug ? `: ${e.message}` : '') }));
 
-	return await createSessionData(event, userId);
+	return await createSessionData(userId);
 }
 
 addRoute({

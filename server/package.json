@@ -51,6 +51,7 @@
 		"@sveltejs/kit": "^2.20.2",
 		"@types/pg": "^8.11.11",
 		"commander": "^13.1.0",
+		"cookie": "^1.0.2",
 		"kysely": "^0.28.0",
 		"logzen": "^0.7.0",
 		"mime": "^4.0.7",
