@@ -2,7 +2,8 @@ import type {} from '@axium/core/api';
 import z from 'zod/v4';
 
 export const CASUpdate = z.object({
-	set_owner: z.uuid().optional(),
+	owner: z.uuid().optional(),
+	name: z.string().optional(),
 	trash: z.boolean().optional(),
 	restrict: z.boolean().optional(),
 });

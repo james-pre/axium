@@ -135,12 +135,15 @@ addRoute({
 		const values: Partial<CASMetadata> = {};
 		if ('restrict' in body) values.restricted = body.restrict;
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
-		if ('set_owner' in body) values.ownerId = body.set_owner;
+		if ('owner' in body) values.ownerId = body.owner;
+		if ('name' in body) values.name = body.name;
+
+		if (!Object.keys(values).length) error(400, 'No valid fields to update');
 
 		return await database
 			.updateTable('cas')
-			.set(values)
 			.where('fileId', '=', itemId)
+			.set(values)
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update CAS item'));
