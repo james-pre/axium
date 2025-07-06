@@ -37,17 +37,8 @@ jobs:
                   fi
                   echo "path=$PACKAGE" >> $GITHUB_OUTPUT
 
-            - name: Build core
-              run: npx tsc -p core
-
-            - name: Build server
-              run: npx tsc -p server
-
-            - name: Build shares
-              run: npx tsc -p shares
-
-            - name: Build CAS
-              run: npx tsc -p cas
+            - name: Build
+              run: npx tsc -b
 
             - name: Publish
               run: npm publish --access=public --provenance

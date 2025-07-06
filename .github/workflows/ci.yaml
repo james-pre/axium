@@ -36,17 +36,5 @@ jobs:
             - name: Linting
               run: npm run lint
 
-            - name: Build Core
-              run: npx tsc -p core
-
-            - name: Build Client
-              run: npx tsc -p client
-
-            - name: Build Server
-              run: npx tsc -p server
-
-            - name: Build Shares
-              run: npx tsc -p shares
-
-            - name: Build CAS
-              run: npx tsc -p cas
+            - name: Build
+              run: npx tsc -b
