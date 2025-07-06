@@ -21,7 +21,8 @@
 	"text/css": "css",
 	"text/csv": "file-csv",
 	"text/html": "code",
-	"text/javascript": "square-js",
+	"text/javascript": "brands/square-js",
+	"application/x-javascript": "brands/square-js",
 	"text/plain": "file-lines",
 	"text/xml": "code",
 	"video": "clapperboard-play"
