@@ -26,6 +26,8 @@ export async function uploadItem(file: File): Promise<CASMetadata> {
 
 	if (!response.ok) throw new Error(json.message);
 
+	json.lastModified = new Date(json.lastModified);
+
 	return json;
 }
 

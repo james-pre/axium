@@ -50,5 +50,5 @@ export function formatBytes(bytes: number): string {
 
 	const value = bytes / Math.pow(1000, i);
 
-	return `${value.toFixed(2)} ${units[i]}`;
+	return `${Number.isSafeInteger(value) ? value : value.toFixed(2)} ${units[i]}`;
 }
