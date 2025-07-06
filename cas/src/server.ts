@@ -8,7 +8,7 @@ import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import type { Generated } from 'kysely';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import { pick } from 'utilium';
 import z from 'zod/v4';
@@ -158,12 +158,22 @@ addRoute({
 
 		await checkAuth(event, item.ownerId);
 
-		return await database
+		const result = await database
 			.deleteFrom('cas')
 			.where('fileId', '=', itemId)
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not delete CAS item'));
+
+		const { count } = await database
+			.selectFrom('cas')
+			.where('hash', '=', item.hash)
+			.select(eb => eb.fn.countAll().as('count'))
+			.executeTakeFirstOrThrow();
+
+		if (!Number(count)) unlinkSync(join(config.cas.data, item.hash.toHex()));
+
+		return result;
 	},
 });
 
