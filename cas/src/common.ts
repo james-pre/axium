@@ -42,13 +42,3 @@ declare module '@axium/core/api' {
 		};
 	}
 }
-
-export function formatBytes(bytes: number): string {
-	const units = ['B', 'KB', 'MB', 'GB', 'TB'];
-
-	const i = bytes == 0 ? 0 : Math.floor(Math.log10(bytes) / 3);
-
-	const value = bytes == 0 ? 0 : bytes / Math.pow(1000, i);
-
-	return `${Number.isSafeInteger(value) ? value : value.toFixed(2)} ${units[i]}`;
-}
