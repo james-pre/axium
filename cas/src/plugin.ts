@@ -2,16 +2,13 @@ import config from '@axium/server/config';
 import type { Database, InitOptions, OpOptions, PluginShortcuts } from '@axium/server/database';
 import { count, database } from '@axium/server/database';
 import type { WithOutput } from '@axium/server/io';
+import type { Plugin } from '@axium/server/plugins';
 import { sql } from 'kysely';
 import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
 
-export const name = pkg.name;
-export const version = pkg.version;
-export const description = pkg.description;
-
-export async function statusText(): Promise<string> {
+async function statusText(): Promise<string> {
 	const items = await count('cas');
 	const result = await database
 		.selectFrom('cas')
@@ -26,7 +23,7 @@ export async function statusText(): Promise<string> {
 	return `${items} items totaling ${size} bytes`;
 }
 
-export async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
+async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
 	opt.output('start', 'Creating table cas');
 	await db.schema
 		.createTable('cas')
@@ -44,19 +41,19 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 		.catch(warnExists);
 }
 
-export async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
+async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
 	opt.output('start', 'Removing data from cas');
 	await db.deleteFrom('cas').execute();
 	opt.output('done');
 }
 
-export async function db_remove(opt: OpOptions & WithOutput, db: Database) {
+async function remove(opt: OpOptions & WithOutput, db: Database) {
 	opt.output('start', 'Dropping table cas');
 	await db.schema.dropTable('cas').execute();
 	opt.output('done');
 }
 
-export async function db_clean(opt: OpOptions & WithOutput, db: Database) {
+async function clean(opt: OpOptions & WithOutput, db: Database) {
 	const { trash_duration } = config.cas;
 
 	opt.output('start', `Removing trashed CAS items older than ${trash_duration} days`);
@@ -69,3 +66,9 @@ export async function db_clean(opt: OpOptions & WithOutput, db: Database) {
 		.executeTakeFirstOrThrow()
 		.then(() => opt.output('done'));
 }
+
+export default {
+	...pkg,
+	statusText,
+	hooks: { db_init, db_wipe, remove, clean },
+} satisfies Plugin;

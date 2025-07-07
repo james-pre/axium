@@ -3,47 +3,55 @@ import * as fs from 'node:fs';
 import { resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import z from 'zod/v4';
-import { output } from './io.js';
+import type { Database, InitOptions, OpOptions, PluginShortcuts } from './database.js';
+import { output, type WithOutput } from './io.js';
 import { _unique } from './state.js';
 
-export const fn = z.custom<(...args: unknown[]) => any>(data => typeof data === 'function');
-
-export const Plugin = z.object({
+export const PluginMetadata = z.looseObject({
 	name: z.string(),
 	version: z.string(),
 	description: z.string().optional(),
+	routes: z.string().optional(),
+});
+
+const hookNames = ['db_init', 'remove', 'db_wipe', 'clean'] as const satisfies (keyof Hooks)[];
+
+const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
+export const Plugin = PluginMetadata.extend({
 	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })),
-	db_init: fn.optional(),
-	db_remove: fn.optional(),
-	db_wipe: fn.optional(),
-	db_clean: fn.optional(),
+	hooks: z.partialRecord(z.literal(hookNames), fn).optional(),
 });
 
 const kSpecifier = Symbol('specifier');
 
-export interface Plugin extends z.infer<typeof Plugin> {
+export type Plugin = z.infer<typeof Plugin>;
+
+interface PluginInternal extends Plugin {
 	[kSpecifier]: string;
+	hooks: Hooks;
 }
 
-export const plugins = _unique('plugins', new Set<Plugin>());
+export interface Hooks {
+	db_init?: (opt: InitOptions & WithOutput, db: Database, shortcuts: PluginShortcuts) => void | Promise<void>;
+	remove?: (opt: { force?: boolean } & WithOutput, db: Database) => void | Promise<void>;
+	db_wipe?: (opt: OpOptions & WithOutput, db: Database) => void | Promise<void>;
+	clean?: (opt: Partial<OpOptions> & WithOutput, db: Database) => void | Promise<void>;
+}
 
-export function resolvePlugin(search: string): Plugin | undefined {
+export const plugins = _unique('plugins', new Set<PluginInternal>());
+
+export function resolvePlugin(search: string): PluginInternal | undefined {
 	for (const plugin of plugins) {
-		if (plugin.name.startsWith(search)) return plugin;
+		if (plugin.name === search) return plugin;
 	}
 }
 
-export function pluginText(plugin: Plugin): string {
+export function pluginText(plugin: PluginInternal): string {
 	return [
 		styleText('whiteBright', plugin.name),
 		`Version: ${plugin.version}`,
 		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
-		`Database integration: ${
-			[plugin.db_init, plugin.db_remove, plugin.db_wipe]
-				.filter(Boolean)
-				.map(fn => fn?.name.slice(3))
-				.join(', ') || styleText('dim', '(none)')
-		}`,
+		`Hooks: ${Object.keys(plugin.hooks).join(', ') || styleText('dim', '(none)')}`,
 	].join('\n');
 }
 
@@ -53,11 +61,11 @@ export async function loadPlugin(specifier: string) {
 
 		const maybePlugin = 'default' in imported ? imported.default : imported;
 
-		const plugin: Plugin = Object.assign(
+		const plugin: PluginInternal = Object.assign(
+			{ hooks: {}, [kSpecifier]: specifier },
 			await Plugin.parseAsync(maybePlugin).catch(e => {
 				throw z.prettifyError(e);
-			}),
-			{ [kSpecifier]: specifier }
+			})
 		);
 
 		plugins.add(plugin);
@@ -67,7 +75,7 @@ export async function loadPlugin(specifier: string) {
 	}
 }
 
-export function getSpecifier(plugin: Plugin): string {
+export function getSpecifier(plugin: PluginInternal): string {
 	return plugin[kSpecifier];
 }
 

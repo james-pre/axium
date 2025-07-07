@@ -272,7 +272,7 @@ axiumPlugin
 
 		await using _ = db.connect();
 
-		await plugin.db_remove?.({ ...opt, output: defaultOutput }, db.database);
+		await plugin.hooks.remove?.({ ...opt, output: defaultOutput }, db.database);
 
 		for (const [path, data] of configFiles) {
 			if (!data.plugins) continue;

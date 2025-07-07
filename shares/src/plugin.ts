@@ -3,18 +3,15 @@ import config from '@axium/server/config';
 import type { Database, InitOptions, OpOptions, PluginShortcuts, Schema } from '@axium/server/database';
 import { count } from '@axium/server/database';
 import type { WithOutput } from '@axium/server/io';
-import { addRoute } from '@axium/server/routes';
+import type { Plugin } from '@axium/server/plugins';
 import { parseBody } from '@axium/server/requests';
+import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import z from 'zod/v4';
 import pkg from '../package.json' with { type: 'json' };
 import { createShare, sharesTableFor } from './server.js';
 
-export const name = pkg.name;
-export const version = pkg.version;
-export const description = pkg.description;
-
-export async function statusText(): Promise<string> {
+async function statusText(): Promise<string> {
 	let text = '';
 	for (const table of config.shares) {
 		const shares = await count(sharesTableFor(table));
@@ -23,7 +20,7 @@ export async function statusText(): Promise<string> {
 	return text;
 }
 
-export async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
+async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
 	opt.output('start', 'Creating schema shares');
 	await db.schema.createSchema('shares').execute().then(done).catch(warnExists);
 
@@ -48,13 +45,19 @@ export async function db_init(opt: InitOptions & WithOutput, db: Database, { war
 	}
 }
 
-export async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
+async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
 	for (const table of config.shares) {
 		opt.output('start', 'Wiping table ' + table);
 		await db.deleteFrom(sharesTableFor(table)).execute();
 		opt.output('done');
 	}
 }
+
+export default {
+	...pkg,
+	statusText,
+	hooks: { db_init, db_wipe },
+} satisfies Plugin;
 
 addRoute({
 	path: '/api/share/:itemType',
