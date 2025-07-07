@@ -3,7 +3,7 @@ import { error, json, type HttpError, type RequestEvent } from '@sveltejs/kit';
 import { serialize as serializeCookie } from 'cookie';
 import { pick } from 'utilium';
 import z from 'zod/v4';
-import { createSession, getSessionAndUser, type SessionAndUser, type UserInternal } from './auth.js';
+import { createSession, getSessionAndUser, getUser, type SessionAndUser, type UserInternal } from './auth.js';
 import { config } from './config.js';
 
 export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(
@@ -31,18 +31,32 @@ export function getToken(event: RequestEvent, sensitive: boolean = false): strin
 	}
 }
 
-export async function checkAuth(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<SessionAndUser> {
+export interface AuthResult extends SessionAndUser {
+	/** The user authenticating the request. */
+	accessor: UserInternal;
+}
+
+export async function checkAuth(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<AuthResult> {
 	const token = getToken(event, sensitive);
 
 	if (!token) throw error(401, { message: 'Missing token' });
 
 	const session = await getSessionAndUser(token).catch(() => error(401, { message: 'Invalid or expired session' }));
 
-	if (session.user?.id !== userId && !session.user?.isAdmin) error(403, { message: 'User ID mismatch' });
+	if (session.userId !== userId) {
+		if (!session.user?.isAdmin) error(403, { message: 'User ID mismatch' });
+
+		// Admins are allowed to manage other users.
+
+		const accessor = session.user;
+		session.user = await getUser(userId).catch(() => error(404, { message: 'Target user not found' }));
+
+		return Object.assign(session, { accessor });
+	}
 
 	if (!session.elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
 
-	return session;
+	return Object.assign(session, { accessor: session.user });
 }
 
 export async function createSessionData(userId: string, elevated: boolean = false): Promise<Response> {
