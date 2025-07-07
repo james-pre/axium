@@ -1,6 +1,5 @@
 {
 	"include": ["secrets.json"],
-	"debug": true,
 	"auth": {
 		"secure_cookies": false
 	},
