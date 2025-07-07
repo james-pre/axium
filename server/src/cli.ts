@@ -1,15 +1,35 @@
 #!/usr/bin/env node
+import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
 import { join } from 'node:path/posix';
+import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
+import z from 'zod/v4';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
+import type { UserInternal } from './auth.js';
 import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, defaultOutput, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
 import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serve } from './serve.js';
+
+function readline() {
+	const rl = createInterface({
+		input: process.stdin,
+		output: process.stdout,
+	});
+
+	return Object.assign(rl, {
+		[Symbol.dispose]: rl.close.bind(rl),
+	});
+}
+
+function userText(user: UserInternal, bold: boolean = false): string {
+	const text = `${user.name} <${user.email}> (${user.id})`;
+	return bold ? styleText('bold', text) : text;
+}
 
 program
 	.version($pkg.version)
@@ -287,6 +307,165 @@ axiumApps
 		for (const app of apps.values()) {
 			console.log(app.name, styleText('dim', `(${app.id})`));
 		}
+	});
+
+const lookup = new Argument('<user>', 'the UUID or email of the user to operate on').argParser(
+	async (lookup: string): Promise<UserInternal> => {
+		const value = await (lookup.includes('@') ? z.email() : z.uuid())
+			.parseAsync(lookup.toLowerCase())
+			.catch(() => exit('Invalid user ID or email.'));
+
+		db.connect();
+
+		const result = await db.database
+			.selectFrom('users')
+			.where(value.includes('@') ? 'email' : 'id', '=', value)
+			.selectAll()
+			.executeTakeFirst();
+
+		if (!result) exit('No user with matching ID or email.');
+
+		return result;
+	}
+);
+
+/**
+ * Updates an array of strings by adding or removing items.
+ * Only returns whether the array was updated and diff text for what actually changed.
+ */
+function diffUpdate(original: string[], add?: string[], remove?: string[]): [updated: boolean, newValue: string[], diffText: string] {
+	const diffs: string[] = [];
+
+	// update the values
+	if (add) {
+		for (const role of add) {
+			if (original.includes(role)) continue;
+			original.push(role);
+			diffs.push(styleText('green', '+' + role));
+		}
+	}
+	if (remove)
+		original = original.filter(item => {
+			const allow = !remove.includes(item);
+			if (!allow) diffs.push(styleText('red', '-' + item));
+			return allow;
+		});
+
+	return [!!diffs.length, original, diffs.join(', ')];
+}
+
+interface OptUser extends OptCommon {
+	sessions: boolean;
+	passkeys: boolean;
+	addRole?: string[];
+	removeRole?: string[];
+	tag?: string[];
+	untag?: string[];
+	delete?: boolean;
+}
+
+program
+	.command('user')
+	.description('Get or change information about a user')
+	.addArgument(lookup)
+	.option('-S, --sessions', 'show user sessions')
+	.option('-P, --passkeys', 'show user passkeys')
+	.option('--add-role <role...>', 'add roles to the user')
+	.option('--remove-role <role...>', 'remove roles from the user')
+	.option('--tag <tag...>', 'Add tags to the user')
+	.option('--untag <tag...>', 'Remove tags from the user')
+	.option('--delete', 'Delete the user')
+	.action(async (_user: Promise<UserInternal>, opt: OptUser) => {
+		let user = await _user;
+		await using _ = db.connect();
+
+		const [updatedRoles, roles, rolesDiff] = diffUpdate(user.roles, opt.addRole, opt.removeRole);
+		const [updatedTags, tags, tagsDiff] = diffUpdate(user.tags, opt.tag, opt.untag);
+
+		if (updatedRoles || updatedTags) {
+			user = await db.database
+				.updateTable('users')
+				.set({ roles, tags })
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.then(u => {
+					if (updatedRoles && rolesDiff) console.log(`> Updated roles: ${rolesDiff}`);
+					if (updatedTags && tagsDiff) console.log(`> Updated tags: ${tagsDiff}`);
+					return u;
+				})
+				.catch(e => exit('Failed to update user roles: ' + e.message));
+		}
+
+		if (opt.delete) {
+			using rl = readline();
+			const confirmed = await rl
+				.question(`Are you sure you want to delete ${userText(user, true)}? (y/N) `)
+				.then(v => z.stringbool().parseAsync(v))
+				.catch(() => false);
+
+			if (!confirmed) console.log(styleText('dim', '> Delete aborted.'));
+			else
+				await db.database
+					.deleteFrom('users')
+					.where('id', '=', user.id)
+					.executeTakeFirstOrThrow()
+					.then(() => console.log(styleText(['red', 'bold'], '> Deleted')))
+					.catch(e => exit('Failed to delete user: ' + e.message));
+		}
+
+		console.log(
+			[
+				user.isAdmin && styleText('redBright', 'Administrator'),
+				'UUID: ' + user.id,
+				'Name: ' + user.name,
+				`Email: ${user.email}, ${user.emailVerified ? 'verified on ' + formatDateRange(user.emailVerified) : styleText(config.auth.email_verification ? 'yellow' : 'dim', 'not verified')}`,
+				'Registered ' + formatDateRange(user.registeredAt),
+				`Roles: ${user.roles.length ? user.roles.join(', ') : styleText('dim', '(none)')}`,
+				`Tags: ${user.tags.length ? user.tags.join(', ') : styleText('dim', '(none)')}`,
+			]
+				.filter(Boolean)
+				.join('\n')
+		);
+
+		if (opt.sessions) {
+			const sessions = await db.database.selectFrom('sessions').where('userId', '=', user.id).selectAll().execute();
+
+			console.log(styleText('bold', 'Sessions:'));
+			if (!sessions.length) console.log(styleText('dim', '(none)'));
+			else
+				for (const session of sessions) {
+					console.log(
+						`\t${session.id}\tcreated ${formatDateRange(session.created).padEnd(40)}\texpires ${formatDateRange(session.expires).padEnd(40)}\t${session.elevated ? styleText('yellow', '(elevated)') : ''}`
+					);
+				}
+		}
+
+		if (opt.passkeys) {
+			const passkeys = await db.database.selectFrom('passkeys').where('userId', '=', user.id).selectAll().execute();
+
+			console.log(styleText('bold', 'Passkeys:'));
+			for (const passkey of passkeys) {
+				console.log(
+					`\t${passkey.id}: created ${formatDateRange(passkey.createdAt).padEnd(40)} used ${passkey.counter} times. ${passkey.deviceType}, ${passkey.backedUp ? '' : 'not '}backed up; transports are [${passkey.transports.join(', ')}], ${passkey.name ? 'named ' + JSON.stringify(passkey.name) : 'unnamed'}.`
+				);
+			}
+		}
+	});
+
+program
+	.command('toggle-admin')
+	.description('Toggle whether a user is an administrator')
+	.addArgument(lookup)
+	.action(async (_user: Promise<UserInternal>) => {
+		const user = await _user;
+		await using _ = db.connect();
+
+		const isAdmin = !user.isAdmin;
+		await db.database.updateTable('users').set({ isAdmin }).where('id', '=', user.id).executeTakeFirstOrThrow();
+
+		console.log(
+			`${userText(user)} is ${isAdmin ? 'now' : 'no longer'} an administrator. (${styleText(['whiteBright', 'bold'], isAdmin.toString())})`
+		);
 	});
 
 program
