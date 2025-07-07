@@ -227,11 +227,13 @@ addRoute({
 	async GET(event): Result<'GET', 'users/:id/cas'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
-		const { user } = await checkAuth(event, event.params.id!);
+		const userId = event.params.id!;
 
-		const items = await database.selectFrom('cas').where('ownerId', '=', user.id).selectAll().execute();
+		await checkAuth(event, userId);
 
-		const usage = await currentUsage(user.id);
+		const items = await database.selectFrom('cas').where('ownerId', '=', userId).selectAll().execute();
+
+		const usage = await currentUsage(userId);
 
 		const limit = config.cas.max_user_size * 1_000_000;
 
