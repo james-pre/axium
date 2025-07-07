@@ -1,10 +1,11 @@
-export function formatDateRange(date: Date, future: boolean = false): string {
-	const daysCount = (Date.now() - date.getTime()) / (24 * 3600_000);
+export function formatDateRange(date: Date): string {
+	const rawDays = (date.getTime() - Date.now()) / (24 * 3600_000);
+	const daysCount = Math.abs(rawDays);
 	const daysText = Number.isInteger(daysCount) ? daysCount : daysCount.toFixed(1);
 
-	const plural = Math.abs(daysCount) !== 1 ? 's' : '';
+	const plural = daysCount == 1 ? '' : 's';
 
-	return `${date.toLocaleString()} (${future ? `in ${daysText} day${plural}` : `${daysText} day${plural} ago`})`;
+	return `${date.toLocaleString()} (${rawDays >= 0 ? `in ${daysText} day${plural}` : `${daysText} day${plural} ago`})`;
 }
 
 export function formatBytes(bytes: number): string {
