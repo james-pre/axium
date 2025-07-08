@@ -10,7 +10,7 @@ const textFor: Record<string, string> = {
 
 function info(id: string): [text: string, link: string] {
 	const text = id.startsWith('#') ? textFor[id.slice(1)] : `routes for plugin: ${id}`;
-	const link = join(config.web.routes, `(${id.startsWith('#') ? id.slice(1) : id.replaceAll('/', '__')}`);
+	const link = join(config.web.routes, `(${id.startsWith('#') ? id.slice(1) : id.replaceAll('/', '__')})`);
 	return [text, link];
 }
 
@@ -43,7 +43,7 @@ function createLink(id: string, routes: string) {
 	}
 
 	try {
-		symlinkSync(routes, link, 'dir');
+		symlinkSync(link, routes, 'dir');
 	} catch (e: any) {
 		io.exit(e && e instanceof Error ? e.message : e.toString());
 	}
