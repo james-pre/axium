@@ -1,6 +1,6 @@
 {
 	"name": "@axium/shares",
-	"version": "0.1.4",
+	"version": "0.1.5",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "Item sharing for Axium",
 	"funding": {
@@ -32,8 +32,8 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.2.0",
-		"@axium/server": ">=0.8.0"
+		"@axium/core": ">=0.4.0",
+		"@axium/server": ">=0.11.0"
 	},
 	"dependencies": {
 		"@sveltejs/kit": "^2.22.2",

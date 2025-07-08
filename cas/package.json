@@ -1,6 +1,6 @@
 {
 	"name": "@axium/cas",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "Content Addressable Storage for Axium",
 	"funding": {
@@ -31,8 +31,8 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.0.2",
-		"@axium/server": ">=0.7.0",
+		"@axium/core": ">=0.4.0",
+		"@axium/server": ">=0.11.0",
 		"@axium/client": ">=0.1.0",
 		"@sveltejs/kit": "^2.22.2",
 		"utilium": "^2.3.8"
