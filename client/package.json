@@ -1,6 +1,6 @@
 {
 	"name": "@axium/client",
-	"version": "0.1.1",
+	"version": "0.1.2",
 	"author": "James Prevett <jp@jamespre.dev>",
 	"funding": {
 		"type": "individual",
@@ -30,10 +30,10 @@
 	"peerDependencies": {
 		"@axium/core": ">=0.3.0",
 		"utilium": "^2.3.8",
-		"zod": "^3.25.61"
+		"zod": "^3.25.76"
 	},
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.1.0",
-		"commander": "^13.1.0"
+		"commander": "^14.0.0"
 	}
 }
