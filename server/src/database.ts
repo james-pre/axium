@@ -1,14 +1,13 @@
 import type { Preferences } from '@axium/core';
+import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import { Kysely, PostgresDialect, sql, type GeneratedAlways, type SelectQueryBuilder } from 'kysely';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
 import type { VerificationRole } from './auth.js';
 import config from './config.js';
-import type { MaybeOutput, WithOutput } from './io.js';
-import { _fixOutput, run, someWarnings } from './io.js';
+import * as io from './io.js';
 import { plugins } from './plugins.js';
-import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 
 export interface Schema {
 	users: {
@@ -110,8 +109,7 @@ export async function statusText(): Promise<string> {
 	}
 }
 
-export interface OpOptions extends MaybeOutput {
-	timeout: number;
+export interface OpOptions {
 	force: boolean;
 }
 
@@ -119,25 +117,25 @@ export interface InitOptions extends OpOptions {
 	skip: boolean;
 }
 
-export function shouldRecreate(opt: InitOptions & WithOutput): boolean {
+export function shouldRecreate(opt: InitOptions): boolean {
 	if (opt.skip) {
-		opt.output('warn', 'already exists. (skipped)');
+		io.warn('already exists. (skipped)');
 		return true;
 	}
 
 	if (opt.force) {
-		opt.output('warn', 'already exists. (re-creating)');
+		io.warn('already exists. (re-creating)');
 		return false;
 	}
 
-	opt.output('warn', 'already exists. Use --skip to skip or --force to re-create.');
+	io.warn('already exists. Use --skip to skip or --force to re-create.');
 	throw 2;
 }
 
-export async function getHBA(opt: OpOptions & WithOutput): Promise<[content: string, writeBack: (newContent: string) => void]> {
-	const hbaShowResult = await run(opt, 'Finding pg_hba.conf', `sudo -u postgres psql -c "SHOW hba_file"`);
+export async function getHBA(opt: OpOptions): Promise<[content: string, writeBack: (newContent: string) => void]> {
+	const hbaShowResult = await io.run('Finding pg_hba.conf', `sudo -u postgres psql -c "SHOW hba_file"`);
 
-	opt.output('start', 'Resolving pg_hba.conf path');
+	io.start('Resolving pg_hba.conf path');
 
 	const hbaPath = hbaShowResult.match(/^\s*(.+\.conf)\s*$/m)?.[1]?.trim();
 
@@ -145,25 +143,20 @@ export async function getHBA(opt: OpOptions & WithOutput): Promise<[content: str
 		throw 'failed. You will need to add password-based auth for the axium user manually.';
 	}
 
-	opt.output('done');
-	opt.output('debug', `Found pg_hba.conf at ${hbaPath}`);
+	io.done();
+	io.debug(`Found pg_hba.conf at ${hbaPath}`);
 
-	opt.output('start', 'Reading HBA configuration');
+	io.start('Reading HBA configuration');
 	const content = readFileSync(hbaPath, 'utf-8');
-	opt.output('done');
+	io.done();
 
 	const writeBack = (newContent: string): void => {
-		opt.output('start', 'Writing HBA configuration');
+		io.start('Writing HBA configuration');
 		writeFileSync(hbaPath, newContent);
-		opt.output('done');
+		io.done();
 	};
 
 	return [content, writeBack];
-}
-
-export interface PluginShortcuts {
-	done: () => void;
-	warnExists: (error: string | Error) => void;
 }
 
 const pgHba = `
@@ -172,19 +165,22 @@ host  axium axium 127.0.0.1/32 md5
 host  axium axium ::1/128 md5
 `;
 
+const _sql = (command: string, message: string) => io.run(message, `sudo -u postgres psql -c "${command}"`);
+/** Shortcut to output a warning if an error is thrown because relation already exists */
+export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'already exists.']);
+const throwUnlessRows = (text: string) => {
+	if (text.includes('(0 rows)')) throw 'missing.';
+	return text;
+};
+
 export async function init(opt: InitOptions): Promise<void> {
-	_fixOutput(opt);
 	if (!config.db.password) {
 		config.save({ db: { password: randomBytes(32).toString('base64') } }, true);
-		opt.output('debug', 'Generated password and wrote to global config');
+		io.debug('Generated password and wrote to global config');
 	}
 
-	await run(opt, 'Checking for sudo', 'which sudo');
-	await run(opt, 'Checking for psql', 'which psql');
-
-	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
-	const warnExists = someWarnings(opt.output, [/(schema|relation) "[\w.]+" already exists/, 'already exists.']);
-	const done = () => opt.output('done');
+	await io.run('Checking for sudo', 'which sudo');
+	await io.run('Checking for psql', 'which psql');
 
 	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
 		if (error != 'database "axium" already exists') throw error;
@@ -210,23 +206,23 @@ export async function init(opt: InitOptions): Promise<void> {
 
 	await getHBA(opt)
 		.then(([content, writeBack]) => {
-			opt.output('start', 'Checking for Axium HBA configuration');
+			io.start('Checking for Axium HBA configuration');
 			if (content.includes(pgHba)) throw 'already exists.';
-			done();
+			io.done();
 
-			opt.output('start', 'Adding Axium HBA configuration');
+			io.start('Adding Axium HBA configuration');
 			const newContent = content.replace(/^local\s+all\s+all.*$/m, `$&\n${pgHba}`);
-			done();
+			io.done();
 
 			writeBack(newContent);
 		})
-		.catch(e => opt.output('warn', e));
+		.catch(io.warn);
 
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
 	await using db = connect();
 
-	opt.output('start', 'Creating table users');
+	io.start('Creating table users');
 	await db.schema
 		.createTable('users')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
@@ -240,10 +236,10 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo(sql`'{}'::jsonb`))
 		.addColumn('registeredAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.execute()
-		.then(done)
+		.then(io.done)
 		.catch(warnExists);
 
-	opt.output('start', 'Creating table sessions');
+	io.start('Creating table sessions');
 	await db.schema
 		.createTable('sessions')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
@@ -253,13 +249,13 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.addColumn('elevated', 'boolean', col => col.notNull())
 		.execute()
-		.then(done)
+		.then(io.done)
 		.catch(warnExists);
 
-	opt.output('start', 'Creating index for sessions.userId');
-	await db.schema.createIndex('sessions_userId_index').on('sessions').column('userId').execute().then(done).catch(warnExists);
+	io.start('Creating index for sessions.userId');
+	await db.schema.createIndex('sessions_userId_index').on('sessions').column('userId').execute().then(io.done).catch(warnExists);
 
-	opt.output('start', 'Creating table verifications');
+	io.start('Creating table verifications');
 	await db.schema
 		.createTable('verifications')
 		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
@@ -267,10 +263,10 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.addColumn('role', 'text', col => col.notNull())
 		.execute()
-		.then(done)
+		.then(io.done)
 		.catch(warnExists);
 
-	opt.output('start', 'Creating table passkeys');
+	io.start('Creating table passkeys');
 	await db.schema
 		.createTable('passkeys')
 		.addColumn('id', 'text', col => col.primaryKey().notNull())
@@ -283,74 +279,62 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('backedUp', 'boolean', col => col.notNull())
 		.addColumn('transports', sql`text[]`)
 		.execute()
-		.then(done)
+		.then(io.done)
 		.catch(warnExists);
 
-	opt.output('start', 'Creating index for passkeys.id');
-	await db.schema.createIndex('passkeys_id_key').on('passkeys').column('id').execute().then(done).catch(warnExists);
+	io.start('Creating index for passkeys.id');
+	await db.schema.createIndex('passkeys_id_key').on('passkeys').column('id').execute().then(io.done).catch(warnExists);
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.db_init) continue;
-		opt.output('plugin', plugin.name);
-		await plugin.hooks.db_init(opt, db, { warnExists, done } satisfies PluginShortcuts);
+		io.plugin(plugin.name);
+		await plugin.hooks.db_init(opt, db);
 	}
 }
 
 export async function check(opt: OpOptions): Promise<void> {
-	_fixOutput(opt);
-
-	await run(opt, 'Checking for sudo', 'which sudo');
-	await run(opt, 'Checking for psql', 'which psql');
-
-	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
-	const done = () => opt.output('done');
-	const throwUnlessRows = (text: string) => {
-		if (text.includes('(0 rows)')) throw 'missing.';
-		return text;
-	};
+	await io.run('Checking for sudo', 'which sudo');
+	await io.run('Checking for psql', 'which psql');
 
 	await _sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database').then(throwUnlessRows);
 
 	await _sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
 
-	opt.output('start', 'Connecting to database');
+	io.start('Connecting to database');
 	await using db = connect();
-	done();
+	io.done();
 
-	opt.output('start', `Checking users table`);
-	await db.selectFrom('users').select(['id', 'email', 'emailVerified', 'image', 'name', 'preferences']).execute().then(done);
+	io.start('Checking users table');
+	await db.selectFrom('users').select(['id', 'email', 'emailVerified', 'image', 'name', 'preferences']).execute().then(io.done);
 
-	opt.output('start', `Checking sessions table`);
-	await db.selectFrom('sessions').select(['id', 'userId', 'token', 'created', 'expires', 'elevated']).execute().then(done);
+	io.start('Checking sessions table');
+	await db.selectFrom('sessions').select(['id', 'userId', 'token', 'created', 'expires', 'elevated']).execute().then(io.done);
 
-	opt.output('start', `Checking verifications table`);
-	await db.selectFrom('verifications').select(['userId', 'token', 'expires', 'role']).execute().then(done);
+	io.start('Checking verifications table');
+	await db.selectFrom('verifications').select(['userId', 'token', 'expires', 'role']).execute().then(io.done);
 
-	opt.output('start', `Checking passkeys table`);
+	io.start('Checking passkeys table');
 	await db
 		.selectFrom('passkeys')
 		.select(['id', 'name', 'createdAt', 'userId', 'publicKey', 'counter', 'deviceType', 'backedUp', 'transports'])
 		.execute()
-		.then(done);
+		.then(io.done);
 }
 
 export async function clean(opt: Partial<OpOptions>): Promise<void> {
-	_fixOutput(opt);
-
-	const done = () => opt.output('done');
 	const now = new Date();
 
 	const db = connect();
 
-	opt.output('start', 'Removing expired sessions');
-	await db.deleteFrom('sessions').where('sessions.expires', '<', now).execute().then(done);
+	io.start('Removing expired sessions');
+	await db.deleteFrom('sessions').where('sessions.expires', '<', now).execute().then(io.done);
 
-	opt.output('start', 'Removing expired verifications');
-	await db.deleteFrom('verifications').where('verifications.expires', '<', now).execute().then(done);
+	io.start('Removing expired verifications');
+	await db.deleteFrom('verifications').where('verifications.expires', '<', now).execute().then(io.done);
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.clean) continue;
-		opt.output('plugin', plugin.name);
+		io.plugin(plugin.name);
 		await plugin.hooks.clean(opt, db);
 	}
 }
@@ -359,53 +343,48 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
  * Completely remove Axium from the database.
  */
 export async function uninstall(opt: OpOptions): Promise<void> {
-	_fixOutput(opt);
-
 	await using db = connect();
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.remove) continue;
-		opt.output('plugin', plugin.name);
+		io.plugin(plugin.name);
 		await plugin.hooks.remove(opt, db);
 	}
 
-	const _sql = (command: string, message: string) => run(opt, message, `sudo -u postgres psql -c "${command}"`);
 	await _sql('DROP DATABASE axium', 'Dropping database');
 	await _sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
 	await _sql('DROP USER axium', 'Dropping user');
 
 	await getHBA(opt)
 		.then(([content, writeBack]) => {
-			opt.output('start', 'Checking for Axium HBA configuration');
+			io.start('Checking for Axium HBA configuration');
 			if (!content.includes(pgHba)) throw 'missing.';
-			opt.output('done');
+			io.done();
 
-			opt.output('start', 'Removing Axium HBA configuration');
+			io.start('Removing Axium HBA configuration');
 			const newContent = content.replace(pgHba, '');
-			opt.output('done');
+			io.done();
 
 			writeBack(newContent);
 		})
-		.catch(e => opt.output('warn', e));
+		.catch(io.warn);
 }
 
 /**
  * Removes all data from tables.
  */
 export async function wipe(opt: OpOptions): Promise<void> {
-	_fixOutput(opt);
-
 	const db = connect();
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.db_wipe) continue;
-		opt.output('plugin', plugin.name);
+		io.plugin(plugin.name);
 		await plugin.hooks.db_wipe(opt, db);
 	}
 
 	for (const table of ['users', 'passkeys', 'sessions', 'verifications'] as const) {
-		opt.output('start', `Removing data from ${table}`);
+		io.start(`Removing data from ${table}`);
 		await db.deleteFrom(table).execute();
-		opt.output('done');
+		io.done();
 	}
 }

@@ -11,7 +11,7 @@ import { apps } from './apps.js';
 import type { UserInternal } from './auth.js';
 import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
-import { _portActions, _portMethods, defaultOutput, exit, handleError, output, restrictedPorts, type PortOptions } from './io.js';
+import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, setCommandTimeout, warn, type PortOptions } from './io.js';
 import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serve } from './serve.js';
 
@@ -60,6 +60,11 @@ const opts = {
 	}),
 	force: new Option('-f, --force', 'force the operation').default(false),
 	global: new Option('-g, --global', 'apply the operation globally').default(false),
+	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default('1000').argParser(value => {
+		const timeout = parseInt(value);
+		if (!Number.isSafeInteger(timeout) || timeout < 0) warn('Invalid timeout value, using default.');
+		setCommandTimeout(timeout);
+	}),
 };
 
 interface OptCommon {
@@ -68,16 +73,10 @@ interface OptCommon {
 	force?: boolean;
 }
 
-const axiumDB = program
-	.command('db')
-	.alias('database')
-	.description('Manage the database')
-	.option('-t, --timeout <ms>', 'how long to wait for commands to complete.', '1000')
-	.addOption(opts.host);
+const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout).addOption(opts.host);
 
 interface OptDB extends OptCommon {
 	host: string;
-	timeout: number;
 	force: boolean;
 }
 
@@ -264,7 +263,7 @@ axiumPlugin
 	.alias('rm')
 	.description('Remove a plugin')
 	.argument('<plugin>', 'the plugin to remove')
-	.action(async (search: string, opt: OptCommon & { safe: boolean }) => {
+	.action(async (search: string, opt: OptCommon) => {
 		const plugin = resolvePlugin(search);
 		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
 
@@ -272,7 +271,7 @@ axiumPlugin
 
 		await using _ = db.connect();
 
-		await plugin.hooks.remove?.({ ...opt, output: defaultOutput }, db.database);
+		await plugin.hooks.remove?.(opt, db.database);
 
 		for (const [path, data] of configFiles) {
 			if (!data.plugins) continue;
@@ -282,6 +281,22 @@ axiumPlugin
 		}
 
 		plugins.delete(plugin);
+	});
+
+axiumPlugin
+	.command('init')
+	.alias('setup')
+	.alias('install')
+	.description('Initialize a plugin. This could include adding tables to the database or linking routes.')
+	.addOption(opts.timeout)
+	.argument('<plugin>', 'the plugin to initialize')
+	.action(async (search: string, opt: OptCommon) => {
+		const plugin = resolvePlugin(search);
+		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
+
+		await using _ = db.connect();
+
+		await plugin.hooks.db_init?.({ force: false, ...opt, skip: true }, db.database);
 	});
 
 const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);

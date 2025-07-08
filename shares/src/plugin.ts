@@ -1,8 +1,8 @@
 import type { Result } from '@axium/core/api';
 import config from '@axium/server/config';
-import type { Database, InitOptions, OpOptions, PluginShortcuts, Schema } from '@axium/server/database';
-import { count } from '@axium/server/database';
-import type { WithOutput } from '@axium/server/io';
+import type { Database, InitOptions, OpOptions, Schema } from '@axium/server/database';
+import { count, warnExists } from '@axium/server/database';
+import { done, start } from '@axium/server/io';
 import type { Plugin } from '@axium/server/plugins';
 import { parseBody } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -20,13 +20,13 @@ async function statusText(): Promise<string> {
 	return text;
 }
 
-async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists, done }: PluginShortcuts) {
-	opt.output('start', 'Creating schema shares');
+async function db_init(opt: InitOptions, db: Database) {
+	start('Creating schema shares');
 	await db.schema.createSchema('shares').execute().then(done).catch(warnExists);
 
 	for (const table of config.shares) {
 		const shareTable = sharesTableFor(table);
-		opt.output('start', 'Creating table ' + shareTable);
+		start('Creating table ' + shareTable);
 		await db.schema
 			.createTable(shareTable)
 			.addColumn('itemId', 'uuid', col => col.notNull().references(`${table}.id`).onDelete('cascade').onUpdate('cascade'))
@@ -37,19 +37,19 @@ async function db_init(opt: InitOptions & WithOutput, db: Database, { warnExists
 			.then(done)
 			.catch(warnExists);
 
-		opt.output('start', `Creating index for ${shareTable}.userId`);
+		start(`Creating index for ${shareTable}.userId`);
 		await db.schema.createIndex(`${shareTable}_userId_index`).on(shareTable).column('userId').execute().then(done).catch(warnExists);
 
-		opt.output('start', `Creating index for ${shareTable}.itemId`);
+		start(`Creating index for ${shareTable}.itemId`);
 		await db.schema.createIndex(`${shareTable}_itemId_index`).on(shareTable).column('itemId').execute().then(done).catch(warnExists);
 	}
 }
 
-async function db_wipe(opt: OpOptions & WithOutput, db: Database) {
+async function db_wipe(opt: OpOptions, db: Database) {
 	for (const table of config.shares) {
-		opt.output('start', 'Wiping table ' + table);
+		start('Wiping table ' + table);
 		await db.deleteFrom(sharesTableFor(table)).execute();
-		opt.output('done');
+		done();
 	}
 }
 

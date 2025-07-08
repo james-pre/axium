@@ -3,8 +3,8 @@ import * as fs from 'node:fs';
 import { resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import z from 'zod/v4';
-import type { Database, InitOptions, OpOptions, PluginShortcuts } from './database.js';
-import { output, type WithOutput } from './io.js';
+import type { Database, InitOptions, OpOptions } from './database.js';
+import { output } from './io.js';
 import { _unique } from './state.js';
 
 export const PluginMetadata = z.looseObject({
@@ -32,10 +32,10 @@ interface PluginInternal extends Plugin {
 }
 
 export interface Hooks {
-	db_init?: (opt: InitOptions & WithOutput, db: Database, shortcuts: PluginShortcuts) => void | Promise<void>;
-	remove?: (opt: { force?: boolean } & WithOutput, db: Database) => void | Promise<void>;
-	db_wipe?: (opt: OpOptions & WithOutput, db: Database) => void | Promise<void>;
-	clean?: (opt: Partial<OpOptions> & WithOutput, db: Database) => void | Promise<void>;
+	db_init?: (opt: InitOptions, db: Database) => void | Promise<void>;
+	remove?: (opt: { force?: boolean }, db: Database) => void | Promise<void>;
+	db_wipe?: (opt: OpOptions, db: Database) => void | Promise<void>;
+	clean?: (opt: Partial<OpOptions>, db: Database) => void | Promise<void>;
 }
 
 export const plugins = _unique('plugins', new Set<PluginInternal>());
@@ -52,6 +52,8 @@ export function pluginText(plugin: PluginInternal): string {
 		`Version: ${plugin.version}`,
 		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
 		`Hooks: ${Object.keys(plugin.hooks).join(', ') || styleText('dim', '(none)')}`,
+		// @todo list the routes when debug output is enabled
+		`Routes: ${plugin.routes || styleText('dim', '(none)')}`,
 	].join('\n');
 }
 

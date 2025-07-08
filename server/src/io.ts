@@ -51,23 +51,29 @@ export const output = {
 
 logger.attach(output);
 
+let timeout = 1000;
+
+export function setCommandTimeout(value: number) {
+	timeout = value;
+}
+
 /**
  * Run a system command with the fancy "Example... done."
  * @internal
  */
-export async function run(opts: WithOutput & { timeout?: number }, message: string, command: string): Promise<string> {
+export async function run(message: string, command: string): Promise<string> {
 	let stderr: string | undefined;
 
 	try {
-		opts.output('start', message);
+		start(message);
 		const { promise, resolve, reject } = Promise.withResolvers<string>();
-		exec(command, opts, (err, stdout, _stderr) => {
+		exec(command, { timeout }, (err, stdout, _stderr) => {
 			stderr = _stderr.startsWith('ERROR:') ? _stderr.slice(6).trim() : _stderr;
 			if (err) reject('[command]');
 			else resolve(stdout);
 		});
 		const value = await promise;
-		opts.output('done');
+		done();
 		return value;
 	} catch (error: any) {
 		throw error == '[command]'
@@ -106,16 +112,11 @@ export interface Output {
 	(tag: Exclude<OutputTag, 'done'>, message: string): void;
 }
 
-export interface MaybeOutput {
-	output?: Output | null | false;
-}
-
-export interface WithOutput {
-	output: Output;
-}
-
 let _debugOutput = false;
 
+/**
+ * Enable or disable debug output.
+ */
 export function _setDebugOutput(enabled: boolean) {
 	_debugOutput = enabled;
 }
@@ -147,13 +148,40 @@ export function defaultOutput(tag: OutputTag, message: string = ''): void {
 	}
 }
 
-/**
- * TS can't tell when we do this inline
- * @internal
- */
-export function _fixOutput<T extends MaybeOutput>(opt: T): asserts opt is T & WithOutput {
-	if (opt.output === false) opt.output = () => {};
-	else opt.output ??= defaultOutput;
+let _taggedOutput: Output | null = defaultOutput;
+
+export function useTaggedOutput(output: Output | null) {
+	_taggedOutput = output;
+}
+
+// Shortcuts for tagged output
+
+export function done() {
+	_taggedOutput?.('done');
+}
+
+export function start(message: string) {
+	_taggedOutput?.('start', message);
+}
+
+export function plugin(name: string) {
+	_taggedOutput?.('plugin', name);
+}
+
+export function debug(message: string) {
+	_taggedOutput?.('debug', message);
+}
+
+export function info(message: string) {
+	_taggedOutput?.('info', message);
+}
+
+export function warn(message: string) {
+	_taggedOutput?.('warn', message);
+}
+
+export function error(message: string) {
+	_taggedOutput?.('error', message);
 }
 
 /** @internal */
@@ -167,7 +195,7 @@ export const _portActions = ['enable', 'disable'] as const;
  * Method:
  * - `node-cap`: Use the `cap_net_bind_service` capability on the node binary.
  */
-export interface PortOptions extends MaybeOutput {
+export interface PortOptions {
 	method: (typeof _portMethods)[number];
 	action: (typeof _portActions)[number];
 	node?: string;
@@ -179,51 +207,50 @@ export interface PortOptions extends MaybeOutput {
  * If the origin has a port, passkeys do not work correctly with some password managers.
  */
 export async function restrictedPorts(opt: PortOptions) {
-	_fixOutput(opt);
-	opt.output('start', 'Checking for root privileges');
+	start('Checking for root privileges');
 	if (process.getuid?.() != 0) throw 'root privileges are needed to change restricted ports.';
-	opt.output('done');
+	done();
 
-	opt.output('start', 'Checking ports method');
+	start('Checking ports method');
 	if (!_portMethods.includes(opt.method)) throw 'invalid';
-	opt.output('done');
+	done();
 
-	opt.output('start', 'Checking ports action');
+	start('Checking ports action');
 	if (!_portActions.includes(opt.action)) throw 'invalid';
-	opt.output('done');
+	done();
 
 	switch (opt.method) {
 		case 'node-cap': {
-			const setcap = await run(opt, 'Finding setcap', 'command -v setcap')
+			const setcap = await run('Finding setcap', 'command -v setcap')
 				.then(e => e.trim())
 				.catch(() => {
-					opt.output('warn', 'not in path.');
-					opt.output('start', 'Checking for /usr/sbin/setcap');
+					warn('not in path.');
+					start('Checking for /usr/sbin/setcap');
 					fs.accessSync('/usr/sbin/setcap', fs.constants.X_OK);
-					opt.output('done');
+					done();
 					return '/usr/sbin/setcap';
 				});
 
-			opt.output('debug', 'Using setcap at ' + setcap);
+			debug('Using setcap at ' + setcap);
 
 			let { node } = opt;
-			node ||= await run(opt, 'Finding node', 'command -v node')
+			node ||= await run('Finding node', 'command -v node')
 				.then(e => e.trim())
 				.catch(() => {
-					opt.output('warn', 'not in path.');
-					opt.output('start', 'Checking for /usr/bin/node');
+					warn('not in path.');
+					start('Checking for /usr/bin/node');
 					fs.accessSync('/usr/bin/node', fs.constants.X_OK);
-					opt.output('done');
+					done();
 					return '/usr/bin/node';
 				});
 
-			opt.output('start', 'Resolving real path for node');
+			start('Resolving real path for node');
 			node = fs.realpathSync(node);
-			opt.output('done');
+			done();
 
-			opt.output('debug', 'Using node at ' + node);
+			debug('Using node at ' + node);
 
-			await run(opt, 'Setting ports capability', `${setcap} cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep ${node}`);
+			await run('Setting ports capability', `${setcap} cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep ${node}`);
 
 			break;
 		}
@@ -235,12 +262,12 @@ export async function restrictedPorts(opt: PortOptions) {
  * The handler will allow the parent scope to continue if a relation already exists,
  * rather than fatally exiting.
  */
-export function someWarnings(output: Output, ...allowList: [RegExp, string?][]): (error: string | Error) => void {
+export function someWarnings(...allowList: [RegExp, string?][]): (error: string | Error) => void {
 	return (error: string | Error) => {
 		error = typeof error == 'object' && 'message' in error ? error.message : error;
 		for (const [pattern, message = error] of allowList) {
 			if (!pattern.test(error)) continue;
-			output('warn', message);
+			warn(message);
 			return;
 		}
 		throw error;
