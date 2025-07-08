@@ -1,6 +1,6 @@
 {
 	"name": "@axium/server",
-	"version": "0.10.0",
+	"version": "0.11.0",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"funding": {
 		"type": "individual",
@@ -28,6 +28,7 @@
 	},
 	"files": [
 		"assets",
+		"build",
 		"dist",
 		"routes",
 		"web",
@@ -40,8 +41,8 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.0.2",
-		"@axium/core": ">=0.3.0",
+		"@axium/client": ">=0.1.0",
+		"@axium/core": ">=0.4.0",
 		"utilium": "^2.3.8",
 		"zod": "^3.25.61"
 	},
@@ -55,11 +56,11 @@
 		"kysely": "^0.28.0",
 		"logzen": "^0.7.0",
 		"mime": "^4.0.7",
-		"pg": "^8.14.1"
+		"pg": "^8.14.1",
+		"svelte": "^5.25.3"
 	},
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.2.12",
-		"svelte": "^5.25.3",
 		"vite-plugin-mkcert": "^1.17.8"
 	}
 }
