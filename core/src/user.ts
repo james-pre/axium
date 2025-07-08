@@ -21,12 +21,12 @@ export interface User extends z.infer<typeof User> {
 	preferences: Preferences;
 }
 
-export const userPublicFields = ['id', 'image', 'name', 'registeredAt'] as const satisfies (keyof User)[];
+export const userPublicFields = ['id', 'image', 'name', 'registeredAt', 'roles'] as const satisfies (keyof User)[];
 
 type UserPublicField = (typeof userPublicFields)[number];
 export interface UserPublic extends Pick<User, UserPublicField> {}
 
-export const userProtectedFields = ['email', 'emailVerified', 'preferences', 'roles'] as const satisfies (keyof User)[];
+export const userProtectedFields = ['email', 'emailVerified', 'preferences'] as const satisfies (keyof User)[];
 
 export const UserChangeable = User.pick({
 	name: true,
