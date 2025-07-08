@@ -43,7 +43,7 @@ function createLink(id: string, routes: string) {
 	}
 
 	try {
-		symlinkSync(link, routes, 'dir');
+		symlinkSync(routes, link, 'dir');
 	} catch (e: any) {
 		io.exit(e && e instanceof Error ? e.message : e.toString());
 	}
