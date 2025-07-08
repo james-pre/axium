@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
+import { access } from 'node:fs/promises';
 import { join } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
@@ -12,6 +13,7 @@ import type { UserInternal } from './auth.js';
 import config, { configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, setCommandTimeout, warn, type PortOptions } from './io.js';
+import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
 import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serve } from './serve.js';
 
@@ -556,6 +558,21 @@ program
 		server.listen(port, () => {
 			console.log('Server is listening on port ' + port);
 		});
+	});
+
+program.command('link').description('Link svelte page routes').action(linkRoutes);
+program.command('unlink').description('Unlink svelte page routes').action(unlinkRoutes);
+program
+	.command('list-links')
+	.description('List linked routes')
+	.action(async () => {
+		for (const link of listRouteLinks()) {
+			const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
+			const toColor = await access(link.to)
+				.then(() => 'white' as const)
+				.catch(() => 'redBright' as const);
+			console.log(`${idText}:\t ${styleText('cyanBright', link.from)}\t->\t${styleText(toColor, link.to)}`);
+		}
 	});
 
 program.parse();

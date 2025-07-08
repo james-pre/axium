@@ -70,10 +70,14 @@ export async function loadPlugin(specifier: string) {
 			})
 		);
 
+		if (plugin.name.startsWith('#') || plugin.name.includes(' ')) {
+			throw 'Invalid plugin name. Plugin names can not start with a hash or contain spaces.';
+		}
+
 		plugins.add(plugin);
 		output.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
 	} catch (e: any) {
-		output.debug(`Failed to load plugin from ${specifier}: ${e.message || e}`);
+		output.debug(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
 	}
 }
 

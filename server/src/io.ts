@@ -121,9 +121,9 @@ export function _setDebugOutput(enabled: boolean) {
 	_debugOutput = enabled;
 }
 
-export function defaultOutput(tag: 'done'): void;
-export function defaultOutput(tag: Exclude<OutputTag, 'done'>, message: string): void;
-export function defaultOutput(tag: OutputTag, message: string = ''): void {
+function defaultOutput(tag: 'done'): void;
+function defaultOutput(tag: Exclude<OutputTag, 'done'>, message: string): void;
+function defaultOutput(tag: OutputTag, message: string = ''): void {
 	switch (tag) {
 		case 'debug':
 			_debugOutput && output.debug(message);
