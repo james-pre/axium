@@ -44,6 +44,7 @@ function createLink(id: string, routes: string) {
 
 	try {
 		symlinkSync(routes, link, 'dir');
+		io.done();
 	} catch (e: any) {
 		io.exit(e && e instanceof Error ? e.message : e.toString());
 	}
@@ -71,10 +72,10 @@ function removeLink(id: string) {
 	io.start('Unlinking ' + text);
 	try {
 		unlinkSync(link);
+		io.done();
 	} catch (e: any) {
 		io.exit(e && e instanceof Error ? e.message : e.toString());
 	}
-	io.done();
 }
 
 export function unlinkRoutes() {
