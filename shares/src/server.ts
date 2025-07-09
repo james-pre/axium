@@ -1,7 +1,7 @@
 import type { UserInternal } from '@axium/server/auth';
 import type { Schema } from '@axium/server/database';
 import { database, userFromId } from '@axium/server/database';
-import type { ExpressionBuilder, Generated } from 'kysely';
+import type { ExpressionBuilder, Generated, Selectable } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Share, Shareable } from './common.js';
 
@@ -20,7 +20,7 @@ declare module '@axium/server/database' {
 
 type _TableNames = (string & keyof Schema) &
 	keyof {
-		[K in Exclude<keyof Schema, `shares.${string}`> as Schema[K] extends Omit<Shareable, 'shares'> ? K : never]: null;
+		[K in Exclude<keyof Schema, `shares.${string}`> as Selectable<Schema[K]> extends Omit<Shareable, 'shares'> ? K : never]: null;
 	};
 
 /**
