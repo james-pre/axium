@@ -9,12 +9,12 @@ import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import z from 'zod/v4';
 import pkg from '../package.json' with { type: 'json' };
-import { createShare, sharesTableFor } from './server.js';
+import { createShare } from './server.js';
 
 async function statusText(): Promise<string> {
 	let text = '';
 	for (const table of config.shares) {
-		const shares = await count(sharesTableFor(table));
+		const shares = await count(`shares.${table}`);
 		text += `${shares} ${table} shares\n`;
 	}
 	return text;
@@ -25,10 +25,9 @@ async function db_init(opt: InitOptions, db: Database) {
 	await db.schema.createSchema('shares').execute().then(done).catch(warnExists);
 
 	for (const table of config.shares) {
-		const shareTable = sharesTableFor(table);
-		start('Creating table ' + shareTable);
+		start('Creating table ' + `shares.${table}`);
 		await db.schema
-			.createTable(shareTable)
+			.createTable(`shares.${table}`)
 			.addColumn('itemId', 'uuid', col => col.notNull().references(`${table}.id`).onDelete('cascade').onUpdate('cascade'))
 			.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
 			.addColumn('sharedAt', 'timestamptz', col => col.notNull())
@@ -37,18 +36,30 @@ async function db_init(opt: InitOptions, db: Database) {
 			.then(done)
 			.catch(warnExists);
 
-		start(`Creating index for ${shareTable}.userId`);
-		await db.schema.createIndex(`${shareTable}_userId_index`).on(shareTable).column('userId').execute().then(done).catch(warnExists);
+		start(`Creating index for shares.${table}.userId`);
+		await db.schema
+			.createIndex(`shares.${table}_userId_index`)
+			.on(`shares.${table}`)
+			.column('userId')
+			.execute()
+			.then(done)
+			.catch(warnExists);
 
-		start(`Creating index for ${shareTable}.itemId`);
-		await db.schema.createIndex(`${shareTable}_itemId_index`).on(shareTable).column('itemId').execute().then(done).catch(warnExists);
+		start(`Creating index for shares.${table}.itemId`);
+		await db.schema
+			.createIndex(`shares.${table}_itemId_index`)
+			.on(`shares.${table}`)
+			.column('itemId')
+			.execute()
+			.then(done)
+			.catch(warnExists);
 	}
 }
 
 async function db_wipe(opt: OpOptions, db: Database) {
 	for (const table of config.shares) {
 		start('Wiping table ' + table);
-		await db.deleteFrom(sharesTableFor(table)).execute();
+		await db.deleteFrom(`shares.${table}`).execute();
 		done();
 	}
 }

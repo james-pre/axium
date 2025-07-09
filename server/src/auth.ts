@@ -1,10 +1,9 @@
 import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
 import type { RequestEvent } from '@sveltejs/kit';
-import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { randomBytes, randomUUID } from 'node:crypto';
-import { connect, database as db, type Schema } from './database.js';
 import type { Insertable } from 'kysely';
+import { randomBytes, randomUUID } from 'node:crypto';
+import { connect, database as db, userFromId, type Schema } from './database.js';
 
 export interface UserInternal extends User {
 	isAdmin: boolean;
@@ -53,7 +52,7 @@ export async function getSessionAndUser(token: string): Promise<SessionAndUser> 
 	const result = await db
 		.selectFrom('sessions')
 		.selectAll()
-		.select(eb => jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('users.id', '=', 'sessions.userId')).as('user'))
+		.select(userFromId)
 		.where('sessions.token', '=', token)
 		.where('sessions.expires', '>', new Date())
 		.executeTakeFirstOrThrow();

@@ -1,10 +1,13 @@
 import type { Preferences } from '@axium/core';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
-import { Kysely, PostgresDialect, sql, type GeneratedAlways, type SelectQueryBuilder } from 'kysely';
+import type * as Kys from 'kysely';
+import type { GeneratedAlways } from 'kysely';
+import { Kysely, PostgresDialect, sql } from 'kysely';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
-import type { VerificationRole } from './auth.js';
+import type { UserInternal, VerificationRole } from './auth.js';
 import config from './config.js';
 import * as io from './io.js';
 import { plugins } from './plugins.js';
@@ -77,19 +80,37 @@ export function connect(): Database {
 	return database;
 }
 
-export interface Stats {
-	users: number;
-	passkeys: number;
-	sessions: number;
-}
+// Helpers
 
 export async function count<const T extends keyof Schema>(table: T): Promise<number> {
 	const db = connect();
 	return (
-		await (db.selectFrom(table) as SelectQueryBuilder<Schema, T, {}>)
+		await (db.selectFrom(table) as Kys.SelectQueryBuilder<Schema, T, {}>)
 			.select(db.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow()
 	).count;
+}
+
+export type TablesMatching<T> = (string & keyof Schema) & keyof { [K in keyof Schema as Schema[K] extends T ? K : never]: null };
+
+type TableWithId = TablesMatching<{ userId: string }>;
+
+/**
+ * Select the user with the id from the userId column of a table, placing it in the `user` property.
+ */
+export function userFromId(eb: Kys.ExpressionBuilder<Schema, TableWithId>): Kys.AliasedRawBuilder<UserInternal, 'user'> {
+	return jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('id', '=', 'userId'))
+		.$notNull()
+		.$castTo<UserInternal>()
+		.as('user');
+}
+
+// Stuff for the CLI
+
+export interface Stats {
+	users: number;
+	passkeys: number;
+	sessions: number;
 }
 
 export async function status(): Promise<Stats> {

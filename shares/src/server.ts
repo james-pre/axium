@@ -1,7 +1,9 @@
+import type { UserInternal } from '@axium/server/auth';
 import type { Schema } from '@axium/server/database';
-import { database } from '@axium/server/database';
-import type { Generated } from 'kysely';
-import type { Share } from './common.js';
+import { database, userFromId } from '@axium/server/database';
+import type { ExpressionBuilder, Generated } from 'kysely';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
+import type { Share, Shareable } from './common.js';
 
 export interface DBShare {
 	itemId: string;
@@ -16,44 +18,50 @@ declare module '@axium/server/database' {
 	}
 }
 
+type _TableNames = (string & keyof Schema) &
+	keyof {
+		[K in Exclude<keyof Schema, `shares.${string}`> as Schema[K] extends Omit<Shareable, 'shares'> ? `shares.${K}` : never]: null;
+	};
+
+/**
+ * `never` causes a ton of problems, so we use `string` if none of the tables are shareable.
+ */
+export type ShareableTable = _TableNames extends never ? string : _TableNames;
+
 declare module '@axium/server/config' {
 	export interface Config {
 		shares: (keyof Schema)[];
 	}
 }
 
-export function sharesTableFor(itemType: keyof Schema): `shares.${string}` {
-	const table = itemType.split('.').at(-1)!;
-	return `shares.${table}`;
+export interface ShareInternal extends Share {
+	user?: UserInternal;
 }
 
-export async function createShare(itemType: keyof Schema, data: Omit<Share, 'sharedAt'>): Promise<Share> {
-	return await database.insertInto(sharesTableFor(itemType)).values(data).returningAll().executeTakeFirstOrThrow();
+export async function createShare(itemType: ShareableTable, data: Omit<Share, 'sharedAt'>): Promise<ShareInternal> {
+	return await database.insertInto(`shares.${itemType}`).values(data).returningAll().executeTakeFirstOrThrow();
 }
 
-export async function deleteShare(itemType: keyof Schema, itemId: string, userId: string): Promise<void> {
-	await database.deleteFrom(sharesTableFor(itemType)).where('itemId', '=', itemId).where('userId', '=', userId).execute();
+export async function deleteShare(itemType: ShareableTable, itemId: string, userId: string): Promise<void> {
+	await database.deleteFrom(`shares.${itemType}`).where('itemId', '=', itemId).where('userId', '=', userId).execute();
 }
 
-export async function getShares(itemType: keyof Schema, itemId: string): Promise<Required<Share>[]> {
-	const shares = await database.selectFrom(sharesTableFor(itemType)).where('itemId', '=', itemId).selectAll().execute();
-
-	if (!shares.length) return [];
-
-	const users = await database
-		.selectFrom('users')
-		.selectAll()
-		.where(
-			'id',
-			'in',
-			shares.map(s => s.userId)
+/**
+ * Helper to select all shares for a given table, including the user information.
+ */
+export function sharesFrom(table: ShareableTable) {
+	return (eb: ExpressionBuilder<Schema, `shares.${ShareableTable}`>) =>
+		jsonArrayFrom(
+			eb
+				.selectFrom(`shares.${table}`)
+				.selectAll()
+				.select(userFromId)
+				.whereRef(`shares.${table}.itemId`, '=', `${table}.id` as any)
 		)
-		.execute();
+			.$castTo<Required<Share>[]>()
+			.as('shares');
+}
 
-	const userMap = new Map(users.map(u => [u.id, u]));
-
-	return shares.map(share => ({
-		...share,
-		user: userMap.get(share.userId)!,
-	}));
+export async function getShares(itemType: ShareableTable, itemId: string): Promise<Required<ShareInternal>[]> {
+	return await database.selectFrom(`shares.${itemType}`).where('itemId', '=', itemId).selectAll().select(userFromId).execute();
 }
