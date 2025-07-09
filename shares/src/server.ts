@@ -50,7 +50,7 @@ export async function deleteShare(itemType: ShareableTable, itemId: string, user
  * Helper to select all shares for a given table, including the user information.
  */
 export function sharesFrom(table: ShareableTable) {
-	return (eb: ExpressionBuilder<Schema, ShareableTable & keyof Schema>) =>
+	return (eb: ExpressionBuilder<Schema, any>) =>
 		jsonArrayFrom(
 			eb
 				.selectFrom(`shares.${table}`)
