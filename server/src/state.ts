@@ -12,6 +12,12 @@ declare const globalThis: {
 const sym = Symbol.for('Axium:state');
 globalThis[sym] ||= Object.create({ _errored: false });
 
+let _doWarnings = false;
+
+export function _duplicateStateWarnings(value: boolean) {
+	_doWarnings = value;
+}
+
 /**
  * Prevent duplicate shared state.
  */
@@ -32,7 +38,7 @@ export function _unique<T>(id: string, value: T): T {
 		state._errored = true;
 	}
 
-	console.warn(styleText('yellow', `Mitigating duplicate state! (${id})\n${stack}\nFrom original\n${state[id].stack}`));
+	_doWarnings && console.warn(styleText('yellow', `Mitigating duplicate state! (${id})\n${stack}\nFrom original\n${state[id].stack}`));
 
 	return state[id].value;
 }

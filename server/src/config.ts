@@ -5,7 +5,7 @@ import { deepAssign, omit, type PartialRecursive } from 'utilium';
 import * as z from 'zod/v4';
 import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
-import { _unique } from './state.js';
+import { _duplicateStateWarnings, _unique } from './state.js';
 
 export interface Config extends Record<string, unknown> {
 	api: {
@@ -50,6 +50,7 @@ export interface Config extends Record<string, unknown> {
 		ssl_cert: string;
 		template: string;
 	};
+	showDuplicateState: boolean;
 }
 
 export const configFiles = _unique('configFiles', new Map<string, File>());
@@ -110,6 +111,7 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
 		template: join(import.meta.dirname, '../web/template.html'),
 	},
+	showDuplicateState: false,
 });
 export default config;
 
@@ -157,6 +159,7 @@ export const File = z
 				console: z.boolean(),
 			})
 			.partial(),
+		showDuplicateState: z.boolean(),
 		web: z
 			.object({
 				assets: z.string(),
@@ -197,6 +200,7 @@ export function setConfig(other: PartialRecursive<Config>) {
 	logger.detach(output);
 	if (config.log.console) logger.attach(output, { output: config.log.level });
 	_setDebugOutput(config.debug);
+	_duplicateStateWarnings(config.showDuplicateState);
 }
 
 export interface LoadOptions {
