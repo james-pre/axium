@@ -1,7 +1,6 @@
 import type { Preferences } from '@axium/core';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
-import type * as Kys from 'kysely';
-import type { GeneratedAlways } from 'kysely';
+import type * as kysely from 'kysely';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { randomBytes } from 'node:crypto';
@@ -23,11 +22,11 @@ export interface Schema {
 		isAdmin: boolean;
 		roles: string[];
 		tags: string[];
-		registeredAt: GeneratedAlways<Date>;
+		registeredAt: kysely.GeneratedAlways<Date>;
 	};
 	sessions: {
-		id: GeneratedAlways<string>;
-		created: GeneratedAlways<Date>;
+		id: kysely.GeneratedAlways<string>;
+		created: kysely.GeneratedAlways<Date>;
 		userId: string;
 		token: string;
 		expires: Date;
@@ -42,7 +41,7 @@ export interface Schema {
 	passkeys: {
 		id: string;
 		name: string | null;
-		createdAt: GeneratedAlways<Date>;
+		createdAt: kysely.GeneratedAlways<Date>;
 		userId: string;
 		publicKey: Uint8Array;
 		counter: number;
@@ -85,7 +84,7 @@ export function connect(): Database {
 export async function count<const T extends keyof Schema>(table: T): Promise<number> {
 	const db = connect();
 	return (
-		await (db.selectFrom(table) as Kys.SelectQueryBuilder<Schema, T, {}>)
+		await (db.selectFrom(table) as kysely.SelectQueryBuilder<Schema, T, {}>)
 			.select(db.fn.countAll<number>().as('count'))
 			.executeTakeFirstOrThrow()
 	).count;
@@ -93,12 +92,10 @@ export async function count<const T extends keyof Schema>(table: T): Promise<num
 
 export type TablesMatching<T> = (string & keyof Schema) & keyof { [K in keyof Schema as Schema[K] extends T ? K : never]: null };
 
-type TableWithId = TablesMatching<{ userId: string }>;
-
 /**
  * Select the user with the id from the userId column of a table, placing it in the `user` property.
  */
-export function userFromId(eb: Kys.ExpressionBuilder<Schema, TableWithId>): Kys.AliasedRawBuilder<UserInternal, 'user'> {
+export function userFromId(eb: kysely.ExpressionBuilder<Schema, keyof Schema>): kysely.AliasedRawBuilder<UserInternal, 'user'> {
 	return jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('id', '=', 'userId'))
 		.$notNull()
 		.$castTo<UserInternal>()
