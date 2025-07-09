@@ -20,7 +20,7 @@ declare module '@axium/server/database' {
 
 type _TableNames = (string & keyof Schema) &
 	keyof {
-		[K in Exclude<keyof Schema, `shares.${string}`> as Schema[K] extends Omit<Shareable, 'shares'> ? `shares.${K}` : never]: null;
+		[K in Exclude<keyof Schema, `shares.${string}`> as Schema[K] extends Omit<Shareable, 'shares'> ? K : never]: null;
 	};
 
 /**

@@ -95,7 +95,7 @@ export type TablesMatching<T> = (string & keyof Schema) & keyof { [K in keyof Sc
 /**
  * Select the user with the id from the userId column of a table, placing it in the `user` property.
  */
-export function userFromId(eb: kysely.ExpressionBuilder<Schema, keyof Schema>): kysely.AliasedRawBuilder<UserInternal, 'user'> {
+export function userFromId(eb: kysely.ExpressionBuilder<Schema, any>): kysely.AliasedRawBuilder<UserInternal, 'user'> {
 	return jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('id', '=', 'userId'))
 		.$notNull()
 		.$castTo<UserInternal>()
