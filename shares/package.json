@@ -1,6 +1,6 @@
 {
 	"name": "@axium/shares",
-	"version": "0.2.3",
+	"version": "0.2.4",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "Item sharing for Axium",
 	"funding": {
