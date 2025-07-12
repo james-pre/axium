@@ -36,5 +36,8 @@ jobs:
             - name: Linting
               run: npm run lint
 
-            - name: Build
+            - name: Build (TypeScript)
               run: npx tsc -b
+
+            - name: Build server (Vite)
+              run: (cd server && npx vite build)

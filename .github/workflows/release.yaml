@@ -37,8 +37,11 @@ jobs:
                   fi
                   echo "path=$PACKAGE" >> $GITHUB_OUTPUT
 
-            - name: Build
+            - name: Build (TypeScript)
               run: npx tsc -b
+
+            - name: Build server (Vite)
+              run: (cd server && npx vite build)
 
             - name: Publish
               run: npm publish --access=public --provenance
