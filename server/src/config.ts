@@ -270,7 +270,8 @@ export function saveConfigTo(path: string, changed: PartialRecursive<Config>) {
 }
 
 /**
- * Find the path to the config file
+ * Find the path to the config file(s)
+ * This array should roughly be in the order of most global to most local.
  */
 export function findConfigPaths(): string[] {
 	const paths = dirs.map(dir => join(dir, 'config.json'));

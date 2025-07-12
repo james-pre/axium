@@ -406,3 +406,17 @@ export async function wipe(opt: OpOptions): Promise<void> {
 		io.done();
 	}
 }
+
+export async function rotatePassword() {
+	io.start('Generating new password');
+	const password = randomBytes(32).toString('base64');
+	io.done();
+
+	io.start('Updating global config');
+	config.save({ db: { password } }, true);
+	io.done();
+
+	io.start('Updating database user password');
+	await _sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
+	io.done();
+}

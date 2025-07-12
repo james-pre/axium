@@ -160,6 +160,11 @@ axiumDB
 		await db.clean(opt).catch(exit);
 	});
 
+axiumDB
+	.command('rotate-password')
+	.description('Generate a new password for the database user and update the config')
+	.action(db.rotatePassword);
+
 interface OptConfig extends OptCommon {
 	global: boolean;
 	json: boolean;
