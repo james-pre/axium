@@ -416,7 +416,5 @@ export async function rotatePassword() {
 	config.save({ db: { password } }, true);
 	io.done();
 
-	io.start('Updating database user password');
 	await _sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
-	io.done();
 }
