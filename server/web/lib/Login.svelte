@@ -19,9 +19,11 @@
 		<input name="email" type="email" required />
 	</div>
 	{#snippet footer()}
-		<div class="footer">
-			<a href="/register">Register instead</a>
-		</div>
+		{#if fullPage}
+			<div class="footer">
+				<a href="/register">Register instead</a>
+			</div>
+		{/if}
 	{/snippet}
 </FormDialog>
 
