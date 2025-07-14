@@ -19,6 +19,7 @@
 	} from '@axium/client/user';
 	import type { Passkey, Session } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
+	import Logout from '$lib/Logout.svelte';
 
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
@@ -106,8 +107,9 @@
 				<ClipboardCopy value={user.id} --size="16px" />
 			</div>
 			<span>
-				<a class="signout" href="/logout"><button>Sign out</button></a>
+				<button class="signout" onclick={() => dialogs.logout.showModal()}>Sign Out</button>
 				<button style:cursor="pointer" onclick={() => dialogs.delete.showModal()} class="danger">Delete Account</button>
+				<Logout bind:dialog={dialogs.logout} />
 				<FormDialog
 					bind:dialog={dialogs.delete}
 					submit={() => deleteUser(user.id).then(() => goto('/'))}
