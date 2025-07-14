@@ -1,6 +1,6 @@
 {
 	"name": "@axium/cas",
-	"version": "0.1.4",
+	"version": "0.2.0",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "Content Addressable Storage for Axium",
 	"funding": {
