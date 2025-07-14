@@ -27,7 +27,7 @@ async function db_init(opt: InitOptions, db: Database) {
 	start('Creating table cas');
 	await db.schema
 		.createTable('cas')
-		.addColumn('fileId', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+		.addColumn('itemId', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('ownerId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
 		.addColumn('lastModified', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('restricted', 'boolean', col => col.notNull().defaultTo(false))

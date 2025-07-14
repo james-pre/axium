@@ -18,7 +18,7 @@ import './polyfills.js';
 declare module '@axium/server/database' {
 	export interface Schema {
 		cas: {
-			fileId: Generated<string>;
+			itemId: Generated<string>;
 			ownerId: string;
 			lastModified: Generated<Date>;
 			restricted: Generated<boolean>;
@@ -68,7 +68,7 @@ function parseItem(item: Selectable<Schema['cas']>): CASMetadata {
 	return {
 		...item,
 		hash: item.hash.toHex(),
-		data_url: `/raw/cas/${item.fileId}`,
+		data_url: `/raw/cas/${item.itemId}`,
 	};
 }
 
@@ -86,9 +86,9 @@ export async function currentUsage(userId: string): Promise<number> {
 	return Number(result.size);
 }
 
-export async function get(fileId: string): Promise<CASMetadata> {
+export async function get(itemId: string): Promise<CASMetadata> {
 	connect();
-	const result = await database.selectFrom('cas').where('fileId', '=', fileId).selectAll().executeTakeFirstOrThrow();
+	const result = await database.selectFrom('cas').where('itemId', '=', itemId).selectAll().executeTakeFirstOrThrow();
 	return parseItem(result);
 }
 
@@ -152,7 +152,7 @@ addRoute({
 		return parseItem(
 			await database
 				.updateTable('cas')
-				.where('fileId', '=', itemId)
+				.where('itemId', '=', itemId)
 				.set(values)
 				.returningAll()
 				.executeTakeFirstOrThrow()
@@ -171,7 +171,7 @@ addRoute({
 
 		await database
 			.deleteFrom('cas')
-			.where('fileId', '=', itemId)
+			.where('itemId', '=', itemId)
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not delete CAS item'));

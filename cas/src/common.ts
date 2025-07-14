@@ -11,7 +11,7 @@ export const CASUpdate = z.object({
 export type CASUpdate = z.infer<typeof CASUpdate>;
 
 export interface CASMetadata {
-	fileId: string;
+	itemId: string;
 	ownerId: string;
 	lastModified: Date;
 	/** Whether editing the file is restricted to managers */
