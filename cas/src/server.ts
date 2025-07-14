@@ -214,7 +214,7 @@ addRoute({
 
 		return new Response(content, {
 			headers: {
-				'Content-Type': 'application/octet-stream',
+				'Content-Type': item.type,
 				'Content-Disposition': `attachment; filename="${itemId}"`,
 			},
 		});
