@@ -7,20 +7,16 @@ import { sql } from 'kysely';
 import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
+import { formatBytes } from '@axium/core/format';
 
 async function statusText(): Promise<string> {
 	const items = await count('cas');
-	const result = await database
+	const { size } = await database
 		.selectFrom('cas')
 		.select(eb => eb.fn.sum('size').as('size'))
 		.executeTakeFirstOrThrow();
-	const size = BigInt(result.size ?? 0).toLocaleString('en-US', {
-		notation: 'compact',
-		maximumFractionDigits: 2,
-		unit: 'byte',
-		unitDisplay: 'narrow',
-	});
-	return `${items} items totaling ${size} bytes`;
+
+	return `${items} items totaling ${formatBytes(Number(size))}`;
 }
 
 async function db_init(opt: InitOptions, db: Database) {
