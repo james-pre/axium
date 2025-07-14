@@ -1,6 +1,6 @@
 <script lang="ts">
-	import Icon from './icons/Icon.svelte';
-	import { iconForMime, iconForPath } from './icons';
+	import { forMime } from '@axium/core/icons';
+	import Icon from './Icon.svelte';
 
 	let { files = $bindable(), name = 'files', ...rest }: { files?: FileList; name?: string; multiple?: any; required?: any } = $props();
 
@@ -13,7 +13,7 @@
 	{#if files?.length}
 		<label for={id} class="file">
 			{#each files as file}
-				<Icon i={iconForMime(file.type) || iconForPath(file.name) || 'file'} />
+				<Icon i={forMime(file.type)} />
 				<span>{file.name}</span>
 				<button
 					onclick={e => {

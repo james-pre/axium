@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fade } from 'svelte/transition';
 	import { wait } from 'utilium';
-	import Icon from './icons/Icon.svelte';
+	import Icon from './Icon.svelte';
 
 	const { value, type = 'text/plain' }: { value: BlobPart; type?: string } = $props();
 

@@ -1,7 +1,7 @@
 export { default as ClipboardCopy } from './ClipboardCopy.svelte';
 export { default as Dialog } from './Dialog.svelte';
 export { default as FormDialog } from './FormDialog.svelte';
-export { Icon } from './icons/index.js';
+export { default as Icon } from './Icon.svelte';
 export { default as Login } from './Login.svelte';
 export { default as Logout } from './Logout.svelte';
 export { default as Register } from './Register.svelte';
