@@ -18,6 +18,8 @@
 		submit = (data: object): Promise<any> => Promise.resolve(),
 		pageMode = false,
 		submitDanger = false,
+		header,
+		footer,
 		...rest
 	}: {
 		children(): any;
@@ -31,6 +33,8 @@
 		/** Whether to display the dialog as a full-page form */
 		pageMode?: boolean;
 		submitDanger?: boolean;
+		header?(): any;
+		footer?(): any;
 	} = $props();
 
 	let error = $state(null);
@@ -65,6 +69,7 @@
 {/snippet}
 
 <Dialog bind:dialog {onclose} {...rest}>
+	{@render header?.()}
 	<form {onsubmit} class="main" method="dialog">
 		{#if error}
 			<div class="error">{error}</div>
@@ -79,6 +84,7 @@
 			</div>
 		{/if}
 	</form>
+	{@render footer?.()}
 </Dialog>
 
 <style>

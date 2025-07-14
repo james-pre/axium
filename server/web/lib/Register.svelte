@@ -1,6 +1,6 @@
 <script lang="ts">
-	import FormDialog from '$lib/FormDialog.svelte';
 	import { register } from '@axium/client/user';
+	import FormDialog from './FormDialog.svelte';
 
 	let { dialog = $bindable(), fullPage = false }: { dialog?: HTMLDialogElement; fullPage?: boolean } = $props();
 </script>
@@ -14,4 +14,17 @@
 		<label for="email">Email</label>
 		<input name="email" type="email" required />
 	</div>
+	{#snippet footer()}
+		<div class="footer">
+			<a href="/login">Login instead</a>
+		</div>
+	{/snippet}
 </FormDialog>
+
+<style>
+	.footer {
+		margin-bottom: 1em;
+		text-align: center;
+		background: none;
+	}
+</style>
