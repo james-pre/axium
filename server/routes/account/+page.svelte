@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import ClipboardCopy from '$lib/ClipboardCopy.svelte';
 	import FormDialog from '$lib/FormDialog.svelte';
-	import Icon from '$lib/icons/Icon.svelte';
+	import Icon from '$lib/Icon.svelte';
 	import {
 		createPasskey,
 		deletePasskey,
