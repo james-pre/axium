@@ -58,7 +58,7 @@ export async function getSessionAndUser(token: string): Promise<SessionAndUser> 
 		.executeTakeFirstOrThrow();
 
 	if (!result.user) throw new Error('Session references non-existing user');
-	return result as typeof result & { user: UserInternal };
+	return result;
 }
 
 export async function getSession(sessionId: string): Promise<SessionInternal> {

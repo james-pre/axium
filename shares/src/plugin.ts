@@ -64,10 +64,15 @@ async function db_wipe(opt: OpOptions, db: Database) {
 	}
 }
 
+async function remove(opt: OpOptions, db: Database) {
+	start('Removing schema shares');
+	await db.schema.dropSchema('shares').execute().then(done);
+}
+
 export default {
 	...pkg,
 	statusText,
-	hooks: { db_init, db_wipe },
+	hooks: { db_init, db_wipe, remove },
 } satisfies Plugin;
 
 addRoute({
