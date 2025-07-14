@@ -37,15 +37,14 @@ export async function getItemMetadata(fileId: string): Promise<CASMetadata> {
 	return result;
 }
 
-export async function downloadItem(fileId: string): Promise<Uint8Array> {
+export async function downloadItem(fileId: string): Promise<Blob> {
 	const response = await fetch('/raw/cas/' + fileId, {
 		headers: token ? { Authorization: 'Bearer ' + token } : {},
 	});
 
 	if (!response.ok) throw new Error('Failed to download item: ' + response.statusText);
 
-	const data = await response.arrayBuffer();
-	return new Uint8Array(data);
+	return await response.blob();
 }
 
 export async function updateItem(fileId: string, metadata: CASUpdate): Promise<CASMetadata> {
