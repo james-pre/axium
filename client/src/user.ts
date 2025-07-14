@@ -93,7 +93,10 @@ function _checkId(userId: string) {
 
 export async function userInfo(userId: string) {
 	_checkId(userId);
-	return await fetchAPI('GET', 'users/:id', {}, userId);
+	const user = await fetchAPI('GET', 'users/:id', {}, userId);
+	user.registeredAt = new Date(user.registeredAt);
+	user.emailVerified = user.emailVerified ? new Date(user.emailVerified) : null;
+	return user;
 }
 
 export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>) {
@@ -103,6 +106,7 @@ export async function updateUser(userId: string, data: Record<string, FormDataEn
 	});
 
 	const result = await fetchAPI('PATCH', 'users/:id', body, userId);
+	result.registeredAt = new Date(result.registeredAt);
 	if (result.emailVerified) result.emailVerified = new Date(result.emailVerified);
 	return result;
 }
@@ -110,6 +114,7 @@ export async function updateUser(userId: string, data: Record<string, FormDataEn
 export async function fullUserInfo(userId: string) {
 	_checkId(userId);
 	const result = await fetchAPI('GET', 'users/:id/full', {}, userId);
+	result.registeredAt = new Date(result.registeredAt);
 	result.emailVerified = new Date(result.emailVerified!);
 	return result;
 }
@@ -120,6 +125,7 @@ export async function deleteUser(userId: string) {
 	const response = await startAuthentication({ optionsJSON: options });
 	await fetchAPI('POST', 'users/:id/auth', response, userId);
 	const result = await fetchAPI('DELETE', 'users/:id', response, userId);
+	result.registeredAt = new Date(result.registeredAt);
 	result.emailVerified = new Date(result.emailVerified!);
 	return result;
 }
