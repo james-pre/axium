@@ -18,7 +18,7 @@ export interface CASMetadata {
 	restricted: boolean;
 	size: number;
 	trashedAt: Date | null;
-	hash: Uint8Array;
+	hash: string;
 	type: string;
 	name: string | null;
 	data_url?: string;

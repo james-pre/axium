@@ -1,12 +1,12 @@
 import type { Result } from '@axium/core/api';
 import { getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
-import { connect, database } from '@axium/server/database';
+import { connect, database, type Schema } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
 import { checkAuth, getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
-import type { Generated } from 'kysely';
+import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
@@ -64,6 +64,14 @@ export interface CASItem extends CASMetadata {
 	data: Uint8Array<ArrayBufferLike>;
 }
 
+function parseItem(item: Selectable<Schema['cas']>): CASMetadata {
+	return {
+		...item,
+		hash: item.hash.toHex(),
+		data_url: `/raw/cas/${item.fileId}`,
+	};
+}
+
 /**
  * Returns the current usage of the CAS for a user in bytes.
  */
@@ -80,9 +88,8 @@ export async function currentUsage(userId: string): Promise<number> {
 
 export async function get(fileId: string): Promise<CASMetadata> {
 	connect();
-	return Object.assign(await database.selectFrom('cas').where('fileId', '=', fileId).selectAll().executeTakeFirstOrThrow(), {
-		data_url: `/raw/cas/${fileId}`,
-	});
+	const result = await database.selectFrom('cas').where('fileId', '=', fileId).selectAll().executeTakeFirstOrThrow();
+	return parseItem(result);
 }
 
 export async function add(ownerId: string, blob: Blob, name: string | null): Promise<CASMetadata> {
@@ -98,11 +105,13 @@ export async function add(ownerId: string, blob: Blob, name: string | null): Pro
 
 	writeFileSync(join(config.cas.data, hash.toHex()), content);
 
-	return await database
+	const result = await database
 		.insertInto('cas')
 		.values({ ownerId, hash, name, ...pick(blob, 'size', 'type') })
 		.returningAll()
 		.executeTakeFirstOrThrow();
+
+	return parseItem(result);
 }
 
 addRoute({
@@ -132,7 +141,7 @@ addRoute({
 
 		await checkAuth(event, item.ownerId);
 
-		const values: Partial<CASMetadata> = {};
+		const values: Partial<Pick<CASMetadata, 'restricted' | 'trashedAt' | 'ownerId' | 'name'>> = {};
 		if ('restrict' in body) values.restricted = body.restrict;
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
 		if ('owner' in body) values.ownerId = body.owner;
@@ -140,13 +149,15 @@ addRoute({
 
 		if (!Object.keys(values).length) error(400, 'No valid fields to update');
 
-		return await database
-			.updateTable('cas')
-			.where('fileId', '=', itemId)
-			.set(values)
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not update CAS item'));
+		return parseItem(
+			await database
+				.updateTable('cas')
+				.where('fileId', '=', itemId)
+				.set(values)
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not update CAS item'))
+		);
 	},
 	async DELETE(event): Result<'DELETE', 'cas/item/:id'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
@@ -158,7 +169,7 @@ addRoute({
 
 		await checkAuth(event, item.ownerId);
 
-		const result = await database
+		await database
 			.deleteFrom('cas')
 			.where('fileId', '=', itemId)
 			.returningAll()
@@ -167,13 +178,13 @@ addRoute({
 
 		const { count } = await database
 			.selectFrom('cas')
-			.where('hash', '=', item.hash)
+			.where('hash', '=', Uint8Array.fromHex(item.hash))
 			.select(eb => eb.fn.countAll().as('count'))
 			.executeTakeFirstOrThrow();
 
-		if (!Number(count)) unlinkSync(join(config.cas.data, item.hash.toHex()));
+		if (!Number(count)) unlinkSync(join(config.cas.data, item.hash));
 
-		return result;
+		return item;
 	},
 });
 
@@ -210,7 +221,7 @@ addRoute({
 
 		await checkAuth(event, item.ownerId);
 
-		const content = new Uint8Array(readFileSync(join(config.cas.data, item.hash.toHex())));
+		const content = new Uint8Array(readFileSync(join(config.cas.data, item.hash)));
 
 		return new Response(content, {
 			headers: {
@@ -237,6 +248,6 @@ addRoute({
 
 		const limit = config.cas.max_user_size * 1_000_000;
 
-		return { usage, limit, items };
+		return { usage, limit, items: items.map(parseItem) };
 	},
 });
