@@ -53,10 +53,10 @@ export function sharesFrom(table: ShareableTable) {
 	return (eb: ExpressionBuilder<Schema, any>) =>
 		jsonArrayFrom(
 			eb
-				.selectFrom(`shares.${table}`)
+				.selectFrom(`shares.${table} as _shares`)
 				.selectAll()
 				.select(userFromId)
-				.whereRef(`shares.${table}.itemId`, '=', `${table}.id` as any)
+				.whereRef(`_shares.itemId`, '=', `${table}.id` as any)
 		)
 			.$castTo<Required<Share>[]>()
 			.as('shares');
