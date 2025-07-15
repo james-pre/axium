@@ -10,7 +10,6 @@ import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
-import { pick } from 'utilium';
 import z from 'zod/v4';
 import { CASUpdate, type CASMetadata } from './common.js';
 import './polyfills.js';
@@ -89,28 +88,6 @@ export async function currentUsage(userId: string): Promise<number> {
 export async function get(itemId: string): Promise<CASMetadata> {
 	connect();
 	const result = await database.selectFrom('cas').where('itemId', '=', itemId).selectAll().executeTakeFirstOrThrow();
-	return parseItem(result);
-}
-
-export async function add(ownerId: string, blob: Blob, name: string | null): Promise<CASMetadata> {
-	if (blob.size > config.cas.max_item_size * 1_000_000) throw new Error('File size exceeds maximum size');
-
-	connect();
-
-	const content = await blob.bytes();
-
-	const hash = createHash('BLAKE2b512').update(content).digest();
-
-	mkdirSync(config.cas.data, { recursive: true });
-
-	writeFileSync(join(config.cas.data, hash.toHex()), content);
-
-	const result = await database
-		.insertInto('cas')
-		.values({ ownerId, hash, name, ...pick(blob, 'size', 'type') })
-		.returningAll()
-		.executeTakeFirstOrThrow();
-
 	return parseItem(result);
 }
 
@@ -200,11 +177,40 @@ addRoute({
 
 		const using = await currentUsage(userId);
 
-		const blob = await event.request.blob();
+		const name = event.request.headers.get('x-name');
+		if ((name?.length || 0) > 255) error(400, 'Name is too long');
 
-		if ((using + blob.size) / 1_000_000 >= config.cas.max_user_size) error(409, 'Not enough space');
+		const size = Number(event.request.headers.get('content-length'));
+		if (Number.isNaN(size)) error(411, 'Missing size header');
 
-		return await add(userId, blob, event.request.headers.get('x-name'));
+		if ((using + size) / 1_000_000 >= config.cas.max_user_size) error(409, 'Not enough space');
+
+		if (size > config.cas.max_item_size * 1_000_000) error(413, 'File size exceeds maximum size');
+
+		const content = await event.request.bytes();
+
+		// @todo: add this to the audit log
+		if (content.byteLength != size) error(400, 'Content length does not match size header!');
+
+		const hash = createHash('BLAKE2b512').update(content).digest();
+
+		mkdirSync(config.cas.data, { recursive: true });
+
+		writeFileSync(join(config.cas.data, hash.toHex()), content);
+
+		const result = await database
+			.insertInto('cas')
+			.values({
+				ownerId: userId,
+				hash,
+				name: event.request.headers.get('x-name'),
+				size,
+				type: event.request.headers.get('content-type') || 'application/octet-stream',
+			})
+			.returningAll()
+			.executeTakeFirstOrThrow();
+
+		return parseItem(result);
 	},
 });
 
