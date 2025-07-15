@@ -190,7 +190,7 @@ addRoute({
 		const content = await event.request.bytes();
 
 		// @todo: add this to the audit log
-		if (content.byteLength != size) error(400, 'Content length does not match size header!');
+		if (content.byteLength > size) error(400, 'Content length does not match size header!');
 
 		const hash = createHash('BLAKE2b512').update(content).digest();
 
