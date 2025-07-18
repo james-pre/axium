@@ -8,6 +8,7 @@
 		"type": "individual",
 		"url": "https://github.com/sponsors/james-pre"
 	},
+	"license": "LGPL-3.0-or-later",
 	"repository": {
 		"type": "git",
 		"url": "git+https://github.com/james-pre/axium.git"
@@ -36,7 +37,6 @@
 		"server"
 	],
 	"keywords": [],
-	"license": "MIT",
 	"type": "module",
 	"devDependencies": {
 		"eslint": "^9.21.0",
