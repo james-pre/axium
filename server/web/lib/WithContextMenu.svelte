@@ -1,0 +1,39 @@
+<script lang="ts">
+	let { children, menu }: { children(): any; menu(): any } = $props();
+
+	let active = $state(false);
+
+	function oncontextmenu(event: MouseEvent) {
+		event.preventDefault();
+		active = true;
+	}
+
+	function onblur() {
+		active = false;
+	}
+</script>
+
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div class="WithContextMenu" {oncontextmenu} tabindex="-1">
+	{@render children()}
+
+	{#if active}
+		<div class="menu" {onblur} tabindex="-1">{@render menu()}</div>
+	{/if}
+
+	<p>
+		<br />
+		Active? {active ? 'Yes' : 'No'}
+		<br />
+	</p>
+</div>
+
+<style>
+	.WithContextMenu {
+		display: contents;
+	}
+
+	.menu {
+		position: absolute;
+	}
+</style>

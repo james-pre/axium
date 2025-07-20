@@ -1,8 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import ClipboardCopy from '$lib/ClipboardCopy.svelte';
-	import FormDialog from '$lib/FormDialog.svelte';
-	import Icon from '$lib/Icon.svelte';
+	import { ClipboardCopy, FormDialog, Icon, Logout } from '$lib';
 	import {
 		createPasskey,
 		deletePasskey,
@@ -19,7 +17,6 @@
 	} from '@axium/client/user';
 	import type { Passkey, Session } from '@axium/core/api';
 	import { getUserImage, type User } from '@axium/core/user';
-	import Logout from '$lib/Logout.svelte';
 
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
@@ -62,7 +59,9 @@
 
 {#await ready() then}
 	<div class="Account flex-content">
-		<img class="pfp" src={getUserImage(user)} alt="User profile" />
+		<div id="pfp-container">
+			<img id="pfp" src={getUserImage(user)} alt="User profile" width="100px" height="100px" />
+		</div>
 		<p class="greeting">Welcome, {user.name}</p>
 
 		<div class="section main">
@@ -225,12 +224,23 @@
 {/await}
 
 <style>
-	.pfp {
+	#pfp-container {
+		width: 100px;
+		height: 100px;
+		margin-top: 3em;
+
+		:global(.MenuToggle) {
+			float: right;
+			position: relative;
+			top: -24px;
+		}
+	}
+
+	#pfp {
 		width: 100px;
 		height: 100px;
 		border-radius: 50%;
 		border: 1px solid #8888;
-		margin-top: 3em;
 	}
 
 	.greeting {
@@ -265,6 +275,11 @@
 
 		> :first-child {
 			margin-left: 1em;
+		}
+
+		> :nth-child(2) {
+			text-overflow: ellipsis;
+			overflow: hidden;
 		}
 	}
 
