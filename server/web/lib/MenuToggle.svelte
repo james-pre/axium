@@ -14,7 +14,14 @@
 <div class="MenuToggle" bind:this={menu} onblur={() => (enabled = false)} tabindex="-1">
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div onclick={() => (enabled = !enabled)} class="toggle">
+	<div
+		onclick={e => {
+			e.stopPropagation();
+			e.preventDefault();
+			enabled = !enabled;
+		}}
+		class="toggle"
+	>
 		{#if toggle}
 			{@render toggle()}
 		{:else}
@@ -28,6 +35,8 @@
 		<div
 			class="menu"
 			onclick={e => {
+				e.stopPropagation();
+				e.preventDefault();
 				if (e.target instanceof HTMLButtonElement) enabled = false;
 			}}
 		>
