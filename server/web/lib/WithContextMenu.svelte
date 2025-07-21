@@ -20,12 +20,6 @@
 	{#if active}
 		<div class="menu" {onblur} tabindex="-1">{@render menu()}</div>
 	{/if}
-
-	<p>
-		<br />
-		Active? {active ? 'Yes' : 'No'}
-		<br />
-	</p>
 </div>
 
 <style>
