@@ -37,7 +37,6 @@
 			onclick={e => {
 				e.stopPropagation();
 				e.preventDefault();
-				if (e.target instanceof HTMLButtonElement) enabled = false;
 			}}
 		>
 			{@render children()}
@@ -57,7 +56,7 @@
 	.menu {
 		position: absolute;
 		border: 1px solid #99a;
-		background-color: #111;
+		background-color: #111a;
 		border-radius: 0.5em;
 		padding: 0.5em;
 		display: flex;
