@@ -15,6 +15,8 @@ import { createSessionData, parseBody, withError } from '../requests.js';
 const registrations = new Map<string, string>();
 
 async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
+	if (!config.allow_new_users) error(409, { message: 'New user registration is disabled' });
+
 	const { name, email } = await parseBody(event, z.object({ name: z.string().optional(), email: z.email().optional() }));
 
 	const userId = randomUUID();
@@ -41,6 +43,8 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 }
 
 async function POST(event: RequestEvent) {
+	if (!config.allow_new_users) error(409, { message: 'New user registration is disabled' });
+
 	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
 
 	const existing = await db.selectFrom('users').selectAll().where('email', '=', email.toLowerCase()).executeTakeFirst();

@@ -8,14 +8,15 @@ import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
 
 export interface Config extends Record<string, unknown> {
-	api: {
+	allow_new_users: boolean;
+	api: Record<string, unknown> & {
 		disable_metadata: boolean;
 		cookie_auth: boolean;
 	};
-	apps: {
+	apps: Record<string, unknown> & {
 		disabled: string[];
 	};
-	auth: {
+	auth: Record<string, unknown> & {
 		origin: string;
 		/** In minutes */
 		passkey_probation: number;
@@ -27,7 +28,7 @@ export interface Config extends Record<string, unknown> {
 		/** Whether users can verify emails */
 		email_verification: boolean;
 	};
-	db: {
+	db: Record<string, unknown> & {
 		host: string;
 		port: number;
 		password: string;
@@ -35,11 +36,12 @@ export interface Config extends Record<string, unknown> {
 		database: string;
 	};
 	debug: boolean;
-	log: {
+	log: Record<string, unknown> & {
 		level: (typeof levelText)[number];
 		console: boolean;
 	};
-	web: {
+	show_duplicate_state: boolean;
+	web: Record<string, unknown> & {
 		assets: string;
 		disable_cache: boolean;
 		port: number;
@@ -50,7 +52,6 @@ export interface Config extends Record<string, unknown> {
 		ssl_cert: string;
 		template: string;
 	};
-	showDuplicateState: boolean;
 }
 
 export const configFiles = _unique('configFiles', new Map<string, File>());
@@ -72,6 +73,7 @@ const configShortcuts = {
 
 export const config: Config & typeof configShortcuts = _unique('config', {
 	...configShortcuts,
+	allow_new_users: true,
 	api: {
 		disable_metadata: false,
 		cookie_auth: true,
@@ -100,6 +102,7 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 		console: true,
 		level: 'info',
 	},
+	show_duplicate_state: false,
 	web: {
 		assets: '',
 		disable_cache: false,
@@ -111,26 +114,26 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
 		template: join(import.meta.dirname, '../web/template.html'),
 	},
-	showDuplicateState: false,
 });
 export default config;
 
 // config from file
 export const File = z
 	.looseObject({
+		allow_new_users: z.boolean(),
 		api: z
-			.object({
+			.looseObject({
 				disable_metadata: z.boolean(),
 				cookie_auth: z.boolean(),
 			})
 			.partial(),
 		apps: z
-			.object({
+			.looseObject({
 				disabled: z.array(z.string()),
 			})
 			.partial(),
 		auth: z
-			.object({
+			.looseObject({
 				origin: z.string(),
 				/** In minutes */
 				passkey_probation: z.number(),
@@ -144,7 +147,7 @@ export const File = z
 			})
 			.partial(),
 		db: z
-			.object({
+			.looseObject({
 				host: z.string(),
 				port: z.number(),
 				password: z.string(),
@@ -154,14 +157,14 @@ export const File = z
 			.partial(),
 		debug: z.boolean(),
 		log: z
-			.object({
+			.looseObject({
 				level: z.enum(levelText),
 				console: z.boolean(),
 			})
 			.partial(),
-		showDuplicateState: z.boolean(),
+		show_duplicate_state: z.boolean(),
 		web: z
-			.object({
+			.looseObject({
 				assets: z.string(),
 				disable_cache: z.boolean(),
 				port: z.number().min(1).max(65535),
@@ -173,8 +176,8 @@ export const File = z
 				template: z.string(),
 			})
 			.partial(),
-		include: z.array(z.string()).optional(),
-		plugins: z.array(z.string()).optional(),
+		include: z.array(z.string()),
+		plugins: z.array(z.string()),
 	})
 	.partial();
 export interface File extends PartialRecursive<Config>, z.infer<typeof File> {}
@@ -200,7 +203,7 @@ export function setConfig(other: PartialRecursive<Config>) {
 	logger.detach(output);
 	if (config.log.console) logger.attach(output, { output: config.log.level });
 	_setDebugOutput(config.debug);
-	_duplicateStateWarnings(config.showDuplicateState);
+	_duplicateStateWarnings(config.show_duplicate_state);
 }
 
 export interface LoadOptions {
