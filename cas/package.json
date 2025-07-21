@@ -35,7 +35,7 @@
 		"@axium/client": ">=0.1.0",
 		"@axium/core": ">=0.4.0",
 		"@axium/server": ">=0.11.0",
-		"@sveltejs/kit": "^2.22.2",
+		"@sveltejs/kit": "^2.23.0",
 		"utilium": "^2.3.8"
 	},
 	"dependencies": {
