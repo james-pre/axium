@@ -232,7 +232,7 @@ addRoute({
 		return new Response(content, {
 			headers: {
 				'Content-Type': item.type,
-				'Content-Disposition': `attachment; filename="${itemId}"`,
+				'Content-Disposition': `attachment; filename="${item.name}"`,
 			},
 		});
 	},
