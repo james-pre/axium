@@ -4,7 +4,7 @@ import type {
 	PublicKeyCredentialCreationOptionsJSON,
 	PublicKeyCredentialRequestOptionsJSON,
 } from '@simplewebauthn/types';
-import type z from 'zod/v4';
+import type z from 'zod';
 import type { RequestMethod } from './requests.js';
 import type {
 	APIUserRegistration,

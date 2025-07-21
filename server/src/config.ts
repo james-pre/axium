@@ -2,7 +2,7 @@ import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { deepAssign, omit, type PartialRecursive } from 'utilium';
-import * as z from 'zod/v4';
+import * as z from 'zod';
 import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';

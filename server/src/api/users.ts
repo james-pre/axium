@@ -10,7 +10,7 @@ import {
 } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
-import z from 'zod/v4';
+import z from 'zod';
 import {
 	createPasskey,
 	createVerification,

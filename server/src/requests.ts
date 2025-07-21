@@ -2,7 +2,7 @@ import { userProtectedFields, userPublicFields, type User } from '@axium/core/us
 import { error, json, type HttpError, type RequestEvent } from '@sveltejs/kit';
 import { serialize as serializeCookie } from 'cookie';
 import { pick } from 'utilium';
-import z from 'zod/v4';
+import z from 'zod';
 import { createSession, getSessionAndUser, getUser, type SessionAndUser, type UserInternal } from './auth.js';
 import { config } from './config.js';
 

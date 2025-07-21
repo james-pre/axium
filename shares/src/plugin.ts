@@ -7,7 +7,7 @@ import type { Plugin } from '@axium/server/plugins';
 import { parseBody } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
-import z from 'zod/v4';
+import z from 'zod';
 import pkg from '../package.json' with { type: 'json' };
 import { createShare } from './server.js';
 

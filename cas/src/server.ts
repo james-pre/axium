@@ -10,7 +10,7 @@ import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
-import z from 'zod/v4';
+import z from 'zod';
 import { CASUpdate, type CASMetadata } from './common.js';
 import './polyfills.js';
 

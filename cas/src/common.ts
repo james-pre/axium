@@ -1,5 +1,5 @@
 import type {} from '@axium/core/api';
-import z from 'zod/v4';
+import z from 'zod';
 
 export const CASUpdate = z.object({
 	owner: z.uuid().optional(),

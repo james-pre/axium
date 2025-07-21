@@ -6,7 +6,7 @@ import { join } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
 import { getByString, isJSON, setByString } from 'utilium';
-import z from 'zod/v4';
+import z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
 import type { UserInternal } from './auth.js';

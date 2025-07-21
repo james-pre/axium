@@ -4,7 +4,7 @@ import { error, json } from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
-import z from 'zod/v4';
+import z from 'zod';
 import { config } from './config.js';
 import { resolveRoute, type ServerRoute } from './routes.js';
 

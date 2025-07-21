@@ -1,5 +1,5 @@
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
-import z from 'zod/v4';
+import z from 'zod';
 import { fetchAPI } from './requests.js';
 import { UserChangeable, type PasskeyChangeable } from '@axium/core';
 

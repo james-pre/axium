@@ -2,7 +2,7 @@ import type { Result } from '@axium/core/api';
 import { PasskeyChangeable } from '@axium/core/schemas';
 import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
-import z from 'zod/v4';
+import z from 'zod';
 import { getPasskey } from '../auth.js';
 import { database as db } from '../database.js';
 import { addRoute } from '../routes.js';
