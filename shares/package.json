@@ -38,6 +38,6 @@
 	},
 	"dependencies": {
 		"@sveltejs/kit": "^2.22.2",
-		"zod": "^3.25.67"
+		"zod": "^4.0.5"
 	}
 }

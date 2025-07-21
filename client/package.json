@@ -31,7 +31,7 @@
 	"peerDependencies": {
 		"@axium/core": ">=0.3.0",
 		"utilium": "^2.3.8",
-		"zod": "^3.25.76"
+		"zod": "^4.0.5"
 	},
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.1.0",

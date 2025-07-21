@@ -45,7 +45,7 @@
 		"@axium/client": ">=0.1.0",
 		"@axium/core": ">=0.4.0",
 		"utilium": "^2.3.8",
-		"zod": "^3.25.76"
+		"zod": "^4.0.5"
 	},
 	"dependencies": {
 		"@axium/server": "file:.",

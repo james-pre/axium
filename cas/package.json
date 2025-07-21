@@ -32,13 +32,14 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
+		"@axium/client": ">=0.1.0",
 		"@axium/core": ">=0.4.0",
 		"@axium/server": ">=0.11.0",
-		"@axium/client": ">=0.1.0",
 		"@sveltejs/kit": "^2.22.2",
 		"utilium": "^2.3.8"
 	},
 	"dependencies": {
-		"blakejs": "^1.2.1"
+		"blakejs": "^1.2.1",
+		"zod": "^4.0.5"
 	}
 }
