@@ -2,14 +2,14 @@ import node from '@sveltejs/adapter-node';
 import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
 import { join } from 'node:path/posix';
 import config from '@axium/server/config';
-import type { Config as SvelteKitConfig } from '@sveltejs/kit';
 
 /**
  * Paths relative to the directory of this file.
  * This allows this file to be imported from other projects and still resolve to the correct paths.
  */
-const fixed = (p: string) => join(import.meta.dirname, p);
+const fixed = p => join(import.meta.dirname, p);
 
+/** @type {import('@sveltejs/kit').Config} */
 export default {
 	compilerOptions: {
 		runes: true,
@@ -34,4 +34,4 @@ export default {
 			},
 		},
 	},
-} satisfies SvelteKitConfig;
+};
