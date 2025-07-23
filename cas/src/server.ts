@@ -204,6 +204,8 @@ addRoute({
 		const size = Number(event.request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing size header');
 
+		if (usage.items >= config.cas.limits.user_items) error(409, 'Too many items');
+
 		if ((usage.bytes + size) / 1_000_000 >= config.cas.limits.user_size) error(409, 'Not enough space');
 
 		if (size > config.cas.limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
