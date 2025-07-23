@@ -24,8 +24,6 @@ jobs:
 
             - name: Set up Node.js
               uses: actions/setup-node@v4
-              with:
-                  node-version: 22.5.1
 
             - name: Install dependencies
               run: npm install
@@ -41,3 +39,6 @@ jobs:
 
             - name: Build server (Vite)
               run: (cd server && npx vite build)
+
+            - name: Write server JSON schema
+              run: npm run write-schema

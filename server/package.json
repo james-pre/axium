@@ -32,8 +32,9 @@
 		"build",
 		"dist",
 		"routes",
-		"web",
-		"svelte.config.js"
+		"schema.json",
+		"svelte.config.js",
+		"web"
 	],
 	"bin": {
 		"axium": "dist/cli.js"

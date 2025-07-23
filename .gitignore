@@ -10,3 +10,4 @@ logs
 .tmp.*
 _tmp.*
 *.tsbuildinfo
+server/schema.json
