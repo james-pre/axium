@@ -118,7 +118,7 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 export default config;
 
 // config from file
-export const File = z
+export const FileSchema = z
 	.looseObject({
 		allow_new_users: z.boolean(),
 		api: z
@@ -180,7 +180,7 @@ export const File = z
 		plugins: z.array(z.string()),
 	})
 	.partial();
-export interface File extends PartialRecursive<Config>, z.infer<typeof File> {}
+export interface File extends PartialRecursive<Config>, z.infer<typeof FileSchema> {}
 
 export function addConfigDefaults(other: PartialRecursive<Config>, _target: Record<string, any> = config): void {
 	for (const [key, value] of Object.entries(other)) {
@@ -208,9 +208,9 @@ export function setConfig(other: PartialRecursive<Config>) {
 
 export interface LoadOptions {
 	/**
-	 * If enabled, the config file will be not be loaded if it does not match the schema.
+	 * If enabled, the config file will still be loaded if it does not match the schema.
 	 */
-	strict?: boolean;
+	loose?: boolean;
 
 	/**
 	 * If enabled, the config file will be skipped if it does not exist.
@@ -238,7 +238,14 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		return;
 	}
 
-	const file: File = options.strict ? File.parse(json) : json;
+	let file: File;
+	try {
+		file = FileSchema.parse(json);
+	} catch (e: any) {
+		if (!options.loose) throw e;
+		output.debug(`Loading invalid config from ${path} (${e.message})`);
+		file = json;
+	}
 	configFiles.set(path, file);
 	setConfig(file);
 	output.debug('Loaded config: ' + path);

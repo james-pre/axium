@@ -10,7 +10,7 @@ import z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
 import type { UserInternal } from './auth.js';
-import config, { configFiles, saveConfigTo } from './config.js';
+import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, setCommandTimeout, warn, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
@@ -223,6 +223,15 @@ axiumConfig
 	.description('List loaded config files')
 	.action(() => {
 		for (const path of config.files.keys()) console.log(path);
+	});
+
+axiumConfig
+	.command('schema')
+	.description('Get the JSON schema for the configuration file')
+	.action(() => {
+		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+		const schema = z.toJSONSchema(FileSchema, { io: 'input' });
+		console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
 	});
 
 const axiumPlugin = program.command('plugins').description('Manage plugins').addOption(opts.global);
