@@ -1,9 +1,10 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
-
-	const { children, toggle }: { children(): any; toggle?(): any } = $props();
-
-	const id = 'popover#' + Math.random().toString(36).substring(2, 15);
+	const {
+		children,
+		toggle,
+		id = 'popover#' + Math.random().toString(36).substring(2, 15),
+	}: { children(): any; toggle?(): any; id?: string } = $props();
 </script>
 
 <!-- svelte-ignore a11y_click_events_have_key_events -->
