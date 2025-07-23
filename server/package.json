@@ -32,7 +32,6 @@
 		"build",
 		"dist",
 		"routes",
-		"schema.json",
 		"svelte.config.js",
 		"web"
 	],

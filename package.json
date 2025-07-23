@@ -27,8 +27,7 @@
 		"lint": "eslint",
 		"build": "tsc -b && (cd server && vite build)",
 		"watch": "tsc -b -w",
-		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build",
-		"write-schema": "(cd server && npx axium config schema -j > schema.json)"
+		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build"
 	},
 	"workspaces": [
 		"client",

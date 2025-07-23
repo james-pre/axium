@@ -36,6 +36,7 @@ jobs:
                       exit 1
                   fi
                   echo "path=$PACKAGE" >> $GITHUB_OUTPUT
+                  echo "::debug::Resolved package to '$PACKAGE'"
 
             - name: Build (TypeScript)
               run: npx tsc -b
@@ -43,8 +44,13 @@ jobs:
             - name: Build server (Vite)
               run: (cd server && npx vite build)
 
-            - name: Write server JSON schema
-              run: npm run write-schema
+            - name: Upload JSON schema to release assets [server]
+              if: steps.resolve.outputs.path == 'server'
+              run: |
+                  npx axium config schema -j > schema.json
+                  gh release upload ${{ github.event.release.tag_name }} schema.json
+              env:
+                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
             - name: Publish
               run: npm publish --access=public --provenance

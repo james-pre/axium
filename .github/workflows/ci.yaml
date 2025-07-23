@@ -39,6 +39,3 @@ jobs:
 
             - name: Build server (Vite)
               run: (cd server && npx vite build)
-
-            - name: Write server JSON schema
-              run: npm run write-schema
