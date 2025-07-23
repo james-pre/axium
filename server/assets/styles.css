@@ -100,3 +100,14 @@ button:hover {
 .disabled {
 	cursor: not-allowed;
 }
+
+:popover-open {
+	border: 1px solid #99a;
+	background-color: #111a;
+	border-radius: 0.5em;
+	padding: 0.5em;
+	inset: unset;
+	display: flex;
+	flex-direction: column;
+	gap: 0.5em;
+}
