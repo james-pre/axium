@@ -234,7 +234,7 @@ axiumConfig
 		console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
 	});
 
-const axiumPlugin = program.command('plugins').description('Manage plugins').addOption(opts.global);
+const axiumPlugin = program.command('plugin').alias('plugins').description('Manage plugins').addOption(opts.global);
 
 axiumPlugin
 	.command('list')
