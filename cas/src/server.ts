@@ -11,7 +11,7 @@ import { createHash } from 'node:crypto';
 import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import z from 'zod';
-import { CASUpdate, type CASMetadata } from './common.js';
+import { CASUpdate, type CASLimits, type CASMetadata, type CASUsage } from './common.js';
 import './polyfills.js';
 
 declare module '@axium/server/database' {
@@ -35,12 +35,10 @@ export interface CASConfig {
 	enabled?: boolean;
 	/** Path to data directory */
 	data: string;
-	/** The maximum size per file in MB */
-	max_item_size: number;
 	/** How many days files are kept in the trash */
 	trash_duration: number;
-	/** The maximum storage size per user in MB */
-	max_user_size: number;
+	/** Default limits */
+	limits: CASLimits;
 }
 
 declare module '@axium/server/config' {
@@ -53,9 +51,12 @@ addConfigDefaults({
 	cas: {
 		enabled: true,
 		data: dirs.at(-1)! + '/cas',
-		max_item_size: 100,
 		trash_duration: 30,
-		max_user_size: 1000,
+		limits: {
+			user_size: 1000,
+			item_size: 100,
+			user_items: 10_000,
+		},
 	},
 });
 
@@ -74,21 +75,41 @@ function parseItem(item: Selectable<Schema['cas']>): CASMetadata {
 /**
  * Returns the current usage of the CAS for a user in bytes.
  */
-export async function currentUsage(userId: string): Promise<number> {
+export async function currentUsage(userId: string): Promise<CASUsage> {
 	connect();
 	const result = await database
 		.selectFrom('cas')
 		.where('ownerId', '=', userId)
-		.select(eb => eb.fn.sum('size').as('size'))
+		.select(database.fn.countAll<number>().as('items'))
+		.select(eb => eb.fn.sum<number>('size').as('bytes'))
 		.executeTakeFirstOrThrow();
 
-	return Number(result.size);
+	return result;
 }
 
 export async function get(itemId: string): Promise<CASMetadata> {
 	connect();
 	const result = await database.selectFrom('cas').where('itemId', '=', itemId).selectAll().executeTakeFirstOrThrow();
 	return parseItem(result);
+}
+
+export type ExternalLimitHandler = (userId?: string) => CASLimits | Promise<CASLimits>;
+
+let _getLimits: ExternalLimitHandler | null = null;
+
+/**
+ * Define the handler to get limits for a user externally.
+ */
+export function useLimits(handler: ExternalLimitHandler): void {
+	_getLimits = handler;
+}
+
+export async function getLimits(userId?: string): Promise<CASLimits> {
+	try {
+		return await _getLimits!(userId);
+	} catch {
+		return config.cas.limits;
+	}
 }
 
 addRoute({
@@ -175,7 +196,7 @@ addRoute({
 
 		const { userId } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
 
-		const using = await currentUsage(userId);
+		const usage = await currentUsage(userId);
 
 		const name = event.request.headers.get('x-name');
 		if ((name?.length || 0) > 255) error(400, 'Name is too long');
@@ -183,9 +204,9 @@ addRoute({
 		const size = Number(event.request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing size header');
 
-		if ((using + size) / 1_000_000 >= config.cas.max_user_size) error(409, 'Not enough space');
+		if ((usage.bytes + size) / 1_000_000 >= config.cas.limits.user_size) error(409, 'Not enough space');
 
-		if (size > config.cas.max_item_size * 1_000_000) error(413, 'File size exceeds maximum size');
+		if (size > config.cas.limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
 		const content = await event.request.bytes();
 
@@ -241,6 +262,16 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/cas',
 	params: { id: z.uuid() },
+	async OPTIONS(event): Result<'OPTIONS', 'users/:id/cas'> {
+		if (!config.cas.enabled) error(503, 'CAS is disabled');
+
+		const userId = event.params.id!;
+		await checkAuth(event, userId);
+
+		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(withError('Could not fetch CAS data'));
+
+		return { usage, limits };
+	},
 	async GET(event): Result<'GET', 'users/:id/cas'> {
 		if (!config.cas.enabled) error(503, 'CAS is disabled');
 
@@ -248,12 +279,12 @@ addRoute({
 
 		await checkAuth(event, userId);
 
-		const items = await database.selectFrom('cas').where('ownerId', '=', userId).selectAll().execute();
+		const [items, usage, limits] = await Promise.all([
+			database.selectFrom('cas').where('ownerId', '=', userId).selectAll().execute(),
+			currentUsage(userId),
+			getLimits(userId),
+		]).catch(withError('Could not fetch CAS data'));
 
-		const usage = await currentUsage(userId);
-
-		const limit = config.cas.max_user_size * 1_000_000;
-
-		return { usage, limit, items: items.map(parseItem) };
+		return { usage, limits, items: items.map(parseItem) };
 	},
 });

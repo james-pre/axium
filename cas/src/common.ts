@@ -1,6 +1,20 @@
 import type {} from '@axium/core/api';
 import z from 'zod';
 
+export interface CASLimits {
+	/** The maximum storage size per user in MB */
+	user_size: number;
+	/** The maximum size per item in MB */
+	item_size: number;
+	/** Maximum number of items per user */
+	user_items: number;
+}
+
+export interface CASUsage {
+	bytes: number;
+	items: number;
+}
+
 export const CASUpdate = z.object({
 	owner: z.uuid().optional(),
 	name: z.string().optional(),
@@ -25,14 +39,15 @@ export interface CASMetadata {
 }
 
 export interface UserCASInfo {
-	usage: number;
-	limit: number;
+	usage: CASUsage;
+	limits: CASLimits;
 	items: CASMetadata[];
 }
 
 declare module '@axium/core/api' {
 	export interface _apiTypes {
 		'users/:id/cas': {
+			OPTIONS: { usage: CASUsage; limits: CASLimits };
 			GET: UserCASInfo;
 		};
 		'cas/item/:id': {
