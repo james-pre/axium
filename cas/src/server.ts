@@ -196,7 +196,9 @@ addRoute({
 
 		const { userId } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
 
-		const usage = await currentUsage(userId);
+		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(
+			withError('Could not fetch usage and/or limits')
+		);
 
 		const name = event.request.headers.get('x-name');
 		if ((name?.length || 0) > 255) error(400, 'Name is too long');
@@ -204,11 +206,11 @@ addRoute({
 		const size = Number(event.request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing size header');
 
-		if (usage.items >= config.cas.limits.user_items) error(409, 'Too many items');
+		if (usage.items >= limits.user_items) error(409, 'Too many items');
 
-		if ((usage.bytes + size) / 1_000_000 >= config.cas.limits.user_size) error(409, 'Not enough space');
+		if ((usage.bytes + size) / 1_000_000 >= limits.user_size) error(409, 'Not enough space');
 
-		if (size > config.cas.limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
+		if (size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
 		const content = await event.request.bytes();
 
