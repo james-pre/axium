@@ -255,7 +255,13 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 
 export async function loadDefaultConfigs() {
 	for (const path of findConfigPaths()) {
-		if (!existsSync(path)) writeFileSync(path, '{}');
+		if (!existsSync(path)) {
+			try {
+				writeFileSync(path, '{}');
+			} catch {
+				continue;
+			}
+		}
 		await loadConfig(path, { optional: true });
 	}
 }
