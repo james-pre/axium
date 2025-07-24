@@ -30,7 +30,7 @@ async function _upload(method: 'PUT' | 'POST', url: string | URL, data: Blob | F
 	return json;
 }
 
-function _parse(result: StorageItemMetadata): StorageItemMetadata {
+export function parseItem(result: StorageItemMetadata): StorageItemMetadata {
 	result.createdAt = new Date(result.createdAt);
 	result.modifiedAt = new Date(result.modifiedAt);
 	if (result.trashedAt) result.trashedAt = new Date(result.trashedAt);
@@ -38,21 +38,21 @@ function _parse(result: StorageItemMetadata): StorageItemMetadata {
 }
 
 export async function uploadItem(file: File): Promise<StorageItemMetadata> {
-	return _parse(await _upload('PUT', '/raw/storage', file));
+	return parseItem(await _upload('PUT', '/raw/storage', file));
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
-	return _parse(await _upload('POST', '/raw/storage/' + fileId, data));
+	return parseItem(await _upload('POST', '/raw/storage/' + fileId, data));
 }
 
 export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
 	const result = await fetchAPI('GET', 'storage/item/:id', undefined, fileId);
-	return _parse(result);
+	return parseItem(result);
 }
 
 export async function getDirectoryMetadata(parentId: string): Promise<StorageItemMetadata[]> {
 	const result = await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
-	for (const item of result) _parse(item);
+	for (const item of result) parseItem(item);
 	return result;
 }
 
@@ -68,17 +68,17 @@ export async function downloadItem(fileId: string): Promise<Blob> {
 
 export async function updateItemMetadata(fileId: string, metadata: StorageItemUpdate): Promise<StorageItemMetadata> {
 	const result = await fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
-	return _parse(result);
+	return parseItem(result);
 }
 
 export async function deleteItem(fileId: string): Promise<StorageItemMetadata> {
 	const result = await fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
-	return _parse(result);
+	return parseItem(result);
 }
 
 export async function getUserFiles(userId: string): Promise<UserFilesInfo> {
 	const result = await fetchAPI('GET', 'users/:id/storage', undefined, userId);
-	for (const item of result.items) _parse(item);
+	for (const item of result.items) parseItem(item);
 	return result;
 }
 
