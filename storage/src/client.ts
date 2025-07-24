@@ -30,25 +30,29 @@ async function _upload(method: 'PUT' | 'POST', url: string | URL, data: Blob | F
 	return json;
 }
 
+function _parse(result: StorageItemMetadata): StorageItemMetadata {
+	result.createdAt = new Date(result.createdAt);
+	result.modifiedAt = new Date(result.modifiedAt);
+	if (result.trashedAt) result.trashedAt = new Date(result.trashedAt);
+	return result;
+}
+
 export async function uploadItem(file: File): Promise<StorageItemMetadata> {
-	return _upload('PUT', '/raw/storage', file);
+	return _parse(await _upload('PUT', '/raw/storage', file));
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
-	return _upload('POST', '/raw/storage/' + fileId, data);
+	return _parse(await _upload('POST', '/raw/storage/' + fileId, data));
 }
 
 export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
 	const result = await fetchAPI('GET', 'storage/item/:id', undefined, fileId);
-	result.modifiedAt = new Date(result.modifiedAt);
-	return result;
+	return _parse(result);
 }
 
 export async function getDirectoryMetadata(parentId: string): Promise<StorageItemMetadata[]> {
 	const result = await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
-	for (const item of result) {
-		item.modifiedAt = new Date(item.modifiedAt);
-	}
+	for (const item of result) _parse(item);
 	return result;
 }
 
@@ -63,18 +67,18 @@ export async function downloadItem(fileId: string): Promise<Blob> {
 }
 
 export async function updateItemMetadata(fileId: string, metadata: StorageItemUpdate): Promise<StorageItemMetadata> {
-	return fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
+	const result = await fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
+	return _parse(result);
 }
 
 export async function deleteItem(fileId: string): Promise<StorageItemMetadata> {
-	return fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
+	const result = await fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
+	return _parse(result);
 }
 
 export async function getUserFiles(userId: string): Promise<UserFilesInfo> {
 	const result = await fetchAPI('GET', 'users/:id/storage', undefined, userId);
-	for (const item of result.items) {
-		item.modifiedAt = new Date(item.modifiedAt);
-	}
+	for (const item of result.items) _parse(item);
 	return result;
 }
 

@@ -39,6 +39,12 @@ async function db_init(opt: InitOptions, db: Database) {
 		.execute()
 		.then(done)
 		.catch(warnExists);
+
+	start('Creating index for storage.userId');
+	await db.schema.createIndex('storage_userId_index').on('storage').column('userId').execute().then(done).catch(warnExists);
+
+	start('Creating index for storage.parentId');
+	await db.schema.createIndex('storage_parentId_index').on('storage').column('parentId').execute().then(done).catch(warnExists);
 }
 
 async function db_wipe(opt: OpOptions, db: Database) {
