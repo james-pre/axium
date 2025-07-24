@@ -10,27 +10,25 @@
 </script>
 
 <div>
-	{#if files?.length}
-		<label for={id} class="file">
-			{#each files as file}
-				<Icon i={forMime(file.type)} />
-				<span>{file.name}</span>
-				<button
-					onclick={e => {
-						e.preventDefault();
-						const dt = new DataTransfer();
-						for (let f of files) if (file !== f) dt.items.add(f);
-						input.files = files = dt.files;
-					}}
-					style:display="contents"
-				>
-					<Icon i="trash" />
-				</button>
-			{/each}
-		</label>
-	{:else}
-		<label for={id}><Icon i="upload" />Upload</label>
-	{/if}
+	<label for={id} class={[files?.length && 'file']}>
+		{#each files as file}
+			<Icon i={forMime(file.type)} />
+			<span>{file.name}</span>
+			<button
+				onclick={e => {
+					e.preventDefault();
+					const dt = new DataTransfer();
+					for (let f of files) if (file !== f) dt.items.add(f);
+					input.files = files = dt.files;
+				}}
+				style:display="contents"
+			>
+				<Icon i="trash" />
+			</button>
+		{:else}
+			<Icon i="upload" /> Upload
+		{/each}
+	</label>
 
 	<input bind:this={input} {name} {id} type="file" bind:files {...rest} />
 </div>
