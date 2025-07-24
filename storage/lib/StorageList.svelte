@@ -37,7 +37,7 @@
 
 <div class="StorageList">
 	{#await getDirectoryMetadata(id).then(data => (items = data)) then}
-		<div class="StorageListItem">
+		<div class="StorageListItem header">
 			<span></span>
 			<span>Name</span>
 			<span>Last Modified</span>
@@ -102,8 +102,12 @@
 	.StorageList {
 		display: flex;
 		flex-direction: column;
-		gap: 0.5em;
 		padding: 0.5em;
+	}
+
+	.StorageListItem.header {
+		font-weight: bold;
+		border-bottom: 1px solid #bbc;
 	}
 
 	.StorageListItem {
@@ -111,6 +115,15 @@
 		grid-template-columns: 1em 4fr 15em 5em repeat(1em, 3);
 		align-items: center;
 		gap: 0.5em;
+	}
+
+	.StorageListItem:not(:last-child) {
+		padding: 0.5em 0;
+		border-bottom: 1px solid #bbc;
+	}
+
+	.StorageListItem:not(.header):hover {
+		background-color: #8888;
 	}
 
 	.action {
