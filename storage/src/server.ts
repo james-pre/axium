@@ -87,7 +87,7 @@ export interface StorageItem extends StorageItemMetadata {
 	data: Uint8Array<ArrayBufferLike>;
 }
 
-function parseItem(item: Selectable<Schema['storage']>): StorageItemMetadata {
+export function parseItem(item: Selectable<Schema['storage']>): StorageItemMetadata {
 	return {
 		...item,
 		hash: item.hash.toHex(),
