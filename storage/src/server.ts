@@ -10,8 +10,8 @@ import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
-import z from 'zod';
-import { FileUpdate, type FileMetadata, type FilesUsage, type StorageLimits } from './common.js';
+import * as z from 'zod';
+import { StorageItemUpdate, type StorageItemMetadata, type StorageUsage, type StorageLimits } from './common.js';
 import './polyfills.js';
 
 declare module '@axium/server/database' {
@@ -34,29 +34,29 @@ declare module '@axium/server/database' {
 	}
 }
 
-export interface StorageConfig {
-	/** Whether the storage API endpoints are enabled */
-	enabled?: boolean;
-	/** Path to data directory */
-	data: string;
-	/** How many days files are kept in the trash */
-	trash_duration: number;
-	/** Default limits */
-	limits: StorageLimits;
-	/** Content Addressable Storage (CAS) configuration */
-	cas: {
-		/** Whether to use CAS */
-		enabled: boolean;
-		/** Mime types to include when determining if CAS should be used */
-		include: string[];
-		/** Mime types to exclude when determining if CAS should be used */
-		exclude: string[];
-	};
-}
-
 declare module '@axium/server/config' {
 	export interface Config {
-		storage: StorageConfig;
+		storage: {
+			/** Whether the storage API endpoints are enabled */
+			enabled: boolean;
+			/** Whether the files app is enabled. Requires `enabled` */
+			app_enabled: boolean;
+			/** Path to data directory */
+			data: string;
+			/** How many days files are kept in the trash */
+			trash_duration: number;
+			/** Default limits */
+			limits: StorageLimits;
+			/** Content Addressable Storage (CAS) configuration */
+			cas: {
+				/** Whether to use CAS */
+				enabled: boolean;
+				/** Mime types to include when determining if CAS should be used */
+				include: string[];
+				/** Mime types to exclude when determining if CAS should be used */
+				exclude: string[];
+			};
+		};
 	}
 }
 
@@ -65,6 +65,7 @@ const defaultCASMime = [/video\/.*/, /audio\/.*/];
 addConfigDefaults({
 	storage: {
 		enabled: true,
+		app_enabled: true,
 		data: dirs.at(-1)! + '/storage',
 		trash_duration: 30,
 		limits: {
@@ -80,11 +81,11 @@ addConfigDefaults({
 	},
 });
 
-export interface StorageItem extends FileMetadata {
+export interface StorageItem extends StorageItemMetadata {
 	data: Uint8Array<ArrayBufferLike>;
 }
 
-function parseItem(item: Selectable<Schema['storage']>): FileMetadata {
+function parseItem(item: Selectable<Schema['storage']>): StorageItemMetadata {
 	return {
 		...item,
 		hash: item.hash.toHex(),
@@ -95,7 +96,7 @@ function parseItem(item: Selectable<Schema['storage']>): FileMetadata {
 /**
  * Returns the current usage of the storage for a user in bytes.
  */
-export async function currentUsage(userId: string): Promise<FilesUsage> {
+export async function currentUsage(userId: string): Promise<StorageUsage> {
 	connect();
 	const result = await database
 		.selectFrom('storage')
@@ -107,7 +108,7 @@ export async function currentUsage(userId: string): Promise<FilesUsage> {
 	return result;
 }
 
-export async function get(itemId: string): Promise<FileMetadata> {
+export async function get(itemId: string): Promise<StorageItemMetadata> {
 	connect();
 	const result = await database.selectFrom('storage').where('id', '=', itemId).selectAll().executeTakeFirstOrThrow();
 	return parseItem(result);
@@ -152,14 +153,14 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const body = await parseBody(event, FileUpdate);
+		const body = await parseBody(event, StorageItemUpdate);
 
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
 		await checkAuth(event, item.ownerId);
 
-		const values: Partial<Pick<FileMetadata, 'restricted' | 'trashedAt' | 'ownerId' | 'name'>> = {};
+		const values: Partial<Pick<StorageItemMetadata, 'restricted' | 'trashedAt' | 'ownerId' | 'name'>> = {};
 		if ('restrict' in body) values.restricted = body.restrict;
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
 		if ('owner' in body) values.ownerId = body.owner;
@@ -207,8 +208,34 @@ addRoute({
 });
 
 addRoute({
+	path: '/api/storage/directory/:id',
+	params: { id: z.uuid() },
+	async GET(event): Result<'GET', 'storage/directory/:id'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
+
+		const itemId = event.params.id!;
+
+		const item = await get(itemId);
+		if (!item) error(404, 'Item not found');
+
+		await checkAuth(event, item.ownerId);
+
+		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
+
+		const items = await database
+			.selectFrom('storage')
+			.where('parentId', '=', itemId)
+			.where('trashedAt', '!=', null)
+			.selectAll()
+			.execute();
+
+		return items.map(parseItem);
+	},
+});
+
+addRoute({
 	path: '/raw/storage',
-	async PUT(event): Promise<FileMetadata> {
+	async PUT(event): Promise<StorageItemMetadata> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const token = getToken(event);

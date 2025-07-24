@@ -1,7 +1,7 @@
 import { fetchAPI, token } from '@axium/client/requests';
-import type { FileMetadata, FileUpdate, UserFilesInfo } from './common.js';
+import type { StorageItemMetadata, StorageItemUpdate, UserFilesInfo } from './common.js';
 
-export async function uploadItem(file: File): Promise<FileMetadata> {
+export async function uploadItem(file: File): Promise<StorageItemMetadata> {
 	const init = {
 		method: 'PUT',
 		headers: {
@@ -22,7 +22,7 @@ export async function uploadItem(file: File): Promise<FileMetadata> {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
 	}
 
-	const json: FileMetadata = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
+	const json: StorageItemMetadata = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
 
 	if (!response.ok) throw new Error((json as any).message);
 
@@ -31,9 +31,17 @@ export async function uploadItem(file: File): Promise<FileMetadata> {
 	return json;
 }
 
-export async function getItemMetadata(fileId: string): Promise<FileMetadata> {
+export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
 	const result = await fetchAPI('GET', 'storage/item/:id', undefined, fileId);
 	result.modifiedAt = new Date(result.modifiedAt);
+	return result;
+}
+
+export async function getDirectoryMetadata(parentId: string): Promise<StorageItemMetadata[]> {
+	const result = await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
+	for (const item of result) {
+		item.modifiedAt = new Date(item.modifiedAt);
+	}
 	return result;
 }
 
@@ -47,11 +55,11 @@ export async function downloadItem(fileId: string): Promise<Blob> {
 	return await response.blob();
 }
 
-export async function updateItem(fileId: string, metadata: FileUpdate): Promise<FileMetadata> {
+export async function updateItem(fileId: string, metadata: StorageItemUpdate): Promise<StorageItemMetadata> {
 	return fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
 }
 
-export async function deleteItem(fileId: string): Promise<FileMetadata> {
+export async function deleteItem(fileId: string): Promise<StorageItemMetadata> {
 	return fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
 }
 

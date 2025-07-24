@@ -1,5 +1,21 @@
-import type {} from '@axium/core/api';
-import z from 'zod';
+import * as z from 'zod';
+
+declare module '@axium/core/api' {
+	export interface _apiTypes {
+		'users/:id/storage': {
+			OPTIONS: { usage: StorageUsage; limits: StorageLimits };
+			GET: UserFilesInfo;
+		};
+		'storage/item/:id': {
+			GET: StorageItemMetadata;
+			DELETE: StorageItemMetadata;
+			PATCH: [z.input<typeof StorageItemUpdate>, StorageItemMetadata];
+		};
+		'storage/directory/:id': {
+			GET: StorageItemMetadata[];
+		};
+	}
+}
 
 export interface StorageLimits {
 	/** The maximum storage size per user in MB */
@@ -10,24 +26,30 @@ export interface StorageLimits {
 	user_items: number;
 }
 
-export interface FilesUsage {
+export interface StorageUsage {
 	bytes: number;
 	items: number;
+}
+
+export interface UserFilesInfo {
+	usage: StorageUsage;
+	limits: StorageLimits;
+	items: StorageItemMetadata[];
 }
 
 /**
  * An update to file metadata.
  */
-export const FileUpdate = z.object({
+export const StorageItemUpdate = z.object({
 	owner: z.uuid().optional(),
 	name: z.string().optional(),
 	trash: z.boolean().optional(),
 	restrict: z.boolean().optional(),
 });
 
-export type FileUpdate = z.infer<typeof FileUpdate>;
+export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 
-export interface FileMetadata {
+export interface StorageItemMetadata {
 	id: string;
 	ownerId: string;
 	createdAt: Date;
@@ -42,24 +64,4 @@ export interface FileMetadata {
 	name: string | null;
 	immutable: boolean;
 	dataURL?: string;
-}
-
-export interface UserFilesInfo {
-	usage: FilesUsage;
-	limits: StorageLimits;
-	items: FileMetadata[];
-}
-
-declare module '@axium/core/api' {
-	export interface _apiTypes {
-		'users/:id/storage': {
-			OPTIONS: { usage: FilesUsage; limits: StorageLimits };
-			GET: UserFilesInfo;
-		};
-		'storage/item/:id': {
-			GET: FileMetadata;
-			DELETE: FileMetadata;
-			PATCH: [z.input<typeof FileUpdate>, FileMetadata];
-		};
-	}
 }
