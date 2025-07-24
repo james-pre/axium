@@ -9,27 +9,29 @@ import { error } from '@sveltejs/kit';
 import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
-import { StorageItemUpdate, type StorageItemMetadata, type StorageUsage, type StorageLimits } from './common.js';
+import type { StorageItemMetadata, StorageLimits, StorageUsage } from './common.js';
+import { StorageItemUpdate } from './common.js';
 import './polyfills.js';
 
 declare module '@axium/server/database' {
 	export interface Schema {
 		storage: {
-			id: Generated<string>;
-			ownerId: string;
 			createdAt: Generated<Date>;
+			hash: Uint8Array;
+			id: Generated<string>;
+			immutable: Generated<boolean>;
 			modifiedAt: Generated<Date>;
-			restricted: Generated<boolean>;
+			name: string | null;
 			parentId: string | null;
+			restricted: Generated<boolean>;
 			size: number;
 			trashedAt: Date | null;
-			hash: Uint8Array;
-			name: string | null;
 			type: string;
-			immutable: Generated<boolean>;
-			useCAS: Generated<boolean>;
+			userId: string;
+			visibility: Generated<number>;
 		};
 	}
 }
@@ -100,7 +102,7 @@ export async function currentUsage(userId: string): Promise<StorageUsage> {
 	connect();
 	const result = await database
 		.selectFrom('storage')
-		.where('ownerId', '=', userId)
+		.where('userId', '=', userId)
 		.select(database.fn.countAll<number>().as('items'))
 		.select(eb => eb.fn.sum<number>('size').as('bytes'))
 		.executeTakeFirstOrThrow();
@@ -144,7 +146,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(event, item.userId);
 
 		return item;
 	},
@@ -158,12 +160,12 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(event, item.userId);
 
-		const values: Partial<Pick<StorageItemMetadata, 'restricted' | 'trashedAt' | 'ownerId' | 'name'>> = {};
+		const values: Partial<Pick<StorageItemMetadata, 'restricted' | 'trashedAt' | 'userId' | 'name'>> = {};
 		if ('restrict' in body) values.restricted = body.restrict;
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
-		if ('owner' in body) values.ownerId = body.owner;
+		if ('owner' in body) values.userId = body.owner;
 		if ('name' in body) values.name = body.name;
 
 		if (!Object.keys(values).length) error(400, 'No valid fields to update');
@@ -186,7 +188,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(event, item.userId);
 
 		await database
 			.deleteFrom('storage')
@@ -218,7 +220,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(event, item.userId);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -259,7 +261,7 @@ addRoute({
 			: null;
 
 		const size = Number(event.request.headers.get('content-length'));
-		if (Number.isNaN(size)) error(411, 'Missing size header');
+		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 
 		if (usage.items >= limits.user_items) error(409, 'Too many items');
 
@@ -280,9 +282,11 @@ addRoute({
 
 		const hash = createHash('BLAKE2b512').update(content).digest();
 
+		// @todo: make this atomic
+
 		const result = await database
 			.insertInto('storage')
-			.values({ ownerId: userId, hash, name, size, type, useCAS, immutable: useCAS, parentId })
+			.values({ userId: userId, hash, name, size, type, immutable: useCAS, parentId })
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not create item'));
@@ -321,7 +325,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.ownerId);
+		await checkAuth(event, item.userId);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -342,16 +346,21 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		const { accessor } = await checkAuth(event, item.ownerId);
+		const { accessor } = await checkAuth(event, item.userId);
 
 		if (item.immutable) error(403, 'Item is immutable');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
-		if (item.restricted && item.ownerId != accessor.id) error(403, 'Item editing is restricted to the owner');
+		if (item.restricted && item.userId != accessor.id) error(403, 'Item editing is restricted to the owner');
+
+		const type = event.request.headers.get('content-type') || 'application/octet-stream';
+
+		// @todo: add this to the audit log
+		if (type != item.type) error(400, 'Content type does not match existing item type');
 
 		const size = Number(event.request.headers.get('content-length'));
-		if (Number.isNaN(size)) error(411, 'Missing size header');
+		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 
-		const [usage, limits] = await Promise.all([currentUsage(item.ownerId), getLimits(item.ownerId)]).catch(
+		const [usage, limits] = await Promise.all([currentUsage(item.userId), getLimits(item.userId)]).catch(
 			withError('Could not fetch usage and/or limits')
 		);
 
@@ -364,10 +373,21 @@ addRoute({
 		// @todo: add this to the audit log
 		if (content.byteLength > size) error(400, 'Content length does not match size header');
 
-		const type = event.request.headers.get('content-type') || 'application/octet-stream';
+		const hash = createHash('BLAKE2b512').update(content).digest();
 
-		// @todo: add this to the audit log
-		if (type != item.type) error(400, 'Content type does not match item type');
+		// @todo: make this atomic
+
+		const result = await database
+			.updateTable('storage')
+			.where('id', '=', itemId)
+			.set({ size, modifiedAt: new Date(), hash })
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not update item'));
+
+		await writeFile(join(config.storage.data, result.id), content).catch(withError('Could not write'));
+
+		return parseItem(result);
 	},
 });
 
@@ -392,7 +412,7 @@ addRoute({
 		await checkAuth(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('storage').where('ownerId', '=', userId).selectAll().execute(),
+			database.selectFrom('storage').where('userId', '=', userId).selectAll().execute(),
 			currentUsage(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));

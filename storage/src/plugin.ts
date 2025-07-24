@@ -24,7 +24,7 @@ async function db_init(opt: InitOptions, db: Database) {
 	await db.schema
 		.createTable('storage')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('ownerId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
+		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
 		.addColumn('parentId', 'uuid', col => col.references('storage.itemId').onDelete('cascade').onUpdate('cascade').defaultTo(null))
 		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('modifiedAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
@@ -34,6 +34,8 @@ async function db_init(opt: InitOptions, db: Database) {
 		.addColumn('hash', 'bytea', col => col.notNull())
 		.addColumn('name', 'text', col => col.defaultTo(null))
 		.addColumn('type', 'text', col => col.notNull())
+		.addColumn('immutable', 'boolean', col => col.notNull())
+		.addColumn('visibility', 'integer', col => col.notNull().defaultTo(0))
 		.execute()
 		.then(done)
 		.catch(warnExists);
@@ -52,11 +54,9 @@ async function remove(opt: OpOptions, db: Database) {
 }
 
 async function clean(opt: OpOptions, db: Database) {
-	const { trash_duration } = config.storage;
+	start('Removing expired trash items');
 
-	start(`Removing trashed storage items older than ${trash_duration} days`);
-
-	const nDaysAgo = new Date(Date.now() - 86400000 * trash_duration);
+	const nDaysAgo = new Date(Date.now() - 86400000 * config.storage.trash_duration);
 	await db
 		.deleteFrom('storage')
 		.where('trashedAt', 'is not', null)

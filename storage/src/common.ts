@@ -18,12 +18,12 @@ declare module '@axium/core/api' {
 }
 
 export interface StorageLimits {
-	/** The maximum storage size per user in MB */
-	user_size: number;
 	/** The maximum size per item in MB */
 	item_size: number;
 	/** Maximum number of items per user */
 	user_items: number;
+	/** The maximum storage size per user in MB */
+	user_size: number;
 }
 
 export interface StorageUsage {
@@ -32,36 +32,40 @@ export interface StorageUsage {
 }
 
 export interface UserFilesInfo {
-	usage: StorageUsage;
-	limits: StorageLimits;
 	items: StorageItemMetadata[];
+	limits: StorageLimits;
+	usage: StorageUsage;
 }
 
 /**
  * An update to file metadata.
  */
-export const StorageItemUpdate = z.object({
-	owner: z.uuid().optional(),
-	name: z.string().optional(),
-	trash: z.boolean().optional(),
-	restrict: z.boolean().optional(),
-});
+export const StorageItemUpdate = z
+	.object({
+		name: z.string(),
+		owner: z.uuid(),
+		trash: z.boolean(),
+		restrict: z.boolean(),
+		visibility: z.boolean(),
+	})
+	.partial();
 
 export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 
 export interface StorageItemMetadata {
-	id: string;
-	ownerId: string;
 	createdAt: Date;
+	dataURL?: string;
+	hash: string;
+	id: string;
+	immutable: boolean;
 	modifiedAt: Date;
+	name: string | null;
+	userId: string;
+	parentId: string | null;
 	/** Whether editing the file is restricted to the owner */
 	restricted: boolean;
-	parentId: string | null;
 	size: number;
 	trashedAt: Date | null;
-	hash: string;
 	type: string;
-	name: string | null;
-	immutable: boolean;
-	dataURL?: string;
+	visibility: number;
 }

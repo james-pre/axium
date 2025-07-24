@@ -2,22 +2,20 @@ import { fetchAPI, token } from '@axium/client/requests';
 import type { StorageItemMetadata, StorageItemUpdate, UserFilesInfo } from './common.js';
 import type { ItemSelection } from './selection.js';
 
-export async function uploadItem(file: File): Promise<StorageItemMetadata> {
+async function _upload(method: 'PUT' | 'POST', url: string | URL, data: Blob | File): Promise<StorageItemMetadata> {
 	const init = {
-		method: 'PUT',
+		method,
 		headers: {
-			'Content-Type': file.type,
-			'Content-Length': file.size.toString(),
-			'X-Name': file.name,
+			'Content-Type': data.type,
+			'Content-Length': data.size.toString(),
 		} as Record<string, string>,
-		body: file,
-	};
+		body: data,
+	} satisfies RequestInit;
 
-	if (token) {
-		init.headers.Authorization = 'Bearer ' + token;
-	}
+	if (data instanceof File) init.headers['X-Name'] = data.name;
+	if (token) init.headers.Authorization = 'Bearer ' + token;
 
-	const response = await fetch('/raw/storage', init);
+	const response = await fetch(url, init);
 
 	if (!response.headers.get('Content-Type')?.includes('application/json')) {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
@@ -30,6 +28,14 @@ export async function uploadItem(file: File): Promise<StorageItemMetadata> {
 	json.modifiedAt = new Date(json.modifiedAt);
 
 	return json;
+}
+
+export async function uploadItem(file: File): Promise<StorageItemMetadata> {
+	return _upload('PUT', '/raw/storage', file);
+}
+
+export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
+	return _upload('POST', '/raw/storage/' + fileId, data);
 }
 
 export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
@@ -56,7 +62,7 @@ export async function downloadItem(fileId: string): Promise<Blob> {
 	return await response.blob();
 }
 
-export async function updateItem(fileId: string, metadata: StorageItemUpdate): Promise<StorageItemMetadata> {
+export async function updateItemMetadata(fileId: string, metadata: StorageItemUpdate): Promise<StorageItemMetadata> {
 	return fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
 }
 
