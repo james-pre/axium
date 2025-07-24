@@ -1,5 +1,6 @@
 import { fetchAPI, token } from '@axium/client/requests';
 import type { StorageItemMetadata, StorageItemUpdate, UserFilesInfo } from './common.js';
+import type { ItemSelection } from './selection.js';
 
 export async function uploadItem(file: File): Promise<StorageItemMetadata> {
 	const init = {
@@ -69,4 +70,10 @@ export async function getUserFiles(userId: string): Promise<UserFilesInfo> {
 		item.modifiedAt = new Date(item.modifiedAt);
 	}
 	return result;
+}
+
+export interface _Sidebar {
+	selection: ItemSelection<string, StorageItemMetadata>;
+	items: StorageItemMetadata[];
+	getDirectory(id: string, assignTo?: StorageItemMetadata[]): Promise<StorageItemMetadata[]>;
 }

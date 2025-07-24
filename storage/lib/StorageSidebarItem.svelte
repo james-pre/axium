@@ -1,9 +1,10 @@
 <script lang="ts">
 	import * as icon from '@axium/core/icons';
 	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/lib';
-	import { deleteItem, getDirectoryMetadata, updateItem } from '@axium/storage/client';
+	import { deleteItem, updateItem, type _Sidebar } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
-	import SidebarItem from './SidebarItem.svelte';
+	import { getContext } from 'svelte';
+	import StorageSidebarItem from './StorageSidebarItem.svelte';
 
 	let {
 		item = $bindable(),
@@ -16,8 +17,9 @@
 		debug?: boolean;
 	} = $props();
 
-	const dialogs = $state<Record<string, HTMLDialogElement>>({});
+	const sb = getContext<() => _Sidebar>('files:sidebar')();
 
+	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 	let popover = $state<HTMLDivElement>();
 
 	function oncontextmenu(e: MouseEvent) {
@@ -27,7 +29,12 @@
 	}
 
 	function onclick(e: MouseEvent) {
-		/* todo: selection */
+		if (e.shiftKey) sb.selection.toggleRange(item.id);
+		else if (e.ctrlKey) sb.selection.toggle(item.id);
+		else {
+			sb.selection.clear();
+			sb.selection.add(item.id);
+		}
 	}
 
 	let children = $state<StorageItemMetadata[]>([]);
@@ -56,16 +63,16 @@
 
 {#if item.type == 'inode/directory'}
 	<details>
-		<summary class={['SidebarItem' /* todo: selection */]} {onclick} {oncontextmenu}>
+		<summary class={['StorageSidebarItem', sb.selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
 			<Icon i={icon.forMime(item.type)} />
 			<span class="name">{item.name}</span>
 		</summary>
 		<div>
-			{#await getDirectoryMetadata(item.id).then(data => (children = data))}
+			{#await sb.getDirectory(item.id, children)}
 				<i>Loading...</i>
 			{:then}
 				{#each children as _, i (_.id)}
-					<SidebarItem bind:item={children[i]} bind:items={children} />
+					<StorageSidebarItem bind:item={children[i]} bind:items={children} />
 				{/each}
 			{:catch error}
 				<i style:color="#c44">{error.message}</i>
@@ -73,7 +80,7 @@
 		</div>
 	</details>
 {:else}
-	<div class={['SidebarItem' /* todo: selection */]} {onclick} {oncontextmenu}>
+	<div class={['StorageSidebarItem', sb.selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
 		<Icon i={icon.forMime(item.type)} />
 		<span class="name">{item.name}</span>
 	</div>
@@ -99,7 +106,7 @@
 	}}
 >
 	<div>
-		<label for="name">Resource Name</label>
+		<label for="name">Name</label>
 		<input name="name" type="text" required value={item.name} />
 	</div>
 </FormDialog>
@@ -129,7 +136,7 @@
 </FormDialog>
 
 <style>
-	.SidebarItem {
+	.StorageSidebarItem {
 		display: grid;
 		grid-template-columns: 1em 1fr;
 		align-items: center;
@@ -146,7 +153,7 @@
 		text-overflow: ellipsis;
 	}
 
-	.SidebarItem:hover {
+	.StorageSidebarItem:hover {
 		background: #334;
 		cursor: pointer;
 	}
