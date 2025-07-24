@@ -10,9 +10,9 @@ import './server.js';
 import { formatBytes } from '@axium/core/format';
 
 async function statusText(): Promise<string> {
-	const items = await count('cas');
+	const items = await count('storage');
 	const { size } = await database
-		.selectFrom('cas')
+		.selectFrom('storage')
 		.select(eb => eb.fn.sum('size').as('size'))
 		.executeTakeFirstOrThrow();
 
@@ -20,12 +20,14 @@ async function statusText(): Promise<string> {
 }
 
 async function db_init(opt: InitOptions, db: Database) {
-	start('Creating table cas');
+	start('Creating table storage');
 	await db.schema
-		.createTable('cas')
-		.addColumn('itemId', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+		.createTable('storage')
+		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('ownerId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
-		.addColumn('lastModified', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
+		.addColumn('parentId', 'uuid', col => col.references('storage.itemId').onDelete('cascade').onUpdate('cascade').defaultTo(null))
+		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
+		.addColumn('modifiedAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('restricted', 'boolean', col => col.notNull().defaultTo(false))
 		.addColumn('size', 'integer', col => col.notNull())
 		.addColumn('trashedAt', 'timestamptz', col => col.defaultTo(null))
@@ -38,24 +40,29 @@ async function db_init(opt: InitOptions, db: Database) {
 }
 
 async function db_wipe(opt: OpOptions, db: Database) {
-	start('Removing data from cas');
-	await db.deleteFrom('cas').execute();
+	start('Removing data from user storage');
+	await db.deleteFrom('storage').execute();
 	done();
 }
 
 async function remove(opt: OpOptions, db: Database) {
-	start('Dropping table cas');
-	await db.schema.dropTable('cas').execute();
+	start('Dropping table storage');
+	await db.schema.dropTable('storage').execute();
 	done();
 }
 
 async function clean(opt: OpOptions, db: Database) {
-	const { trash_duration } = config.cas;
+	const { trash_duration } = config.storage;
 
-	start(`Removing trashed CAS items older than ${trash_duration} days`);
+	start(`Removing trashed storage items older than ${trash_duration} days`);
 
 	const nDaysAgo = new Date(Date.now() - 86400000 * trash_duration);
-	await db.deleteFrom('cas').where('trashedAt', 'is not', null).where('trashedAt', '<', nDaysAgo).executeTakeFirstOrThrow().then(done);
+	await db
+		.deleteFrom('storage')
+		.where('trashedAt', 'is not', null)
+		.where('trashedAt', '<', nDaysAgo)
+		.executeTakeFirstOrThrow()
+		.then(done);
 }
 
 export default {

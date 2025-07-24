@@ -1,17 +1,17 @@
-# Axium CAS
+# Axium Storage
 
-This is a Content Addressable Storage (CAS) plugin for Axium, which provides a way to store and retrieve data based on its hash.
+This is a plugin for allowing users to store data on an Axium server.
 
 ## Usage
 
-Update the configuration to include the CAS data directory:
+Update the configuration to include the files data directory:
 
 ```json
 {
-	"cas": {
-		"data": "/path/to/cas/data"
+	"storage": {
+		"data": "/path/to/storage/data"
 	}
 }
 ```
 
-Also, make sure to run `axium db init --skip` to add the necessary database tables for the CAS plugin.
+Also, make sure to run `axium plugin init @axium/storage` to add the necessary database tables for the plugin.

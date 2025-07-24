@@ -8,77 +8,97 @@ import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
-import { mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import z from 'zod';
-import { CASUpdate, type CASLimits, type CASMetadata, type CASUsage } from './common.js';
+import { FileUpdate, type FileMetadata, type FilesUsage, type StorageLimits } from './common.js';
 import './polyfills.js';
 
 declare module '@axium/server/database' {
 	export interface Schema {
-		cas: {
-			itemId: Generated<string>;
+		storage: {
+			id: Generated<string>;
 			ownerId: string;
-			lastModified: Generated<Date>;
+			createdAt: Generated<Date>;
+			modifiedAt: Generated<Date>;
 			restricted: Generated<boolean>;
+			parentId: string | null;
 			size: number;
 			trashedAt: Date | null;
 			hash: Uint8Array;
 			name: string | null;
 			type: string;
+			immutable: Generated<boolean>;
+			useCAS: Generated<boolean>;
 		};
 	}
 }
 
-export interface CASConfig {
-	/** Whether the CAS API endpoints are enabled */
+export interface StorageConfig {
+	/** Whether the storage API endpoints are enabled */
 	enabled?: boolean;
 	/** Path to data directory */
 	data: string;
 	/** How many days files are kept in the trash */
 	trash_duration: number;
 	/** Default limits */
-	limits: CASLimits;
+	limits: StorageLimits;
+	/** Content Addressable Storage (CAS) configuration */
+	cas: {
+		/** Whether to use CAS */
+		enabled: boolean;
+		/** Mime types to include when determining if CAS should be used */
+		include: string[];
+		/** Mime types to exclude when determining if CAS should be used */
+		exclude: string[];
+	};
 }
 
 declare module '@axium/server/config' {
 	export interface Config {
-		cas: CASConfig;
+		storage: StorageConfig;
 	}
 }
 
+const defaultCASMime = [/video\/.*/, /audio\/.*/];
+
 addConfigDefaults({
-	cas: {
+	storage: {
 		enabled: true,
-		data: dirs.at(-1)! + '/cas',
+		data: dirs.at(-1)! + '/storage',
 		trash_duration: 30,
 		limits: {
 			user_size: 1000,
 			item_size: 100,
 			user_items: 10_000,
 		},
+		cas: {
+			enabled: true,
+			include: [],
+			exclude: [],
+		},
 	},
 });
 
-export interface CASItem extends CASMetadata {
+export interface StorageItem extends FileMetadata {
 	data: Uint8Array<ArrayBufferLike>;
 }
 
-function parseItem(item: Selectable<Schema['cas']>): CASMetadata {
+function parseItem(item: Selectable<Schema['storage']>): FileMetadata {
 	return {
 		...item,
 		hash: item.hash.toHex(),
-		data_url: `/raw/cas/${item.itemId}`,
+		dataURL: `/raw/storage/${item.id}`,
 	};
 }
 
 /**
- * Returns the current usage of the CAS for a user in bytes.
+ * Returns the current usage of the storage for a user in bytes.
  */
-export async function currentUsage(userId: string): Promise<CASUsage> {
+export async function currentUsage(userId: string): Promise<FilesUsage> {
 	connect();
 	const result = await database
-		.selectFrom('cas')
+		.selectFrom('storage')
 		.where('ownerId', '=', userId)
 		.select(database.fn.countAll<number>().as('items'))
 		.select(eb => eb.fn.sum<number>('size').as('bytes'))
@@ -87,13 +107,13 @@ export async function currentUsage(userId: string): Promise<CASUsage> {
 	return result;
 }
 
-export async function get(itemId: string): Promise<CASMetadata> {
+export async function get(itemId: string): Promise<FileMetadata> {
 	connect();
-	const result = await database.selectFrom('cas').where('itemId', '=', itemId).selectAll().executeTakeFirstOrThrow();
+	const result = await database.selectFrom('storage').where('id', '=', itemId).selectAll().executeTakeFirstOrThrow();
 	return parseItem(result);
 }
 
-export type ExternalLimitHandler = (userId?: string) => CASLimits | Promise<CASLimits>;
+export type ExternalLimitHandler = (userId?: string) => StorageLimits | Promise<StorageLimits>;
 
 let _getLimits: ExternalLimitHandler | null = null;
 
@@ -104,42 +124,42 @@ export function useLimits(handler: ExternalLimitHandler): void {
 	_getLimits = handler;
 }
 
-export async function getLimits(userId?: string): Promise<CASLimits> {
+export async function getLimits(userId?: string): Promise<StorageLimits> {
 	try {
 		return await _getLimits!(userId);
 	} catch {
-		return config.cas.limits;
+		return config.storage.limits;
 	}
 }
 
 addRoute({
-	path: '/api/cas/item/:id',
+	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'cas/item/:id'> {
-		if (!config.cas.enabled) error(503, 'CAS is disabled');
+	async GET(event): Result<'GET', 'storage/item/:id'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = event.params.id!;
 
 		const item = await get(itemId);
-		if (!item) error(404, 'CAS item not found');
+		if (!item) error(404, 'Item not found');
 
 		await checkAuth(event, item.ownerId);
 
 		return item;
 	},
-	async PATCH(event): Result<'PATCH', 'cas/item/:id'> {
-		if (!config.cas.enabled) error(503, 'CAS is disabled');
+	async PATCH(event): Result<'PATCH', 'storage/item/:id'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = event.params.id!;
 
-		const body = await parseBody(event, CASUpdate);
+		const body = await parseBody(event, FileUpdate);
 
 		const item = await get(itemId);
-		if (!item) error(404, 'CAS item not found');
+		if (!item) error(404, 'Item not found');
 
 		await checkAuth(event, item.ownerId);
 
-		const values: Partial<Pick<CASMetadata, 'restricted' | 'trashedAt' | 'ownerId' | 'name'>> = {};
+		const values: Partial<Pick<FileMetadata, 'restricted' | 'trashedAt' | 'ownerId' | 'name'>> = {};
 		if ('restrict' in body) values.restricted = body.restrict;
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
 		if ('owner' in body) values.ownerId = body.owner;
@@ -149,47 +169,47 @@ addRoute({
 
 		return parseItem(
 			await database
-				.updateTable('cas')
-				.where('itemId', '=', itemId)
+				.updateTable('storage')
+				.where('id', '=', itemId)
 				.set(values)
 				.returningAll()
 				.executeTakeFirstOrThrow()
-				.catch(withError('Could not update CAS item'))
+				.catch(withError('Could not update item'))
 		);
 	},
-	async DELETE(event): Result<'DELETE', 'cas/item/:id'> {
-		if (!config.cas.enabled) error(503, 'CAS is disabled');
+	async DELETE(event): Result<'DELETE', 'storage/item/:id'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = event.params.id!;
 
 		const item = await get(itemId);
-		if (!item) error(404, 'CAS item not found');
+		if (!item) error(404, 'Item not found');
 
 		await checkAuth(event, item.ownerId);
 
 		await database
-			.deleteFrom('cas')
-			.where('itemId', '=', itemId)
+			.deleteFrom('storage')
+			.where('id', '=', itemId)
 			.returningAll()
 			.executeTakeFirstOrThrow()
-			.catch(withError('Could not delete CAS item'));
+			.catch(withError('Could not delete item'));
 
 		const { count } = await database
-			.selectFrom('cas')
+			.selectFrom('storage')
 			.where('hash', '=', Uint8Array.fromHex(item.hash))
 			.select(eb => eb.fn.countAll().as('count'))
 			.executeTakeFirstOrThrow();
 
-		if (!Number(count)) unlinkSync(join(config.cas.data, item.hash));
+		if (!Number(count)) unlinkSync(join(config.storage.data, item.hash));
 
 		return item;
 	},
 });
 
 addRoute({
-	path: '/raw/cas/upload',
-	async PUT(event): Promise<CASMetadata> {
-		if (!config.cas.enabled) error(403, 'CAS is disabled');
+	path: '/raw/storage',
+	async PUT(event): Promise<FileMetadata> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const token = getToken(event);
 		if (!token) error(401, 'Missing session token');
@@ -203,56 +223,82 @@ addRoute({
 		const name = event.request.headers.get('x-name');
 		if ((name?.length || 0) > 255) error(400, 'Name is too long');
 
+		const maybeParentId = event.request.headers.get('x-parent');
+		const parentId = maybeParentId
+			? await z
+					.uuid()
+					.parseAsync(maybeParentId)
+					.catch(() => error(400, 'Invalid parent ID'))
+			: null;
+
 		const size = Number(event.request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing size header');
 
 		if (usage.items >= limits.user_items) error(409, 'Too many items');
 
-		if ((usage.bytes + size) / 1_000_000 >= limits.user_size) error(409, 'Not enough space');
+		if ((usage.bytes + size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
 
 		if (size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
 		const content = await event.request.bytes();
 
 		// @todo: add this to the audit log
-		if (content.byteLength > size) error(400, 'Content length does not match size header!');
+		if (content.byteLength > size) error(400, 'Content length does not match size header');
+
+		const type = event.request.headers.get('content-type') || 'application/octet-stream';
+
+		const useCAS =
+			config.storage.cas.enabled &&
+			(defaultCASMime.some(pattern => pattern.test(type)) || config.storage.cas.include.some(mime => type.match(mime)));
 
 		const hash = createHash('BLAKE2b512').update(content).digest();
 
-		mkdirSync(config.cas.data, { recursive: true });
-
-		writeFileSync(join(config.cas.data, hash.toHex()), content);
-
 		const result = await database
-			.insertInto('cas')
-			.values({
-				ownerId: userId,
-				hash,
-				name: event.request.headers.get('x-name'),
-				size,
-				type: event.request.headers.get('content-type') || 'application/octet-stream',
-			})
+			.insertInto('storage')
+			.values({ ownerId: userId, hash, name, size, type, useCAS, immutable: useCAS, parentId })
 			.returningAll()
-			.executeTakeFirstOrThrow();
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not create item'));
 
+		const path = join(config.storage.data, result.id);
+
+		const _noDupe = () => {
+			writeFileSync(path, content);
+			return parseItem(result);
+		};
+
+		if (!useCAS) return _noDupe();
+
+		const existing = await database
+			.selectFrom('storage')
+			.where('hash', '=', hash)
+			.where('id', '!=', result.id)
+			.selectAll()
+			.executeTakeFirst();
+
+		if (!existing) return _noDupe();
+
+		linkSync(join(config.storage.data, existing.id), path);
 		return parseItem(result);
 	},
 });
 
 addRoute({
-	path: '/raw/cas/:id',
+	path: '/raw/storage/:id',
 	params: { id: z.uuid() },
 	async GET(event) {
-		if (!config.cas.enabled) error(503, 'CAS is disabled');
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = event.params.id!;
 
 		const item = await get(itemId);
-		if (!item) error(404, 'CAS item not found');
+		if (!item) error(404, 'Item not found');
 
 		await checkAuth(event, item.ownerId);
 
-		const content = new Uint8Array(readFileSync(join(config.cas.data, item.hash)));
+		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
+
+		const content = new Uint8Array(readFileSync(join(config.storage.data, item.id)));
 
 		return new Response(content, {
 			headers: {
@@ -261,33 +307,68 @@ addRoute({
 			},
 		});
 	},
+	async POST(event) {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
+
+		const itemId = event.params.id!;
+
+		const item = await get(itemId);
+		if (!item) error(404, 'Item not found');
+
+		const { accessor } = await checkAuth(event, item.ownerId);
+
+		if (item.immutable) error(403, 'Item is immutable');
+		if (item.trashedAt) error(410, 'Trashed items can not be changed');
+		if (item.restricted && item.ownerId != accessor.id) error(403, 'Item editing is restricted to the owner');
+
+		const size = Number(event.request.headers.get('content-length'));
+		if (Number.isNaN(size)) error(411, 'Missing size header');
+
+		const [usage, limits] = await Promise.all([currentUsage(item.ownerId), getLimits(item.ownerId)]).catch(
+			withError('Could not fetch usage and/or limits')
+		);
+
+		if ((usage.bytes + size - item.size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
+
+		if (size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
+
+		const content = await event.request.bytes();
+
+		// @todo: add this to the audit log
+		if (content.byteLength > size) error(400, 'Content length does not match size header');
+
+		const type = event.request.headers.get('content-type') || 'application/octet-stream';
+
+		// @todo: add this to the audit log
+		if (type != item.type) error(400, 'Content type does not match item type');
+	},
 });
 
 addRoute({
-	path: '/api/users/:id/cas',
+	path: '/api/users/:id/storage',
 	params: { id: z.uuid() },
-	async OPTIONS(event): Result<'OPTIONS', 'users/:id/cas'> {
-		if (!config.cas.enabled) error(503, 'CAS is disabled');
+	async OPTIONS(event): Result<'OPTIONS', 'users/:id/storage'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = event.params.id!;
 		await checkAuth(event, userId);
 
-		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(withError('Could not fetch CAS data'));
+		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(withError('Could not fetch data'));
 
 		return { usage, limits };
 	},
-	async GET(event): Result<'GET', 'users/:id/cas'> {
-		if (!config.cas.enabled) error(503, 'CAS is disabled');
+	async GET(event): Result<'GET', 'users/:id/storage'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = event.params.id!;
 
 		await checkAuth(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('cas').where('ownerId', '=', userId).selectAll().execute(),
+			database.selectFrom('storage').where('ownerId', '=', userId).selectAll().execute(),
 			currentUsage(userId),
 			getLimits(userId),
-		]).catch(withError('Could not fetch CAS data'));
+		]).catch(withError('Could not fetch data'));
 
 		return { usage, limits, items: items.map(parseItem) };
 	},

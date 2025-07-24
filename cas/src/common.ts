@@ -1,7 +1,7 @@
 import type {} from '@axium/core/api';
 import z from 'zod';
 
-export interface CASLimits {
+export interface StorageLimits {
 	/** The maximum storage size per user in MB */
 	user_size: number;
 	/** The maximum size per item in MB */
@@ -10,50 +10,56 @@ export interface CASLimits {
 	user_items: number;
 }
 
-export interface CASUsage {
+export interface FilesUsage {
 	bytes: number;
 	items: number;
 }
 
-export const CASUpdate = z.object({
+/**
+ * An update to file metadata.
+ */
+export const FileUpdate = z.object({
 	owner: z.uuid().optional(),
 	name: z.string().optional(),
 	trash: z.boolean().optional(),
 	restrict: z.boolean().optional(),
 });
 
-export type CASUpdate = z.infer<typeof CASUpdate>;
+export type FileUpdate = z.infer<typeof FileUpdate>;
 
-export interface CASMetadata {
-	itemId: string;
+export interface FileMetadata {
+	id: string;
 	ownerId: string;
-	lastModified: Date;
-	/** Whether editing the file is restricted to managers */
+	createdAt: Date;
+	modifiedAt: Date;
+	/** Whether editing the file is restricted to the owner */
 	restricted: boolean;
+	parentId: string | null;
 	size: number;
 	trashedAt: Date | null;
 	hash: string;
 	type: string;
 	name: string | null;
-	data_url?: string;
+	immutable: boolean;
+	dataURL?: string;
 }
 
-export interface UserCASInfo {
-	usage: CASUsage;
-	limits: CASLimits;
-	items: CASMetadata[];
+export interface UserFilesInfo {
+	usage: FilesUsage;
+	limits: StorageLimits;
+	items: FileMetadata[];
 }
 
 declare module '@axium/core/api' {
 	export interface _apiTypes {
-		'users/:id/cas': {
-			OPTIONS: { usage: CASUsage; limits: CASLimits };
-			GET: UserCASInfo;
+		'users/:id/storage': {
+			OPTIONS: { usage: FilesUsage; limits: StorageLimits };
+			GET: UserFilesInfo;
 		};
-		'cas/item/:id': {
-			GET: CASMetadata;
-			DELETE: CASMetadata;
-			PATCH: [z.input<typeof CASUpdate>, CASMetadata];
+		'storage/item/:id': {
+			GET: FileMetadata;
+			DELETE: FileMetadata;
+			PATCH: [z.input<typeof FileUpdate>, FileMetadata];
 		};
 	}
 }

@@ -32,9 +32,9 @@
 	"workspaces": [
 		"client",
 		"core",
-		"cas",
+		"server",
 		"shares",
-		"server"
+		"storage"
 	],
 	"keywords": [],
 	"type": "module",

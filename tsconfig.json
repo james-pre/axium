@@ -14,11 +14,11 @@
 			"@axium/core": ["./core/*"],
 			"@axium/client": ["./client/*"],
 			"@axium/server": ["./server/*"],
-			"@axium/cas": ["./cas/*"],
-			"@axium/shares": ["./shares/*"]
+			"@axium/shares": ["./shares/*"],
+			"@axium/storage": ["./storage/*"]
 		}
 	},
 	"exclude": ["node_modules"],
 	"files": [],
-	"references": [{ "path": "./core" }, { "path": "./client" }, { "path": "./server" }, { "path": "./cas" }, { "path": "./shares" }]
+	"references": [{ "path": "./core" }, { "path": "./client" }, { "path": "./server" }, { "path": "./shares" }, { "path": "./storage" }]
 }

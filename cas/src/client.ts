@@ -1,7 +1,7 @@
 import { fetchAPI, token } from '@axium/client/requests';
-import type { CASMetadata, CASUpdate, UserCASInfo } from './common.js';
+import type { FileMetadata, FileUpdate, UserFilesInfo } from './common.js';
 
-export async function uploadItem(file: File): Promise<CASMetadata> {
+export async function uploadItem(file: File): Promise<FileMetadata> {
 	const init = {
 		method: 'PUT',
 		headers: {
@@ -16,49 +16,49 @@ export async function uploadItem(file: File): Promise<CASMetadata> {
 		init.headers.Authorization = 'Bearer ' + token;
 	}
 
-	const response = await fetch('/raw/cas/upload', init);
+	const response = await fetch('/raw/storage', init);
 
 	if (!response.headers.get('Content-Type')?.includes('application/json')) {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
 	}
 
-	const json: any = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
+	const json: FileMetadata = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
 
-	if (!response.ok) throw new Error(json.message);
+	if (!response.ok) throw new Error((json as any).message);
 
-	json.lastModified = new Date(json.lastModified);
+	json.modifiedAt = new Date(json.modifiedAt);
 
 	return json;
 }
 
-export async function getItemMetadata(fileId: string): Promise<CASMetadata> {
-	const result = await fetchAPI('GET', 'cas/item/:id', undefined, fileId);
-	result.lastModified = new Date(result.lastModified);
+export async function getItemMetadata(fileId: string): Promise<FileMetadata> {
+	const result = await fetchAPI('GET', 'storage/item/:id', undefined, fileId);
+	result.modifiedAt = new Date(result.modifiedAt);
 	return result;
 }
 
 export async function downloadItem(fileId: string): Promise<Blob> {
-	const response = await fetch('/raw/cas/' + fileId, {
+	const response = await fetch('/raw/storage/' + fileId, {
 		headers: token ? { Authorization: 'Bearer ' + token } : {},
 	});
 
-	if (!response.ok) throw new Error('Failed to download item: ' + response.statusText);
+	if (!response.ok) throw new Error('Failed to download files: ' + response.statusText);
 
 	return await response.blob();
 }
 
-export async function updateItem(fileId: string, metadata: CASUpdate): Promise<CASMetadata> {
-	return fetchAPI('PATCH', 'cas/item/:id', metadata, fileId);
+export async function updateItem(fileId: string, metadata: FileUpdate): Promise<FileMetadata> {
+	return fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
 }
 
-export async function deleteItem(fileId: string): Promise<CASMetadata> {
-	return fetchAPI('DELETE', 'cas/item/:id', undefined, fileId);
+export async function deleteItem(fileId: string): Promise<FileMetadata> {
+	return fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
 }
 
-export async function getUserCAS(userId: string): Promise<UserCASInfo> {
-	const result = await fetchAPI('GET', 'users/:id/cas', undefined, userId);
+export async function getUserFiles(userId: string): Promise<UserFilesInfo> {
+	const result = await fetchAPI('GET', 'users/:id/storage', undefined, userId);
 	for (const item of result.items) {
-		item.lastModified = new Date(item.lastModified);
+		item.modifiedAt = new Date(item.modifiedAt);
 	}
 	return result;
 }
