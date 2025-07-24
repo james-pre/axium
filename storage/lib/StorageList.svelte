@@ -2,7 +2,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { FormDialog, Icon } from '@axium/server/lib';
-	import { deleteItem, getDirectoryMetadata, updateItem } from '@axium/storage/client';
+	import { deleteItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
 	const { id }: { id: string } = $props();
@@ -35,10 +35,16 @@
 	{/if}
 {/snippet}
 
-<div class="FilesList">
+<div class="StorageList">
 	{#await getDirectoryMetadata(id).then(data => (items = data)) then}
+		<div class="StorageListItem">
+			<span></span>
+			<span>Name</span>
+			<span>Last Modified</span>
+			<span>Size</span>
+		</div>
 		{#each items as item, i (item.id)}
-			<div class="FilesListItem">
+			<div class="StorageListItem">
 				<Icon i={iconForMime(item.type)} />
 				<span class="name">{item.name}</span>
 				<span>{item.modifiedAt.toLocaleString()}</span>
@@ -48,7 +54,7 @@
 				{@render action('delete', 'delete', i)}
 			</div>
 		{:else}
-			<i>No items.</i>
+			<i>Empty.</i>
 		{/each}
 	{:catch error}
 		<i style:color="#c44">{error.message}</i>
@@ -59,7 +65,7 @@
 	bind:dialog={dialogs.rename}
 	submitText="Rename"
 	submit={async (data: { name: string }) => {
-		await updateItem(activeItem.id, data);
+		await updateItemMetadata(activeItem.id, data);
 		activeItem.name = data.name;
 	}}
 >
@@ -93,14 +99,14 @@
 </FormDialog>
 
 <style>
-	.FilesList {
+	.StorageList {
 		display: flex;
 		flex-direction: column;
 		gap: 0.5em;
 		padding: 0.5em;
 	}
 
-	.FilesListItem {
+	.StorageListItem {
 		display: grid;
 		grid-template-columns: 1em 4fr 15em 5em repeat(1em, 3);
 		align-items: center;
@@ -111,7 +117,7 @@
 		visibility: hidden;
 	}
 
-	.FilesListItem:hover .action {
+	.StorageListItem:hover .action {
 		visibility: visible;
 	}
 
