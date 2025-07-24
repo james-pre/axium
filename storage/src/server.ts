@@ -24,7 +24,7 @@ declare module '@axium/server/database' {
 			id: Generated<string>;
 			immutable: Generated<boolean>;
 			modifiedAt: Generated<Date>;
-			name: string | null;
+			name: string;
 			parentId: string | null;
 			restricted: Generated<boolean>;
 			size: number;
@@ -250,7 +250,8 @@ addRoute({
 		);
 
 		const name = event.request.headers.get('x-name');
-		if ((name?.length || 0) > 255) error(400, 'Name is too long');
+		if (!name) error(400, 'Missing name header');
+		if (name.length > 255) error(400, 'Name is too long');
 
 		const maybeParentId = event.request.headers.get('x-parent');
 		const parentId = maybeParentId

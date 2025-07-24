@@ -59,7 +59,7 @@ export interface StorageItemMetadata {
 	id: string;
 	immutable: boolean;
 	modifiedAt: Date;
-	name: string | null;
+	name: string;
 	userId: string;
 	parentId: string | null;
 	/** Whether editing the file is restricted to the owner */
