@@ -1,4 +1,4 @@
-import z from 'zod';
+import * as z from 'zod';
 import type { AuthenticatorTransportFuture, AuthenticatorAttachment } from '@simplewebauthn/server';
 
 export function zFunction<T extends z.core.$ZodFunction>(schema: T) {

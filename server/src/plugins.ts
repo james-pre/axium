@@ -2,7 +2,7 @@ import { zAsyncFunction } from '@axium/core/schemas';
 import * as fs from 'node:fs';
 import { resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
-import z from 'zod';
+import * as z from 'zod';
 import type { Database, InitOptions, OpOptions } from './database.js';
 import { output } from './io.js';
 import { _unique } from './state.js';

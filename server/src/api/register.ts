@@ -4,7 +4,7 @@ import { APIUserRegistration } from '@axium/core/schemas';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
-import z from 'zod';
+import * as z from 'zod';
 import { createPasskey, getUser } from '../auth.js';
 import config from '../config.js';
 import { database as db, type Schema } from '../database.js';
