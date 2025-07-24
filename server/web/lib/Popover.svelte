@@ -7,8 +7,6 @@
 	}: { children(): any; toggle?(): any; id?: string } = $props();
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div onclick={e => e.stopPropagation()}>
 	<button style:display="contents" popovertarget={id}>
 		{#if toggle}

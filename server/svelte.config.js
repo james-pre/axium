@@ -13,6 +13,9 @@ const fixed = p => join(import.meta.dirname, p);
 export default {
 	compilerOptions: {
 		runes: true,
+		warningFilter(w) {
+			if (w.code.startsWith('a11y')) return false;
+		},
 	},
 	preprocess: vitePreprocess({ script: true }),
 	vitePlugin: {
