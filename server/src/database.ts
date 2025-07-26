@@ -255,6 +255,13 @@ export async function init(opt: InitOptions): Promise<void> {
 	await using db = connect();
 	io.done();
 
+	function maybeCheck(table: keyof typeof expectedTypes) {
+		return (e: Error | string) => {
+			warnExists(e);
+			if (opt.check) return checkTableTypes(table, expectedTypes[table], opt);
+		};
+	}
+
 	io.start('Creating table users');
 	await db.schema
 		.createTable('users')
@@ -270,7 +277,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('registeredAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.execute()
 		.then(io.done)
-		.catch(warnExists);
+		.catch(maybeCheck('users'));
 
 	io.start('Creating table sessions');
 	await db.schema
@@ -283,7 +290,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('elevated', 'boolean', col => col.notNull())
 		.execute()
 		.then(io.done)
-		.catch(warnExists);
+		.catch(maybeCheck('sessions'));
 
 	await createIndex('sessions', 'id');
 
@@ -296,7 +303,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('role', 'text', col => col.notNull())
 		.execute()
 		.then(io.done)
-		.catch(warnExists);
+		.catch(maybeCheck('verifications'));
 
 	io.start('Creating table passkeys');
 	await db.schema
@@ -312,7 +319,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('transports', sql`text[]`)
 		.execute()
 		.then(io.done)
-		.catch(warnExists);
+		.catch(maybeCheck('passkeys'));
 
 	await createIndex('passkeys', 'userId');
 
@@ -342,7 +349,7 @@ export const expectedTypes = {
 		isAdmin: { type: 'bool', required: true, hasDefault: true },
 		name: { type: 'text' },
 		preferences: { type: 'jsonb', required: true, hasDefault: true },
-		registeredAt: { type: 'timestampz', required: true, hasDefault: true },
+		registeredAt: { type: 'timestamptz', required: true, hasDefault: true },
 		roles: { type: '_text', required: true, hasDefault: true },
 		tags: { type: '_text', required: true, hasDefault: true },
 	},
@@ -366,9 +373,9 @@ export const expectedTypes = {
 	sessions: {
 		id: { type: 'uuid', required: true, hasDefault: true },
 		userId: { type: 'uuid', required: true },
-		created: { type: 'timestampz', required: true },
+		created: { type: 'timestamptz', required: true },
 		token: { type: 'text', required: true },
-		expires: { type: 'timestampz', required: true },
+		expires: { type: 'timestamptz', required: true },
 		elevated: { type: 'bool', required: true },
 	},
 } satisfies { [K in keyof Schema & string]: ColumnTypes<Schema[K]> };
@@ -446,11 +453,19 @@ export async function check(opt: CheckOptions): Promise<void> {
 
 	io.start('Getting table metadata');
 	opt._metadata = await db.introspection.getTables();
+	const tables = Object.fromEntries(opt._metadata.map(t => [t.name, t]));
 	io.done();
 
-	for (const table of ['users', 'sessions', 'verifications', 'passkeys'] as const) {
+	for (const table of Object.keys(expectedTypes) as (keyof typeof expectedTypes)[]) {
 		await checkTableTypes(table, expectedTypes[table], opt);
+		delete tables[table];
 	}
+
+	io.start('Checking for extra tables');
+	const unchecked = Object.keys(tables).join(', ');
+	if (!unchecked.length) io.done();
+	else if (opt.strict) throw unchecked;
+	else io.warn(unchecked);
 }
 
 export async function clean(opt: Partial<OpOptions>): Promise<void> {

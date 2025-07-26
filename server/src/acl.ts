@@ -27,17 +27,24 @@ export interface AccessControlInternal extends AccessControl {
 	user?: UserInternal;
 }
 
-const columnTypes = {
+const accessControllableTypes = {
 	userId: { type: 'uuid' },
 	publicPermission: { type: 'int4' },
 } satisfies db.ColumnTypes<AccessControllable>;
+
+export const ACLTypes = {
+	userId: { type: 'uuid', required: true },
+	createdAt: { type: 'timestamptz', required: true, hasDefault: true },
+	itemId: { type: 'uuid', required: true },
+	permission: { type: 'int4', required: true, hasDefault: true },
+} satisfies db.ColumnTypes<db.Schema[`acl.${AccessControllableTableName}`]>;
 
 /**
  * Adds an Access Control List (ACL) in the database for managing access to rows in an existing table.
  * @category Plugin API
  */
 export async function createACL(table: AccessControllableTableName) {
-	await db.checkTableTypes(table, columnTypes, { strict: true, extra: false });
+	await db.checkTableTypes(table, accessControllableTypes, { strict: true, extra: false });
 
 	io.start(`Creating table acl.${table}`);
 	await db.database.schema

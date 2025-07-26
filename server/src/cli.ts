@@ -89,7 +89,8 @@ axiumDB
 	.addOption(opts.force)
 	.option('-s, --skip', 'If the user, database, or schema already exists, skip trying to create it.')
 	.addOption(opts.check)
-	.action(async (opt: OptDB & { skip: boolean; check: boolean }) => {
+	.action(async (_localOpts, _: Command) => {
+		const opt = _.optsWithGlobals<OptDB & { skip: boolean; check: boolean }>();
 		await db.init(opt).catch(handleError);
 	});
 
