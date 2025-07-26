@@ -1,13 +1,13 @@
+import { formatBytes } from '@axium/core/format';
 import config from '@axium/server/config';
 import type { Database, InitOptions, OpOptions } from '@axium/server/database';
-import { count, database, expectedTypes, warnExists } from '@axium/server/database';
+import { count, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
 import type { Plugin } from '@axium/server/plugins';
 import { sql } from 'kysely';
 import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
-import { formatBytes } from '@axium/core/format';
 
 async function statusText(): Promise<string> {
 	const { storage: items } = await count('storage');
