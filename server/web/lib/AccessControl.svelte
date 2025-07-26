@@ -29,7 +29,7 @@
 </div>
 
 <style>
-	.Share {
+	.AccessControl {
 		display: flex;
 		gap: 1em;
 		padding: 1em 2em;
