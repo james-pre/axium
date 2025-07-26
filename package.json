@@ -33,7 +33,6 @@
 		"client",
 		"core",
 		"server",
-		"shares",
 		"storage"
 	],
 	"keywords": [],
