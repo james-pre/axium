@@ -1,7 +1,7 @@
 import type { Result } from '@axium/core/api';
 import { getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
-import { connect, database, type Schema } from '@axium/server/database';
+import { connect, database, expectedTypes, type Schema } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
 import { checkAuth, getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -35,7 +35,28 @@ declare module '@axium/server/database' {
 			metadata: Generated<Record<string, unknown>>;
 		};
 	}
+
+	export interface ExpectedSchema {
+		storage: ColumnTypes<Schema['storage']>;
+	}
 }
+
+expectedTypes.storage = {
+	createdAt: { type: 'timestamptz', required: true, hasDefault: true },
+	hash: { type: 'bytea', required: true },
+	id: { type: 'uuid', required: true, hasDefault: true },
+	immutable: { type: 'bool', required: true, hasDefault: true },
+	modifiedAt: { type: 'timestamptz', required: true, hasDefault: true },
+	name: { type: 'text' },
+	parentId: { type: 'uuid' },
+	restricted: { type: 'bool', required: true, hasDefault: true },
+	size: { type: 'int4', required: true },
+	trashedAt: { type: 'timestampz' },
+	type: { type: 'text', required: true },
+	userId: { type: 'uuid', required: true, hasDefault: true },
+	publicPermission: { type: 'int4', required: true, hasDefault: true },
+	metadata: { type: 'jsonb', required: true, hasDefault: true },
+};
 
 declare module '@axium/server/config' {
 	export interface Config {

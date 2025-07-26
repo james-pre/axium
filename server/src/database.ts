@@ -340,7 +340,13 @@ export type ColumnTypes<TableSchema extends object> = {
 	[K in keyof TableSchema & string]: { type: string; required?: boolean; hasDefault?: boolean };
 };
 
-export const expectedTypes = {
+type _Expected = {
+	[K in keyof Schema & string]: ColumnTypes<Schema[K]>;
+};
+
+export interface ExpectedSchema extends _Expected {}
+
+export const expectedTypes: ExpectedSchema = {
 	users: {
 		email: { type: 'text', required: true },
 		emailVerified: { type: 'timestamptz' },
@@ -378,7 +384,7 @@ export const expectedTypes = {
 		expires: { type: 'timestamptz', required: true },
 		elevated: { type: 'bool', required: true },
 	},
-} satisfies { [K in keyof Schema & string]: ColumnTypes<Schema[K]> };
+};
 
 export interface CheckOptions extends OpOptions {
 	/** Whether to throw an error instead of emitting a warning on most column issues */
