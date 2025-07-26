@@ -6,12 +6,18 @@ import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
+import type { Entries } from 'utilium';
 import type { UserInternal, VerificationRole } from './auth.js';
 import config from './config.js';
 import * as io from './io.js';
 import { plugins } from './plugins.js';
-import * as acl from './acl.js';
-import type { Entries, ExpandRecursively } from 'utilium';
+
+export interface DBAccessControl {
+	itemId: string;
+	userId: string;
+	createdAt: kysely.GeneratedAlways<Date>;
+	permission: Permission;
+}
 
 export interface Schema {
 	users: {
@@ -51,12 +57,7 @@ export interface Schema {
 		backedUp: boolean;
 		transports: AuthenticatorTransportFuture[];
 	};
-	[key: `acl.${string}`]: {
-		itemId: string;
-		userId: string;
-		createdAt: kysely.GeneratedAlways<Date>;
-		permission: Permission;
-	};
+	[key: `acl.${string}`]: DBAccessControl;
 }
 
 export type Database = Kysely<Schema> & AsyncDisposable;

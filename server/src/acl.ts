@@ -84,9 +84,9 @@ export async function deleteEntry(itemType: AccessControllableTableName, itemId:
 }
 
 /**
- * Helper to select all shares for a given table, including the user information.
+ * Helper to select all access controls for a given table, including the user information.
  */
-export function sharesFrom(table: AccessControllableTableName) {
+export function aclFrom(table: AccessControllableTableName) {
 	return (eb: ExpressionBuilder<db.Schema, any>) =>
 		jsonArrayFrom(
 			eb
@@ -96,9 +96,9 @@ export function sharesFrom(table: AccessControllableTableName) {
 				.whereRef(`_acl.itemId`, '=', `${table}.id` as any)
 		)
 			.$castTo<Required<AccessControl>[]>()
-			.as('shares');
+			.as('acl');
 }
 
-export async function getShares(itemType: AccessControllableTableName, itemId: string): Promise<Required<AccessControlInternal>[]> {
+export async function getACL(itemType: AccessControllableTableName, itemId: string): Promise<Required<AccessControlInternal>[]> {
 	return await db.database.selectFrom(`acl.${itemType}`).where('itemId', '=', itemId).selectAll().select(db.userFromId).execute();
 }
