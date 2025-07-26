@@ -51,6 +51,7 @@ export default tseslint.config(
 			'@typescript-eslint/no-unused-expressions': 'off',
 			'@typescript-eslint/no-empty-object-type': 'off',
 			'@typescript-eslint/ban-ts-comment': 'warn',
+			'@typescript-eslint/no-unsafe-enum-comparison': 'off',
 		},
 	}
 );

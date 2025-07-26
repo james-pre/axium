@@ -47,7 +47,6 @@ export async function checkAuth(event: RequestEvent, userId: string, sensitive: 
 		if (!session.user?.isAdmin) error(403, { message: 'User ID mismatch' });
 
 		// Admins are allowed to manage other users.
-
 		const accessor = session.user;
 		session.user = await getUser(userId).catch(() => error(404, { message: 'Target user not found' }));
 

@@ -35,7 +35,8 @@ async function db_init(opt: InitOptions, db: Database) {
 		.addColumn('name', 'text', col => col.defaultTo(null))
 		.addColumn('type', 'text', col => col.notNull())
 		.addColumn('immutable', 'boolean', col => col.notNull())
-		.addColumn('visibility', 'integer', col => col.notNull().defaultTo(0))
+		.addColumn('publicPermission', 'integer', col => col.notNull().defaultTo(0))
+		.addColumn('metadata', 'jsonb', col => col.defaultTo('{}'))
 		.execute()
 		.then(done)
 		.catch(warnExists);

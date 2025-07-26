@@ -2,29 +2,15 @@
 import type { Result } from '@axium/core/api';
 import { LogoutSessions, PasskeyAuthenticationResponse, PasskeyRegistration, UserAuthOptions } from '@axium/core/schemas';
 import { UserChangeable, type User } from '@axium/core/user';
-import {
-	generateAuthenticationOptions,
-	generateRegistrationOptions,
-	verifyAuthenticationResponse,
-	verifyRegistrationResponse,
-} from '@simplewebauthn/server';
+import * as webauthn from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import * as z from 'zod';
-import {
-	createPasskey,
-	createVerification,
-	getPasskey,
-	getPasskeysByUserId,
-	getSessions,
-	getUser,
-	useVerification,
-	type SessionAndUser,
-} from '../auth.js';
+import { createPasskey, createVerification, getPasskey, getPasskeysByUserId, getSessions, getUser, useVerification } from '../auth.js';
 import { config } from '../config.js';
 import { connect, database as db } from '../database.js';
-import { addRoute } from '../routes.js';
 import { checkAuth, createSessionData, parseBody, stripUser, withError } from '../requests.js';
+import { addRoute } from '../routes.js';
 
 interface UserAuth {
 	data: string;
@@ -60,11 +46,11 @@ addRoute({
 	async GET(event): Result<'GET', 'users/:id'> {
 		const userId = event.params.id!;
 
-		const authed: SessionAndUser | null = await checkAuth(event, userId).catch(() => null);
+		const auth = await checkAuth(event, userId).catch(() => null);
 
-		const user = authed?.user || (await getUser(userId).catch(withError('User does not exist', 404)));
+		const user = auth?.user || (await getUser(userId).catch(withError('User does not exist', 404)));
 
-		return stripUser(user, !!authed);
+		return stripUser(user, !!auth);
 	},
 	async PATCH(event): Result<'PATCH', 'users/:id'> {
 		const userId = event.params.id!;
@@ -129,7 +115,7 @@ addRoute({
 
 		if (!passkeys) error(409, { message: 'No passkeys exists for this user' });
 
-		const options = await generateAuthenticationOptions({
+		const options = await webauthn.generateAuthenticationOptions({
 			rpID: config.auth.rp_id,
 			allowCredentials: passkeys.map(passkey => pick(passkey, 'id', 'transports')),
 		});
@@ -151,13 +137,15 @@ addRoute({
 
 		if (passkey.userId !== userId) error(403, { message: 'Passkey does not belong to this user' });
 
-		const { verified } = await verifyAuthenticationResponse({
-			response,
-			credential: passkey,
-			expectedChallenge,
-			expectedOrigin: config.auth.origin,
-			expectedRPID: config.auth.rp_id,
-		}).catch(withError('Verification failed', 400));
+		const { verified } = await webauthn
+			.verifyAuthenticationResponse({
+				response,
+				credential: passkey,
+				expectedChallenge,
+				expectedOrigin: config.auth.origin,
+				expectedRPID: config.auth.rp_id,
+			})
+			.catch(withError('Verification failed', 400));
 
 		if (!verified) error(401, { message: 'Verification failed' });
 
@@ -189,7 +177,7 @@ addRoute({
 
 		const { user } = await checkAuth(event, userId);
 
-		const options = await generateRegistrationOptions({
+		const options = await webauthn.generateRegistrationOptions({
 			rpName: config.auth.rp_name,
 			rpID: config.auth.rp_id,
 			userName: userId,
@@ -234,11 +222,13 @@ addRoute({
 		if (!expectedChallenge) error(404, { message: 'No registration challenge found for this user' });
 		registrations.delete(userId);
 
-		const { verified, registrationInfo } = await verifyRegistrationResponse({
-			response,
-			expectedChallenge,
-			expectedOrigin: config.auth.origin,
-		}).catch(withError('Verification failed', 400));
+		const { verified, registrationInfo } = await webauthn
+			.verifyRegistrationResponse({
+				response,
+				expectedChallenge,
+				expectedOrigin: config.auth.origin,
+			})
+			.catch(withError('Verification failed', 400));
 
 		if (!verified || !registrationInfo) error(401, { message: 'Verification failed' });
 

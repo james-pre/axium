@@ -6,7 +6,7 @@ import { dirs } from '@axium/server/io';
 import { checkAuth, getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
-import type { Generated, Selectable } from 'kysely';
+import type { ExpressionBuilder, Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
@@ -31,7 +31,8 @@ declare module '@axium/server/database' {
 			trashedAt: Date | null;
 			type: string;
 			userId: string;
-			visibility: Generated<number>;
+			publicPermission: Generated<number>;
+			metadata: Generated<Record<string, unknown>>;
 		};
 	}
 }
@@ -87,10 +88,12 @@ export interface StorageItem extends StorageItemMetadata {
 	data: Uint8Array<ArrayBufferLike>;
 }
 
-export function parseItem(item: Selectable<Schema['storage']>): StorageItemMetadata {
+export function parseItem<T extends Record<string, unknown> = Record<string, unknown>>(
+	item: Selectable<Schema['storage']> & { hash: string }
+): StorageItemMetadata<T> {
 	return {
 		...item,
-		hash: item.hash.toHex(),
+		metadata: item.metadata as T,
 		dataURL: `/raw/storage/${item.id}`,
 	};
 }
@@ -110,10 +113,19 @@ export async function currentUsage(userId: string): Promise<StorageUsage> {
 	return result;
 }
 
-export async function get(itemId: string): Promise<StorageItemMetadata> {
+export async function get<T extends Record<string, unknown> = Record<string, unknown>>(itemId: string): Promise<StorageItemMetadata<T>> {
 	connect();
-	const result = await database.selectFrom('storage').where('id', '=', itemId).selectAll().executeTakeFirstOrThrow();
-	return parseItem(result);
+	const result = await database
+		.selectFrom('storage')
+		.where('id', '=', itemId)
+		.selectAll()
+		.select(withEncodedHash)
+		.executeTakeFirstOrThrow();
+	return parseItem<T>(result);
+}
+
+export function withEncodedHash(eb: ExpressionBuilder<Schema, 'storage'>) {
+	return eb.fn<string>('encode', ['hash', eb.val('hex')]).as('hash');
 }
 
 export type ExternalLimitHandler = (userId?: string) => StorageLimits | Promise<StorageLimits>;
@@ -162,8 +174,8 @@ addRoute({
 
 		await checkAuth(event, item.userId);
 
-		const values: Partial<Pick<StorageItemMetadata, 'restricted' | 'trashedAt' | 'userId' | 'name'>> = {};
-		if ('restrict' in body) values.restricted = body.restrict;
+		const values: Partial<Pick<StorageItemMetadata, 'publicPermission' | 'trashedAt' | 'userId' | 'name'>> = {};
+		if ('publicPermission' in body) values.publicPermission = body.publicPermission;
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
 		if ('owner' in body) values.userId = body.owner;
 		if ('name' in body) values.name = body.name;
@@ -176,6 +188,7 @@ addRoute({
 				.where('id', '=', itemId)
 				.set(values)
 				.returningAll()
+				.returning(withEncodedHash)
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not update item'))
 		);
@@ -229,6 +242,7 @@ addRoute({
 			.where('parentId', '=', itemId)
 			.where('trashedAt', '!=', null)
 			.selectAll()
+			.select(withEncodedHash)
 			.execute();
 
 		return items.map(parseItem);
@@ -289,6 +303,7 @@ addRoute({
 			.insertInto('storage')
 			.values({ userId: userId, hash, name, size, type, immutable: useCAS, parentId })
 			.returningAll()
+			.returning(withEncodedHash)
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not create item'));
 
@@ -351,7 +366,7 @@ addRoute({
 
 		if (item.immutable) error(403, 'Item is immutable');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
-		if (item.restricted && item.userId != accessor.id) error(403, 'Item editing is restricted to the owner');
+		if (item.userId != accessor.id) error(403, 'Item editing is restricted to the owner');
 
 		const type = event.request.headers.get('content-type') || 'application/octet-stream';
 
@@ -383,6 +398,7 @@ addRoute({
 			.where('id', '=', itemId)
 			.set({ size, modifiedAt: new Date(), hash })
 			.returningAll()
+			.returning(withEncodedHash)
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update item'));
 
@@ -413,7 +429,7 @@ addRoute({
 		await checkAuth(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('storage').where('userId', '=', userId).selectAll().execute(),
+			database.selectFrom('storage').where('userId', '=', userId).selectAll().select(withEncodedHash).execute(),
 			currentUsage(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));

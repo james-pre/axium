@@ -60,6 +60,9 @@ export type Route = ServerRoute | WebRoute;
  */
 export const routes = _unique('routes', new Map<string, Route>());
 
+/**
+ * @category Plugin API
+ */
 export function addRoute(opt: RouteOptions): void {
 	const route = { ...opt, server: !('page' in opt) } as Route & { api?: boolean };
 

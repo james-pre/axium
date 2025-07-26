@@ -4,6 +4,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 import type { Insertable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { connect, database as db, userFromId, type Schema } from './database.js';
+import { getToken } from './requests.js';
 
 export interface UserInternal extends User {
 	isAdmin: boolean;

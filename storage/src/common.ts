@@ -46,13 +46,13 @@ export const StorageItemUpdate = z
 		owner: z.uuid(),
 		trash: z.boolean(),
 		restrict: z.boolean(),
-		visibility: z.boolean(),
+		publicPermission: z.number().min(0).max(5),
 	})
 	.partial();
 
 export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 
-export interface StorageItemMetadata {
+export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> {
 	createdAt: Date;
 	dataURL?: string;
 	hash: string;
@@ -62,10 +62,9 @@ export interface StorageItemMetadata {
 	name: string;
 	userId: string;
 	parentId: string | null;
-	/** Whether editing the file is restricted to the owner */
-	restricted: boolean;
+	publicPermission: number;
 	size: number;
 	trashedAt: Date | null;
 	type: string;
-	visibility: number;
+	metadata?: T;
 }

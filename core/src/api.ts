@@ -15,6 +15,7 @@ import type {
 	UserAuthOptions,
 } from './schemas.js';
 import type { User, UserChangeable, UserPublic } from './user.js';
+import type { AccessControl } from './access.js';
 
 export interface Session {
 	id: string;
@@ -100,6 +101,9 @@ export interface _apiTypes {
 	};
 	user_id: {
 		POST: [{ using: 'email' | 'handle'; value: string }, { id: string }];
+	};
+	'acl/:itemType/:itemId': {
+		PUT: [{ userId: string; permission: number }, AccessControl];
 	};
 }
 

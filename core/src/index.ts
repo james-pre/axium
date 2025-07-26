@@ -1,3 +1,4 @@
+export * from './access.js';
 export * from './api.js';
 export * as icons from './icons.js';
 export * from './requests.js';

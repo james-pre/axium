@@ -32,10 +32,10 @@ interface PluginInternal extends Plugin {
 }
 
 export interface Hooks {
-	db_init?: (opt: InitOptions, db: Database) => void | Promise<void>;
-	remove?: (opt: { force?: boolean }, db: Database) => void | Promise<void>;
-	db_wipe?: (opt: OpOptions, db: Database) => void | Promise<void>;
-	clean?: (opt: Partial<OpOptions>, db: Database) => void | Promise<void>;
+	db_init?: (opt: InitOptions) => void | Promise<void>;
+	remove?: (opt: { force?: boolean }) => void | Promise<void>;
+	db_wipe?: (opt: OpOptions) => void | Promise<void>;
+	clean?: (opt: Partial<OpOptions>) => void | Promise<void>;
 }
 
 export const plugins = _unique('plugins', new Set<PluginInternal>());

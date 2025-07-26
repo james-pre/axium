@@ -60,6 +60,7 @@ const opts = {
 		config.db.host = hostname || config.db.host;
 		config.db.port = port && Number.isSafeInteger(parseInt(port)) ? parseInt(port) : config.db.port;
 	}),
+	check: new Option('--check', 'check the database schema after initialization').default(false),
 	force: new Option('-f, --force', 'force the operation').default(false),
 	global: new Option('-g, --global', 'apply the operation globally').default(false),
 	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default('1000').argParser(value => {
@@ -87,7 +88,8 @@ axiumDB
 	.description('Initialize the database')
 	.addOption(opts.force)
 	.option('-s, --skip', 'If the user, database, or schema already exists, skip trying to create it.')
-	.action(async (opt: OptDB & { skip: boolean }) => {
+	.addOption(opts.check)
+	.action(async (opt: OptDB & { skip: boolean; check: boolean }) => {
 		await db.init(opt).catch(handleError);
 	});
 
@@ -97,7 +99,7 @@ axiumDB
 	.description('Check the status of the database')
 	.action(async () => {
 		try {
-			console.log(await db.statusText());
+			console.log(await db.statText());
 		} catch {
 			output.error('Unavailable');
 			process.exitCode = 1;
@@ -112,7 +114,7 @@ axiumDB
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
 		await using _ = db.connect();
-		const stats = await db.status().catch(exit);
+		const stats = await db.count('users', 'passkeys', 'sessions').catch(exit);
 
 		if (!opt.force)
 			for (const key of ['users', 'passkeys', 'sessions'] as const) {
@@ -131,7 +133,7 @@ axiumDB
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
 		await using _ = db.connect();
-		const stats = await db.status().catch(exit);
+		const stats = await db.count('users', 'passkeys', 'sessions').catch(exit);
 
 		if (!opt.force)
 			for (const key of ['users', 'passkeys', 'sessions'] as const) {
@@ -147,7 +149,8 @@ axiumDB
 axiumDB
 	.command('check')
 	.description('Check the structure of the database')
-	.action(async (opt: OptDB) => {
+	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
+	.action(async (opt: OptDB & { strict: boolean }) => {
 		await db.check(opt).catch(exit);
 	});
 
@@ -287,7 +290,7 @@ axiumPlugin
 
 		await using _ = db.connect();
 
-		await plugin.hooks.remove?.(opt, db.database);
+		await plugin.hooks.remove?.(opt);
 
 		for (const [path, data] of configFiles) {
 			if (!data.plugins) continue;
@@ -305,14 +308,15 @@ axiumPlugin
 	.alias('install')
 	.description('Initialize a plugin. This could include adding tables to the database or linking routes.')
 	.addOption(opts.timeout)
+	.addOption(opts.check)
 	.argument('<plugin>', 'the plugin to initialize')
-	.action(async (search: string, opt: OptCommon) => {
+	.action(async (search: string, opt: OptCommon & { check: boolean }) => {
 		const plugin = resolvePlugin(search);
 		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
 
 		await using _ = db.connect();
 
-		await plugin.hooks.db_init?.({ force: false, ...opt, skip: true }, db.database);
+		await plugin.hooks.db_init?.({ force: false, ...opt, skip: true });
 	});
 
 const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);
@@ -516,7 +520,7 @@ program
 		await using _ = db.connect();
 
 		try {
-			console.log(await db.statusText());
+			console.log(await db.statText());
 		} catch {
 			output.error('Unavailable');
 		}
@@ -550,7 +554,8 @@ program
 	.description('Install Axium server')
 	.addOption(opts.force)
 	.addOption(opts.host)
-	.action(async (opt: OptDB & { dbSkip: boolean }) => {
+	.addOption(opts.check)
+	.action(async (opt: OptDB & { dbSkip: boolean; check: boolean }) => {
 		await db.init({ ...opt, skip: opt.dbSkip }).catch(handleError);
 		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(handleError);
 	});

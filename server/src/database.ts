@@ -1,4 +1,4 @@
-import type { Preferences } from '@axium/core';
+import type { Permission, Preferences } from '@axium/core';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import type * as kysely from 'kysely';
 import { Kysely, PostgresDialect, sql } from 'kysely';
@@ -10,6 +10,8 @@ import type { UserInternal, VerificationRole } from './auth.js';
 import config from './config.js';
 import * as io from './io.js';
 import { plugins } from './plugins.js';
+import * as acl from './acl.js';
+import type { Entries, ExpandRecursively } from 'utilium';
 
 export interface Schema {
 	users: {
@@ -49,6 +51,12 @@ export interface Schema {
 		backedUp: boolean;
 		transports: AuthenticatorTransportFuture[];
 	};
+	[key: `acl.${string}`]: {
+		itemId: string;
+		userId: string;
+		createdAt: kysely.GeneratedAlways<Date>;
+		permission: Permission;
+	};
 }
 
 export type Database = Kysely<Schema> & AsyncDisposable;
@@ -81,13 +89,12 @@ export function connect(): Database {
 
 // Helpers
 
-export async function count<const T extends keyof Schema>(table: T): Promise<number> {
-	const db = connect();
-	return (
-		await (db.selectFrom(table) as kysely.SelectQueryBuilder<Schema, T, {}>)
-			.select(db.fn.countAll<number>().as('count'))
-			.executeTakeFirstOrThrow()
-	).count;
+export async function count<const TB extends keyof Schema>(...tables: TB[]): Promise<{ [K in TB]: number }> {
+	return await database
+		.selectFrom(tables)
+		.select(() => tables.map(t => database.fn.countAll<number>(t).as(t)))
+		.$castTo<Record<TB, number>>()
+		.executeTakeFirstOrThrow();
 }
 
 export type TablesMatching<T> = (string & keyof Schema) & keyof { [K in keyof Schema as Schema[K] extends T ? K : never]: null };
@@ -95,7 +102,9 @@ export type TablesMatching<T> = (string & keyof Schema) & keyof { [K in keyof Sc
 /**
  * Select the user with the id from the userId column of a table, placing it in the `user` property.
  */
-export function userFromId(eb: kysely.ExpressionBuilder<Schema, any>): kysely.AliasedRawBuilder<UserInternal, 'user'> {
+export function userFromId(
+	eb: kysely.ExpressionBuilder<Schema, TablesMatching<{ userId: string }>>
+): kysely.AliasedRawBuilder<UserInternal, 'user'> {
 	return jsonObjectFrom(eb.selectFrom('users').selectAll().whereRef('id', '=', 'userId'))
 		.$notNull()
 		.$castTo<UserInternal>()
@@ -110,17 +119,9 @@ export interface Stats {
 	sessions: number;
 }
 
-export async function status(): Promise<Stats> {
-	return {
-		users: await count('users'),
-		passkeys: await count('passkeys'),
-		sessions: await count('sessions'),
-	};
-}
-
-export async function statusText(): Promise<string> {
+export async function statText(): Promise<string> {
 	try {
-		const stats = await status();
+		const stats = await count('users', 'passkeys', 'sessions');
 		return `${stats.users} users, ${stats.passkeys} passkeys, ${stats.sessions} sessions`;
 	} catch (error: any) {
 		throw typeof error == 'object' && 'message' in error ? error.message : error;
@@ -128,11 +129,12 @@ export async function statusText(): Promise<string> {
 }
 
 export interface OpOptions {
-	force: boolean;
+	force?: boolean;
 }
 
 export interface InitOptions extends OpOptions {
 	skip: boolean;
+	check: boolean;
 }
 
 export function shouldRecreate(opt: InitOptions): boolean {
@@ -191,6 +193,17 @@ const throwUnlessRows = (text: string) => {
 	return text;
 };
 
+export async function createIndex(
+	table: string,
+	column: string,
+	mod?: (ib: kysely.CreateIndexBuilder<string>) => kysely.CreateIndexBuilder<string>
+): Promise<void> {
+	io.start(`Creating index for ${table}.${column}`);
+	let query = database.schema.createIndex(`${table}_${column}_index`).on(table).column(column);
+	if (mod) query = mod(query);
+	await query.execute().then(io.done).catch(warnExists);
+}
+
 export async function init(opt: InitOptions): Promise<void> {
 	if (!config.db.password) {
 		config.save({ db: { password: randomBytes(32).toString('base64') } }, true);
@@ -238,7 +251,9 @@ export async function init(opt: InitOptions): Promise<void> {
 
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
+	io.start('Connecting to database');
 	await using db = connect();
+	io.done();
 
 	io.start('Creating table users');
 	await db.schema
@@ -270,8 +285,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.then(io.done)
 		.catch(warnExists);
 
-	io.start('Creating index for sessions.userId');
-	await db.schema.createIndex('sessions_userId_index').on('sessions').column('userId').execute().then(io.done).catch(warnExists);
+	await createIndex('sessions', 'id');
 
 	io.start('Creating table verifications');
 	await db.schema
@@ -290,7 +304,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('id', 'text', col => col.primaryKey().notNull())
 		.addColumn('name', 'text')
 		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
+		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').notNull())
 		.addColumn('publicKey', 'bytea', col => col.notNull())
 		.addColumn('counter', 'integer', col => col.notNull())
 		.addColumn('deviceType', 'text', col => col.notNull())
@@ -300,17 +314,125 @@ export async function init(opt: InitOptions): Promise<void> {
 		.then(io.done)
 		.catch(warnExists);
 
-	io.start('Creating index for passkeys.id');
-	await db.schema.createIndex('passkeys_id_key').on('passkeys').column('id').execute().then(io.done).catch(warnExists);
+	await createIndex('passkeys', 'userId');
+
+	io.start('Creating schema acl');
+	await db.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.db_init) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.db_init(opt, db);
+		await plugin.hooks.db_init(opt);
 	}
 }
 
-export async function check(opt: OpOptions): Promise<void> {
+/**
+ * Expected column types for a table in the database.
+ */
+export type ColumnTypes<TableSchema extends object> = {
+	[K in keyof TableSchema & string]: { type: string; required?: boolean; hasDefault?: boolean };
+};
+
+export const expectedTypes = {
+	users: {
+		email: { type: 'text', required: true },
+		emailVerified: { type: 'timestamptz' },
+		id: { type: 'uuid', required: true, hasDefault: true },
+		image: { type: 'text' },
+		isAdmin: { type: 'bool', required: true, hasDefault: true },
+		name: { type: 'text' },
+		preferences: { type: 'jsonb', required: true, hasDefault: true },
+		registeredAt: { type: 'timestampz', required: true, hasDefault: true },
+		roles: { type: '_text', required: true, hasDefault: true },
+		tags: { type: '_text', required: true, hasDefault: true },
+	},
+	verifications: {
+		userId: { type: 'uuid', required: true },
+		token: { type: 'text', required: true },
+		expires: { type: 'timestamptz', required: true },
+		role: { type: 'text', required: true },
+	},
+	passkeys: {
+		id: { type: 'text', required: true },
+		name: { type: 'text' },
+		createdAt: { type: 'timestamptz', required: true, hasDefault: true },
+		userId: { type: 'uuid', required: true },
+		publicKey: { type: 'bytea', required: true },
+		counter: { type: 'int4', required: true },
+		deviceType: { type: 'text', required: true },
+		backedUp: { type: 'bool', required: true },
+		transports: { type: '_text' },
+	},
+	sessions: {
+		id: { type: 'uuid', required: true, hasDefault: true },
+		userId: { type: 'uuid', required: true },
+		created: { type: 'timestampz', required: true },
+		token: { type: 'text', required: true },
+		expires: { type: 'timestampz', required: true },
+		elevated: { type: 'bool', required: true },
+	},
+} satisfies { [K in keyof Schema & string]: ColumnTypes<Schema[K]> };
+
+export interface CheckOptions extends OpOptions {
+	/** Whether to throw an error instead of emitting a warning on most column issues */
+	strict?: boolean;
+
+	/**
+	 * Memoized introspection table metadata.
+	 * @internal @hidden
+	 */
+	_metadata?: kysely.TableMetadata[];
+
+	/**
+	 * Whether to check for extra columns.
+	 */
+	extra?: boolean;
+}
+
+/**
+ * Checks that a table has the expected column types, nullability, and default values.
+ */
+export async function checkTableTypes<TB extends keyof Schema & string>(
+	tableName: TB,
+	types: ColumnTypes<Schema[TB]>,
+	opt: CheckOptions
+): Promise<void> {
+	io.start(`Checking for table ${tableName}`);
+	const dbTables = opt._metadata || (await database.introspection.getTables());
+	const table = dbTables.find(t => t.name === tableName);
+	if (!table) throw 'missing.';
+	io.done();
+
+	const columns = Object.fromEntries(table.columns.map(c => [c.name, c]));
+
+	for (const [key, { type, required = false, hasDefault = false }] of Object.entries(types) as Entries<typeof types>) {
+		io.start(`Checking column ${tableName}.${key}`);
+		const col = columns[key];
+		if (!col) throw 'missing.';
+		try {
+			if (col.dataType != type) throw `incorrect type "${col.dataType}", expected ${type}`;
+			if (col.isNullable != !required) throw required ? 'nullable' : 'not nullable';
+			if (col.hasDefaultValue != hasDefault) throw hasDefault ? 'missing default' : 'has default';
+			io.done();
+		} catch (e: any) {
+			if (opt.strict) throw e;
+			io.warn(e);
+		}
+		delete columns[key];
+	}
+
+	if (!opt.extra) return;
+
+	io.start('Checking for extra columns in ' + tableName);
+	const unchecked = Object.keys(columns)
+		.map(c => `${tableName}.${c}`)
+		.join(', ');
+	if (!unchecked.length) io.done();
+	else if (opt.strict) throw unchecked;
+	else io.warn(unchecked);
+}
+
+export async function check(opt: CheckOptions): Promise<void> {
 	await io.run('Checking for sudo', 'which sudo');
 	await io.run('Checking for psql', 'which psql');
 
@@ -322,21 +444,13 @@ export async function check(opt: OpOptions): Promise<void> {
 	await using db = connect();
 	io.done();
 
-	io.start('Checking users table');
-	await db.selectFrom('users').select(['id', 'email', 'emailVerified', 'image', 'name', 'preferences']).execute().then(io.done);
+	io.start('Getting table metadata');
+	opt._metadata = await db.introspection.getTables();
+	io.done();
 
-	io.start('Checking sessions table');
-	await db.selectFrom('sessions').select(['id', 'userId', 'token', 'created', 'expires', 'elevated']).execute().then(io.done);
-
-	io.start('Checking verifications table');
-	await db.selectFrom('verifications').select(['userId', 'token', 'expires', 'role']).execute().then(io.done);
-
-	io.start('Checking passkeys table');
-	await db
-		.selectFrom('passkeys')
-		.select(['id', 'name', 'createdAt', 'userId', 'publicKey', 'counter', 'deviceType', 'backedUp', 'transports'])
-		.execute()
-		.then(io.done);
+	for (const table of ['users', 'sessions', 'verifications', 'passkeys'] as const) {
+		await checkTableTypes(table, expectedTypes[table], opt);
+	}
 }
 
 export async function clean(opt: Partial<OpOptions>): Promise<void> {
@@ -353,7 +467,7 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 	for (const plugin of plugins) {
 		if (!plugin.hooks.clean) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.clean(opt, db);
+		await plugin.hooks.clean(opt);
 	}
 }
 
@@ -361,12 +475,12 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
  * Completely remove Axium from the database.
  */
 export async function uninstall(opt: OpOptions): Promise<void> {
-	await using db = connect();
+	await using _ = connect();
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.remove) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.remove(opt, db);
+		await plugin.hooks.remove(opt);
 	}
 
 	await _sql('DROP DATABASE axium', 'Dropping database');
@@ -397,13 +511,20 @@ export async function wipe(opt: OpOptions): Promise<void> {
 	for (const plugin of plugins) {
 		if (!plugin.hooks.db_wipe) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.db_wipe(opt, db);
+		await plugin.hooks.db_wipe(opt);
 	}
 
 	for (const table of ['users', 'passkeys', 'sessions', 'verifications'] as const) {
-		io.start(`Removing data from ${table}`);
+		io.start(`Wiping ${table}`);
 		await db.deleteFrom(table).execute();
 		io.done();
+	}
+
+	for (const table of await database.introspection.getTables()) {
+		if (!table.name.startsWith('acl.')) continue;
+		const name = table.name as `acl.${string}`;
+		io.debug(`Wiping ${name}`);
+		await db.deleteFrom(name).execute();
 	}
 }
 
