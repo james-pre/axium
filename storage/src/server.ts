@@ -41,6 +41,11 @@ declare module '@axium/server/database' {
 	}
 }
 
+/**
+ * @internal A storage item selected from the database.
+ */
+export interface SelectedItem extends Selectable<Schema['storage']> {}
+
 expectedTypes.storage = {
 	createdAt: { type: 'timestamptz', required: true, hasDefault: true },
 	hash: { type: 'bytea', required: true },
@@ -108,12 +113,9 @@ export interface StorageItem extends StorageItemMetadata {
 	data: Uint8Array<ArrayBufferLike>;
 }
 
-export function parseItem<T extends Record<string, unknown> = Record<string, unknown>>(
-	item: Selectable<Schema['storage']>
-): StorageItemMetadata<T> {
+export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema['storage']> & StorageItemMetadata {
 	return {
 		...item,
-		metadata: item.metadata as T,
 		dataURL: `/raw/storage/${item.id}`,
 		hash: item.hash.toHex(),
 	};
@@ -134,7 +136,7 @@ export async function currentUsage(userId: string): Promise<StorageUsage> {
 	return result;
 }
 
-export async function get<T extends Record<string, unknown> = Record<string, unknown>>(itemId: string): Promise<StorageItemMetadata<T>> {
+export async function get(itemId: string): Promise<StorageItemMetadata> {
 	connect();
 	const result = await database
 		.selectFrom('storage')
@@ -142,7 +144,7 @@ export async function get<T extends Record<string, unknown> = Record<string, unk
 		.selectAll()
 		.$narrowType<{ metadata: any }>()
 		.executeTakeFirstOrThrow();
-	return parseItem<T>(result);
+	return parseItem(result);
 }
 
 export type ExternalLimitHandler = (userId?: string) => StorageLimits | Promise<StorageLimits>;
@@ -164,11 +166,6 @@ export async function getLimits(userId?: string): Promise<StorageLimits> {
 	}
 }
 
-/**
- * Used by routes
- */
-type _Selected = Selectable<Schema['storage']>;
-
 addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
@@ -177,7 +174,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Read);
 
 		return parseItem(item);
 	},
@@ -213,7 +210,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const auth = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Manage);
+		const auth = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Manage);
 		const item = parseItem(auth.item);
 
 		await database
@@ -243,7 +240,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Read);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -346,7 +343,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Read);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -364,7 +361,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Edit);
+		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Edit);
 
 		if (item.immutable) error(403, 'Item is immutable');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
