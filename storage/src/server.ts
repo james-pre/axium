@@ -21,7 +21,7 @@ declare module '@axium/server/database' {
 	export interface Schema {
 		storage: {
 			createdAt: Generated<Date>;
-			hash: Uint8Array;
+			hash: Uint8Array | null;
 			id: Generated<string>;
 			immutable: Generated<boolean>;
 			modifiedAt: Generated<Date>;
@@ -117,7 +117,7 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
 	return {
 		...item,
 		dataURL: `/raw/storage/${item.id}`,
-		hash: item.hash.toHex(),
+		hash: item.hash?.toHex(),
 	};
 }
 
@@ -220,13 +220,15 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not delete item'));
 
+		if (item.type == 'inode/directory') return item;
+
 		const { count } = await database
 			.selectFrom('storage')
-			.where('hash', '=', Uint8Array.fromHex(item.hash))
+			.where('hash', '=', Uint8Array.fromHex(item.hash!))
 			.select(eb => eb.fn.countAll().as('count'))
 			.executeTakeFirstOrThrow();
 
-		if (!Number(count)) unlinkSync(join(config.storage.data, item.hash));
+		if (!Number(count)) unlinkSync(join(config.storage.data, item.hash!));
 
 		return item;
 	},
@@ -281,6 +283,8 @@ addRoute({
 					.catch(() => error(400, 'Invalid parent ID'))
 			: null;
 
+		if (parentId) await checkAuthForItem(event, 'storage', parentId, Permission.Edit);
+
 		const size = Number(event.request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 
@@ -296,12 +300,16 @@ addRoute({
 		if (content.byteLength > size) error(400, 'Content length does not match size header');
 
 		const type = event.request.headers.get('content-type') || 'application/octet-stream';
+		const isDirectory = type == 'inode/directory';
+
+		if (isDirectory && size > 0) error(400, 'Directories can not have content');
 
 		const useCAS =
 			config.storage.cas.enabled &&
+			!isDirectory &&
 			(defaultCASMime.some(pattern => pattern.test(type)) || config.storage.cas.include.some(mime => type.match(mime)));
 
-		const hash = createHash('BLAKE2b512').update(content).digest();
+		const hash = isDirectory ? null : createHash('BLAKE2b512').update(content).digest();
 
 		// @todo: make this atomic
 
@@ -315,7 +323,7 @@ addRoute({
 		const path = join(config.storage.data, result.id);
 
 		const _noDupe = () => {
-			writeFileSync(path, content);
+			if (!isDirectory) writeFileSync(path, content);
 			return parseItem(result);
 		};
 
@@ -363,7 +371,8 @@ addRoute({
 
 		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Edit);
 
-		if (item.immutable) error(403, 'Item is immutable');
+		if (item.immutable) error(405, 'Item is immutable');
+		if (item.type == 'inode/directory') error(409, 'Directories do not have content');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
 
 		const type = event.request.headers.get('content-type') || 'application/octet-stream';

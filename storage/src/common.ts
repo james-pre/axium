@@ -54,7 +54,8 @@ export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> {
 	createdAt: Date;
 	dataURL: string;
-	hash: string;
+	/** The hash of the file, or null if it is a directory */
+	hash: string | null;
 	id: string;
 	immutable: boolean;
 	modifiedAt: Date;
