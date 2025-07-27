@@ -10,7 +10,6 @@ import { error } from '@sveltejs/kit';
 import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
-import { writeFile } from 'node:fs/promises';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import type { StorageItemMetadata, StorageLimits, StorageUsage } from './common.js';
@@ -311,35 +310,45 @@ addRoute({
 
 		const hash = isDirectory ? null : createHash('BLAKE2b512').update(content).digest();
 
-		// @todo: make this atomic
+		const tx = await database.startTransaction().execute();
 
-		const result = await database
-			.insertInto('storage')
-			.values({ userId: userId, hash, name, size, type, immutable: useCAS, parentId })
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not create item'));
+		try {
+			const item = parseItem(
+				await tx
+					.insertInto('storage')
+					.values({ userId, hash, name, size, type, immutable: useCAS, parentId })
+					.returningAll()
+					.executeTakeFirstOrThrow()
+			);
 
-		const path = join(config.storage.data, result.id);
+			const path = join(config.storage.data, item.id);
 
-		const _noDupe = () => {
-			if (!isDirectory) writeFileSync(path, content);
-			return parseItem(result);
-		};
+			if (!useCAS) {
+				if (!isDirectory) writeFileSync(path, content);
+				return item;
+			}
 
-		if (!useCAS) return _noDupe();
+			const existing = await tx
+				.selectFrom('storage')
+				.select('id')
+				.where('hash', '=', hash)
+				.where('id', '!=', item.id)
+				.limit(1)
+				.executeTakeFirst();
 
-		const existing = await database
-			.selectFrom('storage')
-			.where('hash', '=', hash)
-			.where('id', '!=', result.id)
-			.selectAll()
-			.executeTakeFirst();
+			if (!existing) {
+				if (!isDirectory) writeFileSync(path, content);
+				return item;
+			}
 
-		if (!existing) return _noDupe();
-
-		linkSync(join(config.storage.data, existing.id), path);
-		return parseItem(result);
+			linkSync(join(config.storage.data, existing.id), path);
+			return item;
+		} catch (error: any) {
+			await tx.rollback().execute();
+			throw withError('Could not create item', 500)(error);
+		} finally {
+			await tx.commit().execute();
+		}
 	},
 });
 
@@ -398,19 +407,24 @@ addRoute({
 
 		const hash = createHash('BLAKE2b512').update(content).digest();
 
-		// @todo: make this atomic
+		const tx = await database.startTransaction().execute();
 
-		const result = await database
-			.updateTable('storage')
-			.where('id', '=', itemId)
-			.set({ size, modifiedAt: new Date(), hash })
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not update item'));
+		try {
+			const result = await tx
+				.updateTable('storage')
+				.where('id', '=', itemId)
+				.set({ size, modifiedAt: new Date(), hash })
+				.returningAll()
+				.executeTakeFirstOrThrow();
 
-		await writeFile(join(config.storage.data, result.id), content).catch(withError('Could not write'));
+			writeFileSync(join(config.storage.data, result.id), content);
 
-		return parseItem(result);
+			await tx.commit().execute();
+			return parseItem(result);
+		} catch (error: any) {
+			await tx.rollback().execute();
+			throw withError('Could not update item', 500)(error);
+		}
 	},
 });
 
