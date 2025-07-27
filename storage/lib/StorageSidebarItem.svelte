@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as icon from '@axium/core/icons';
 	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/lib';
-	import { deleteItem, updateItem, type _Sidebar } from '@axium/storage/client';
+	import { deleteItem, updateItemMetadata, type _Sidebar } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { getContext } from 'svelte';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
@@ -101,7 +101,7 @@
 	bind:dialog={dialogs.rename}
 	submitText="Rename"
 	submit={async (data: { name: string }) => {
-		await updateItem(item.id, data);
+		await updateItemMetadata(item.id, data);
 		item.name = data.name;
 	}}
 >
