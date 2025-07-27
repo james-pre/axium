@@ -53,7 +53,7 @@ export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 
 export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> {
 	createdAt: Date;
-	dataURL?: string;
+	dataURL: string;
 	hash: string;
 	id: string;
 	immutable: boolean;
@@ -65,5 +65,5 @@ export interface StorageItemMetadata<T extends Record<string, unknown> = Record<
 	size: number;
 	trashedAt: Date | null;
 	type: string;
-	metadata?: T;
+	metadata: T;
 }
