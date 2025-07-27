@@ -1,10 +1,10 @@
 import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
-import type { RequestEvent } from '@sveltejs/kit';
+import { error, type RequestEvent } from '@sveltejs/kit';
 import type { Insertable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { connect, database as db, userFromId, type Schema } from './database.js';
-import { getToken } from './requests.js';
+import { getToken, withError } from './requests.js';
 
 export interface UserInternal extends User {
 	isAdmin: boolean;
@@ -138,11 +138,29 @@ export async function updatePasskeyCounter(id: PasskeyInternal['id'], newCounter
 	return passkey;
 }
 
-export async function authenticate(event: RequestEvent): Promise<SessionAndUser | null> {
-	const maybe_header = event.request.headers.get('Authorization');
-	const token = maybe_header?.startsWith('Bearer ') ? maybe_header.slice(7) : event.cookies.get('session_token');
+export interface UserAuthResult extends SessionAndUser {
+	/** The user authenticating the request. */
+	accessor: UserInternal;
+}
 
-	if (!token) return null;
+export async function checkAuthForUser(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<UserAuthResult> {
+	const token = getToken(event, sensitive);
 
-	return await getSessionAndUser(token).catch(() => null);
+	if (!token) throw error(401, 'Missing token');
+
+	const session = await getSessionAndUser(token).catch(withError('Invalid or expired session', 401));
+
+	if (session.userId !== userId) {
+		if (!session.user?.isAdmin) error(403, 'User ID mismatch');
+
+		// Admins are allowed to manage other users.
+		const accessor = session.user;
+		session.user = await getUser(userId).catch(withError('Target user not found', 404));
+
+		return Object.assign(session, { accessor });
+	}
+
+	if (!session.elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
+
+	return Object.assign(session, { accessor: session.user });
 }

@@ -3,10 +3,10 @@ import { PasskeyChangeable } from '@axium/core/schemas';
 import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
 import * as z from 'zod';
-import { getPasskey } from '../auth.js';
+import { checkAuthForUser, getPasskey } from '../auth.js';
 import { database as db } from '../database.js';
+import { parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { checkAuth, parseBody, withError } from '../requests.js';
 
 addRoute({
 	path: '/api/passkeys/:id',
@@ -15,13 +15,13 @@ addRoute({
 	},
 	async GET(event): Result<'GET', 'passkeys/:id'> {
 		const passkey = await getPasskey(event.params.id!);
-		await checkAuth(event, passkey.userId);
+		await checkAuthForUser(event, passkey.userId);
 		return omit(passkey, 'counter', 'publicKey');
 	},
 	async PATCH(event): Result<'PATCH', 'passkeys/:id'> {
 		const body = await parseBody(event, PasskeyChangeable);
 		const passkey = await getPasskey(event.params.id!);
-		await checkAuth(event, passkey.userId);
+		await checkAuthForUser(event, passkey.userId);
 		const result = await db
 			.updateTable('passkeys')
 			.set(body)
@@ -34,7 +34,7 @@ addRoute({
 	},
 	async DELETE(event): Result<'DELETE', 'passkeys/:id'> {
 		const passkey = await getPasskey(event.params.id!);
-		await checkAuth(event, passkey.userId);
+		await checkAuthForUser(event, passkey.userId);
 
 		const { count } = await db
 			.selectFrom('passkeys')

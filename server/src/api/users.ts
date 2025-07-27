@@ -6,10 +6,19 @@ import * as webauthn from '@simplewebauthn/server';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import * as z from 'zod';
-import { createPasskey, createVerification, getPasskey, getPasskeysByUserId, getSessions, getUser, useVerification } from '../auth.js';
+import {
+	checkAuthForUser,
+	createPasskey,
+	createVerification,
+	getPasskey,
+	getPasskeysByUserId,
+	getSessions,
+	getUser,
+	useVerification,
+} from '../auth.js';
 import { config } from '../config.js';
 import { connect, database as db } from '../database.js';
-import { checkAuth, createSessionData, parseBody, stripUser, withError } from '../requests.js';
+import { createSessionData, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
 interface UserAuth {
@@ -46,7 +55,7 @@ addRoute({
 	async GET(event): Result<'GET', 'users/:id'> {
 		const userId = event.params.id!;
 
-		const auth = await checkAuth(event, userId).catch(() => null);
+		const auth = await checkAuthForUser(event, userId).catch(() => null);
 
 		const user = auth?.user || (await getUser(userId).catch(withError('User does not exist', 404)));
 
@@ -56,7 +65,7 @@ addRoute({
 		const userId = event.params.id!;
 		const body: UserChangeable & Pick<User, 'emailVerified'> = await parseBody(event, UserChangeable);
 
-		await checkAuth(event, userId);
+		await checkAuthForUser(event, userId);
 
 		if ('email' in body) body.emailVerified = null;
 
@@ -73,7 +82,7 @@ addRoute({
 	async DELETE(event): Result<'DELETE', 'users/:id'> {
 		const userId = event.params.id!;
 
-		await checkAuth(event, userId, true);
+		await checkAuthForUser(event, userId, true);
 
 		const result = await db
 			.deleteFrom('users')
@@ -92,7 +101,7 @@ addRoute({
 	async GET(event): Result<'GET', 'users/:id/full'> {
 		const userId = event.params.id!;
 
-		const { user } = await checkAuth(event, userId);
+		const { user } = await checkAuthForUser(event, userId);
 		const sessions = await getSessions(userId);
 
 		return {
@@ -175,7 +184,7 @@ addRoute({
 
 		const existing = await getPasskeysByUserId(userId);
 
-		const { user } = await checkAuth(event, userId);
+		const { user } = await checkAuthForUser(event, userId);
 
 		const options = await webauthn.generateRegistrationOptions({
 			rpName: config.auth.rp_name,
@@ -202,7 +211,7 @@ addRoute({
 	async GET(event: RequestEvent): Result<'GET', 'users/:id/passkeys'> {
 		const userId = event.params.id!;
 
-		await checkAuth(event, userId);
+		await checkAuthForUser(event, userId);
 
 		const passkeys = await getPasskeysByUserId(userId);
 
@@ -216,7 +225,7 @@ addRoute({
 		const userId = event.params.id!;
 		const response = await parseBody(event, PasskeyRegistration);
 
-		await checkAuth(event, userId);
+		await checkAuthForUser(event, userId);
 
 		const expectedChallenge = registrations.get(userId);
 		if (!expectedChallenge) error(404, { message: 'No registration challenge found for this user' });
@@ -250,7 +259,7 @@ addRoute({
 	async GET(event): Result<'POST', 'users/:id/sessions'> {
 		const userId = event.params.id!;
 
-		await checkAuth(event, userId);
+		await checkAuthForUser(event, userId);
 
 		return (await getSessions(userId).catch(e => error(503, 'Failed to get sessions' + (config.debug ? ': ' + e : '')))).map(s =>
 			omit(s, 'token')
@@ -260,7 +269,7 @@ addRoute({
 		const userId = event.params.id!;
 		const body = await parseBody(event, LogoutSessions);
 
-		await checkAuth(event, userId, body.confirm_all);
+		await checkAuthForUser(event, userId, body.confirm_all);
 
 		if (!body.confirm_all && !Array.isArray(body.id)) error(400, { message: 'Invalid request body' });
 		const query = body.confirm_all ? db.deleteFrom('sessions') : db.deleteFrom('sessions').where('sessions.id', 'in', body.id!);
@@ -283,7 +292,7 @@ addRoute({
 
 		if (!config.auth.email_verification) return { enabled: false };
 
-		await checkAuth(event, userId);
+		await checkAuthForUser(event, userId);
 
 		if (!config.auth.email_verification) return { enabled: false };
 
@@ -292,7 +301,7 @@ addRoute({
 	async GET(event): Result<'GET', 'users/:id/verify_email'> {
 		const userId = event.params.id!;
 
-		const { user } = await checkAuth(event, userId);
+		const { user } = await checkAuthForUser(event, userId);
 
 		if (user.emailVerified) error(409, { message: 'Email already verified' });
 
@@ -304,7 +313,7 @@ addRoute({
 		const userId = event.params.id!;
 		const { token } = await parseBody(event, z.object({ token: z.string() }));
 
-		const { user } = await checkAuth(event, userId);
+		const { user } = await checkAuthForUser(event, userId);
 
 		if (user.emailVerified) error(409, { message: 'Email already verified' });
 

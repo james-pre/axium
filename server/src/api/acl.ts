@@ -3,7 +3,7 @@ import { addRoute } from '../routes.js';
 import type { Result } from '@axium/core/api';
 import type { Schema } from '../database.js';
 import { parseBody, withError } from '../requests.js';
-import { createEntry } from '../acl.js';
+import * as acl from '../acl.js';
 
 addRoute({
 	path: '/api/acl/:itemType/:itemId',
@@ -23,7 +23,7 @@ addRoute({
 			})
 		);
 
-		const share = await createEntry(type, { ...data, itemId }).catch(withError('Failed to create access control'));
+		const share = await acl.createEntry(type, { ...data, itemId }).catch(withError('Failed to create access control'));
 
 		return share;
 	},

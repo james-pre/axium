@@ -31,33 +31,6 @@ export function getToken(event: RequestEvent, sensitive: boolean = false): strin
 	}
 }
 
-export interface AuthResult extends SessionAndUser {
-	/** The user authenticating the request. */
-	accessor: UserInternal;
-}
-
-export async function checkAuth(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<AuthResult> {
-	const token = getToken(event, sensitive);
-
-	if (!token) throw error(401, { message: 'Missing token' });
-
-	const session = await getSessionAndUser(token).catch(() => error(401, { message: 'Invalid or expired session' }));
-
-	if (session.userId !== userId) {
-		if (!session.user?.isAdmin) error(403, { message: 'User ID mismatch' });
-
-		// Admins are allowed to manage other users.
-		const accessor = session.user;
-		session.user = await getUser(userId).catch(() => error(404, { message: 'Target user not found' }));
-
-		return Object.assign(session, { accessor });
-	}
-
-	if (!session.elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
-
-	return Object.assign(session, { accessor: session.user });
-}
-
 export async function createSessionData(userId: string, elevated: boolean = false): Promise<Response> {
 	const { token, expires } = await createSession(userId, elevated);
 

@@ -1,9 +1,9 @@
 import type { Result } from '@axium/core/api';
-import { getSessionAndUser } from '@axium/server/auth';
+import { checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database, expectedTypes, type Schema } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
-import { checkAuth, getToken, parseBody, withError } from '@axium/server/requests';
+import { getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import type { ExpressionBuilder, Generated, Selectable } from 'kysely';
@@ -179,7 +179,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.userId);
+		await checkAuthForUser(event, item.userId);
 
 		return item;
 	},
@@ -193,7 +193,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.userId);
+		await checkAuthForUser(event, item.userId);
 
 		const values: Partial<Pick<StorageItemMetadata, 'publicPermission' | 'trashedAt' | 'userId' | 'name'>> = {};
 		if ('publicPermission' in body) values.publicPermission = body.publicPermission;
@@ -222,7 +222,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.userId);
+		await checkAuthForUser(event, item.userId);
 
 		await database
 			.deleteFrom('storage')
@@ -254,7 +254,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.userId);
+		await checkAuthForUser(event, item.userId);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -362,7 +362,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		await checkAuth(event, item.userId);
+		await checkAuthForUser(event, item.userId);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -383,7 +383,7 @@ addRoute({
 		const item = await get(itemId);
 		if (!item) error(404, 'Item not found');
 
-		const { accessor } = await checkAuth(event, item.userId);
+		const { accessor } = await checkAuthForUser(event, item.userId);
 
 		if (item.immutable) error(403, 'Item is immutable');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
@@ -436,7 +436,7 @@ addRoute({
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = event.params.id!;
-		await checkAuth(event, userId);
+		await checkAuthForUser(event, userId);
 
 		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(withError('Could not fetch data'));
 
@@ -447,7 +447,7 @@ addRoute({
 
 		const userId = event.params.id!;
 
-		await checkAuth(event, userId);
+		await checkAuthForUser(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
 			database.selectFrom('storage').where('userId', '=', userId).selectAll().select(withEncodedHash).execute(),

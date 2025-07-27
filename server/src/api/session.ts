@@ -1,17 +1,18 @@
 import type { Result } from '@axium/core/api';
 import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
-import { authenticate } from '../auth.js';
+import { getSessionAndUser } from '../auth.js';
 import { connect, database as db } from '../database.js';
+import { getToken, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { getToken, stripUser } from '../requests.js';
 
 addRoute({
 	path: '/api/session',
 	async GET(event): Result<'GET', 'session'> {
-		const result = await authenticate(event);
+		const token = getToken(event);
+		if (!token) error(401, 'Missing token');
 
-		if (!result) error(404, 'Session does not exist');
+		const result = await getSessionAndUser(token).catch(withError('Invalid session', 400));
 
 		return {
 			...omit(result, 'token'),
