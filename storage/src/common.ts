@@ -45,7 +45,6 @@ export const StorageItemUpdate = z
 		name: z.string(),
 		owner: z.uuid(),
 		trash: z.boolean(),
-		restrict: z.boolean(),
 		publicPermission: z.number().min(0).max(5),
 	})
 	.partial();

@@ -27,7 +27,6 @@ declare module '@axium/server/database' {
 			modifiedAt: Generated<Date>;
 			name: string;
 			parentId: string | null;
-			restricted: Generated<boolean>;
 			size: number;
 			trashedAt: Date | null;
 			type: string;
@@ -50,7 +49,6 @@ expectedTypes.storage = {
 	modifiedAt: { type: 'timestamptz', required: true, hasDefault: true },
 	name: { type: 'text' },
 	parentId: { type: 'uuid' },
-	restricted: { type: 'bool', required: true, hasDefault: true },
 	size: { type: 'int4', required: true },
 	trashedAt: { type: 'timestampz' },
 	type: { type: 'text', required: true },

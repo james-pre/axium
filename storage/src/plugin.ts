@@ -28,7 +28,6 @@ async function db_init(opt: InitOptions, db: Database) {
 		.addColumn('parentId', 'uuid', col => col.references('storage.itemId').onDelete('cascade').onUpdate('cascade').defaultTo(null))
 		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('modifiedAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('restricted', 'boolean', col => col.notNull().defaultTo(false))
 		.addColumn('size', 'integer', col => col.notNull())
 		.addColumn('trashedAt', 'timestamptz', col => col.defaultTo(null))
 		.addColumn('hash', 'bytea', col => col.notNull())
