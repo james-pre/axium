@@ -1,4 +1,4 @@
-import { Permission } from '@axium/core';
+import { Permission } from '@axium/core/access';
 import type { Result } from '@axium/core/api';
 import { checkAuthForItem, checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
@@ -7,7 +7,7 @@ import { dirs } from '@axium/server/io';
 import { getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
-import type { ExpressionBuilder, Generated, Selectable } from 'kysely';
+import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { writeFile } from 'node:fs/promises';
@@ -111,12 +111,13 @@ export interface StorageItem extends StorageItemMetadata {
 }
 
 export function parseItem<T extends Record<string, unknown> = Record<string, unknown>>(
-	item: Selectable<Schema['storage']> & { hash: string }
+	item: Selectable<Schema['storage']>
 ): StorageItemMetadata<T> {
 	return {
 		...item,
 		metadata: item.metadata as T,
 		dataURL: `/raw/storage/${item.id}`,
+		hash: item.hash.toHex(),
 	};
 }
 
@@ -141,13 +142,9 @@ export async function get<T extends Record<string, unknown> = Record<string, unk
 		.selectFrom('storage')
 		.where('id', '=', itemId)
 		.selectAll()
-		.select(withEncodedHash)
+		.$narrowType<{ metadata: any }>()
 		.executeTakeFirstOrThrow();
 	return parseItem<T>(result);
-}
-
-export function withEncodedHash(eb: ExpressionBuilder<Schema, 'storage'>) {
-	return eb.fn<string>('encode', ['hash', eb.val('hex')]).as('hash');
 }
 
 export type ExternalLimitHandler = (userId?: string) => StorageLimits | Promise<StorageLimits>;
@@ -169,6 +166,11 @@ export async function getLimits(userId?: string): Promise<StorageLimits> {
 	}
 }
 
+/**
+ * Used by routes
+ */
+type _Selected = Selectable<Schema['storage']>;
+
 addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
@@ -177,9 +179,9 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Read);
 
-		return item;
+		return parseItem(item);
 	},
 	async PATCH(event): Result<'PATCH', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
@@ -188,7 +190,7 @@ addRoute({
 
 		const body = await parseBody(event, StorageItemUpdate);
 
-		await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Manage);
+		await checkAuthForItem(event, 'storage', itemId, Permission.Manage);
 
 		const values: Partial<Pick<StorageItemMetadata, 'publicPermission' | 'trashedAt' | 'userId' | 'name'>> = {};
 		if ('publicPermission' in body) values.publicPermission = body.publicPermission;
@@ -204,7 +206,6 @@ addRoute({
 				.where('id', '=', itemId)
 				.set(values)
 				.returningAll()
-				.returning(withEncodedHash)
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not update item'))
 		);
@@ -214,7 +215,8 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Manage);
+		const auth = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Manage);
+		const item = parseItem(auth.item);
 
 		await database
 			.deleteFrom('storage')
@@ -243,7 +245,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Read);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -252,7 +254,6 @@ addRoute({
 			.where('parentId', '=', itemId)
 			.where('trashedAt', '!=', null)
 			.selectAll()
-			.select(withEncodedHash)
 			.execute();
 
 		return items.map(parseItem);
@@ -313,7 +314,6 @@ addRoute({
 			.insertInto('storage')
 			.values({ userId: userId, hash, name, size, type, immutable: useCAS, parentId })
 			.returningAll()
-			.returning(withEncodedHash)
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not create item'));
 
@@ -348,7 +348,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Read);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -366,7 +366,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Edit);
+		const { item } = await checkAuthForItem<_Selected>(event, 'storage', itemId, Permission.Edit);
 
 		if (item.immutable) error(403, 'Item is immutable');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
@@ -401,7 +401,6 @@ addRoute({
 			.where('id', '=', itemId)
 			.set({ size, modifiedAt: new Date(), hash })
 			.returningAll()
-			.returning(withEncodedHash)
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update item'));
 
@@ -432,7 +431,7 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('storage').where('userId', '=', userId).selectAll().select(withEncodedHash).execute(),
+			database.selectFrom('storage').where('userId', '=', userId).selectAll().execute(),
 			currentUsage(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));
