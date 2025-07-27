@@ -175,9 +175,9 @@ export interface ItemAuthResult<T extends acl.Target> {
 	session?: SessionInternal;
 }
 
-export async function checkAuthForItem<const V extends acl.Target, const T extends acl.TargetName>(
+export async function checkAuthForItem<const V extends acl.Target>(
 	event: RequestEvent,
-	itemType: T,
+	itemType: acl.TargetName,
 	itemId: string,
 	permission: Permission
 ) {
@@ -189,12 +189,13 @@ export async function checkAuthForItem<const V extends acl.Target, const T exten
 	const session = await getSessionAndUser(token).catch(() => null);
 
 	const item: V & { acl?: AccessControl[] } = await db
-		.selectFrom(itemType as acl.TargetName)
+		.selectFrom(itemType)
 		.selectAll()
 		.where('id', '=', itemId)
 		.$if(!!session, eb => eb.select(acl.from(itemType, session!.userId)))
 		.$castTo<V & { acl?: AccessControl[] }>()
-		.executeTakeFirstOrThrow();
+		.executeTakeFirstOrThrow()
+		.catch(withError('Item not found', 404));
 
 	const result: ItemAuthResult<V> = {
 		session: session ? omit(session, 'user') : undefined,
