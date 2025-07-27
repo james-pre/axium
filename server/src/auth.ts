@@ -1,8 +1,11 @@
+import type { AccessControl, Permission } from '@axium/core';
 import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
 import { error, type RequestEvent } from '@sveltejs/kit';
 import type { Insertable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { omit } from 'utilium';
+import * as acl from './acl.js';
 import { connect, database as db, userFromId, type Schema } from './database.js';
 import { getToken, withError } from './requests.js';
 
@@ -163,4 +166,57 @@ export async function checkAuthForUser(event: RequestEvent, userId: string, sens
 	if (!session.elevated && sensitive) error(403, 'This token can not be used for sensitive actions');
 
 	return Object.assign(session, { accessor: session.user });
+}
+
+export interface ItemAuthResult<T extends acl.Target> {
+	fromACL: boolean;
+	item: T;
+	user?: UserInternal;
+	session?: SessionInternal;
+}
+
+export async function checkAuthForItem<const V extends acl.Target, const T extends acl.TargetName>(
+	event: RequestEvent,
+	itemType: T,
+	itemId: string,
+	permission: Permission
+) {
+	const token = getToken(event, true);
+	if (!token) error(401, 'Missing token');
+
+	connect();
+
+	const session = await getSessionAndUser(token).catch(() => null);
+
+	const item: V & { acl?: AccessControl[] } = await db
+		.selectFrom(itemType as acl.TargetName)
+		.selectAll()
+		.where('id', '=', itemId)
+		.$if(!!session, eb => eb.select(acl.from(itemType, session!.userId)))
+		.$castTo<V & { acl?: AccessControl[] }>()
+		.executeTakeFirstOrThrow();
+
+	const result: ItemAuthResult<V> = {
+		session: session ? omit(session, 'user') : undefined,
+		item: omit(item, 'acl') as any as V,
+		user: session?.user,
+		fromACL: false,
+	};
+
+	if (item.publicPermission >= permission) return result;
+
+	if (!session) error(403, 'Access denied');
+
+	if (session.userId == item.userId) return result;
+
+	result.fromACL = true;
+
+	if (!item.acl || !item.acl.length) error(403, 'Access denied');
+
+	const [control] = item.acl;
+	if (control.userId !== session.userId) error(500, 'Access control entry does not match session user'); // @todo: audit log
+
+	if (control.permission >= permission) return result;
+
+	error(403, 'Access denied');
 }

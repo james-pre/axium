@@ -1,12 +1,12 @@
 import type { AccessControl, Permission } from '@axium/core';
-import type { ExpressionBuilder } from 'kysely';
+import type { Expression, ExpressionBuilder } from 'kysely';
 import { sql, type Selectable } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { UserInternal } from './auth.js';
 import * as db from './database.js';
 import * as io from './io.js';
 
-interface Target {
+export interface Target {
 	userId: string;
 	publicPermission: Permission;
 }
@@ -80,8 +80,9 @@ export async function deleteEntry(itemType: TargetName, itemId: string, userId: 
 
 /**
  * Helper to select all access controls for a given table, including the user information.
+ * @param onlyId If specified, only returns the access control for the given user ID.
  */
-export function from(table: TargetName) {
+export function from(table: TargetName, onlyId?: string | Expression<any>) {
 	return (eb: ExpressionBuilder<db.Schema, any>) =>
 		jsonArrayFrom(
 			eb
@@ -89,6 +90,7 @@ export function from(table: TargetName) {
 				.selectAll()
 				.select(db.userFromId)
 				.whereRef(`_acl.itemId`, '=', `${table}.id` as any)
+				.$if(!!onlyId, qb => qb.where('userId', '=', onlyId!))
 		)
 			.$castTo<Required<AccessControl>[]>()
 			.as('acl');
