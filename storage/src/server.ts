@@ -1,5 +1,6 @@
+import { Permission } from '@axium/core';
 import type { Result } from '@axium/core/api';
-import { checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
+import { checkAuthForItem, checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { connect, database, expectedTypes, type Schema } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
@@ -176,10 +177,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const item = await get(itemId);
-		if (!item) error(404, 'Item not found');
-
-		await checkAuthForUser(event, item.userId);
+		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Read);
 
 		return item;
 	},
@@ -190,10 +188,7 @@ addRoute({
 
 		const body = await parseBody(event, StorageItemUpdate);
 
-		const item = await get(itemId);
-		if (!item) error(404, 'Item not found');
-
-		await checkAuthForUser(event, item.userId);
+		await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Manage);
 
 		const values: Partial<Pick<StorageItemMetadata, 'publicPermission' | 'trashedAt' | 'userId' | 'name'>> = {};
 		if ('publicPermission' in body) values.publicPermission = body.publicPermission;
@@ -219,10 +214,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const item = await get(itemId);
-		if (!item) error(404, 'Item not found');
-
-		await checkAuthForUser(event, item.userId);
+		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Manage);
 
 		await database
 			.deleteFrom('storage')
@@ -251,10 +243,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const item = await get(itemId);
-		if (!item) error(404, 'Item not found');
-
-		await checkAuthForUser(event, item.userId);
+		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Read);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -359,10 +348,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const item = await get(itemId);
-		if (!item) error(404, 'Item not found');
-
-		await checkAuthForUser(event, item.userId);
+		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Read);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -380,14 +366,10 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const item = await get(itemId);
-		if (!item) error(404, 'Item not found');
-
-		const { accessor } = await checkAuthForUser(event, item.userId);
+		const { item } = await checkAuthForItem<StorageItemMetadata>(event, 'storage', itemId, Permission.Edit);
 
 		if (item.immutable) error(403, 'Item is immutable');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
-		if (item.userId != accessor.id) error(403, 'Item editing is restricted to the owner');
 
 		const type = event.request.headers.get('content-type') || 'application/octet-stream';
 
