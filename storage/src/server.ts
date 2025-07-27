@@ -44,7 +44,7 @@ declare module '@axium/server/database' {
 /**
  * @internal A storage item selected from the database.
  */
-export interface SelectedItem extends Selectable<Schema['storage']> {}
+interface SelectedItem extends Selectable<Schema['storage']> {}
 
 expectedTypes.storage = {
 	createdAt: { type: 'timestamptz', required: true, hasDefault: true },
