@@ -2,12 +2,18 @@ import { fetchAPI, token } from '@axium/client/requests';
 import type { StorageItemMetadata, StorageItemUpdate, UserFilesInfo } from './common.js';
 import type { ItemSelection } from './selection.js';
 
-async function _upload(method: 'PUT' | 'POST', url: string | URL, data: Blob | File): Promise<StorageItemMetadata> {
+async function _upload(
+	method: 'PUT' | 'POST',
+	url: string | URL,
+	data: Blob | File,
+	extraHeaders: Record<string, string> = {}
+): Promise<StorageItemMetadata> {
 	const init = {
 		method,
 		headers: {
 			'Content-Type': data.type,
 			'Content-Length': data.size.toString(),
+			...extraHeaders,
 		} as Record<string, string>,
 		body: data,
 	} satisfies RequestInit;
@@ -37,8 +43,8 @@ export function parseItem(result: StorageItemMetadata): StorageItemMetadata {
 	return result;
 }
 
-export async function uploadItem(file: File): Promise<StorageItemMetadata> {
-	return parseItem(await _upload('PUT', '/raw/storage', file));
+export async function uploadItem(file: File, parentId?: string): Promise<StorageItemMetadata> {
+	return parseItem(await _upload('PUT', '/raw/storage', file, parentId ? { 'x-parent': parentId } : {}));
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
