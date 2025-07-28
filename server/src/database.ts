@@ -257,7 +257,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	await using db = connect();
 	io.done();
 
-	function maybeCheck(table: keyof typeof expectedTypes) {
+	function maybeCheck(table: keyof ExpectedSchema) {
 		return (e: Error | string) => {
 			warnExists(e);
 			if (opt.check) return checkTableTypes(table, expectedTypes[table], opt);
