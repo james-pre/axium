@@ -1,14 +1,14 @@
 import type { RequestMethod } from '@axium/core/requests';
-import type * as kit from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
 import * as z from 'zod';
 import { config } from './config.js';
-import { error, json } from './requests.js';
+import type { Redirect, RequestEvent, ResponseError } from './requests.js';
+import { error, isRedirect, isResponseError, json } from './requests.js';
 import { resolveRoute, type ServerRoute } from './routes.js';
 
-async function handleAPIRequest(event: kit.RequestEvent, route: ServerRoute): Promise<Response> {
+async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promise<Response> {
 	const method = event.request.method as RequestMethod;
 
 	const _warnings: string[] = [];
@@ -39,27 +39,29 @@ async function handleAPIRequest(event: kit.RequestEvent, route: ServerRoute): Pr
 	return json(result);
 }
 
-function handleError(e: Error | kit.HttpError | kit.Redirect) {
-	if ('body' in e) return json(e.body, { status: e.status });
-	if ('location' in e) return Response.redirect(e.location, e.status);
+function handleError(e: Error | ResponseError | Redirect) {
+	if (isResponseError(e)) return json({ message: e.message }, { status: e.status });
+	if (isRedirect(e)) return Response.redirect(e.location, e.status);
 	console.error(e);
 	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
 }
 
-let template = null;
+let template: string | null = null;
 
 function fillTemplate({ head, body }: Record<'head' | 'body', string>, env: Record<string, string> = {}, nonce: string = ''): string {
 	template ||= readFileSync(config.web.template, 'utf-8');
 	return (
 		template
-			.replace('%sveltekit.head%', head)
-			.replace('%sveltekit.body%', body)
-			.replace(/%sveltekit\.assets%/g, config.web.assets)
+			.replaceAll('%sveltekit.head%', head)
+			.replaceAll('%sveltekit.body%', body)
+			.replaceAll('%sveltekit.assets%', config.web.assets)
 			// Unused for now.
-			.replace(/%sveltekit\.nonce%/g, nonce)
-			.replace(/%sveltekit\.env\.([^%]+)%/g, (_match: string[], key: string) => env[key] ?? '')
+			.replaceAll('%sveltekit.nonce%', nonce)
+			.replace(/%sveltekit\.env\.([^%]+)%/g, (_match: string, key: string) => env[key] ?? '')
 	);
 }
+
+import type * as kit from '@sveltejs/kit';
 
 /**
  * @internal
