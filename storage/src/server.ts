@@ -2,7 +2,7 @@ import { Permission } from '@axium/core/access';
 import type { Result } from '@axium/core/api';
 import { checkAuthForItem, checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
-import { connect, database, expectedTypes, type Schema } from '@axium/server/database';
+import { database, expectedTypes, type Schema } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
 import { getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -124,7 +124,6 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
  * Returns the current usage of the storage for a user in bytes.
  */
 export async function currentUsage(userId: string): Promise<StorageUsage> {
-	connect();
 	const result = await database
 		.selectFrom('storage')
 		.where('userId', '=', userId)
@@ -136,7 +135,6 @@ export async function currentUsage(userId: string): Promise<StorageUsage> {
 }
 
 export async function get(itemId: string): Promise<StorageItemMetadata> {
-	connect();
 	const result = await database
 		.selectFrom('storage')
 		.where('id', '=', itemId)

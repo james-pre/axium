@@ -17,7 +17,7 @@ import {
 	useVerification,
 } from '../auth.js';
 import { config } from '../config.js';
-import { connect, database as db } from '../database.js';
+import { database as db } from '../database.js';
 import { createSessionData, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
@@ -38,7 +38,6 @@ addRoute({
 	async POST(event): Result<'POST', 'user_id'> {
 		const { value } = await parseBody(event, z.object({ using: z.literal('email'), value: z.email() }));
 
-		connect();
 		const { id } = await db
 			.selectFrom('users')
 			.select('id')

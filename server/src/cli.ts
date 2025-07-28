@@ -45,11 +45,22 @@ program
 program.on('option:debug', () => config.set({ debug: true }));
 program.on('option:config', () => void config.load(program.opts<OptCommon>().config));
 
+const noDBErrorExit = ['init', 'serve', 'check'];
+
 program.hook('preAction', async function (_, action: Command) {
 	await config.loadDefaults();
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && output.warn('--force: Protections disabled.');
 	if (opt.debug === false) config.set({ debug: false });
+	try {
+		db.connect();
+	} catch (e) {
+		if (!noDBErrorExit.includes(action.name())) throw e;
+	}
+});
+
+program.hook('postAction', async () => {
+	await db.database.destroy();
 });
 
 // Options shared by multiple (sub)commands
@@ -114,7 +125,6 @@ axiumDB
 	.description('Drop the Axium database and user')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
-		await using _ = db.connect();
 		const stats = await db.count('users', 'passkeys', 'sessions').catch(exit);
 
 		if (!opt.force)
@@ -133,7 +143,6 @@ axiumDB
 	.description('Wipe the database')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
-		await using _ = db.connect();
 		const stats = await db.count('users', 'passkeys', 'sessions').catch(exit);
 
 		if (!opt.force)
@@ -160,7 +169,6 @@ axiumDB
 	.description('Remove expired rows')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
-		await using _ = db.connect();
 		await db.clean(opt).catch(exit);
 	});
 
@@ -289,8 +297,6 @@ axiumPlugin
 
 		const specifier = getSpecifier(plugin);
 
-		await using _ = db.connect();
-
 		await plugin.hooks.remove?.(opt);
 
 		for (const [path, data] of configFiles) {
@@ -314,8 +320,6 @@ axiumPlugin
 	.action(async (search: string, opt: OptCommon & { check: boolean }) => {
 		const plugin = resolvePlugin(search);
 		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
-
-		await using _ = db.connect();
 
 		await plugin.hooks.db_init?.({ force: false, ...opt, skip: true });
 	});
@@ -350,8 +354,6 @@ const lookup = new Argument('<user>', 'the UUID or email of the user to operate 
 		const value = await (lookup.includes('@') ? z.email() : z.uuid())
 			.parseAsync(lookup.toLowerCase())
 			.catch(() => exit('Invalid user ID or email.'));
-
-		db.connect();
 
 		const result = await db.database
 			.selectFrom('users')
@@ -413,7 +415,6 @@ program
 	.option('--delete', 'Delete the user')
 	.action(async (_user: Promise<UserInternal>, opt: OptUser) => {
 		let user = await _user;
-		await using _ = db.connect();
 
 		const [updatedRoles, roles, rolesDiff] = diffUpdate(user.roles, opt.addRole, opt.removeRole);
 		const [updatedTags, tags, tagsDiff] = diffUpdate(user.tags, opt.tag, opt.untag);
@@ -494,7 +495,6 @@ program
 	.addArgument(lookup)
 	.action(async (_user: Promise<UserInternal>) => {
 		const user = await _user;
-		await using _ = db.connect();
 
 		const isAdmin = !user.isAdmin;
 		await db.database.updateTable('users').set({ isAdmin }).where('id', '=', user.id).executeTakeFirstOrThrow();
@@ -517,8 +517,6 @@ program
 		console.log(styleText('whiteBright', 'Loaded config files:'), config.files.keys().toArray().join(', '));
 
 		process.stdout.write(styleText('whiteBright', 'Database: '));
-
-		await using _ = db.connect();
 
 		try {
 			console.log(await db.statText());

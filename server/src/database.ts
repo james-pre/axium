@@ -74,14 +74,8 @@ export function connect(): Database {
 	if (database) return database;
 	if (globalThis[sym]) return (database = globalThis[sym]);
 
-	const _db = new Kysely<Schema>({
+	database = new Kysely<Schema>({
 		dialect: new PostgresDialect({ pool: new pg.Pool(config.db) }),
-	});
-
-	database = Object.assign(_db, {
-		async [Symbol.asyncDispose]() {
-			await _db.destroy();
-		},
 	});
 
 	globalThis[sym] = database;
@@ -254,7 +248,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
 	io.start('Connecting to database');
-	await using db = connect();
+	connect();
 	io.done();
 
 	function maybeCheck(table: keyof ExpectedSchema) {
@@ -265,7 +259,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	}
 
 	io.start('Creating table users');
-	await db.schema
+	await database.schema
 		.createTable('users')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('name', 'text')
@@ -282,7 +276,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.catch(maybeCheck('users'));
 
 	io.start('Creating table sessions');
-	await db.schema
+	await database.schema
 		.createTable('sessions')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
@@ -297,7 +291,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	await createIndex('sessions', 'id');
 
 	io.start('Creating table verifications');
-	await db.schema
+	await database.schema
 		.createTable('verifications')
 		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
 		.addColumn('token', 'text', col => col.notNull().unique())
@@ -308,7 +302,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.catch(maybeCheck('verifications'));
 
 	io.start('Creating table passkeys');
-	await db.schema
+	await database.schema
 		.createTable('passkeys')
 		.addColumn('id', 'text', col => col.primaryKey().notNull())
 		.addColumn('name', 'text')
@@ -326,7 +320,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	await createIndex('passkeys', 'userId');
 
 	io.start('Creating schema acl');
-	await db.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
+	await database.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.db_init) continue;
@@ -456,11 +450,11 @@ export async function check(opt: CheckOptions): Promise<void> {
 	await _sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
 
 	io.start('Connecting to database');
-	await using db = connect();
+	connect();
 	io.done();
 
 	io.start('Getting table metadata');
-	opt._metadata = await db.introspection.getTables();
+	opt._metadata = await database.introspection.getTables();
 	const tables = Object.fromEntries(opt._metadata.map(t => [t.name, t]));
 	io.done();
 
@@ -479,13 +473,11 @@ export async function check(opt: CheckOptions): Promise<void> {
 export async function clean(opt: Partial<OpOptions>): Promise<void> {
 	const now = new Date();
 
-	const db = connect();
-
 	io.start('Removing expired sessions');
-	await db.deleteFrom('sessions').where('sessions.expires', '<', now).execute().then(io.done);
+	await database.deleteFrom('sessions').where('sessions.expires', '<', now).execute().then(io.done);
 
 	io.start('Removing expired verifications');
-	await db.deleteFrom('verifications').where('verifications.expires', '<', now).execute().then(io.done);
+	await database.deleteFrom('verifications').where('verifications.expires', '<', now).execute().then(io.done);
 
 	for (const plugin of plugins) {
 		if (!plugin.hooks.clean) continue;
@@ -498,8 +490,6 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
  * Completely remove Axium from the database.
  */
 export async function uninstall(opt: OpOptions): Promise<void> {
-	await using _ = connect();
-
 	for (const plugin of plugins) {
 		if (!plugin.hooks.remove) continue;
 		io.plugin(plugin.name);
@@ -529,8 +519,6 @@ export async function uninstall(opt: OpOptions): Promise<void> {
  * Removes all data from tables.
  */
 export async function wipe(opt: OpOptions): Promise<void> {
-	const db = connect();
-
 	for (const plugin of plugins) {
 		if (!plugin.hooks.db_wipe) continue;
 		io.plugin(plugin.name);
@@ -539,7 +527,7 @@ export async function wipe(opt: OpOptions): Promise<void> {
 
 	for (const table of ['users', 'passkeys', 'sessions', 'verifications'] as const) {
 		io.start(`Wiping ${table}`);
-		await db.deleteFrom(table).execute();
+		await database.deleteFrom(table).execute();
 		io.done();
 	}
 
@@ -547,7 +535,7 @@ export async function wipe(opt: OpOptions): Promise<void> {
 		if (!table.name.startsWith('acl.')) continue;
 		const name = table.name as `acl.${string}`;
 		io.debug(`Wiping ${name}`);
-		await db.deleteFrom(name).execute();
+		await database.deleteFrom(name).execute();
 	}
 }
 

@@ -6,7 +6,7 @@ import type { Insertable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit } from 'utilium';
 import * as acl from './acl.js';
-import { connect, database as db, userFromId, type Schema } from './database.js';
+import { database as db, userFromId, type Schema } from './database.js';
 import { getToken, withError } from './requests.js';
 
 export interface UserInternal extends User {
@@ -16,12 +16,10 @@ export interface UserInternal extends User {
 }
 
 export async function getUser(id: string): Promise<UserInternal> {
-	connect();
 	return await db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 }
 
 export async function updateUser({ id, ...user }: Insertable<Schema['users']>): Promise<UserInternal> {
-	connect();
 	const query = db.updateTable('users').set(user).where('id', '=', id);
 	return await query.returningAll().executeTakeFirstOrThrow();
 }
@@ -34,7 +32,6 @@ const in30days = () => new Date(Date.now() + 2592000000);
 const in10minutes = () => new Date(Date.now() + 600000);
 
 export async function createSession(userId: string, elevated: boolean = false) {
-	connect();
 	const session: SessionInternal = {
 		id: randomUUID(),
 		userId,
@@ -52,7 +49,6 @@ export interface SessionAndUser extends SessionInternal {
 }
 
 export async function getSessionAndUser(token: string): Promise<SessionAndUser> {
-	connect();
 	const result = await db
 		.selectFrom('sessions')
 		.selectAll()
@@ -66,7 +62,6 @@ export async function getSessionAndUser(token: string): Promise<SessionAndUser> 
 }
 
 export async function getSession(sessionId: string): Promise<SessionInternal> {
-	connect();
 	return await db
 		.selectFrom('sessions')
 		.selectAll()
@@ -76,7 +71,6 @@ export async function getSession(sessionId: string): Promise<SessionInternal> {
 }
 
 export async function getSessions(userId: string): Promise<SessionInternal[]> {
-	connect();
 	return await db.selectFrom('sessions').selectAll().where('userId', '=', userId).where('sessions.expires', '>', new Date()).execute();
 }
 
@@ -94,7 +88,6 @@ export interface VerificationInternal extends Verification {
 export async function createVerification(role: VerificationRole, userId: string, expires: number): Promise<VerificationInternal> {
 	const token = randomBytes(64).toString('base64url');
 	const verification: VerificationInternal = { userId, token, expires: new Date(Date.now() + expires * 1000), role };
-	connect();
 	await db.insertInto('verifications').values(verification).executeTakeFirstOrThrow();
 	setTimeout(() => {
 		void db.deleteFrom('verifications').where('verifications.token', '=', verification.token).execute();
@@ -103,7 +96,6 @@ export async function createVerification(role: VerificationRole, userId: string,
 }
 
 export async function useVerification(role: VerificationRole, userId: string, token: string): Promise<VerificationInternal | undefined> {
-	connect();
 	const query = db
 		.deleteFrom('verifications')
 		.where('verifications.token', '=', token)
@@ -118,23 +110,19 @@ export interface PasskeyInternal extends Passkey {
 }
 
 export async function getPasskey(id: string): Promise<PasskeyInternal> {
-	connect();
 	return await db.selectFrom('passkeys').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 }
 
 export async function createPasskey(passkey: Omit<PasskeyInternal, 'createdAt'>): Promise<PasskeyInternal> {
-	connect();
 	const result = await db.insertInto('passkeys').values(passkey).returningAll().executeTakeFirstOrThrow();
 	return result;
 }
 
 export async function getPasskeysByUserId(userId: string): Promise<PasskeyInternal[]> {
-	connect();
 	return await db.selectFrom('passkeys').selectAll().where('userId', '=', userId).execute();
 }
 
 export async function updatePasskeyCounter(id: PasskeyInternal['id'], newCounter: PasskeyInternal['counter']): Promise<PasskeyInternal> {
-	connect();
 	await db.updateTable('passkeys').set({ counter: newCounter }).where('id', '=', id).executeTakeFirstOrThrow();
 	const passkey = await getPasskey(id);
 	if (!passkey) throw new Error('Passkey not found');
@@ -183,8 +171,6 @@ export async function checkAuthForItem<const V extends acl.Target>(
 ) {
 	const token = getToken(event, true);
 	if (!token) error(401, 'Missing token');
-
-	connect();
 
 	const session = await getSessionAndUser(token).catch(() => null);
 

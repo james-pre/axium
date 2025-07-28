@@ -2,7 +2,7 @@ import type { Result } from '@axium/core/api';
 import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
 import { getSessionAndUser } from '../auth.js';
-import { connect, database as db } from '../database.js';
+import { database as db } from '../database.js';
 import { getToken, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
@@ -22,7 +22,7 @@ addRoute({
 	async DELETE(event): Result<'DELETE', 'session'> {
 		const token = getToken(event);
 		if (!token) error(401, 'Missing token');
-		connect();
+
 		const result = await db
 			.deleteFrom('sessions')
 			.where('sessions.token', '=', token)
