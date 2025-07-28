@@ -8,12 +8,11 @@ export interface ServeOptions {
 	secure: boolean;
 	ssl_key: string;
 	ssl_cert: string;
+	build: string;
 }
 
-const _handlerPath = '../build/handler.js';
-
 export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
-	const { handler } = await import(_handlerPath);
+	const { handler } = await import(opt.build || config.web.build);
 
 	if (!opt.secure && !config.web.secure) return createServer(handler);
 

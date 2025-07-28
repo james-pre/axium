@@ -43,6 +43,7 @@ export interface Config extends Record<string, unknown> {
 	show_duplicate_state: boolean;
 	web: Record<string, unknown> & {
 		assets: string;
+		build: string;
 		disable_cache: boolean;
 		port: number;
 		prefix: string;
@@ -105,6 +106,7 @@ export const config: Config & typeof configShortcuts = _unique('config', {
 	show_duplicate_state: false,
 	web: {
 		assets: '',
+		build: '../build/handler.js',
 		disable_cache: false,
 		port: 443,
 		prefix: '',
@@ -166,6 +168,7 @@ export const FileSchema = z
 		web: z
 			.looseObject({
 				assets: z.string(),
+				build: z.string(),
 				disable_cache: z.boolean(),
 				port: z.number().min(1).max(65535),
 				prefix: z.string(),
