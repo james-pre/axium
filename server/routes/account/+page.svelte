@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
 	import { ClipboardCopy, FormDialog, Icon, Logout } from '$lib';
 	import {
 		createPasskey,
@@ -29,7 +28,7 @@
 
 	async function ready() {
 		currentSession = await getCurrentSession().catch(() => {
-			goto('/login?after=/account');
+			window.location.href = '/login?after=/account';
 			return null;
 		})!;
 		user = currentSession.user;
@@ -111,7 +110,7 @@
 				<Logout bind:dialog={dialogs.logout} />
 				<FormDialog
 					bind:dialog={dialogs.delete}
-					submit={() => deleteUser(user.id).then(() => goto('/'))}
+					submit={() => deleteUser(user.id).then(() => (window.location.href = '/'))}
 					submitText="Delete Account"
 					submitDanger
 				>
@@ -196,7 +195,7 @@
 						await logout(user.id, session.id);
 						dialogs['logout#' + session.id].remove();
 						sessions.splice(sessions.indexOf(session), 1);
-						if (session.id == currentSession.id) goto('/');
+						if (session.id == currentSession.id) window.location.href = '/';
 					}}
 					submitText="Logout"
 				>
@@ -208,7 +207,7 @@
 			</span>
 			<FormDialog
 				bind:dialog={dialogs['logout_all']}
-				submit={() => logoutAll(user.id).then(() => goto('/'))}
+				submit={() => logoutAll(user.id).then(() => (window.location.href = '/'))}
 				submitText="Logout All Sessions"
 				submitDanger
 			>
