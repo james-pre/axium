@@ -48,7 +48,7 @@ export interface UploadOptions {
 	name?: string;
 }
 
-export async function uploadItem(file: File, opt: UploadOptions): Promise<StorageItemMetadata> {
+export async function uploadItem(file: Blob | File, opt: UploadOptions): Promise<StorageItemMetadata> {
 	const headers: Record<string, string> = {};
 	if (opt.parentId) headers['x-parent'] = opt.parentId;
 	if (opt.name) headers['x-name'] = opt.name;
