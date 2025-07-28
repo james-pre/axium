@@ -43,8 +43,16 @@ export function parseItem(result: StorageItemMetadata): StorageItemMetadata {
 	return result;
 }
 
-export async function uploadItem(file: File, parentId?: string): Promise<StorageItemMetadata> {
-	return parseItem(await _upload('PUT', '/raw/storage', file, parentId ? { 'x-parent': parentId } : {}));
+export interface UploadOptions {
+	parentId?: string;
+	name?: string;
+}
+
+export async function uploadItem(file: File, opt: UploadOptions): Promise<StorageItemMetadata> {
+	const headers: Record<string, string> = {};
+	if (opt.parentId) headers['x-parent'] = opt.parentId;
+	if (opt.name) headers['x-name'] = opt.name;
+	return parseItem(await _upload('PUT', '/raw/storage', file, headers));
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
