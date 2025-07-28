@@ -2,12 +2,12 @@
 import type { Result } from '@axium/core/api';
 import { APIUserRegistration } from '@axium/core/schemas';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
-import type { RequestEvent } from '@sveltejs/kit';
 import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
 import { createPasskey, getUser } from '../auth.js';
 import config from '../config.js';
 import { database as db, type Schema } from '../database.js';
+import type { RequestEvent } from '../requests.js';
 import { createSessionData, error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 

@@ -3,7 +3,7 @@ import * as fs from 'node:fs';
 import { resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import * as z from 'zod';
-import type { Database, InitOptions, OpOptions } from './database.js';
+import type { InitOptions, OpOptions } from './database.js';
 import { output } from './io.js';
 import { _unique } from './state.js';
 

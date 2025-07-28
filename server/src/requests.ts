@@ -6,6 +6,9 @@ import * as z from 'zod';
 import { createSession, type UserInternal } from './auth.js';
 import { config } from './config.js';
 
+export interface RequestEvent<Params extends Partial<Record<string, string>> = Partial<Record<string, string>>>
+	extends kit.RequestEvent<Params> {}
+
 export function error(code: number, message: string): never {
 	kit.error(code, message);
 }

@@ -1,9 +1,9 @@
-import * as z from 'zod';
-import { addRoute } from '../routes.js';
 import type { Result } from '@axium/core/api';
+import * as z from 'zod';
+import * as acl from '../acl.js';
 import type { Schema } from '../database.js';
 import { parseBody, withError } from '../requests.js';
-import * as acl from '../acl.js';
+import { addRoute } from '../routes.js';
 
 addRoute({
 	path: '/api/acl/:itemType/:itemId',
