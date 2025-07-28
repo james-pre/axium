@@ -19,7 +19,7 @@ export default {
 	},
 	preprocess: vitePreprocess({ script: true }),
 	vitePlugin: {
-		exclude: '@axium/server/**',
+		exclude: '@axium/**',
 	},
 	kit: {
 		adapter: node(),
