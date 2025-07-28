@@ -56,7 +56,7 @@ expectedTypes.storage = {
 	size: { type: 'int4', required: true },
 	trashedAt: { type: 'timestampz' },
 	type: { type: 'text', required: true },
-	userId: { type: 'uuid', required: true, hasDefault: true },
+	userId: { type: 'uuid', required: true },
 	publicPermission: { type: 'int4', required: true, hasDefault: true },
 	metadata: { type: 'jsonb', required: true, hasDefault: true },
 };

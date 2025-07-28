@@ -26,8 +26,8 @@ export interface AccessControlInternal extends AccessControl {
 }
 
 const accessControllableTypes = {
-	userId: { type: 'uuid' },
-	publicPermission: { type: 'int4' },
+	userId: { type: 'uuid', required: true },
+	publicPermission: { type: 'int4', required: true, hasDefault: true },
 } satisfies db.ColumnTypes<Target>;
 
 export const expectedTypes = {

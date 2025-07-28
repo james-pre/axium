@@ -25,8 +25,8 @@ async function db_init(opt: InitOptions) {
 	await database.schema
 		.createTable('storage')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
-		.addColumn('parentId', 'uuid', col => col.references('storage.id').onDelete('cascade').onUpdate('cascade').defaultTo(null))
+		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade'))
+		.addColumn('parentId', 'uuid', col => col.references('storage.id').onDelete('cascade').defaultTo(null))
 		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('modifiedAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('size', 'integer', col => col.notNull())
