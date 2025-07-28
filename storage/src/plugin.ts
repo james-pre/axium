@@ -1,6 +1,6 @@
 import { formatBytes } from '@axium/core/format';
 import config from '@axium/server/config';
-import type { Database, InitOptions, OpOptions } from '@axium/server/database';
+import type { InitOptions, OpOptions } from '@axium/server/database';
 import { count, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
 import type { Plugin } from '@axium/server/plugins';
@@ -19,9 +19,9 @@ async function statusText(): Promise<string> {
 	return `${items} items totaling ${formatBytes(Number(size))}`;
 }
 
-async function db_init(opt: InitOptions, db: Database) {
+async function db_init(opt: InitOptions) {
 	start('Creating table storage');
-	await db.schema
+	await database.schema
 		.createTable('storage')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
@@ -41,29 +41,29 @@ async function db_init(opt: InitOptions, db: Database) {
 		.catch(warnExists);
 
 	start('Creating index for storage.userId');
-	await db.schema.createIndex('storage_userId_index').on('storage').column('userId').execute().then(done).catch(warnExists);
+	await database.schema.createIndex('storage_userId_index').on('storage').column('userId').execute().then(done).catch(warnExists);
 
 	start('Creating index for storage.parentId');
-	await db.schema.createIndex('storage_parentId_index').on('storage').column('parentId').execute().then(done).catch(warnExists);
+	await database.schema.createIndex('storage_parentId_index').on('storage').column('parentId').execute().then(done).catch(warnExists);
 }
 
-async function db_wipe(opt: OpOptions, db: Database) {
+async function db_wipe(opt: OpOptions) {
 	start('Removing data from user storage');
-	await db.deleteFrom('storage').execute();
+	await database.deleteFrom('storage').execute();
 	done();
 }
 
-async function remove(opt: OpOptions, db: Database) {
+async function remove(opt: OpOptions) {
 	start('Dropping table storage');
-	await db.schema.dropTable('storage').execute();
+	await database.schema.dropTable('storage').execute();
 	done();
 }
 
-async function clean(opt: OpOptions, db: Database) {
+async function clean(opt: OpOptions) {
 	start('Removing expired trash items');
 
 	const nDaysAgo = new Date(Date.now() - 86400000 * config.storage.trash_duration);
-	await db
+	await database
 		.deleteFrom('storage')
 		.where('trashedAt', 'is not', null)
 		.where('trashedAt', '<', nDaysAgo)
