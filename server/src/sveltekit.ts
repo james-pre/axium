@@ -1,5 +1,5 @@
 import type { RequestMethod } from '@axium/core/requests';
-import type { HttpError, Redirect, RequestEvent, ResolveOptions } from '@sveltejs/kit';
+import type * as kit from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
@@ -8,7 +8,7 @@ import { config } from './config.js';
 import { error, json } from './requests.js';
 import { resolveRoute, type ServerRoute } from './routes.js';
 
-async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promise<Response> {
+async function handleAPIRequest(event: kit.RequestEvent, route: ServerRoute): Promise<Response> {
 	const method = event.request.method as RequestMethod;
 
 	const _warnings: string[] = [];
@@ -39,7 +39,7 @@ async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promis
 	return json(result);
 }
 
-function handleError(e: Error | HttpError | Redirect) {
+function handleError(e: Error | kit.HttpError | kit.Redirect) {
 	if ('body' in e) return json(e.body, { status: e.status });
 	if ('location' in e) return Response.redirect(e.location, e.status);
 	console.error(e);
@@ -68,8 +68,8 @@ export async function handle({
 	event,
 	resolve,
 }: {
-	event: RequestEvent;
-	resolve: (event: RequestEvent, opts?: ResolveOptions) => Promise<Response>;
+	event: kit.RequestEvent;
+	resolve: (event: kit.RequestEvent, opts?: kit.ResolveOptions) => Promise<Response>;
 }) {
 	const route = resolveRoute(event);
 
