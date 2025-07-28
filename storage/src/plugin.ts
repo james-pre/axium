@@ -48,9 +48,8 @@ async function db_init(opt: InitOptions) {
 
 async function db_wipe(opt: OpOptions) {
 	start('Removing data from user storage');
-	await database.deleteFrom('storage').execute();
+	await database.deleteFrom('storage').execute().then(done);
 	await acl.wipeTable('storage');
-	done();
 }
 
 async function remove(opt: OpOptions) {
