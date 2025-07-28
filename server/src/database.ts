@@ -414,7 +414,7 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 ): Promise<void> {
 	io.start(`Checking for table ${tableName}`);
 	const dbTables = opt._metadata || (await database.introspection.getTables());
-	const table = dbTables.find(t => t.name === tableName);
+	const table = dbTables.find(t => (t.schema == 'public' ? t.name : `${t.schema}.${t.name}`) === tableName);
 	if (!table) throw 'missing.';
 	io.done();
 
