@@ -79,6 +79,7 @@ export function connect(): Database {
 	});
 
 	globalThis[sym] = database;
+	io.debug('Connected to database!');
 	return database;
 }
 
