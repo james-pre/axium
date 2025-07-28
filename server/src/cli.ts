@@ -45,7 +45,7 @@ program
 program.on('option:debug', () => config.set({ debug: true }));
 program.on('option:config', () => void config.load(program.opts<OptCommon>().config));
 
-const noDBErrorExit = ['init', 'serve', 'check'];
+const noAutoDB = ['init', 'serve', 'check'];
 
 program.hook('preAction', async function (_, action: Command) {
 	await config.loadDefaults();
@@ -55,12 +55,12 @@ program.hook('preAction', async function (_, action: Command) {
 	try {
 		db.connect();
 	} catch (e) {
-		if (!noDBErrorExit.includes(action.name())) throw e;
+		if (!noAutoDB.includes(action.name())) throw e;
 	}
 });
 
-program.hook('postAction', async () => {
-	await db.database.destroy();
+program.hook('postAction', async (_, action: Command) => {
+	if (!noAutoDB.includes(action.name())) await db.database.destroy();
 });
 
 // Options shared by multiple (sub)commands
