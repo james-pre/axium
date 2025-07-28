@@ -1,7 +1,8 @@
 import { formatBytes } from '@axium/core/format';
+import * as acl from '@axium/server/acl';
 import config from '@axium/server/config';
 import type { InitOptions, OpOptions } from '@axium/server/database';
-import { count, database, warnExists } from '@axium/server/database';
+import { count, createIndex, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
 import type { Plugin } from '@axium/server/plugins';
 import { sql } from 'kysely';
@@ -25,7 +26,7 @@ async function db_init(opt: InitOptions) {
 		.createTable('storage')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').onUpdate('cascade'))
-		.addColumn('parentId', 'uuid', col => col.references('storage.itemId').onDelete('cascade').onUpdate('cascade').defaultTo(null))
+		.addColumn('parentId', 'uuid', col => col.references('storage.id').onDelete('cascade').onUpdate('cascade').defaultTo(null))
 		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('modifiedAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('size', 'integer', col => col.notNull())
@@ -40,22 +41,22 @@ async function db_init(opt: InitOptions) {
 		.then(done)
 		.catch(warnExists);
 
-	start('Creating index for storage.userId');
-	await database.schema.createIndex('storage_userId_index').on('storage').column('userId').execute().then(done).catch(warnExists);
-
-	start('Creating index for storage.parentId');
-	await database.schema.createIndex('storage_parentId_index').on('storage').column('parentId').execute().then(done).catch(warnExists);
+	await createIndex('storage', 'userId');
+	await createIndex('storage', 'parentId');
+	await acl.createTable('storage');
 }
 
 async function db_wipe(opt: OpOptions) {
 	start('Removing data from user storage');
 	await database.deleteFrom('storage').execute();
+	await acl.wipeTable('storage');
 	done();
 }
 
 async function remove(opt: OpOptions) {
 	start('Dropping table storage');
 	await database.schema.dropTable('storage').execute();
+	await acl.dropTable('storage');
 	done();
 }
 
