@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { getDirectoryMetadata, type _Sidebar } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
+	import { ItemSelection } from '@axium/storage/selection';
 	import { setContext } from 'svelte';
-	import { ItemSelection } from '../src/selection.js';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
 
 	const { root }: { root: string } = $props();
