@@ -1,54 +1,19 @@
 import type { RequestMethod } from '@axium/core/requests';
+import type * as kit from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
-import * as z from 'zod';
 import { config } from './config.js';
-import type { Redirect, RequestEvent, ResponseError } from './requests.js';
-import { error, isRedirect, isResponseError, json } from './requests.js';
-import { resolveRoute, type ServerRoute } from './routes.js';
-
-async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promise<Response> {
-	const method = event.request.method as RequestMethod;
-
-	const _warnings: string[] = [];
-	if (route.api && !event.request.headers.get('Accept')?.includes('application/json')) {
-		_warnings.push('Only application/json is supported');
-		event.request.headers.set('Accept', 'application/json');
-	}
-
-	for (const [key, type] of Object.entries(route.params || {})) {
-		if (!type) continue;
-
-		try {
-			event.params[key] = type.parse(event.params[key]) as any;
-		} catch (e: any) {
-			error(400, `Invalid parameter: ${z.prettifyError(e)}`);
-		}
-	}
-
-	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
-
-	const result: (object & { _warnings?: string[] }) | Response = await route[method](event);
-
-	if (result instanceof Response) return result;
-
-	result._warnings ||= [];
-	result._warnings.push(..._warnings);
-
-	return json(result);
-}
-
-function handleError(e: Error | ResponseError | Redirect) {
-	if (isResponseError(e)) return json({ message: e.message }, { status: e.status });
-	if (isRedirect(e)) return Response.redirect(e.location, e.status);
-	console.error(e);
-	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
-}
+import { error, handleAPIRequest, handleResponseError, json } from './requests.js';
+import { resolveRoute } from './routes.js';
 
 let template: string | null = null;
 
-function fillTemplate({ head, body }: Record<'head' | 'body', string>, env: Record<string, string> = {}, nonce: string = ''): string {
+function fillSvelteKitTemplate(
+	{ head, body }: Record<'head' | 'body', string>,
+	env: Record<string, string> = {},
+	nonce: string = ''
+): string {
 	template ||= readFileSync(config.web.template, 'utf-8');
 	return (
 		template
@@ -61,12 +26,10 @@ function fillTemplate({ head, body }: Record<'head' | 'body', string>, env: Reco
 	);
 }
 
-import type * as kit from '@sveltejs/kit';
-
 /**
  * @internal
  */
-export async function handle({
+export async function handleSvelteKit({
 	event,
 	resolve,
 }: {
@@ -80,10 +43,10 @@ export async function handle({
 
 	if (config.debug) console.log(styleText('blueBright', event.request.method.padEnd(7)), route ? route.path : event.url.pathname);
 
-	if (!route) return await resolve(event).catch(handleError);
+	if (!route) return await resolve(event).catch(handleResponseError);
 
 	if (route.server == true) {
-		if (route.api) return await handleAPIRequest(event, route).catch(handleError);
+		if (route.api) return await handleAPIRequest(event, route).catch(handleResponseError);
 
 		const run = route[event.request.method as RequestMethod];
 		if (typeof run !== 'function') {
@@ -94,13 +57,13 @@ export async function handle({
 			if (result instanceof Response) return result;
 			return json(result);
 		} catch (e: any) {
-			return handleError(e);
+			return handleResponseError(e);
 		}
 	}
 
 	const data = await route.load?.(event);
 
-	const body = fillTemplate(render(route.page));
+	const body = fillSvelteKitTemplate(render(route.page));
 
 	return new Response(body, {
 		headers: config.web.disable_cache

@@ -15,7 +15,7 @@ import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, setCommandTimeout, warn, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
 import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
-import { serve } from './serve.js';
+import { serveSvelteKit } from './serve.js';
 
 function readline() {
 	const rl = createInterface({
@@ -566,7 +566,7 @@ program
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
 	.option('-B, --build', 'the path to a built SvelteKit server handler')
 	.action(async (opt: OptCommon & { ssl?: string; port?: string; build?: string }) => {
-		const server = await serve({
+		const server = await serveSvelteKit({
 			secure: opt.ssl ? true : config.web.secure,
 			ssl_cert: opt.ssl ? join(opt.ssl, 'cert.pem') : config.web.ssl_cert,
 			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,

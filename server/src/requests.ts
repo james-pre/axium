@@ -1,3 +1,4 @@
+import type { RequestMethod } from '@axium/core/requests';
 import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
 import type { Cookies as SK_Cookies } from '@sveltejs/kit';
 import { serialize as serializeCookie } from 'cookie';
@@ -5,7 +6,16 @@ import { pick } from 'utilium';
 import * as z from 'zod';
 import { createSession, type UserInternal } from './auth.js';
 import { config } from './config.js';
+import type { ServerRoute } from './routes.js';
 
+/**
+ * @todo
+ * Add parsing for Node.js `IncomingMessage` -> standard `Request` and standard `Response` -> Node.js `ServerResponse`
+ */
+
+/**
+ * A `Request` with some commonly used stuff pre-parsed for convenience.
+ */
 export interface RequestEvent<Params extends Partial<Record<string, string>> = Partial<Record<string, string>>> {
 	request: Request;
 	url: URL;
@@ -107,4 +117,42 @@ export function withError(text: string, code: number = 500) {
 		if (e.name == 'ResponseError') throw e;
 		error(code, text + (config.debug && e.message ? `: ${e.message}` : ''));
 	};
+}
+
+export async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promise<Response> {
+	const method = event.request.method as RequestMethod;
+
+	const _warnings: string[] = [];
+	if (route.api && !event.request.headers.get('Accept')?.includes('application/json')) {
+		_warnings.push('Only application/json is supported');
+		event.request.headers.set('Accept', 'application/json');
+	}
+
+	for (const [key, type] of Object.entries(route.params || {})) {
+		if (!type) continue;
+
+		try {
+			event.params[key] = type.parse(event.params[key]) as any;
+		} catch (e: any) {
+			error(400, `Invalid parameter: ${z.prettifyError(e)}`);
+		}
+	}
+
+	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
+
+	const result: (object & { _warnings?: string[] }) | Response = await route[method](event);
+
+	if (result instanceof Response) return result;
+
+	result._warnings ||= [];
+	result._warnings.push(..._warnings);
+
+	return json(result);
+}
+
+export function handleResponseError(e: Error | ResponseError | Redirect) {
+	if (isResponseError(e)) return json({ message: e.message }, { status: e.status });
+	if (isRedirect(e)) return Response.redirect(e.location, e.status);
+	console.error(e);
+	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
 }
