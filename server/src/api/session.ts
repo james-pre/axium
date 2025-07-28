@@ -1,9 +1,8 @@
 import type { Result } from '@axium/core/api';
-import { error } from '@sveltejs/kit';
 import { omit } from 'utilium';
 import { getSessionAndUser } from '../auth.js';
 import { database as db } from '../database.js';
-import { getToken, stripUser, withError } from '../requests.js';
+import { error, getToken, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
 addRoute({

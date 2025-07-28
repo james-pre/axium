@@ -4,9 +4,8 @@ import { checkAuthForItem, checkAuthForUser, getSessionAndUser } from '@axium/se
 import { addConfigDefaults, config } from '@axium/server/config';
 import { database, expectedTypes, type Schema } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
-import { getToken, parseBody, withError } from '@axium/server/requests';
+import { error, getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import { error } from '@sveltejs/kit';
 import type { Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';

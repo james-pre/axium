@@ -1,11 +1,11 @@
 import type { RequestMethod } from '@axium/core/requests';
 import type { HttpError, Redirect, RequestEvent, ResolveOptions } from '@sveltejs/kit';
-import { error, json } from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
 import * as z from 'zod';
 import { config } from './config.js';
+import { error, json } from './requests.js';
 import { resolveRoute, type ServerRoute } from './routes.js';
 
 async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promise<Response> {

@@ -3,7 +3,7 @@ import type { Result } from '@axium/core/api';
 import { LogoutSessions, PasskeyAuthenticationResponse, PasskeyRegistration, UserAuthOptions } from '@axium/core/schemas';
 import { UserChangeable, type User } from '@axium/core/user';
 import * as webauthn from '@simplewebauthn/server';
-import { error, type RequestEvent } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
 import { omit, pick } from 'utilium';
 import * as z from 'zod';
 import {
@@ -18,7 +18,7 @@ import {
 } from '../auth.js';
 import { config } from '../config.js';
 import { database as db } from '../database.js';
-import { createSessionData, parseBody, stripUser, withError } from '../requests.js';
+import { createSessionData, error, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
 interface UserAuth {
@@ -121,7 +121,7 @@ addRoute({
 
 		const passkeys = await getPasskeysByUserId(userId);
 
-		if (!passkeys) error(409, { message: 'No passkeys exists for this user' });
+		if (!passkeys) error(409, 'No passkeys exists for this user');
 
 		const options = await webauthn.generateAuthenticationOptions({
 			rpID: config.auth.rp_id,
@@ -137,13 +137,13 @@ addRoute({
 		const response = await parseBody(event, PasskeyAuthenticationResponse);
 
 		const auth = challenges.get(userId);
-		if (!auth) error(404, { message: 'No challenge' });
+		if (!auth) error(404, 'No challenge');
 		const { data: expectedChallenge, type } = auth;
 		challenges.delete(userId);
 
 		const passkey = await getPasskey(response.id).catch(withError('Passkey does not exist', 404));
 
-		if (passkey.userId !== userId) error(403, { message: 'Passkey does not belong to this user' });
+		if (passkey.userId !== userId) error(403, 'Passkey does not belong to this user');
 
 		const { verified } = await webauthn
 			.verifyAuthenticationResponse({
@@ -155,14 +155,14 @@ addRoute({
 			})
 			.catch(withError('Verification failed', 400));
 
-		if (!verified) error(401, { message: 'Verification failed' });
+		if (!verified) error(401, 'Verification failed');
 
 		switch (type) {
 			case 'login':
 				return await createSessionData(userId);
 			case 'action':
 				if ((Date.now() - passkey.createdAt.getTime()) / 60_000 < config.auth.passkey_probation)
-					error(403, { message: 'You can not authorize sensitive actions with a newly created passkey' });
+					error(403, 'You can not authorize sensitive actions with a newly created passkey');
 
 				return await createSessionData(userId, true);
 		}
@@ -227,7 +227,7 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		const expectedChallenge = registrations.get(userId);
-		if (!expectedChallenge) error(404, { message: 'No registration challenge found for this user' });
+		if (!expectedChallenge) error(404, 'No registration challenge found for this user');
 		registrations.delete(userId);
 
 		const { verified, registrationInfo } = await webauthn
@@ -238,7 +238,7 @@ addRoute({
 			})
 			.catch(withError('Verification failed', 400));
 
-		if (!verified || !registrationInfo) error(401, { message: 'Verification failed' });
+		if (!verified || !registrationInfo) error(401, 'Verification failed');
 
 		const passkey = await createPasskey({
 			transports: [],
@@ -270,7 +270,7 @@ addRoute({
 
 		await checkAuthForUser(event, userId, body.confirm_all);
 
-		if (!body.confirm_all && !Array.isArray(body.id)) error(400, { message: 'Invalid request body' });
+		if (!body.confirm_all && !Array.isArray(body.id)) error(400, 'Invalid request body');
 		const query = body.confirm_all ? db.deleteFrom('sessions') : db.deleteFrom('sessions').where('sessions.id', 'in', body.id!);
 
 		const result = await query
@@ -302,7 +302,7 @@ addRoute({
 
 		const { user } = await checkAuthForUser(event, userId);
 
-		if (user.emailVerified) error(409, { message: 'Email already verified' });
+		if (user.emailVerified) error(409, 'Email already verified');
 
 		const verification = await createVerification('verify_email', userId, config.auth.verification_timeout * 60);
 
@@ -314,7 +314,7 @@ addRoute({
 
 		const { user } = await checkAuthForUser(event, userId);
 
-		if (user.emailVerified) error(409, { message: 'Email already verified' });
+		if (user.emailVerified) error(409, 'Email already verified');
 
 		await useVerification('verify_email', userId, token).catch(withError('Invalid or expired verification token', 400));
 

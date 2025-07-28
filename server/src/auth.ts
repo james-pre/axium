@@ -1,13 +1,13 @@
 import type { AccessControl, Permission } from '@axium/core';
 import type { Passkey, Session, Verification } from '@axium/core/api';
 import type { User } from '@axium/core/user';
-import { error, type RequestEvent } from '@sveltejs/kit';
+import type { RequestEvent } from '@sveltejs/kit';
 import type { Insertable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit } from 'utilium';
 import * as acl from './acl.js';
 import { database as db, userFromId, type Schema } from './database.js';
-import { getToken, withError } from './requests.js';
+import { error, getToken, withError } from './requests.js';
 
 export interface UserInternal extends User {
 	isAdmin: boolean;

@@ -1,28 +1,36 @@
 import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
-import { error, json, type HttpError, type RequestEvent } from '@sveltejs/kit';
+import * as kit from '@sveltejs/kit';
 import { serialize as serializeCookie } from 'cookie';
 import { pick } from 'utilium';
 import * as z from 'zod';
-import { createSession, getSessionAndUser, getUser, type SessionAndUser, type UserInternal } from './auth.js';
+import { createSession, type UserInternal } from './auth.js';
 import { config } from './config.js';
 
+export function error(code: number, message: string): never {
+	kit.error(code, message);
+}
+
+export function json(data: object, init?: ResponseInit): Response {
+	return kit.json(data, init);
+}
+
 export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(
-	event: RequestEvent,
+	event: kit.RequestEvent,
 	schema: Schema
 ): Promise<Result> {
 	const contentType = event.request.headers.get('content-type');
-	if (!contentType || !contentType.includes('application/json')) error(415, { message: 'Invalid content type' });
+	if (!contentType || !contentType.includes('application/json')) error(415, 'Invalid content type');
 
-	const body: unknown = await event.request.json().catch(() => error(415, { message: 'Invalid JSON' }));
+	const body: unknown = await event.request.json().catch(() => error(415, 'Invalid JSON'));
 
 	try {
 		return schema.parse(body) as Result;
 	} catch (e: any) {
-		error(400, { message: z.prettifyError(e) });
+		error(400, z.prettifyError(e));
 	}
 }
 
-export function getToken(event: RequestEvent, sensitive: boolean = false): string | undefined {
+export function getToken(event: kit.RequestEvent, sensitive: boolean = false): string | undefined {
 	const header_token = event.request.headers.get('Authorization')?.replace('Bearer ', '');
 	if (header_token) return header_token;
 
@@ -53,8 +61,8 @@ export function stripUser(user: UserInternal, includeProtected: boolean = false)
 }
 
 export function withError(text: string, code: number = 500) {
-	return function (e: Error | HttpError) {
+	return function (e: Error | kit.HttpError) {
 		if ('body' in e) throw e;
-		error(code, { message: text + (config.debug && e.message ? `: ${e.message}` : '') });
+		error(code, text + (config.debug && e.message ? `: ${e.message}` : ''));
 	};
 }
