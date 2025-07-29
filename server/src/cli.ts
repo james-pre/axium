@@ -16,6 +16,7 @@ import { _portActions, _portMethods, exit, handleError, output, restrictedPorts,
 import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
 import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serveSvelteKit } from './serve.js';
+import './compile.js';
 
 function readline() {
 	const rl = createInterface({
