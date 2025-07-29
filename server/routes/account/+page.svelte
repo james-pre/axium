@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ClipboardCopy, FormDialog, Icon, Logout } from '$lib';
+	import { ClipboardCopy, FormDialog, Icon, Logout } from '@axium/server/components';
 	import {
 		createPasskey,
 		deletePasskey,

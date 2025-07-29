@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Login from '$lib/Login.svelte';
+	import Login from '@axium/server/components/Login';
 </script>
 
 <svelte:head>

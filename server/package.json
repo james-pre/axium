@@ -1,6 +1,6 @@
 {
 	"name": "@axium/server",
-	"version": "0.19.1",
+	"version": "0.19.2",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"funding": {
 		"type": "individual",
@@ -21,8 +21,8 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
-		"./lib": "./web/lib/index.js",
-		"./lib/*": "./web/lib/*",
+		"./components": "./web/lib/index.js",
+		"./components/*": "./web/lib/*.svelte",
 		"./$hooks": "./web/hooks.server.ts",
 		"./$routes": "./routes",
 		"./$template": "./web/template.html",
@@ -40,7 +40,8 @@
 		"axium": "dist/cli.js"
 	},
 	"scripts": {
-		"build": "tsc"
+		"build": "tsc",
+		"clean": "rm -rf build .svelte-kit node_modules/{.vite,.vite-temp}"
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.1.0",

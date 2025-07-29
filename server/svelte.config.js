@@ -1,7 +1,6 @@
-import node from '@sveltejs/adapter-node';
-import { vitePreprocess } from '@sveltejs/vite-plugin-svelte';
-import { join } from 'node:path/posix';
 import config from '@axium/server/config';
+import node from '@sveltejs/adapter-node';
+import { join } from 'node:path/posix';
 
 /**
  * Paths relative to the directory of this file.
@@ -17,15 +16,8 @@ export default {
 			if (w.code.startsWith('a11y')) return false;
 		},
 	},
-	preprocess: vitePreprocess({ script: true }),
-	vitePlugin: {
-		exclude: '@axium/server/**',
-	},
 	kit: {
 		adapter: node(),
-		alias: {
-			$lib: fixed('web/lib'),
-		},
 		files: {
 			routes: config.web.routes,
 			lib: fixed('web/lib'),

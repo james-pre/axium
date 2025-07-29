@@ -6,6 +6,6 @@
 		"outDir": "dist"
 	},
 	"include": ["src"],
-	"exclude": ["web", "build"],
+	"exclude": ["build", "web"],
 	"references": [{ "path": "../core" }, { "path": "../client" }]
 }
