@@ -24,7 +24,6 @@ export default {
 	kit: {
 		adapter: node(),
 		alias: {
-			$stores: fixed('web/stores'),
 			$lib: fixed('web/lib'),
 		},
 		files: {

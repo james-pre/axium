@@ -12,9 +12,15 @@ export default {
 		target: 'es2022',
 		sourceRoot: 'web',
 	},
+	ssr: {
+		external: ['@axium/server'],
+	},
+	optimizeDeps: {
+		exclude: ['@axium/server'],
+	},
 	build: {
 		rollupOptions: {
-			external: [/@axium\/server(\/.*)?/],
+			external: ['@axium/server', /@axium\/server(\/.*)?/],
 		},
 	},
 } satisfies UserConfig;
