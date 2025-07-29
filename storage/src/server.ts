@@ -46,7 +46,7 @@ interface SelectedItem extends Selectable<Schema['storage']> {}
 
 expectedTypes.storage = {
 	createdAt: { type: 'timestamptz', required: true, hasDefault: true },
-	hash: { type: 'bytea', required: true },
+	hash: { type: 'bytea' },
 	id: { type: 'uuid', required: true, hasDefault: true },
 	immutable: { type: 'bool', required: true },
 	modifiedAt: { type: 'timestamptz', required: true, hasDefault: true },

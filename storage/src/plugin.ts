@@ -31,7 +31,7 @@ async function db_init(opt: InitOptions) {
 		.addColumn('modifiedAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('size', 'integer', col => col.notNull())
 		.addColumn('trashedAt', 'timestamptz', col => col.defaultTo(null))
-		.addColumn('hash', 'bytea', col => col.notNull())
+		.addColumn('hash', 'bytea', col => col)
 		.addColumn('name', 'text', col => col.defaultTo(null))
 		.addColumn('type', 'text', col => col.notNull())
 		.addColumn('immutable', 'boolean', col => col.notNull())
