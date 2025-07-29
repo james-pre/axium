@@ -324,6 +324,7 @@ addRoute({
 
 			if (!useCAS) {
 				if (!isDirectory) writeFileSync(path, content);
+				await tx.commit().execute();
 				return item;
 			}
 
@@ -337,16 +338,16 @@ addRoute({
 
 			if (!existing) {
 				if (!isDirectory) writeFileSync(path, content);
+				await tx.commit().execute();
 				return item;
 			}
 
 			linkSync(join(config.storage.data, existing.id), path);
+			await tx.commit().execute();
 			return item;
 		} catch (error: any) {
 			await tx.rollback().execute();
 			throw withError('Could not create item', 500)(error);
-		} finally {
-			await tx.commit().execute();
 		}
 	},
 });
