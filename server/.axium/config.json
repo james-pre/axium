@@ -1,4 +1,5 @@
 {
+	"$schema": "https://github.com/james-pre/axium/releases/download/server@0.18.5/schema.json",
 	"auth": {
 		"secure_cookies": false
 	},

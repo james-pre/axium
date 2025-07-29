@@ -4,5 +4,5 @@
 		"target": "ES2023",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"]
 	},
-	"include": ["./**/*", "../lib"]
+	"include": ["./**/*"]
 }
