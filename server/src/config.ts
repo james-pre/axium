@@ -1,126 +1,13 @@
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
-import { deepAssign, omit, type PartialRecursive } from 'utilium';
+import { deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
 import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
 
-export interface Config extends Record<string, unknown> {
-	allow_new_users: boolean;
-	api: Record<string, unknown> & {
-		disable_metadata: boolean;
-		cookie_auth: boolean;
-	};
-	apps: Record<string, unknown> & {
-		disabled: string[];
-	};
-	auth: Record<string, unknown> & {
-		origin: string;
-		/** In minutes */
-		passkey_probation: number;
-		rp_id: string;
-		rp_name: string;
-		secure_cookies: boolean;
-		/** In minutes */
-		verification_timeout: number;
-		/** Whether users can verify emails */
-		email_verification: boolean;
-	};
-	db: Record<string, unknown> & {
-		host: string;
-		port: number;
-		password: string;
-		user: string;
-		database: string;
-	};
-	debug: boolean;
-	log: Record<string, unknown> & {
-		level: (typeof levelText)[number];
-		console: boolean;
-	};
-	show_duplicate_state: boolean;
-	web: Record<string, unknown> & {
-		assets: string;
-		build: string;
-		disable_cache: boolean;
-		port: number;
-		prefix: string;
-		routes: string;
-		secure: boolean;
-		ssl_key: string;
-		ssl_cert: string;
-		template: string;
-	};
-}
-
-export const configFiles = _unique('configFiles', new Map<string, File>());
-
-export function plainConfig(): Omit<Config, keyof typeof configShortcuts> {
-	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);
-}
-
-const configShortcuts = {
-	findPath: findConfigPaths,
-	load: loadConfig,
-	loadDefaults: loadDefaultConfigs,
-	plain: plainConfig,
-	save: saveConfig,
-	saveTo: saveConfigTo,
-	set: setConfig,
-	files: configFiles,
-};
-
-export const config: Config & typeof configShortcuts = _unique('config', {
-	...configShortcuts,
-	allow_new_users: true,
-	api: {
-		disable_metadata: false,
-		cookie_auth: true,
-	},
-	apps: {
-		disabled: [],
-	},
-	auth: {
-		origin: 'https://test.localhost',
-		passkey_probation: 60,
-		rp_id: 'test.localhost',
-		rp_name: 'Axium',
-		secure_cookies: true,
-		verification_timeout: 60,
-		email_verification: false,
-	},
-	db: {
-		database: process.env.PGDATABASE || 'axium',
-		host: process.env.PGHOST || 'localhost',
-		password: process.env.PGPASSWORD || '',
-		port: process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432,
-		user: process.env.PGUSER || 'axium',
-	},
-	debug: false,
-	log: {
-		console: true,
-		level: 'info',
-	},
-	show_duplicate_state: false,
-	web: {
-		assets: '',
-		build: '../build/handler.js',
-		disable_cache: false,
-		port: 443,
-		prefix: '',
-		routes: 'routes',
-		secure: true,
-		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
-		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
-		template: join(import.meta.dirname, '../web/template.html'),
-	},
-});
-export default config;
-
-// config from file
-export const FileSchema = z
+export const ConfigSchema = z
 	.looseObject({
 		allow_new_users: z.boolean(),
 		api: z
@@ -179,13 +66,86 @@ export const FileSchema = z
 				template: z.string(),
 			})
 			.partial(),
+	})
+	.partial();
+
+export interface Config extends z.infer<typeof ConfigSchema> {}
+
+export const configFiles = _unique('configFiles', new Map<string, File>());
+
+export function plainConfig(): Omit<DeepRequired<Config>, keyof typeof configShortcuts> {
+	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);
+}
+
+const configShortcuts = {
+	findPath: findConfigPaths,
+	load: loadConfig,
+	loadDefaults: loadDefaultConfigs,
+	plain: plainConfig,
+	save: saveConfig,
+	saveTo: saveConfigTo,
+	set: setConfig,
+	files: configFiles,
+};
+
+export const config: DeepRequired<Config> & typeof configShortcuts = _unique('config', {
+	...configShortcuts,
+	allow_new_users: true,
+	api: {
+		disable_metadata: false,
+		cookie_auth: true,
+	},
+	apps: {
+		disabled: [],
+	},
+	auth: {
+		origin: 'https://test.localhost',
+		passkey_probation: 60,
+		rp_id: 'test.localhost',
+		rp_name: 'Axium',
+		secure_cookies: true,
+		verification_timeout: 60,
+		email_verification: false,
+	},
+	db: {
+		database: process.env.PGDATABASE || 'axium',
+		host: process.env.PGHOST || 'localhost',
+		password: process.env.PGPASSWORD || '',
+		port: process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432,
+		user: process.env.PGUSER || 'axium',
+	},
+	debug: false,
+	log: {
+		console: true,
+		level: 'info',
+	},
+	show_duplicate_state: false,
+	web: {
+		assets: '',
+		build: '../build/handler.js',
+		disable_cache: false,
+		port: 443,
+		prefix: '',
+		routes: 'routes',
+		secure: true,
+		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
+		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
+		template: join(import.meta.dirname, '../web/template.html'),
+	},
+});
+export default config;
+
+// config from file
+export const FileSchema = z
+	.looseObject({
+		...ConfigSchema.shape,
 		include: z.array(z.string()),
 		plugins: z.array(z.string()),
 	})
 	.partial();
-export interface File extends PartialRecursive<Config>, z.infer<typeof FileSchema> {}
+export interface File extends z.infer<typeof FileSchema> {}
 
-export function addConfigDefaults(other: PartialRecursive<Config>, _target: Record<string, any> = config): void {
+export function addConfigDefaults(other: Config, _target: Record<string, any> = config): void {
 	for (const [key, value] of Object.entries(other)) {
 		if (!(key in _target) || _target[key] === null || _target[key] === undefined || Number.isNaN(_target[key])) {
 			_target[key] = value;
@@ -193,7 +153,7 @@ export function addConfigDefaults(other: PartialRecursive<Config>, _target: Reco
 		}
 
 		if (typeof value == 'object' && value != null && typeof _target[key] == 'object') {
-			addConfigDefaults(value, _target[key]);
+			addConfigDefaults(value as any, _target[key]);
 		}
 	}
 }
@@ -201,7 +161,7 @@ export function addConfigDefaults(other: PartialRecursive<Config>, _target: Reco
 /**
  * Update the current config
  */
-export function setConfig(other: PartialRecursive<Config>) {
+export function setConfig(other: Config) {
 	deepAssign(config, other);
 	logger.detach(output);
 	if (config.log.console) logger.attach(output, { output: config.log.level });
@@ -272,14 +232,14 @@ export async function loadDefaultConfigs() {
 /**
  * Update the current config and write the updated config to the appropriate file
  */
-export function saveConfig(changed: PartialRecursive<Config>, global: boolean = false) {
+export function saveConfig(changed: Config, global: boolean = false) {
 	saveConfigTo(findConfigPaths().at(global ? 0 : -1)!, changed);
 }
 
 /**
  * Update the current config and write the updated config to the provided path
  */
-export function saveConfigTo(path: string, changed: PartialRecursive<Config>) {
+export function saveConfigTo(path: string, changed: Config) {
 	setConfig(changed);
 	const config = configFiles.get(path) ?? {};
 	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
