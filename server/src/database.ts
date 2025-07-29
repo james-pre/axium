@@ -87,8 +87,14 @@ export function connect(): Database {
 
 export async function count<const TB extends keyof Schema>(...tables: TB[]): Promise<{ [K in TB]: number }> {
 	return await database
-		.selectFrom(tables)
-		.select(() => tables.map(t => database.fn.countAll<number>(t).as(t)))
+		.selectNoFrom(eb =>
+			tables.map(t =>
+				eb
+					.selectFrom(t as any)
+					.select(database.fn.countAll<number>() as any)
+					.as(t)
+			)
+		)
 		.$castTo<Record<TB, number>>()
 		.executeTakeFirstOrThrow();
 }
