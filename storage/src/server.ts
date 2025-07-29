@@ -126,9 +126,11 @@ export async function currentUsage(userId: string): Promise<StorageUsage> {
 	const result = await database
 		.selectFrom('storage')
 		.where('userId', '=', userId)
-		.select(database.fn.countAll<number>().as('items'))
+		.select(eb => eb.fn.countAll<number>().as('items'))
 		.select(eb => eb.fn.sum<number>('size').as('bytes'))
 		.executeTakeFirstOrThrow();
+
+	result.bytes ||= 0;
 
 	return result;
 }
