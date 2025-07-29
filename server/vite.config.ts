@@ -14,13 +14,13 @@ export default {
 	},
 	ssr: {
 		external: ['@axium/server'],
-	},
-	optimizeDeps: {
-		exclude: ['@axium/server'],
+		optimizeDeps: {
+			exclude: ['@axium/server'],
+		},
 	},
 	build: {
 		rollupOptions: {
-			external: ['@axium/server', /@axium\/server(\/.*)?/],
+			external: ['@axium/server', /@axium\/server(?!\/lib)?/],
 		},
 	},
 } satisfies UserConfig;
