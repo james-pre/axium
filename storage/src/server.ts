@@ -115,7 +115,7 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
 	return {
 		...item,
 		dataURL: `/raw/storage/${item.id}`,
-		hash: item.hash?.toHex(),
+		hash: item.hash?.toHex?.(),
 	};
 }
 
