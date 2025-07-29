@@ -169,7 +169,7 @@ export async function checkAuthForItem<const V extends acl.Target>(
 	itemId: string,
 	permission: Permission
 ) {
-	const token = getToken(event, true);
+	const token = getToken(event, false);
 	if (!token) error(401, 'Missing token');
 
 	const session = await getSessionAndUser(token).catch(() => null);
