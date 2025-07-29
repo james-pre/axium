@@ -1,10 +1,9 @@
 import type { RequestMethod } from '@axium/core/requests';
-import type * as kit from '@sveltejs/kit';
 import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
 import { config } from './config.js';
-import { error, handleAPIRequest, handleResponseError, json } from './requests.js';
+import { error, handleAPIRequest, handleResponseError, json, type RequestEvent } from './requests.js';
 import { resolveRoute } from './routes.js';
 
 let template: string | null = null;
@@ -33,8 +32,8 @@ export async function handleSvelteKit({
 	event,
 	resolve,
 }: {
-	event: kit.RequestEvent;
-	resolve: (event: kit.RequestEvent, opts?: kit.ResolveOptions) => Promise<Response>;
+	event: RequestEvent;
+	resolve: (event: RequestEvent, opts?: unknown) => Promise<Response>;
 }) {
 	const route = resolveRoute(event);
 
