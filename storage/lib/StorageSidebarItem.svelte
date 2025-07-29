@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as icon from '@axium/core/icons';
-	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/lib';
+	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/components';
 	import { deleteItem, updateItemMetadata, type _Sidebar } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { getContext } from 'svelte';

@@ -22,7 +22,7 @@ export default {
 	},
 	build: {
 		rollupOptions: {
-			external: [/^@axium\/server(?!\/components)/gim],
+			external: [/^@axium\/server(?!\/components)/],
 		},
 	},
 } satisfies UserConfig;
