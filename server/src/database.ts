@@ -249,7 +249,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
 	io.start('Connecting to database');
-	connect();
+	await using _ = connect();
 	io.done();
 
 	function maybeCheck(table: keyof ExpectedSchema) {
@@ -451,7 +451,7 @@ export async function check(opt: CheckOptions): Promise<void> {
 	await _sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
 
 	io.start('Connecting to database');
-	connect();
+	await using _ = connect();
 	io.done();
 
 	io.start('Getting table metadata');

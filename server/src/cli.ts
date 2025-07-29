@@ -115,8 +115,6 @@ axiumDB
 		} catch {
 			output.error('Unavailable');
 			process.exitCode = 1;
-		} finally {
-			await db.database.destroy();
 		}
 	});
 
