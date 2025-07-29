@@ -178,7 +178,7 @@ export async function checkAuthForItem<const V extends acl.Target>(
 		.selectFrom(itemType)
 		.selectAll()
 		.where('id', '=', itemId)
-		.$if(!!session, eb => eb.select(acl.from(itemType, session!.userId)))
+		.$if(!!session, eb => eb.select(acl.from(itemType, { onlyId: session!.userId })))
 		.$castTo<V & { acl?: AccessControl[] }>()
 		.executeTakeFirstOrThrow()
 		.catch(withError('Item not found', 404));

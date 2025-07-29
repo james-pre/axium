@@ -1,6 +1,6 @@
 import type { AccessControl, Permission } from '@axium/core';
-import type { Expression, ExpressionBuilder } from 'kysely';
-import { sql, type Selectable } from 'kysely';
+import type { AliasedRawBuilder, Expression, ExpressionBuilder, Selectable } from 'kysely';
+import { sql } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { UserInternal } from './auth.js';
 import * as db from './database.js';
@@ -78,19 +78,30 @@ export async function deleteEntry(itemType: TargetName, itemId: string, userId: 
 	await db.database.deleteFrom(`acl.${itemType}`).where('itemId', '=', itemId).where('userId', '=', userId).execute();
 }
 
+export interface ACLSelectionOptions {
+	/** If specified, only returns the access control for the given user ID. */
+	onlyId?: string | Expression<any>;
+	/** Instead of using the `id` from `table`, use the `id` from this instead */
+	alias?: string;
+}
+
 /**
  * Helper to select all access controls for a given table, including the user information.
+ *
  * @param onlyId If specified, only returns the access control for the given user ID.
  */
-export function from(table: TargetName, onlyId?: string | Expression<any>) {
+export function from(
+	table: TargetName,
+	opt: ACLSelectionOptions = {}
+): (eb: ExpressionBuilder<db.Schema, any>) => AliasedRawBuilder<Required<AccessControl>[], 'acl'> {
 	return (eb: ExpressionBuilder<db.Schema, any>) =>
 		jsonArrayFrom(
 			eb
 				.selectFrom(`acl.${table} as _acl`)
 				.selectAll()
 				.select(db.userFromId)
-				.whereRef(`_acl.itemId`, '=', `${table}.id` as any)
-				.$if(!!onlyId, qb => qb.where('userId', '=', onlyId!))
+				.whereRef(`_acl.itemId`, '=', `${opt.alias || table}.id` as any)
+				.$if(!!opt.onlyId, qb => qb.where('userId', '=', opt.onlyId!))
 		)
 			.$castTo<Required<AccessControl>[]>()
 			.as('acl');
