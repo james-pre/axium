@@ -1,9 +1,14 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import type { UserConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
+import { styleText } from 'node:util';
 
 export default {
 	server: {
+		strictPort: true,
+		port: 443,
+	},
+	preview: {
 		strictPort: true,
 		port: 443,
 	},
@@ -13,14 +18,11 @@ export default {
 		sourceRoot: 'web',
 	},
 	ssr: {
-		external: ['@axium/server'],
-		optimizeDeps: {
-			exclude: ['@axium/server'],
-		},
+		external: ['@axium/server/serve', '@axium/server/sveltekit'],
 	},
 	build: {
 		rollupOptions: {
-			external: ['@axium/server', /@axium\/server(?!\/lib)?/],
+			external: [/^@axium\/server(?!\/components)/gim],
 		},
 	},
 } satisfies UserConfig;
