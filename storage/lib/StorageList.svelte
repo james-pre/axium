@@ -44,7 +44,7 @@
 		</div>
 		{#each items as item, i (item.id)}
 			<div class="StorageListItem">
-				<Icon i={iconForMime(item.type)} />
+				<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 				<span class="name">{item.name}</span>
 				<span>{item.modifiedAt.toLocaleString()}</span>
 				<span>{formatBytes(item.size)}</span>
