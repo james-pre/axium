@@ -17,7 +17,7 @@
 		debug?: boolean;
 	} = $props();
 
-	const sb = getContext<() => _Sidebar>('files:sidebar')();
+	const sb = getContext<() => _Sidebar>('storage:sidebar')();
 
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 	let popover = $state<HTMLDivElement>();

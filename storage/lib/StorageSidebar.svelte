@@ -22,17 +22,22 @@
 		},
 	});
 
-	setContext('files:sidebar', () => sidebar);
+	setContext('storage:sidebar', () => sidebar);
 
-	if (typeof root == 'string') allItems.push(...items);
+	if (typeof root != 'string') {
+		allItems.push(...root);
+		items = root;
+	}
 </script>
 
-<div id="FilesSidebar">
+<div id="StorageSidebar">
 	{#await typeof root == 'string' ? sidebar.getDirectory(root, items) : root}
 		<i>Loading...</i>
 	{:then}
 		{#each items as _, i (_.id)}
 			<StorageSidebarItem bind:item={items[i]} bind:items />
+		{:else}
+			<i>No files yet</i>
 		{/each}
 	{:catch error}
 		<i style:color="#c44">{error.message}</i>
