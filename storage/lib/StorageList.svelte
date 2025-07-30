@@ -5,9 +5,8 @@
 	import { deleteItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
-	const { id }: { id: string } = $props();
+	let { id, items = $bindable([]) }: { id: string; items?: StorageItemMetadata[] } = $props();
 
-	let items = $state<StorageItemMetadata[]>([]);
 	let activeIndex = $state<number>(-1);
 	let activeItem = $derived(items[activeIndex]);
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
@@ -36,7 +35,7 @@
 {/snippet}
 
 <div class="StorageList">
-	{#await getDirectoryMetadata(id).then(data => (items = data)) then}
+	{#await items.length || getDirectoryMetadata(id).then(data => (items = data)) then}
 		<div class="StorageListItem header">
 			<span></span>
 			<span>Name</span>
