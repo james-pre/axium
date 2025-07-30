@@ -5,13 +5,13 @@
 	import { setContext } from 'svelte';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
 
-	const { root }: { root: string | StorageItemMetadata[] } = $props();
+	let { root, sidebar = $bindable() }: { root: string | StorageItemMetadata[]; sidebar?: _Sidebar } = $props();
 
 	let items = $state<StorageItemMetadata[]>([]);
 
 	const allItems: StorageItemMetadata[] = [];
 
-	const sidebar = $state<_Sidebar>({
+	sidebar = {
 		selection: new ItemSelection(allItems),
 		items: allItems,
 		async getDirectory(id: string, assignTo?: StorageItemMetadata[]) {
@@ -20,7 +20,7 @@
 			assignTo = data;
 			return data;
 		},
-	});
+	};
 
 	setContext('storage:sidebar', () => sidebar);
 
