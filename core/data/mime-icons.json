@@ -18,6 +18,7 @@
 	"image/gif": "gif",
 	"image/svg+xml": "file-svg",
 	"image/vnd.microsoft.icon": "icons",
+	"inode/directory": "folder",
 	"text/css": "css",
 	"text/csv": "file-csv",
 	"text/html": "code",
