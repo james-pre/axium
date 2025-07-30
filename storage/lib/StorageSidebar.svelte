@@ -5,7 +5,7 @@
 	import { setContext } from 'svelte';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
 
-	const { root }: { root: string } = $props();
+	const { root }: { root: string | StorageItemMetadata[] } = $props();
 
 	let items = $state<StorageItemMetadata[]>([]);
 
@@ -23,10 +23,12 @@
 	});
 
 	setContext('files:sidebar', () => sidebar);
+
+	if (typeof root == 'string') allItems.push(...items);
 </script>
 
 <div id="FilesSidebar">
-	{#await sidebar.getDirectory(root, items)}
+	{#await typeof root == 'string' ? sidebar.getDirectory(root, items) : root}
 		<i>Loading...</i>
 	{:then}
 		{#each items as _, i (_.id)}
