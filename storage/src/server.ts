@@ -130,7 +130,8 @@ export async function currentUsage(userId: string): Promise<StorageUsage> {
 		.select(eb => eb.fn.sum<number>('size').as('bytes'))
 		.executeTakeFirstOrThrow();
 
-	result.bytes ||= 0;
+	result.bytes = Number(result.bytes || 0);
+	result.items = Number(result.items);
 
 	return result;
 }
