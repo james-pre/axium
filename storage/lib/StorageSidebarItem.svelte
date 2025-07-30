@@ -1,7 +1,7 @@
 <script lang="ts">
 	import * as icon from '@axium/core/icons';
 	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/components';
-	import { deleteItem, updateItemMetadata, type _Sidebar } from '@axium/storage/client';
+	import { deleteItem, updateItemMetadata, type SidebarContext } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { getContext } from 'svelte';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
@@ -17,7 +17,7 @@
 		debug?: boolean;
 	} = $props();
 
-	const sb = getContext<() => _Sidebar>('storage:sidebar')();
+	const sb = getContext<() => SidebarContext>('storage:sidebar')();
 
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 	let popover = $state<HTMLDivElement>();

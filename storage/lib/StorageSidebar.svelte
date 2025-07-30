@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { getDirectoryMetadata, type _Sidebar } from '@axium/storage/client';
+	import { getDirectoryMetadata, type SidebarContext } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { ItemSelection } from '@axium/storage/selection';
 	import { setContext } from 'svelte';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
 
-	let { root, sidebar = $bindable() }: { root: string | StorageItemMetadata[]; sidebar?: _Sidebar } = $props();
+	let { root, sidebar = $bindable() }: { root: string | StorageItemMetadata[]; sidebar?: SidebarContext } = $props();
 
 	let items = $state<StorageItemMetadata[]>([]);
 

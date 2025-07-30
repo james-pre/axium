@@ -96,7 +96,7 @@ export async function getUserFiles(userId: string): Promise<UserFilesInfo> {
 	return result;
 }
 
-export interface _Sidebar {
+export interface SidebarContext {
 	selection: ItemSelection<string, StorageItemMetadata>;
 	items: StorageItemMetadata[];
 	getDirectory(id: string, assignTo?: StorageItemMetadata[]): Promise<StorageItemMetadata[]>;
