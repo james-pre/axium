@@ -2,9 +2,12 @@
 	"extends": "../tsconfig.json",
 	"compilerOptions": {
 		"rootDir": "..",
-		"noEmit": true
+		"noEmit": true,
+		"module": "preserve",
+		"moduleResolution": "Bundler",
+		"allowImportingTsExtensions": true
 	},
-	"include": ["**/*.svelte"],
+	"include": ["**/*.svelte", "**/*.ts"],
 	"exclude": [],
 	"references": [{ "path": ".." }]
 }

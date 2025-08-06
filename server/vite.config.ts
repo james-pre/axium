@@ -1,7 +1,6 @@
 import { sveltekit } from '@sveltejs/kit/vite';
 import type { UserConfig } from 'vite';
 import mkcert from 'vite-plugin-mkcert';
-import { styleText } from 'node:util';
 
 export default {
 	server: {

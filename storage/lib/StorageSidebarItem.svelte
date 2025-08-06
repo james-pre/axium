@@ -1,23 +1,19 @@
 <script lang="ts">
 	import * as icon from '@axium/core/icons';
 	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/components';
-	import { deleteItem, updateItemMetadata, type SidebarContext } from '@axium/storage/client';
+	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
-	import { getContext } from 'svelte';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
+	import { debug, getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
 
 	let {
 		item = $bindable(),
 		items = $bindable(),
-		debug = false,
 	}: {
 		item: StorageItemMetadata;
 		/** The items list for the parent directory */
 		items: StorageItemMetadata[];
-		debug?: boolean;
 	} = $props();
-
-	const sb = getContext<() => SidebarContext>('storage:sidebar')();
 
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 	let popover = $state<HTMLDivElement>();
@@ -29,11 +25,11 @@
 	}
 
 	function onclick(e: MouseEvent) {
-		if (e.shiftKey) sb.selection.toggleRange(item.id);
-		else if (e.ctrlKey) sb.selection.toggle(item.id);
+		if (e.shiftKey) toggleRange(item.id);
+		else if (e.ctrlKey) toggle(item.id);
 		else {
-			sb.selection.clear();
-			sb.selection.add(item.id);
+			selection.clear();
+			selection.add(item.id);
 		}
 	}
 
@@ -63,12 +59,12 @@
 
 {#if item.type == 'inode/directory'}
 	<details>
-		<summary class={['StorageSidebarItem', sb.selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
+		<summary class={['StorageSidebarItem', selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
 			<Icon i={icon.forMime(item.type)} />
 			<span class="name">{item.name}</span>
 		</summary>
 		<div>
-			{#await sb.getDirectory(item.id, children)}
+			{#await getDirectory(item.id, children)}
 				<i>Loading...</i>
 			{:then}
 				{#each children as _, i (_.id)}
@@ -80,7 +76,7 @@
 		</div>
 	</details>
 {:else}
-	<div class={['StorageSidebarItem', sb.selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
+	<div class={['StorageSidebarItem', selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
 		<Icon i={icon.forMime(item.type)} />
 		<span class="name">{item.name}</span>
 	</div>

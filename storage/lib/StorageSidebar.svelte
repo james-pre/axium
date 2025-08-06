@@ -1,37 +1,20 @@
 <script lang="ts">
-	import { getDirectoryMetadata, type SidebarContext } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
-	import { ItemSelection } from '@axium/storage/selection';
-	import { setContext } from 'svelte';
 	import StorageSidebarItem from './StorageSidebarItem.svelte';
+	import { items as sb_items, getDirectory } from '@axium/storage/sidebar';
 
-	let { root, sidebar = $bindable() }: { root: string | StorageItemMetadata[]; sidebar?: SidebarContext } = $props();
+	let { root }: { root: string | StorageItemMetadata[] } = $props();
 
 	let items = $state<StorageItemMetadata[]>([]);
 
-	const allItems: StorageItemMetadata[] = [];
-
-	sidebar = {
-		selection: new ItemSelection(allItems),
-		items: allItems,
-		async getDirectory(id: string, assignTo?: StorageItemMetadata[]) {
-			const data = await getDirectoryMetadata(id);
-			this.items.push(...data);
-			assignTo = data;
-			return data;
-		},
-	};
-
-	setContext('storage:sidebar', () => sidebar);
-
 	if (typeof root != 'string') {
-		allItems.push(...root);
+		sb_items.push(...root);
 		items = root;
 	}
 </script>
 
 <div id="StorageSidebar">
-	{#await typeof root == 'string' ? sidebar.getDirectory(root, items) : root}
+	{#await typeof root == 'string' ? getDirectory(root, items) : root}
 		<i>Loading...</i>
 	{:then}
 		{#each items as _, i (_.id)}

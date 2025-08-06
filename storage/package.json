@@ -22,8 +22,9 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
-		"./lib": "./lib/index.js",
-		"./lib/*": "./lib/*.js"
+		"./sidebar": "./lib/sidebar.svelte.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
 	},
 	"files": [
 		"dist",

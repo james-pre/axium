@@ -1,6 +1,5 @@
 import { fetchAPI, token } from '@axium/client/requests';
 import type { StorageItemMetadata, StorageItemUpdate, UserFilesInfo } from './common.js';
-import type { ItemSelection } from './selection.js';
 
 async function _upload(
 	method: 'PUT' | 'POST',
@@ -94,10 +93,4 @@ export async function getUserFiles(userId: string): Promise<UserFilesInfo> {
 	const result = await fetchAPI('GET', 'users/:id/storage', undefined, userId);
 	for (const item of result.items) parseItem(item);
 	return result;
-}
-
-export interface SidebarContext {
-	selection: ItemSelection<string, StorageItemMetadata>;
-	items: StorageItemMetadata[];
-	getDirectory(id: string, assignTo?: StorageItemMetadata[]): Promise<StorageItemMetadata[]>;
 }
