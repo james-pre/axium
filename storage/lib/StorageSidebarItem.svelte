@@ -38,6 +38,7 @@
 
 	/**
 	 * Workaround for https://github.com/whatwg/html/issues/10905
+	 * @todo Remove when the problem is fixed.
 	 */
 	function onpointerup(e: PointerEvent) {
 		if (!_forcePopover) return;
@@ -57,6 +58,7 @@
 			e.preventDefault();
 			dialogs[name].showModal();
 		}}
+		class="action"
 	>
 		<Icon {i} --size="14px" />
 		{text}
@@ -176,5 +178,11 @@
 
 	details > div {
 		padding-left: 0.5em;
+	}
+
+	div.action:hover {
+		cursor: pointer;
+		background-color: #223;
+		border-radius: 0.25em;
 	}
 </style>
