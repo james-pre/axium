@@ -21,7 +21,8 @@
 	function oncontextmenu(e: MouseEvent) {
 		e.preventDefault();
 		e.stopPropagation();
-		popover?.togglePopover();
+		popover!.togglePopover();
+		_forcePopover = true;
 	}
 
 	function onclick(e: MouseEvent) {
@@ -31,6 +32,19 @@
 			selection.clear();
 			selection.add(item.id);
 		}
+	}
+
+	let _forcePopover = false;
+
+	/**
+	 * Workaround for https://github.com/whatwg/html/issues/10905
+	 */
+	function onpointerup(e: PointerEvent) {
+		if (!_forcePopover) return;
+		e.stopPropagation();
+		e.preventDefault();
+		popover!.togglePopover();
+		_forcePopover = false;
 	}
 
 	let children = $state<StorageItemMetadata[]>([]);
@@ -59,7 +73,7 @@
 
 {#if item.type == 'inode/directory'}
 	<details>
-		<summary class={['StorageSidebarItem', selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
+		<summary class={['StorageSidebarItem', selection.has(item.id) && 'selected']} {onclick} {oncontextmenu} {onpointerup}>
 			<Icon i={icon.forMime(item.type)} />
 			<span class="name">{item.name}</span>
 		</summary>
@@ -76,7 +90,7 @@
 		</div>
 	</details>
 {:else}
-	<div class={['StorageSidebarItem', selection.has(item.id) && 'selected']} {onclick} {oncontextmenu}>
+	<div class={['StorageSidebarItem', selection.has(item.id) && 'selected']} {onclick} {oncontextmenu} {onpointerup}>
 		<Icon i={icon.forMime(item.type)} />
 		<span class="name">{item.name}</span>
 	</div>
