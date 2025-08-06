@@ -3,8 +3,8 @@
 	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/components';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
-	import StorageSidebarItem from './StorageSidebarItem.svelte';
 	import { debug, getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
+	import StorageSidebarItem from './StorageSidebarItem.svelte';
 
 	let {
 		item = $bindable(),
@@ -30,7 +30,7 @@
 		else if (e.ctrlKey) toggle(item.id);
 		else {
 			selection.clear();
-			selection.add(item.id);
+			toggle(item.id);
 		}
 	}
 
