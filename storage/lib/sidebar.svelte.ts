@@ -8,7 +8,7 @@ export const items = $state<StorageItemMetadata[]>([]);
 
 let lastSelected = $state<string>();
 
-export function getLastedSelected() {
+export function getLastSelected() {
 	return lastSelected;
 }
 
