@@ -454,6 +454,29 @@ addRoute({
 });
 
 addRoute({
+	path: '/api/users/:id/storage/root',
+	params: { id: z.uuid() },
+	async GET(event): Result<'GET', 'users/:id/storage/root'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
+
+		const userId = event.params.id!;
+
+		await checkAuthForUser(event, userId);
+
+		const items = await database
+			.selectFrom('storage')
+			.where('userId', '=', userId)
+			.where('trashedAt', '==', null)
+			.where('parentId', '==', null)
+			.selectAll()
+			.execute()
+			.catch(withError('Could not get storage items'));
+
+		return items.map(parseItem);
+	},
+});
+
+addRoute({
 	path: '/api/users/:id/storage/trash',
 	params: { id: z.uuid() },
 	async GET(event): Result<'GET', 'users/:id/storage/trash'> {

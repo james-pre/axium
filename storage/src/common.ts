@@ -4,7 +4,10 @@ declare module '@axium/core/api' {
 	export interface _apiTypes {
 		'users/:id/storage': {
 			OPTIONS: { usage: StorageUsage; limits: StorageLimits };
-			GET: UserFilesInfo;
+			GET: UserStorageInfo;
+		};
+		'users/:id/storage/root': {
+			GET: StorageItemMetadata[];
 		};
 		'users/:id/storage/trash': {
 			GET: StorageItemMetadata[];
@@ -34,7 +37,7 @@ export interface StorageUsage {
 	items: number;
 }
 
-export interface UserFilesInfo {
+export interface UserStorageInfo {
 	items: StorageItemMetadata[];
 	limits: StorageLimits;
 	usage: StorageUsage;

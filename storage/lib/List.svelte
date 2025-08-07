@@ -5,7 +5,7 @@
 	import { deleteItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
-	let { items = $bindable([]), appMode }: { appMode?: boolean; items?: StorageItemMetadata[] } = $props();
+	let { items = $bindable([]), appMode }: { appMode?: boolean; items: StorageItemMetadata[] } = $props();
 
 	let activeIndex = $state<number>(-1);
 	let activeItem = $derived(items[activeIndex]);
