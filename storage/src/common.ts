@@ -3,8 +3,8 @@ import * as z from 'zod';
 declare module '@axium/core/api' {
 	export interface _apiTypes {
 		'users/:id/storage': {
-			OPTIONS: { usage: StorageUsage; limits: StorageLimits };
-			GET: UserStorageInfo;
+			OPTIONS: UserStorageInfo;
+			GET: UserStorage;
 		};
 		'users/:id/storage/root': {
 			GET: StorageItemMetadata[];
@@ -38,9 +38,12 @@ export interface StorageUsage {
 }
 
 export interface UserStorageInfo {
-	items: StorageItemMetadata[];
 	limits: StorageLimits;
 	usage: StorageUsage;
+}
+
+export interface UserStorage extends UserStorageInfo {
+	items: StorageItemMetadata[];
 }
 
 /**

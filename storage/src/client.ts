@@ -1,5 +1,5 @@
 import { fetchAPI, token } from '@axium/client/requests';
-import type { StorageItemMetadata, StorageItemUpdate, UserStorageInfo } from './common.js';
+import type { StorageItemMetadata, StorageItemUpdate, UserStorage, UserStorageInfo } from './common.js';
 
 async function _upload(
 	method: 'PUT' | 'POST',
@@ -92,10 +92,14 @@ export async function deleteItem(fileId: string): Promise<StorageItemMetadata> {
 	return parseItem(result);
 }
 
-export async function getUserStorageInfo(userId: string): Promise<UserStorageInfo> {
+export async function getUserStorage(userId: string): Promise<UserStorage> {
 	const result = await fetchAPI('GET', 'users/:id/storage', undefined, userId);
 	for (const item of result.items) parseItem(item);
 	return result;
+}
+
+export async function getUserStorageInfo(userId: string): Promise<UserStorageInfo> {
+	return await fetchAPI('OPTIONS', 'users/:id/storage', undefined, userId);
 }
 
 export async function getUserTrash(userId: string): Promise<StorageItemMetadata[]> {
