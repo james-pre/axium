@@ -2,10 +2,10 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { FormDialog, Icon } from '@axium/server/components';
-	import { deleteItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { deleteItem, downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
-	let { id, items = $bindable([]) }: { id: string; items?: StorageItemMetadata[] } = $props();
+	let { items = $bindable([]) }: { id: string; items?: StorageItemMetadata[] } = $props();
 
 	let activeIndex = $state<number>(-1);
 	let activeItem = $derived(items[activeIndex]);
@@ -13,21 +13,21 @@
 </script>
 
 {#snippet action(name: string, icon: string, i: number)}
-	<Icon
-		i={icon}
-		--size="14px"
+	<span
+		class="action"
 		onclick={(e: Event) => {
 			e.stopPropagation();
 			e.preventDefault();
 			activeIndex = i;
 			dialogs[name].showModal();
 		}}
-		class="action"
-	/>
+	>
+		<Icon i={icon} --size="14px" />
+	</span>
 {/snippet}
 
 {#snippet _itemName()}
-	{#if activeItem.name}
+	{#if activeItem?.name}
 		<strong>{activeItem.name.length > 23 ? activeItem.name.slice(0, 20) + '...' : activeItem.name}</strong>
 	{:else}
 		this
@@ -35,29 +35,25 @@
 {/snippet}
 
 <div class="StorageList">
-	{#await items.length || getDirectoryMetadata(id).then(data => (items = data)) then}
-		<div class="StorageListItem header">
-			<span></span>
-			<span>Name</span>
-			<span>Last Modified</span>
-			<span>Size</span>
+	<div class="StorageListItem SL_header">
+		<span></span>
+		<span>Name</span>
+		<span>Last Modified</span>
+		<span>Size</span>
+	</div>
+	{#each items as item, i (item.id)}
+		<div class="StorageListItem">
+			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
+			<span class="name">{item.name}</span>
+			<span>{item.modifiedAt.toLocaleString()}</span>
+			<span>{formatBytes(item.size)}</span>
+			{@render action('rename', 'pencil', i)}
+			{@render action('download', 'download', i)}
+			{@render action('delete', 'trash', i)}
 		</div>
-		{#each items as item, i (item.id)}
-			<div class="StorageListItem">
-				<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
-				<span class="name">{item.name}</span>
-				<span>{item.modifiedAt.toLocaleString()}</span>
-				<span>{formatBytes(item.size)}</span>
-				{@render action('rename', 'edit', i)}
-				{@render action('download', 'download', i)}
-				{@render action('delete', 'delete', i)}
-			</div>
-		{:else}
-			<i>Empty.</i>
-		{/each}
-	{:catch error}
-		<i style:color="#c44">{error.message}</i>
-	{/await}
+	{:else}
+		<i>Empty.</i>
+	{/each}
 </div>
 
 <FormDialog
@@ -88,11 +84,14 @@
 	bind:dialog={dialogs.download}
 	submitText="Download"
 	submit={async () => {
-		open(activeItem.dataURL, '_blank');
+		if (activeItem.type == 'inode/directory') {
+			const children = await getDirectoryMetadata(activeItem.id);
+			for (const child of children) open(child.dataURL, '_blank');
+		} else open(activeItem.dataURL, '_blank');
 	}}
 >
 	<p>
-		We are not responsible for the contents of this file. <br />
+		We are not responsible for the contents of this {activeItem.type == 'inode/directory' ? 'folder' : 'file'}. <br />
 		Are you sure you want to download {@render _itemName()}?
 	</p>
 </FormDialog>
@@ -104,25 +103,25 @@
 		padding: 0.5em;
 	}
 
-	.StorageListItem.header {
+	.StorageListItem.SL_header {
 		font-weight: bold;
 		border-bottom: 1px solid #bbc;
 	}
 
 	.StorageListItem {
 		display: grid;
-		grid-template-columns: 1em 4fr 15em 5em repeat(1em, 3);
+		grid-template-columns: 1em 4fr 15em 5em repeat(3, 1em);
 		align-items: center;
 		gap: 0.5em;
+		padding: 0.5em 0;
 	}
 
 	.StorageListItem:not(:last-child) {
-		padding: 0.5em 0;
 		border-bottom: 1px solid #bbc;
 	}
 
-	.StorageListItem:not(.header):hover {
-		background-color: #8888;
+	.StorageListItem:not(.SL_header):hover {
+		background-color: #7777;
 	}
 
 	.action {

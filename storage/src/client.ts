@@ -63,6 +63,9 @@ export async function getItemMetadata(fileId: string): Promise<StorageItemMetada
 	return parseItem(result);
 }
 
+/**
+ * Gets the metadata for all items in a directory.
+ */
 export async function getDirectoryMetadata(parentId: string): Promise<StorageItemMetadata[]> {
 	const result = await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
 	for (const item of result) parseItem(item);
