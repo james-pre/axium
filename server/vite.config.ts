@@ -19,6 +19,10 @@ export default {
 	ssr: {
 		external: ['@axium/server/serve', '@axium/server/sveltekit'],
 	},
+	optimizeDeps: {
+		exclude: [],
+		include: ['@axium/server/components'],
+	},
 	build: {
 		rollupOptions: {
 			external: [/^@axium\/server(?!\/components)/],

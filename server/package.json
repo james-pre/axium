@@ -26,7 +26,8 @@
 		"./$hooks": "./web/hooks.server.ts",
 		"./$routes": "./routes",
 		"./$template": "./web/template.html",
-		"./svelte.config.js": "./svelte.config.js"
+		"./svelte.config.js": "./svelte.config.js",
+		"./vite.config.js": "./vite.config.js"
 	},
 	"files": [
 		"assets",
@@ -34,7 +35,8 @@
 		"dist",
 		"routes",
 		"svelte.config.js",
-		"web"
+		"web",
+		"vite.config.js"
 	],
 	"bin": {
 		"axium": "dist/cli.js"
