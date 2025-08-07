@@ -12,6 +12,9 @@ declare module '@axium/core/api' {
 		'users/:id/storage/trash': {
 			GET: StorageItemMetadata[];
 		};
+		'users/:id/storage/shared': {
+			GET: StorageItemMetadata[];
+		};
 		'storage/item/:id': {
 			GET: StorageItemMetadata;
 			DELETE: StorageItemMetadata;

@@ -108,6 +108,12 @@ export async function getUserTrash(userId: string): Promise<StorageItemMetadata[
 	return result;
 }
 
+export async function itemsSharedWith(userId: string): Promise<StorageItemMetadata[]> {
+	const result = await fetchAPI('GET', 'users/:id/storage/shared', undefined, userId);
+	for (const item of result) parseItem(item);
+	return result;
+}
+
 export async function getUserStorageRoot(userId: string): Promise<StorageItemMetadata[]> {
 	const result = await fetchAPI('GET', 'users/:id/storage/root', undefined, userId);
 	for (const item of result) parseItem(item);

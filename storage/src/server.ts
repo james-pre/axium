@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/unbound-method */
 import { Permission } from '@axium/core/access';
 import type { Result } from '@axium/core/api';
 import { checkAuthForItem, checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
@@ -468,6 +469,39 @@ addRoute({
 			.where('userId', '=', userId)
 			.where('trashedAt', '==', null)
 			.where('parentId', '==', null)
+			.selectAll()
+			.execute()
+			.catch(withError('Could not get storage items'));
+
+		return items.map(parseItem);
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/storage/shared',
+	params: { id: z.uuid() },
+	async GET(event): Result<'GET', 'users/:id/storage/shared'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
+
+		const userId = event.params.id!;
+
+		await checkAuthForUser(event, userId);
+
+		const items = await database
+			.selectFrom('storage')
+			.where('trashedAt', '==', null)
+			.where(({ and, not, exists, selectFrom }) => {
+				const existsInAcl = (column: 'id' | 'parentId') =>
+					exists(
+						selectFrom('acl.storage')
+							.whereRef('itemId', '=', `storage.${column}`)
+							.where('userId', '=', userId)
+							.where('permission', '!=', Permission.None)
+					);
+
+				// Exclude items that are in a directory shared with the user
+				return and([existsInAcl('id'), not(existsInAcl('parentId'))]);
+			})
 			.selectAll()
 			.execute()
 			.catch(withError('Could not get storage items'));
