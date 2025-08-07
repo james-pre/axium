@@ -6,6 +6,9 @@ declare module '@axium/core/api' {
 			OPTIONS: { usage: StorageUsage; limits: StorageLimits };
 			GET: UserFilesInfo;
 		};
+		'users/:id/storage/trash': {
+			GET: StorageItemMetadata[];
+		};
 		'storage/item/:id': {
 			GET: StorageItemMetadata;
 			DELETE: StorageItemMetadata;

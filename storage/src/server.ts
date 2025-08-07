@@ -444,11 +444,33 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('storage').where('userId', '=', userId).selectAll().execute(),
+			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', '==', null).selectAll().execute(),
 			currentUsage(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));
 
 		return { usage, limits, items: items.map(parseItem) };
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/storage/trash',
+	params: { id: z.uuid() },
+	async GET(event): Result<'GET', 'users/:id/storage/trash'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
+
+		const userId = event.params.id!;
+
+		await checkAuthForUser(event, userId);
+
+		const items = await database
+			.selectFrom('storage')
+			.where('userId', '=', userId)
+			.where('trashedAt', '!=', null)
+			.selectAll()
+			.execute()
+			.catch(withError('Could not get trash'));
+
+		return items.map(parseItem);
 	},
 });
