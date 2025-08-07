@@ -156,3 +156,10 @@ export function handleResponseError(e: Error | ResponseError | Redirect) {
 	console.error(e);
 	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
 }
+
+export const noCacheHeaders = {
+	'Content-Type': 'text/html; charset=utf-8',
+	'Cache-Control': 'no-cache, no-store, must-revalidate',
+	Pragma: 'no-cache',
+	Expires: '0',
+};

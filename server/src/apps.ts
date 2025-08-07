@@ -20,3 +20,8 @@ export class App {
 		apps.set(this.id, this);
 	}
 }
+
+export const appDisabledContent = {
+	head: '<title>App Disabled</title>',
+	body: '<h1>App Disabled</h1><p>This app is currently disabled.</p>',
+};

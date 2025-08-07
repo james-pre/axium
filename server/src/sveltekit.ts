@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import { render } from 'svelte/server';
 import { config } from './config.js';
-import { error, handleAPIRequest, handleResponseError, json, type RequestEvent } from './requests.js';
+import { error, handleAPIRequest, handleResponseError, json, noCacheHeaders, type RequestEvent } from './requests.js';
 import { resolveRoute } from './routes.js';
+import { appDisabledContent, apps } from './apps.js';
 
 let template: string | null = null;
 
@@ -42,7 +43,16 @@ export async function handleSvelteKit({
 
 	if (config.debug) console.log(styleText('blueBright', event.request.method.padEnd(7)), route ? route.path : event.url.pathname);
 
-	if (!route) return await resolve(event).catch(handleResponseError);
+	if (!route) {
+		// Check to see if this is for an app that is disabled.
+		const maybeApp = event.url.pathname.split('/')[1];
+		if (apps.has(maybeApp) && config.apps.disabled.includes(maybeApp)) {
+			const body = fillSvelteKitTemplate(appDisabledContent);
+			return new Response(body, { headers: noCacheHeaders, status: 503 });
+		}
+
+		return await resolve(event).catch(handleResponseError);
+	}
 
 	if (route.server == true) {
 		if (route.api) return await handleAPIRequest(event, route).catch(handleResponseError);
@@ -65,14 +75,7 @@ export async function handleSvelteKit({
 	const body = fillSvelteKitTemplate(render(route.page));
 
 	return new Response(body, {
-		headers: config.web.disable_cache
-			? {
-					'Content-Type': 'text/html; charset=utf-8',
-					'Cache-Control': 'no-cache, no-store, must-revalidate',
-					Pragma: 'no-cache',
-					Expires: '0',
-				}
-			: {},
+		headers: config.web.disable_cache ? noCacheHeaders : {},
 		status: 200,
 	});
 }
