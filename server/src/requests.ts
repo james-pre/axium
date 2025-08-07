@@ -1,6 +1,5 @@
 import type { RequestMethod } from '@axium/core/requests';
 import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
-import type { Cookies as SK_Cookies } from '@sveltejs/kit';
 import { serialize as serializeCookie } from 'cookie';
 import { pick } from 'utilium';
 import * as z from 'zod';
@@ -20,7 +19,7 @@ export interface RequestEvent<Params extends Partial<Record<string, string>> = P
 	request: Request;
 	url: URL;
 	params: Params;
-	cookies: SK_Cookies;
+	cookies: any;
 }
 
 export interface ResponseError extends Error {
