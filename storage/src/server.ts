@@ -221,13 +221,7 @@ addRoute({
 
 		if (item.type == 'inode/directory') return item;
 
-		const { count } = await database
-			.selectFrom('storage')
-			.where('hash', '=', Uint8Array.fromHex(item.hash!))
-			.select(eb => eb.fn.countAll().as('count'))
-			.executeTakeFirstOrThrow();
-
-		if (!Number(count)) unlinkSync(join(config.storage.data, item.hash!));
+		unlinkSync(join(config.storage.data, item.id));
 
 		return item;
 	},
