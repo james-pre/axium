@@ -1,3 +1,3 @@
-export { default as StorageList } from './StorageList.svelte';
-export { default as StorageSidebar } from './StorageSidebar.svelte';
-export { default as StorageSidebarItem } from './StorageSidebarItem.svelte';
+export { default as StorageList } from './List.svelte';
+export { default as StorageSidebar } from './Sidebar.svelte';
+export { default as StorageSidebarItem } from './SidebarItem.svelte';

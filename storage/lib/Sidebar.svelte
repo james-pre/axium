@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { StorageItemMetadata } from '@axium/storage/common';
-	import StorageSidebarItem from './StorageSidebarItem.svelte';
+	import SidebarItem from './SidebarItem.svelte';
 	import { items as sb_items, getDirectory } from '@axium/storage/sidebar';
 
 	let { root }: { root: string | StorageItemMetadata[] } = $props();
@@ -18,7 +18,7 @@
 		<i>Loading...</i>
 	{:then}
 		{#each items as _, i (_.id)}
-			<StorageSidebarItem bind:item={items[i]} bind:items />
+			<SidebarItem bind:item={items[i]} bind:items />
 		{:else}
 			<i>No files yet</i>
 		{/each}

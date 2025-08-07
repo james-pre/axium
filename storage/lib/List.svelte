@@ -2,10 +2,10 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { FormDialog, Icon } from '@axium/server/components';
-	import { deleteItem, downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { deleteItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
-	let { items = $bindable([]) }: { id: string; items?: StorageItemMetadata[] } = $props();
+	let { items = $bindable([]), appMode }: { appMode?: boolean; items?: StorageItemMetadata[] } = $props();
 
 	let activeIndex = $state<number>(-1);
 	let activeItem = $derived(items[activeIndex]);
@@ -34,6 +34,18 @@
 	{/if}
 {/snippet}
 
+{#snippet _item(item: StorageItemMetadata, i: number)}
+	<div class="StorageListItem">
+		<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
+		<span class="name">{item.name}</span>
+		<span>{item.modifiedAt.toLocaleString()}</span>
+		<span>{formatBytes(item.size)}</span>
+		{@render action('rename', 'pencil', i)}
+		{@render action('download', 'download', i)}
+		{@render action('delete', 'trash', i)}
+	</div>
+{/snippet}
+
 <div class="StorageList">
 	<div class="StorageListItem SL_header">
 		<span></span>
@@ -42,15 +54,11 @@
 		<span>Size</span>
 	</div>
 	{#each items as item, i (item.id)}
-		<div class="StorageListItem">
-			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
-			<span class="name">{item.name}</span>
-			<span>{item.modifiedAt.toLocaleString()}</span>
-			<span>{formatBytes(item.size)}</span>
-			{@render action('rename', 'pencil', i)}
-			{@render action('download', 'download', i)}
-			{@render action('delete', 'trash', i)}
-		</div>
+		{#if item.type == 'inode/directory' && appMode}
+			<a class="StorageListItem-container" href="/files/{item.id}">{@render _item(item, i)}</a>
+		{:else}
+			{@render _item(item, i)}
+		{/if}
 	{:else}
 		<i>Empty.</i>
 	{/each}
@@ -106,6 +114,11 @@
 	.StorageListItem.SL_header {
 		font-weight: bold;
 		border-bottom: 1px solid #bbc;
+	}
+
+	.StorageListItem-container {
+		text-decoration: none;
+		color: inherit;
 	}
 
 	.StorageListItem {

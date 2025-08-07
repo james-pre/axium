@@ -4,7 +4,7 @@
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { debug, getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
-	import StorageSidebarItem from './StorageSidebarItem.svelte';
+	import SidebarItem from './SidebarItem.svelte';
 
 	let {
 		item = $bindable(),
@@ -84,7 +84,7 @@
 				<i>Loading...</i>
 			{:then}
 				{#each children as _, i (_.id)}
-					<StorageSidebarItem bind:item={children[i]} bind:items={children} />
+					<SidebarItem bind:item={children[i]} bind:items={children} />
 				{/each}
 			{:catch error}
 				<i style:color="#c44">{error.message}</i>
