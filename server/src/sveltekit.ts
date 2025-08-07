@@ -72,7 +72,7 @@ export async function handleSvelteKit({
 
 	const data = await route.load?.(event);
 
-	const body = fillSvelteKitTemplate(render(route.page));
+	const body = fillSvelteKitTemplate(render(route.page, { props: { data } }));
 
 	return new Response(body, {
 		headers: config.web.disable_cache ? noCacheHeaders : {},
