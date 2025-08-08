@@ -3,6 +3,7 @@ import { join, resolve } from 'node:path/posix';
 import config from './config.js';
 import * as io from './io.js';
 import { getSpecifier, plugins } from './plugins.js';
+import { fileURLToPath } from 'node:url';
 
 const textFor: Record<string, string> = {
 	builtin: 'built-in routes',
@@ -22,7 +23,7 @@ export function* listRouteLinks(): Generator<{ id: string; from: string; to: str
 		if (!plugin.routes) continue;
 
 		const [, link] = info(plugin.name);
-		yield { id: plugin.name, from: join(import.meta.resolve(getSpecifier(plugin)), plugin.routes), to: link };
+		yield { id: plugin.name, from: join(fileURLToPath(import.meta.resolve(getSpecifier(plugin))), plugin.routes), to: link };
 	}
 }
 
