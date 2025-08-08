@@ -63,7 +63,7 @@ export function linkRoutes() {
 
 		io.start(`Linking routes for plugin: ${plugin.name}`);
 
-		createLink(plugin.name, join(import.meta.resolve(getSpecifier(plugin)), plugin.routes));
+		createLink(plugin.name, join(fileURLToPath(import.meta.resolve(getSpecifier(plugin))), plugin.routes));
 	}
 }
 
