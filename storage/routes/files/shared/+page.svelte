@@ -7,6 +7,10 @@
 	const { data }: PageProps = $props();
 </script>
 
+<svelte:head>
+	<title>Files - Shared With You</title>
+</svelte:head>
+
 <div class="SharedItemList">
 	<div class="SharedItem list-header">
 		<span></span>

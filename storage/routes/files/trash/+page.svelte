@@ -13,6 +13,10 @@
 	const activeItem = $derived(items[activeIndex]);
 </script>
 
+<svelte:head>
+	<title>Files - Trash</title>
+</svelte:head>
+
 <div class="TrashList">
 	<div class="TrashItem list-header">
 		<span></span>

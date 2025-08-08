@@ -66,7 +66,7 @@ async function clean(opt: OpOptions) {
 	const nDaysAgo = new Date(Date.now() - 86400000 * config.storage.trash_duration);
 	await database
 		.deleteFrom('storage')
-		.where('trashedAt', '!=', null)
+		.where('trashedAt', 'is not', null)
 		.where('trashedAt', '<', nDaysAgo)
 		.executeTakeFirstOrThrow()
 		.then(done);

@@ -7,7 +7,7 @@ import { database, expectedTypes, type Schema } from '@axium/server/database';
 import { dirs } from '@axium/server/io';
 import { error, getToken, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import type { Generated, Selectable } from 'kysely';
+import type { ExpressionBuilder, Generated, Selectable } from 'kysely';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
@@ -243,7 +243,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage')
 			.where('parentId', '=', itemId)
-			.where('trashedAt', '!=', null)
+			.where('trashedAt', 'is not', null)
 			.selectAll()
 			.execute();
 
@@ -445,7 +445,7 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', '!=', null).selectAll().execute(),
+			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', 'is not', null).selectAll().execute(),
 			currentUsage(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));
@@ -467,7 +467,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage')
 			.where('userId', '=', userId)
-			.where('trashedAt', '!=', null)
+			.where('trashedAt', 'is not', null)
 			.where('parentId', '=', null)
 			.selectAll()
 			.execute()
@@ -476,6 +476,17 @@ addRoute({
 		return items.map(parseItem);
 	},
 });
+
+function existsInACL(column: 'id' | 'parentId', userId: string) {
+	return (eb: ExpressionBuilder<Schema & { item: Schema['storage'] }, 'item'>) =>
+		eb.exists(
+			eb
+				.selectFrom('acl.storage')
+				.whereRef('itemId', '=', `item.${column}`)
+				.where('userId', '=', userId)
+				.where('permission', '!=', Permission.None)
+		);
+}
 
 addRoute({
 	path: '/api/users/:id/storage/shared',
@@ -488,21 +499,11 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		const items = await database
-			.selectFrom('storage')
-			.where('trashedAt', '!=', null)
-			.where(({ and, not, exists, selectFrom }) => {
-				const existsInAcl = (column: 'id' | 'parentId') =>
-					exists(
-						selectFrom('acl.storage')
-							.whereRef('itemId', '=', `storage.${column}`)
-							.where('userId', '=', userId)
-							.where('permission', '!=', Permission.None)
-					);
-
-				// Exclude items that are in a directory shared with the user
-				return and([existsInAcl('id'), not(existsInAcl('parentId'))]);
-			})
-			.selectAll()
+			.selectFrom('storage as item')
+			.selectAll('item')
+			.where('trashedAt', 'is not', null)
+			.where(existsInACL('id', userId))
+			.where(eb => eb.not(existsInACL('parentId', userId)))
 			.execute()
 			.catch(withError('Could not get storage items'));
 
@@ -523,7 +524,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage')
 			.where('userId', '=', userId)
-			.where('trashedAt', '!=', null)
+			.where('trashedAt', 'is not', null)
 			.selectAll()
 			.execute()
 			.catch(withError('Could not get trash'));

@@ -5,4 +5,8 @@
 	const { data }: PageProps = $props();
 </script>
 
+<svelte:head>
+	<title>Files</title>
+</svelte:head>
+
 <StorageList appMode bind:items={data.items} />

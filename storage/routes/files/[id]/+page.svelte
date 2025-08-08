@@ -9,6 +9,10 @@
 	const item = $state(data.item);
 </script>
 
+<svelte:head>
+	<title>Files - Preview - {item.name}</title>
+</svelte:head>
+
 {#if item.trashedAt}
 	<p>This item is trashed</p>
 	<button
