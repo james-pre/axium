@@ -2,8 +2,7 @@ import { existsSync, symlinkSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path/posix';
 import config from './config.js';
 import * as io from './io.js';
-import { getSpecifier, plugins } from './plugins.js';
-import { fileURLToPath } from 'node:url';
+import { plugins } from './plugins.js';
 
 const textFor: Record<string, string> = {
 	builtin: 'built-in routes',
@@ -15,39 +14,26 @@ function info(id: string): [text: string, link: string] {
 	return [text, link];
 }
 
-export function* listRouteLinks(): Generator<{ id: string; from: string; to: string }> {
-	const [, link] = info('#builtin');
-	yield { id: '#builtin', from: resolve(import.meta.dirname, '../routes'), to: link };
+interface LinkInfo {
+	id: string;
+	from: string;
+	to: string;
+	text: string;
+}
+
+const packagesDir = join(import.meta.dirname, '../../..');
+
+export function* listRouteLinks(): Generator<LinkInfo> {
+	const [text, link] = info('#builtin');
+	yield { text, id: '#builtin', from: link, to: resolve(import.meta.dirname, '../routes') };
 
 	for (const plugin of plugins) {
 		if (!plugin.routes) continue;
 
-		const [, link] = info(plugin.name);
-		yield { id: plugin.name, from: join(fileURLToPath(import.meta.resolve(getSpecifier(plugin))), plugin.routes), to: link };
-	}
-}
+		const [text, link] = info(plugin.name);
 
-function createLink(id: string, routes: string) {
-	const [text, link] = info(id);
-	if (existsSync(link)) {
-		io.warn('already exists.');
-
-		io.start('Unlinking ' + text);
-		try {
-			unlinkSync(link);
-		} catch (e: any) {
-			io.exit(e && e instanceof Error ? e.message : e.toString());
-		}
-		io.done();
-
-		io.start('Re-linking ' + text);
-	}
-
-	try {
-		symlinkSync(routes, link, 'dir');
-		io.done();
-	} catch (e: any) {
-		io.exit(e && e instanceof Error ? e.message : e.toString());
+		const to = join(packagesDir, plugin.name, plugin.routes);
+		yield { text, id: plugin.name, from: link, to };
 	}
 }
 
@@ -55,34 +41,43 @@ function createLink(id: string, routes: string) {
  * Symlinks .svelte page routes for plugins and the server into a project's routes directory.
  */
 export function linkRoutes() {
-	io.start('Linking built-in routes');
-	createLink('#builtin', resolve(import.meta.dirname, '../routes'));
+	for (const info of listRouteLinks()) {
+		const { text, from, to } = info;
 
-	for (const plugin of plugins) {
-		if (!plugin.routes) continue;
+		io.start('Linking ' + text);
+		if (existsSync(from)) {
+			io.warn('already exists.');
 
-		io.start(`Linking routes for plugin: ${plugin.name}`);
+			io.start('Unlinking ' + text);
+			try {
+				unlinkSync(from);
+			} catch (e: any) {
+				io.exit(e && e instanceof Error ? e.message : e.toString());
+			}
+			io.done();
 
-		createLink(plugin.name, join(fileURLToPath(import.meta.resolve(getSpecifier(plugin))), plugin.routes));
-	}
-}
+			io.start('Re-linking ' + text);
+		}
 
-function removeLink(id: string) {
-	const [text, link] = info(id);
-	if (!existsSync(link)) return;
-	io.start('Unlinking ' + text);
-	try {
-		unlinkSync(link);
-		io.done();
-	} catch (e: any) {
-		io.exit(e && e instanceof Error ? e.message : e.toString());
+		try {
+			symlinkSync(to, from, 'dir');
+			io.done();
+		} catch (e: any) {
+			io.exit(e && e instanceof Error ? e.message : e.toString());
+		}
 	}
 }
 
 export function unlinkRoutes() {
-	removeLink('#builtin');
-
-	for (const plugin of plugins) {
-		removeLink(plugin.name);
+	for (const info of listRouteLinks()) {
+		const { text, from } = info;
+		if (!existsSync(from)) return;
+		io.start('Unlinking ' + text);
+		try {
+			unlinkSync(from);
+			io.done();
+		} catch (e: any) {
+			io.exit(e && e instanceof Error ? e.message : e.toString());
+		}
 	}
 }

@@ -586,10 +586,12 @@ program
 	.action(async () => {
 		for (const link of listRouteLinks()) {
 			const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
-			const toColor = await access(link.to)
-				.then(() => 'white' as const)
+			const fromColor = await access(link.from)
+				.then(() => 'cyanBright' as const)
 				.catch(() => 'redBright' as const);
-			console.log(`${idText}:\t ${styleText('cyanBright', link.from)}\t->\t${styleText(toColor, link.to)}`);
+			console.log(
+				`${idText}:\t ${styleText(fromColor, link.from)}\t->\t${link.to.replace(/.*\/node_modules\//, styleText('dim', '$&'))}`
+			);
 		}
 	});
 
