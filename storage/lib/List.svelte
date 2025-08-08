@@ -4,6 +4,7 @@
 	import { FormDialog, Icon } from '@axium/server/components';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
+	import '../styles/list.css';
 
 	let { items = $bindable([]), appMode }: { appMode?: boolean; items: StorageItemMetadata[] } = $props();
 
@@ -35,7 +36,7 @@
 {/snippet}
 
 {#snippet _item(item: StorageItemMetadata, i: number)}
-	<div class="StorageListItem">
+	<div class="list-item">
 		<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 		<span class="name">{item.name}</span>
 		<span>{item.modifiedAt.toLocaleString()}</span>
@@ -46,8 +47,8 @@
 	</div>
 {/snippet}
 
-<div class="StorageList">
-	<div class="StorageListItem SL_header">
+<div class="list">
+	<div class="list-item list-header">
 		<span></span>
 		<span>Name</span>
 		<span>Last Modified</span>
@@ -55,12 +56,12 @@
 	</div>
 	{#each items as item, i (item.id)}
 		{#if item.type == 'inode/directory' && appMode}
-			<a class="StorageListItem-container" href="/files/{item.id}">{@render _item(item, i)}</a>
+			<a class="list-item-container" href="/files/{item.id}">{@render _item(item, i)}</a>
 		{:else}
 			{@render _item(item, i)}
 		{/if}
 	{:else}
-		<i>Empty.</i>
+		<p class="list-empty">Folder is empty.</p>
 	{/each}
 </div>
 
@@ -105,47 +106,11 @@
 </FormDialog>
 
 <style>
-	.StorageList {
-		display: flex;
-		flex-direction: column;
-		padding: 0.5em;
-	}
-
-	.StorageListItem.SL_header {
-		font-weight: bold;
-		border-bottom: 1px solid #bbc;
-	}
-
-	.StorageListItem-container {
-		text-decoration: none;
-		color: inherit;
-	}
-
-	.StorageListItem {
+	.list-item {
 		display: grid;
 		grid-template-columns: 1em 4fr 15em 5em repeat(3, 1em);
 		align-items: center;
 		gap: 0.5em;
 		padding: 0.5em 0;
-	}
-
-	.StorageListItem:not(:last-child) {
-		border-bottom: 1px solid #bbc;
-	}
-
-	.StorageListItem:not(.SL_header):hover {
-		background-color: #7777;
-	}
-
-	.action {
-		visibility: hidden;
-	}
-
-	.StorageListItem:hover .action {
-		visibility: visible;
-	}
-
-	.action:hover {
-		cursor: pointer;
 	}
 </style>

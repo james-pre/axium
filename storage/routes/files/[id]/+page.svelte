@@ -24,7 +24,7 @@
 		<Icon i="trash-can-undo" /> Restore
 	</button>
 {:else if item.type == 'inode/directory'}
-	<StorageList items={data.items!} />
+	<StorageList appMode bind:items={data.items!} />
 {:else}
 	<p>No preview available.</p>
 {/if}

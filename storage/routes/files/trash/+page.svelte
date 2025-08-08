@@ -3,6 +3,7 @@
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { FormDialog, Icon } from '@axium/server/components';
 	import { deleteItem } from '@axium/storage/client';
+	import '@axium/storage/styles/list';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
@@ -17,15 +18,15 @@
 	<title>Files - Trash</title>
 </svelte:head>
 
-<div class="TrashList">
-	<div class="TrashItem list-header">
+<div class="list">
+	<div class="list-item list-header">
 		<span></span>
 		<span>Name</span>
 		<span>Last Modified</span>
 		<span>Size</span>
 	</div>
 	{#each items as item, i (item.id)}
-		<div class="TrashItem">
+		<div class="list-item">
 			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 			<span class="name">{item.name}</span>
 			<span>{item.modifiedAt.toLocaleString()}</span>
@@ -43,7 +44,7 @@
 			</span>
 		</div>
 	{:else}
-		<i>Empty.</i>
+		<p class="list-empty">Trash is empty.</p>
 	{/each}
 </div>
 
@@ -65,42 +66,7 @@
 </FormDialog>
 
 <style>
-	.TrashList {
-		display: flex;
-		flex-direction: column;
-		padding: 0.5em;
-	}
-
-	.TrashItem.list-header {
-		font-weight: bold;
-		border-bottom: 1px solid #bbc;
-	}
-
-	.TrashItem {
-		display: grid;
-		grid-template-columns: 1em 4fr 15em 5em 1em;
-		align-items: center;
-		gap: 0.5em;
-		padding: 0.5em 0;
-	}
-
-	.TrashItem:not(:last-child) {
-		border-bottom: 1px solid #bbc;
-	}
-
-	.TrashItem:not(.list-header):hover {
-		background-color: #7777;
-	}
-
-	.action {
-		visibility: hidden;
-	}
-
-	.TrashItem:hover .action {
-		visibility: visible;
-	}
-
-	.action:hover {
-		cursor: pointer;
+	.list-item {
+		grid-template-columns: 1em 4fr 15em 5em 1em !important;
 	}
 </style>

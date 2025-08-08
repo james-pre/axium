@@ -18,7 +18,7 @@
 		</div>
 	</div>
 
-	<div class="content">
+	<div class="files-content">
 		{@render children()}
 	</div>
 </div>
@@ -26,38 +26,44 @@
 <style>
 	.app {
 		display: grid;
-		grid-template-columns: 20em 1fr;
+		grid-template-columns: 15em 1fr;
 		height: 100%;
 	}
 
-	.content {
-		padding: 1em;
-		overflow-x: hidden;
-		overflow-y: scroll;
-	}
-
 	.sidebar {
-		width: 20em;
-		display: flex;
+		grid-column: 1;
+		width: 100%;
+		display: inline-flex;
 		flex-direction: column;
 		gap: 0.5em;
+		padding-left: 1em;
 	}
 
 	.item {
-		padding: 0.5em;
-		border-radius: 0.25em;
+		padding: 0.3em 0.5em;
+		border-radius: 0.25em 1em 1em 0.25em;
+		display: inline-flex;
+		align-items: center;
+		gap: 1em;
 	}
 
 	.item:hover {
-		background-color: #446;
+		background-color: #333;
 		cursor: pointer;
 	}
 
 	.item.active {
-		background-color: #447;
+		background-color: #334;
 	}
 
 	.usage {
 		align-self: flex-end;
+	}
+
+	.files-content {
+		grid-column: 2;
+		padding: 1em;
+		overflow-x: hidden;
+		overflow-y: scroll;
 	}
 </style>

@@ -10,9 +10,9 @@ export async function load({ url, route }: LayoutLoadEvent) {
 	if (!session) redirect(307, '/login?after=' + url.pathname);
 
 	const tabs = [
-		{ name: 'files', href: '/files', icon: 'folders', active: route.id === '/files/[id]' || route.id === '/files' },
-		{ name: 'trash', href: '/files/trash', icon: 'trash', active: route.id === '/files/trash' },
-		{ name: 'shared', href: '/files/shared', icon: 'user-group', active: route.id === '/files/shared' },
+		{ name: 'files', href: '/files', icon: 'folders', active: route.id.endsWith('/files/[id]') || route.id.endsWith('/files') },
+		{ name: 'trash', href: '/files/trash', icon: 'trash', active: route.id.endsWith('/files/trash') },
+		{ name: 'shared', href: '/files/shared', icon: 'user-group', active: route.id.endsWith('/files/shared') },
 	] satisfies { name: string; href: LayoutRouteId; icon: string; active: boolean }[];
 
 	return {

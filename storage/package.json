@@ -24,7 +24,8 @@
 		"./*": "./dist/*.js",
 		"./sidebar": "./lib/sidebar.svelte.js",
 		"./components": "./lib/index.js",
-		"./components/*": "./lib/*.svelte"
+		"./components/*": "./lib/*.svelte",
+		"./styles/*": "./styles/*.css"
 	},
 	"routes": "routes",
 	"files": [
