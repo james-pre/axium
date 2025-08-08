@@ -8,7 +8,7 @@
 	let { items = $bindable([]), appMode }: { appMode?: boolean; items: StorageItemMetadata[] } = $props();
 
 	let activeIndex = $state<number>(-1);
-	let activeItem = $derived(items[activeIndex]);
+	let activeItem = $derived(activeIndex == -1 ? null : items[activeIndex]);
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
 
@@ -68,13 +68,13 @@
 	bind:dialog={dialogs.rename}
 	submitText="Rename"
 	submit={async (data: { name: string }) => {
-		await updateItemMetadata(activeItem.id, data);
-		activeItem.name = data.name;
+		await updateItemMetadata(activeItem!.id, data);
+		activeItem!.name = data.name;
 	}}
 >
 	<div>
 		<label for="name">Name</label>
-		<input name="name" type="text" required value={activeItem.name} />
+		<input name="name" type="text" required value={activeItem?.name} />
 	</div>
 </FormDialog>
 <FormDialog
@@ -82,7 +82,7 @@
 	submitText="Trash"
 	submitDanger
 	submit={async () => {
-		await updateItemMetadata(activeItem.id, { trash: true });
+		await updateItemMetadata(activeItem!.id, { trash: true });
 		if (activeIndex != -1) items.splice(activeIndex, 1);
 	}}
 >
@@ -92,14 +92,14 @@
 	bind:dialog={dialogs.download}
 	submitText="Download"
 	submit={async () => {
-		if (activeItem.type == 'inode/directory') {
-			const children = await getDirectoryMetadata(activeItem.id);
+		if (activeItem!.type == 'inode/directory') {
+			const children = await getDirectoryMetadata(activeItem!.id);
 			for (const child of children) open(child.dataURL, '_blank');
-		} else open(activeItem.dataURL, '_blank');
+		} else open(activeItem!.dataURL, '_blank');
 	}}
 >
 	<p>
-		We are not responsible for the contents of this {activeItem.type == 'inode/directory' ? 'folder' : 'file'}. <br />
+		We are not responsible for the contents of this {activeItem?.type == 'inode/directory' ? 'folder' : 'file'}. <br />
 		Are you sure you want to download {@render _itemName()}?
 	</p>
 </FormDialog>
