@@ -21,18 +21,29 @@ interface LinkInfo {
 	text: string;
 }
 
-const packagesDir = join(import.meta.dirname, '../../..');
+export interface LinkOptions {
+	packagesDir?: string;
+	only?: string[];
+}
 
-export function* listRouteLinks(): Generator<LinkInfo> {
-	const [text, link] = info('#builtin');
-	yield { text, id: '#builtin', from: link, to: resolve(import.meta.dirname, '../routes') };
+const defaultPackagesDir = join(import.meta.dirname, '../../..');
+
+export function* listRouteLinks(options: LinkOptions = {}): Generator<LinkInfo> {
+	const packagesDir = options.packagesDir || defaultPackagesDir;
+	io.debug('Using packages from ' + packagesDir);
+
+	if (!options.only) {
+		const [text, link] = info('#builtin');
+		yield { text, id: '#builtin', from: link, to: resolve(import.meta.dirname, '../routes') };
+	}
 
 	for (const plugin of plugins) {
 		if (!plugin.routes) continue;
+		if (options.only && !options.only.includes(plugin.name)) continue;
 
 		const [text, link] = info(plugin.name);
 
-		const to = join(packagesDir, plugin.name, plugin.routes);
+		const to = resolve(join(packagesDir, plugin.name, plugin.routes));
 		yield { text, id: plugin.name, from: link, to };
 	}
 }
@@ -40,8 +51,8 @@ export function* listRouteLinks(): Generator<LinkInfo> {
 /**
  * Symlinks .svelte page routes for plugins and the server into a project's routes directory.
  */
-export function linkRoutes() {
-	for (const info of listRouteLinks()) {
+export function linkRoutes(options: LinkOptions = {}) {
+	for (const info of listRouteLinks(options)) {
 		const { text, from, to } = info;
 
 		io.start('Linking ' + text);
@@ -68,8 +79,8 @@ export function linkRoutes() {
 	}
 }
 
-export function unlinkRoutes() {
-	for (const info of listRouteLinks()) {
+export function unlinkRoutes(options: LinkOptions = {}) {
+	for (const info of listRouteLinks(options)) {
 		const { text, from } = info;
 		if (!existsSync(from)) return;
 		io.start('Unlinking ' + text);

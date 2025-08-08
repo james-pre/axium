@@ -13,7 +13,7 @@ import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, setCommandTimeout, warn, type PortOptions } from './io.js';
-import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
+import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serveSvelteKit } from './serve.js';
 
@@ -578,21 +578,36 @@ program
 		});
 	});
 
-program.command('link').description('Link svelte page routes').action(linkRoutes);
-program.command('unlink').description('Unlink svelte page routes').action(unlinkRoutes);
 program
-	.command('list-links')
-	.description('List linked routes')
-	.action(async () => {
-		for (const link of listRouteLinks()) {
-			const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
-			const fromColor = await access(link.from)
-				.then(() => 'cyanBright' as const)
-				.catch(() => 'redBright' as const);
-			console.log(
-				`${idText}:\t ${styleText(fromColor, link.from)}\t->\t${link.to.replace(/.*\/node_modules\//, styleText('dim', '$&'))}`
-			);
+	.command('link')
+	.description('Link routes provided by plugins and the server')
+	.option('-p, --packages-dir <dir>', 'the directory to look for packages in')
+	.addOption(new Option('-l, --list', 'list route links').conflicts('delete'))
+	.option('-d, --delete', 'delete route links')
+	.argument('[name...]', 'List of plugin names to operate on. If not specified, operates on all plugins and built-in routes.')
+	.action(async function (this: Command, names: string[]) {
+		const opt = this.optsWithGlobals<OptCommon & LinkOptions & { list?: boolean; delete?: boolean }>();
+		if (names.length) opt.only = names;
+
+		if (opt.list) {
+			for (const link of listRouteLinks(opt)) {
+				const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
+				const fromColor = await access(link.from)
+					.then(() => 'cyanBright' as const)
+					.catch(() => 'redBright' as const);
+				console.log(
+					`${idText}:\t ${styleText(fromColor, link.from)}\t->\t${link.to.replace(/.*\/node_modules\//, styleText('dim', '$&'))}`
+				);
+			}
+			return;
 		}
+
+		if (opt.delete) {
+			unlinkRoutes(opt);
+			return;
+		}
+
+		linkRoutes(opt);
 	});
 
 program.parse();
