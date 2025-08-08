@@ -243,7 +243,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage')
 			.where('parentId', '=', itemId)
-			.where('trashedAt', 'is not', null)
+			.where('trashedAt', 'is', null)
 			.selectAll()
 			.execute();
 
@@ -445,7 +445,7 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', 'is not', null).selectAll().execute(),
+			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', 'is', null).selectAll().execute(),
 			currentUsage(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));
@@ -467,8 +467,8 @@ addRoute({
 		const items = await database
 			.selectFrom('storage')
 			.where('userId', '=', userId)
-			.where('trashedAt', 'is not', null)
-			.where('parentId', '=', null)
+			.where('trashedAt', 'is', null)
+			.where('parentId', 'is', null)
 			.selectAll()
 			.execute()
 			.catch(withError('Could not get storage items'));
@@ -501,7 +501,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage as item')
 			.selectAll('item')
-			.where('trashedAt', 'is not', null)
+			.where('trashedAt', 'is', null)
 			.where(existsInACL('id', userId))
 			.where(eb => eb.not(existsInACL('parentId', userId)))
 			.execute()
