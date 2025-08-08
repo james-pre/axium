@@ -37,7 +37,7 @@ export const UserChangeable = User.pick({
 
 export type UserChangeable = z.infer<typeof UserChangeable>;
 
-export function getUserImage(user: { name?: string; image?: string }): string {
+export function getUserImage(user: Partial<User>): string {
 	if (user.image) return user.image;
 	user.name ??= '\0';
 
