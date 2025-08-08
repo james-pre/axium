@@ -16,7 +16,7 @@
 		<button
 			onclick={e => {
 				e.preventDefault();
-				dialog.close();
+				dialog!.close();
 				history.back();
 			}}>Take me back</button
 		>

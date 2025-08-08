@@ -9,7 +9,7 @@
 		href = `/users/${user.id}`,
 		you = false,
 	}: {
-		user: { [K in keyof User]?: User[K] | null };
+		user: Partial<User>;
 		/** If true, don't show the picture */
 		compact?: boolean;
 		/** Whether the user is viewing their own profile */
@@ -23,7 +23,7 @@
 
 <a class={['User', self && 'self']} {href}>
 	{#if !compact}
-		<img src={getUserImage(user as Required<User>)} alt={user.name} />
+		<img src={getUserImage(user)} alt={user.name} />
 	{/if}
 	{user.name}
 	{#if self && you}

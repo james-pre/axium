@@ -36,13 +36,13 @@
 		footer?(): any;
 	} = $props();
 
-	let error = $state(null);
+	let error = $state<string>();
 
 	$effect(() => {
-		if (pageMode) dialog.showModal();
+		if (pageMode) dialog!.showModal();
 	});
 
-	function onclose(e?: MouseEvent) {
+	function onclose(e: MouseEvent) {
 		e.preventDefault();
 		cancel();
 	}
@@ -53,9 +53,9 @@
 		submit(data)
 			.then(result => {
 				if (pageMode) window.location.href = resolveRedirectAfter();
-				else dialog.close();
+				else dialog!.close();
 			})
-			.catch((e: unknown) => {
+			.catch((e: any) => {
 				if (!e) error = 'An unknown error occurred';
 				else if (typeof e == 'object' && 'message' in e) error = e.message;
 				else error = e;
@@ -78,7 +78,7 @@
 			{@render submitButton()}
 		{:else}
 			<div class="actions">
-				<button type="button" onclick={() => dialog.close()}>Cancel</button>
+				<button type="button" onclick={() => dialog!.close()}>Cancel</button>
 				{@render submitButton()}
 			</div>
 		{/if}

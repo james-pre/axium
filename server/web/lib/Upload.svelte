@@ -2,9 +2,9 @@
 	import { forMime } from '@axium/core/icons';
 	import Icon from './Icon.svelte';
 
-	let { files = $bindable(), name = 'files', ...rest }: { files?: FileList; name?: string; multiple?: any; required?: any } = $props();
+	let { files = $bindable()!, name = 'files', ...rest }: { files?: FileList; name?: string; multiple?: any; required?: any } = $props();
 
-	let input = $state<HTMLInputElement>();
+	let input = $state<HTMLInputElement>()!;
 
 	const id = 'input:' + Math.random().toString(36).slice(2);
 </script>

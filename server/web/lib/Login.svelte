@@ -4,7 +4,7 @@
 
 	let { dialog = $bindable(), fullPage = false }: { dialog?: HTMLDialogElement; fullPage?: boolean } = $props();
 
-	function submit(data) {
+	function submit(data: { email: string }) {
 		if (typeof data.email != 'string') {
 			throw 'Tried to upload a file for an email. Huh?!';
 		}

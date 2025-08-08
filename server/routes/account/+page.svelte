@@ -24,7 +24,7 @@
 	let passkeys = $state(data.passkeys);
 	let sessions = $state(data.sessions);
 
-	async function _editUser(data) {
+	async function _editUser(data: Record<string, FormDataEntryValue>) {
 		const result = await updateUser(user.id, data);
 		user = result;
 	}

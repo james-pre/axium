@@ -1,12 +1,16 @@
 import { emailVerificationEnabled, getCurrentSession, getPasskeys, getSessions } from '@axium/client/user';
+import type { Session, User } from '@axium/core';
 
 export const ssr = false;
 
 export async function load() {
-	const currentSession = await getCurrentSession().catch(() => {
+	let currentSession: Session & { user: User };
+	try {
+		currentSession = await getCurrentSession();
+	} catch {
 		window.location.href = '/login?after=/account';
-		return null;
-	})!;
+		throw 'Missing session, redirecting to login';
+	}
 
 	const user = currentSession.user;
 
