@@ -28,4 +28,8 @@ export default {
 			},
 		},
 	},
+	vitePlugin: {
+		// Fixes a problem where Vite does something that results in the virtual CSS file just being the entire svelte component, which is obviously invalid CSS.
+		emitCss: false,
+	},
 };
