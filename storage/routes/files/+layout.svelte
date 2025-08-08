@@ -1,24 +1,17 @@
 <script lang="ts">
 	import { Icon } from '@axium/server/components';
-	import { capitalize } from 'utilium';
 	import { StorageUsage } from '@axium/storage/components';
-	import type { Session } from '@axium/core';
-	import type { LayoutProps, LayoutRouteId } from './$types';
-
-	type SidebarTab = 'files' | 'trash' | 'shared' | 'usage';
+	import { capitalize } from 'utilium';
+	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
 </script>
 
-{#snippet tab(text: string, i: string, href: LayoutRouteId, isDefault: boolean = false)}
-	<a class={['item', data.route.id == href || (data.route.id == '/files/[id]' && isDefault)]} {href}><Icon {i} />{capitalize(text)}</a>
-{/snippet}
-
 <div class="app">
 	<div class="sidebar">
-		{@render tab('Files', 'folders', '/files', true)}
-		{@render tab('Trash', 'trash', '/files/trash')}
-		{@render tab('Shared', 'user-group', '/files/shared')}
+		{#each data.tabs as { href, name, icon: i, active }}
+			<a {href} class={['item', active && 'active']}><Icon {i} /> {capitalize(name)}</a>
+		{/each}
 
 		<div class="usage">
 			<StorageUsage userId={data.session.userId} />
@@ -31,6 +24,18 @@
 </div>
 
 <style>
+	.app {
+		display: grid;
+		grid-template-columns: 20em 1fr;
+		height: 100%;
+	}
+
+	.content {
+		padding: 1em;
+		overflow-x: hidden;
+		overflow-y: scroll;
+	}
+
 	.sidebar {
 		width: 20em;
 		display: flex;
