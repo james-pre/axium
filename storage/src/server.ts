@@ -445,7 +445,7 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		const [items, usage, limits] = await Promise.all([
-			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', '==', null).selectAll().execute(),
+			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', '!=', null).selectAll().execute(),
 			currentUsage(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));
@@ -467,8 +467,8 @@ addRoute({
 		const items = await database
 			.selectFrom('storage')
 			.where('userId', '=', userId)
-			.where('trashedAt', '==', null)
-			.where('parentId', '==', null)
+			.where('trashedAt', '!=', null)
+			.where('parentId', '=', null)
 			.selectAll()
 			.execute()
 			.catch(withError('Could not get storage items'));
@@ -489,7 +489,7 @@ addRoute({
 
 		const items = await database
 			.selectFrom('storage')
-			.where('trashedAt', '==', null)
+			.where('trashedAt', '!=', null)
 			.where(({ and, not, exists, selectFrom }) => {
 				const existsInAcl = (column: 'id' | 'parentId') =>
 					exists(
