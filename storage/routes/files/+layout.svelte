@@ -57,7 +57,7 @@
 	}
 
 	.usage {
-		align-self: flex-end;
+		margin-top: auto;
 	}
 
 	.files-content {

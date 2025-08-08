@@ -7,9 +7,7 @@
 	const { userId, info }: { userId: string; info?: UserStorageInfo } = $props();
 </script>
 
-{#await info || getUserStorageInfo(userId)}
-	<p>Loading...</p>
-{:then info}
+{#await info || getUserStorageInfo(userId) then info}
 	<p>
 		<NumberBar
 			max={info.limits.user_size * 1_000_000}
