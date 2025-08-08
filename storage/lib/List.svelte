@@ -2,7 +2,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { FormDialog, Icon } from '@axium/server/components';
-	import { deleteItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
 	let { items = $bindable([]), appMode }: { appMode?: boolean; items: StorageItemMetadata[] } = $props();
@@ -42,7 +42,7 @@
 		<span>{formatBytes(item.size)}</span>
 		{@render action('rename', 'pencil', i)}
 		{@render action('download', 'download', i)}
-		{@render action('delete', 'trash', i)}
+		{@render action('trash', 'trash', i)}
 	</div>
 {/snippet}
 
@@ -78,15 +78,15 @@
 	</div>
 </FormDialog>
 <FormDialog
-	bind:dialog={dialogs.delete}
-	submitText="Delete"
+	bind:dialog={dialogs.trash}
+	submitText="Trash"
 	submitDanger
 	submit={async () => {
-		await deleteItem(activeItem.id);
+		await updateItemMetadata(activeItem.id, { trash: true });
 		if (activeIndex != -1) items.splice(activeIndex, 1);
 	}}
 >
-	<p>Are you sure you want to delete {@render _itemName()}?</p>
+	<p>Are you sure you want to trash {@render _itemName()}?</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.download}
