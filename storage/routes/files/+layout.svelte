@@ -10,7 +10,7 @@
 <div class="app">
 	<div class="sidebar">
 		{#each data.tabs as { href, name, icon: i, active }}
-			<a {href} class={['item', active && 'active']}><Icon {i} /> {capitalize(name)}</a>
+			<a {href} class={['item', 'icon-text', active && 'active']}><Icon {i} /> {capitalize(name)}</a>
 		{/each}
 
 		<div class="usage">
@@ -42,9 +42,6 @@
 	.item {
 		padding: 0.3em 0.5em;
 		border-radius: 0.25em 1em 1em 0.25em;
-		display: inline-flex;
-		align-items: center;
-		gap: 1em;
 	}
 
 	.item:hover {
