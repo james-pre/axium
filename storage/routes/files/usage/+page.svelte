@@ -36,9 +36,8 @@
 
 		{#each items as item}
 			<div class="item">
-				<Icon i={forMime(item.type)} />
+				<dfn title={item.type}><Icon i={forMime(item.type)} /></dfn>
 				<p>{item.name}</p>
-				<p>{item.type}</p>
 				<p>Owned by {item.userId === session?.userId ? 'You' : item.userId}</p>
 				<p>{formatBytes(item.size)}</p>
 				<p>Uploaded {item.modifiedAt.toLocaleString()}</p>
@@ -76,8 +75,8 @@
 
 <style>
 	.list {
-		width: 80%;
-		padding-top: 4em;
+		width: 100%;
+		padding: 4em 2em;
 	}
 
 	.item {
@@ -88,6 +87,6 @@
 		text-wrap: nowrap;
 		border-top: 1px solid #8888;
 		padding-bottom: 1em;
-		grid-template-columns: 2em 1.5fr 1fr 1fr 5em 1fr 2em 2em;
+		grid-template-columns: 2em 1.5fr 1fr 5em 1fr 2em 2em;
 	}
 </style>
