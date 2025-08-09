@@ -111,3 +111,9 @@ button:hover {
 	flex-direction: column;
 	gap: 0.5em;
 }
+
+.icon-text {
+	display: inline-flex;
+	align-items: center;
+	gap: 1em;
+}
