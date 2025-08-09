@@ -1,25 +1,26 @@
 <script lang="ts">
 	import { forMime } from '@axium/core/icons';
+	import type { HTMLInputAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
 
-	let { files = $bindable()!, name = 'files', ...rest }: { files?: FileList; name?: string; multiple?: any; required?: any } = $props();
+	let { name = 'files', ...rest }: HTMLInputAttributes = $props();
 
 	let input = $state<HTMLInputElement>()!;
 
-	const id = 'input:' + Math.random().toString(36).slice(2);
+	const id = $props.id();
 </script>
 
 <div>
-	<label for={id} class={[files?.length && 'file']}>
-		{#each files as file}
+	<label for={id} class={[input.files?.length && 'file']}>
+		{#each input.files! as file}
 			<Icon i={forMime(file.type)} />
 			<span>{file.name}</span>
 			<button
 				onclick={e => {
 					e.preventDefault();
 					const dt = new DataTransfer();
-					for (let f of files) if (file !== f) dt.items.add(f);
-					input.files = files = dt.files;
+					for (let f of input.files!) if (file !== f) dt.items.add(f);
+					input.files = dt.files;
 				}}
 				style:display="contents"
 			>
@@ -30,7 +31,7 @@
 		{/each}
 	</label>
 
-	<input bind:this={input} {name} {id} type="file" bind:files {...rest} />
+	<input bind:this={input} {name} {id} type="file" {...rest} />
 </div>
 
 <style>
