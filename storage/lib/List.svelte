@@ -107,10 +107,6 @@
 
 <style>
 	.list-item {
-		display: grid;
 		grid-template-columns: 1em 4fr 15em 5em repeat(3, 1em);
-		align-items: center;
-		gap: 0.5em;
-		padding: 0.5em 0;
 	}
 </style>

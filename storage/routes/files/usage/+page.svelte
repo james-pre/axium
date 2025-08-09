@@ -4,6 +4,7 @@
 	import { FormDialog, Icon, NumberBar } from '@axium/server/components';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemUpdate } from '@axium/storage/common';
+	import '@axium/storage/styles/list';
 
 	const { data } = $props();
 	const { limits } = data.info;
@@ -82,33 +83,9 @@
 		padding: 4em 2em;
 	}
 
-	.header {
-		font-weight: bold;
-		font-size: 0.9em;
-	}
-
-	.item {
-		display: grid;
-		align-items: center;
+	.list-item {
 		width: 100%;
-		gap: 1em;
 		text-wrap: nowrap;
 		grid-template-columns: 2em 1fr 5em 13em 2em 2em;
-		overflow: hidden;
-	}
-
-	.item:not(.header) {
-		border-top: 1px solid #8888;
-		padding-top: 0.25em;
-		padding-bottom: 0.75em;
-	}
-
-	.action {
-		visibility: hidden;
-	}
-
-	.item:hover .action {
-		visibility: visible;
-		cursor: pointer;
 	}
 </style>
