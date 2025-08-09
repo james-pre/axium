@@ -6,10 +6,7 @@
 	import type { StorageItemUpdate } from '@axium/storage/common';
 
 	const { data } = $props();
-	const {
-		info: { limits },
-		session,
-	} = data;
+	const { limits } = data.info;
 
 	const items = $state(data.info.items.filter(i => i.type != 'inode/directory').sort((a, b) => Math.sign(b.size - a.size)));
 	const usage = $state(data.info.usage);
@@ -23,9 +20,9 @@
 </svelte:head>
 
 {#snippet action(name: string, i: string = 'pen')}
-	<button style:display="contents" onclick={() => dialogs[name].showModal()}>
+	<span class="action" onclick={() => dialogs[name].showModal()}>
 		<Icon {i} --size="16px" />
-	</button>
+	</span>
 {/snippet}
 
 <div class="flex-content">
@@ -34,13 +31,19 @@
 
 		<p><NumberBar max={limits.user_size * 1_000_000} value={usage?.bytes} text={barText} --fill="#345" /></p>
 
+		<div class="item header">
+			<p></p>
+			<p>Name</p>
+			<p>Size</p>
+			<p>Last Modified</p>
+		</div>
+
 		{#each items as item}
 			<div class="item">
 				<dfn title={item.type}><Icon i={forMime(item.type)} /></dfn>
 				<p>{item.name}</p>
-				<p>Owned by {item.userId === session?.userId ? 'You' : item.userId}</p>
 				<p>{formatBytes(item.size)}</p>
-				<p>Uploaded {item.modifiedAt.toLocaleString()}</p>
+				<p>{item.modifiedAt.toLocaleString()}</p>
 				<span>{@render action('rename#' + item.id)}</span>
 				<span>{@render action('delete#' + item.id, 'trash')}</span>
 			</div>
@@ -79,14 +82,33 @@
 		padding: 4em 2em;
 	}
 
+	.header {
+		font-weight: bold;
+		font-size: 0.9em;
+	}
+
 	.item {
 		display: grid;
 		align-items: center;
 		width: 100%;
 		gap: 1em;
 		text-wrap: nowrap;
+		grid-template-columns: 2em 1fr 5em 13em 2em 2em;
+		overflow: hidden;
+	}
+
+	.item:not(.header) {
 		border-top: 1px solid #8888;
-		padding-bottom: 1em;
-		grid-template-columns: 2em 1.5fr 1fr 5em 1fr 2em 2em;
+		padding-top: 0.25em;
+		padding-bottom: 0.75em;
+	}
+
+	.action {
+		visibility: hidden;
+	}
+
+	.item:hover .action {
+		visibility: visible;
+		cursor: pointer;
 	}
 </style>

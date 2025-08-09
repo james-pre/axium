@@ -40,7 +40,7 @@
 		<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 		<span class="name">{item.name}</span>
 		<span>{item.modifiedAt.toLocaleString()}</span>
-		<span>{formatBytes(item.size)}</span>
+		<span>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span>
 		{@render action('rename', 'pencil', i)}
 		{@render action('download', 'download', i)}
 		{@render action('trash', 'trash', i)}
