@@ -8,14 +8,14 @@
 </script>
 
 {#await info || getUserStorageInfo(userId) then info}
-	<p>
+	<a href="/files/usage">
 		<NumberBar
 			max={info.limits.user_size * 1_000_000}
 			value={info.usage.bytes}
 			text="Using {formatBytes(info.usage.bytes)} of {formatBytes(info.limits.user_size * 1_000_000)}"
 			--fill="#345"
 		/>
-	</p>
+	</a>
 {:catch error}
 	<p>Couldn't load your uploads.</p>
 	<p>{error.message}</p>
