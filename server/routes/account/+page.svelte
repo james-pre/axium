@@ -151,7 +151,9 @@
 			</FormDialog>
 		{/each}
 		<span>
-			<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))}><Icon i="plus" /> Create</button>
+			<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))} class="icon-text">
+				<Icon i="plus" /> Create
+			</button>
 		</span>
 	</div>
 
