@@ -1,10 +1,8 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
-	const {
-		children,
-		toggle,
-		id = 'popover#' + Math.random().toString(36).substring(2, 15),
-	}: { children(): any; toggle?(): any; id?: string } = $props();
+	const { children, toggle }: { children(): any; toggle?(): any } = $props();
+
+	const id = $props.id();
 </script>
 
 <div onclick={e => e.stopPropagation()}>

@@ -3,24 +3,22 @@
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
 
-	let { name = 'files', ...rest }: HTMLInputAttributes = $props();
-
-	let input = $state<HTMLInputElement>()!;
+	let { name = 'files', input = $bindable(), ...rest }: HTMLInputAttributes & { input?: HTMLInputElement } = $props();
 
 	const id = $props.id();
 </script>
 
 <div>
-	<label for={id} class={[input.files?.length && 'file']}>
-		{#each input.files! as file}
+	<label for={id} class={[input!.files?.length && 'file']}>
+		{#each input!.files! as file}
 			<Icon i={forMime(file.type)} />
 			<span>{file.name}</span>
 			<button
 				onclick={e => {
 					e.preventDefault();
 					const dt = new DataTransfer();
-					for (let f of input.files!) if (file !== f) dt.items.add(f);
-					input.files = dt.files;
+					for (let f of input!.files!) if (file !== f) dt.items.add(f);
+					input!.files = dt.files;
 				}}
 				style:display="contents"
 			>
