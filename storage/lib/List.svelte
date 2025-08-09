@@ -6,7 +6,11 @@
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import '../styles/list.css';
 
-	let { items = $bindable([]), appMode }: { appMode?: boolean; items: StorageItemMetadata[] } = $props();
+	let {
+		items = $bindable([]),
+		appMode,
+		emptyText = 'Folder is empty.',
+	}: { appMode?: boolean; items: StorageItemMetadata[]; emptyText?: string } = $props();
 
 	let activeIndex = $state<number>(-1);
 	let activeItem = $derived(activeIndex == -1 ? null : items[activeIndex]);
@@ -61,7 +65,7 @@
 			{@render _item(item, i)}
 		{/if}
 	{:else}
-		<p class="list-empty">Folder is empty.</p>
+		<p class="list-empty">{emptyText}</p>
 	{/each}
 </div>
 
@@ -69,8 +73,9 @@
 	bind:dialog={dialogs.rename}
 	submitText="Rename"
 	submit={async (data: { name: string }) => {
-		await updateItemMetadata(activeItem!.id, data);
-		activeItem!.name = data.name;
+		if (!activeItem) throw 'No item is selected';
+		await updateItemMetadata(activeItem.id, data);
+		activeItem.name = data.name;
 	}}
 >
 	<div>
@@ -83,8 +88,9 @@
 	submitText="Trash"
 	submitDanger
 	submit={async () => {
-		await updateItemMetadata(activeItem!.id, { trash: true });
-		if (activeIndex != -1) items.splice(activeIndex, 1);
+		if (!activeItem) throw 'No item is selected';
+		await updateItemMetadata(activeItem.id, { trash: true });
+		items.splice(activeIndex, 1);
 	}}
 >
 	<p>Are you sure you want to trash {@render _itemName()}?</p>

@@ -6,6 +6,7 @@
 
 .list-header {
 	font-weight: bold;
+	border-bottom: 1.5px solid #bbc;
 }
 
 .list-item-container {
@@ -17,13 +18,13 @@
 	display: grid;
 	grid-template-columns: 1em 4fr 15em 5em repeat(3, 1em);
 	align-items: center;
-	gap: 0.5em;
-	padding: 0.5em 0;
+	gap: 1em;
+	padding: 0.5em;
 	overflow: hidden;
 	text-wrap: nowrap;
 }
 
-.list-item:not(.list-header) {
+.list-item:not(.list-header, :first-child) {
 	border-top: 1px solid #bbc;
 }
 

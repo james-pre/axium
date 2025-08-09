@@ -6,6 +6,7 @@
 
 	const { data }: PageProps = $props();
 
+	let items = $state(data.items!);
 	const item = $state(data.item);
 </script>
 
@@ -24,7 +25,7 @@
 		<Icon i="trash-can-undo" /> Restore
 	</button>
 {:else if item.type == 'inode/directory'}
-	<StorageList appMode bind:items={data.items!} />
+	<StorageList appMode bind:items />
 {:else}
 	<p>No preview available.</p>
 {/if}
