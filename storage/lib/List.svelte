@@ -7,7 +7,7 @@
 	import '../styles/list.css';
 
 	let {
-		items = $bindable([]),
+		items = $bindable(),
 		appMode,
 		emptyText = 'Folder is empty.',
 	}: { appMode?: boolean; items: StorageItemMetadata[]; emptyText?: string } = $props();

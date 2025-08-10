@@ -15,8 +15,5 @@ export async function load({ url, route }: LayoutLoadEvent) {
 		{ name: 'shared', href: '/files/shared', icon: 'user-group', active: route.id.endsWith('/files/shared') },
 	] satisfies { name: string; href: LayoutRouteId; icon: string; active: boolean }[];
 
-	return {
-		session: await getCurrentSession(),
-		tabs,
-	};
+	return { session, tabs };
 }

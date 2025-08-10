@@ -1,12 +1,13 @@
 <script lang="ts">
-	import { StorageList } from '@axium/storage/components';
-	import type { PageProps } from './$types';
+	import { StorageAdd, StorageList } from '@axium/storage/components';
 
-	const { data }: PageProps = $props();
+	const { data } = $props();
+	let items = $state(data.items!);
 </script>
 
 <svelte:head>
 	<title>Files</title>
 </svelte:head>
 
-<StorageList appMode bind:items={data.items} />
+<StorageList appMode bind:items />
+<StorageAdd onadd={item => items.push(item)} />

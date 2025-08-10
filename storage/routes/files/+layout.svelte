@@ -2,9 +2,8 @@
 	import { Icon } from '@axium/server/components';
 	import { StorageUsage } from '@axium/storage/components';
 	import { capitalize } from 'utilium';
-	import type { LayoutProps } from './$types';
 
-	let { children, data }: LayoutProps = $props();
+	let { children, data } = $props();
 </script>
 
 <div class="app">

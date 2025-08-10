@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { Icon } from '@axium/server/components';
-	import { StorageList } from '@axium/storage/components';
+	import { StorageAdd, StorageList } from '@axium/storage/components';
 	import type { PageProps } from './$types';
 	import { updateItemMetadata } from '@axium/storage/client';
 
@@ -26,6 +26,7 @@
 	</button>
 {:else if item.type == 'inode/directory'}
 	<StorageList appMode bind:items />
+	<StorageAdd parentId={item.id} onadd={item => items.push(item)} />
 {:else}
 	<p>No preview available.</p>
 {/if}
