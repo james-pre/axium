@@ -33,6 +33,7 @@
 	"text/x-go": "brands/golang",
 	"text/x-php": "brands/php",
 	"text/x-sass": "brands/sass",
+	"text/x-uri": "link-simple",
 	"text/xml": "code",
 	"video": "clapperboard-play"
 }
