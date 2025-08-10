@@ -2,19 +2,24 @@
 	import Icon from './Icon.svelte';
 	const { children, toggle }: { children(): any; toggle?(): any } = $props();
 
-	const id = $props.id();
+	let popover = $state<HTMLDivElement>();
+
+	function onclick(e: MouseEvent) {
+		e.stopPropagation();
+		popover?.togglePopover();
+	}
 </script>
 
 <div onclick={e => e.stopPropagation()}>
-	<button style:display="contents" popovertarget={id}>
+	<div style:display="contents" {onclick}>
 		{#if toggle}
 			{@render toggle()}
 		{:else}
 			<Icon i="ellipsis" />
 		{/if}
-	</button>
+	</div>
 
-	<div {id} popover>
+	<div popover bind:this={popover}>
 		{@render children()}
 	</div>
 </div>

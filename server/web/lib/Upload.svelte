@@ -9,8 +9,8 @@
 </script>
 
 <div>
-	<label for={id} class={[input!.files?.length && 'file']}>
-		{#each input!.files! as file}
+	<label for={id} class={[input?.files?.length && 'file']}>
+		{#each input?.files! as file}
 			<Icon i={forMime(file.type)} />
 			<span>{file.name}</span>
 			<button
