@@ -103,7 +103,7 @@ button:hover {
 
 :popover-open {
 	border: 1px solid #99a;
-	background-color: #222d;
+	background-color: #111e;
 	border-radius: 0.5em;
 	padding: 0.5em;
 	inset: unset;
