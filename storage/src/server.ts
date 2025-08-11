@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/unbound-method */
 import { Permission } from '@axium/core/access';
 import type { Result } from '@axium/core/api';
 import { checkAuthForItem, checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
