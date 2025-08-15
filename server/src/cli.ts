@@ -5,10 +5,11 @@ import { access } from 'node:fs/promises';
 import { join } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
-import { getByString, isJSON, setByString } from 'utilium';
+import { capitalize, getByString, isJSON, setByString, uncapitalize, type Entries } from 'utilium';
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
+import { getEvents, Severity, styleSeverity, type AuditFilter } from './audit.js';
 import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
@@ -398,6 +399,8 @@ interface OptUser extends OptCommon {
 	tag?: string[];
 	untag?: string[];
 	delete?: boolean;
+	suspend?: boolean;
+	unsuspend?: boolean;
 }
 
 program
@@ -411,24 +414,29 @@ program
 	.option('--tag <tag...>', 'Add tags to the user')
 	.option('--untag <tag...>', 'Remove tags from the user')
 	.option('--delete', 'Delete the user')
+	.option('--suspend', 'Suspend the user')
+	.addOption(new Option('--unsuspend', 'Un-suspend the user').conflicts('suspend'))
 	.action(async (_user: Promise<UserInternal>, opt: OptUser) => {
 		let user = await _user;
 
 		const [updatedRoles, roles, rolesDiff] = diffUpdate(user.roles, opt.addRole, opt.removeRole);
 		const [updatedTags, tags, tagsDiff] = diffUpdate(user.tags, opt.tag, opt.untag);
+		const changeSuspend =
+			(typeof opt.suspend == 'boolean' || typeof opt.unsuspend == 'boolean') && user.isSuspended != (opt.suspend ?? opt.unsuspend);
 
-		if (updatedRoles || updatedTags) {
+		if (updatedRoles || updatedTags || changeSuspend) {
 			user = await db.database
 				.updateTable('users')
-				.set({ roles, tags })
+				.set({ roles, tags, isSuspended: opt.suspend ?? opt.unsuspend })
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.then(u => {
 					if (updatedRoles && rolesDiff) console.log(`> Updated roles: ${rolesDiff}`);
 					if (updatedTags && tagsDiff) console.log(`> Updated tags: ${tagsDiff}`);
+					if (changeSuspend) console.log(opt.suspend ? '> Suspended' : '> Un-suspended');
 					return u;
 				})
-				.catch(e => exit('Failed to update user roles: ' + e.message));
+				.catch(e => exit('Failed to update user: ' + e.message));
 		}
 
 		if (opt.delete) {
@@ -450,6 +458,7 @@ program
 
 		console.log(
 			[
+				user.isSuspended && styleText('yellowBright', 'Suspended'),
 				user.isAdmin && styleText('redBright', 'Administrator'),
 				'UUID: ' + user.id,
 				'Name: ' + user.name,
@@ -608,6 +617,64 @@ program
 		}
 
 		linkRoutes(opt);
+	});
+
+const auditSeverity = new Option('--severity <level>', 'Filter for events at or above a severity level')
+	.choices(
+		Object.keys(Severity)
+			.filter(k => isNaN(Number(k)))
+			.map(uncapitalize) as Lowercase<keyof typeof Severity>[]
+	)
+	.argParser(v => {
+		const cap = capitalize(v);
+		if (!(cap in Severity)) throw new Error('Invalid severity: ' + v);
+		return Severity[cap as keyof typeof Severity];
+	});
+
+interface AuditCLIOptions extends AuditFilter {
+	summary: boolean;
+}
+
+program
+	.command('audit')
+	.description('View audit logs')
+	.option('-S, --summary', 'Summarize audit log entries instead of displaying individual ones')
+	.addOption(new Option('--since <date>', 'Filter for events since a date').argParser(v => new Date(v)))
+	.addOption(new Option('--until <date>', 'Filter for events until a date').argParser(v => new Date(v)))
+	.option('--cli', 'Filter for events triggered using the server CLI')
+	.addOption(new Option('--user <uuid>', 'Filter for events triggered by a user').argParser(v => z.uuid().parse(v)).conflicts('cli'))
+	.addOption(auditSeverity)
+	.option('--source <source>', 'Filter by source')
+	.option('--tag <tag...>', 'Filter by tag(s)')
+	.option('--event <event>', 'Filter by event name')
+	.action(async (opt: AuditCLIOptions) => {
+		const events = await getEvents(opt);
+
+		if (opt.summary) {
+			const groups = Object.groupBy(events, e => e.severity);
+
+			for (const [severity, group] of Object.entries(groups) as any as Entries<typeof groups>) {
+				if (!group?.length) continue;
+
+				console.log(
+					group.length,
+					styleSeverity(severity, true),
+					'events. Latest occurred',
+					group.at(-1)!.timestamp.toLocaleString()
+				);
+			}
+
+			return;
+		}
+
+		for (const event of events) {
+			console.log(
+				styleSeverity(event.severity, true),
+				event.timestamp.toLocaleString().padEnd(40),
+				event.source.padEnd(20),
+				event.name.padEnd(20)
+			);
+		}
 	});
 
 program.parse();

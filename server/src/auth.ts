@@ -11,6 +11,7 @@ import { error, getToken, withError } from './requests.js';
 
 export interface UserInternal extends User {
 	isAdmin: boolean;
+	isSuspended: boolean;
 	/** Tags are internal, roles are public */
 	tags: string[];
 }

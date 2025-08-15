@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
+import type { Severity } from './audit.js';
 import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
@@ -19,6 +20,23 @@ export const ConfigSchema = z
 		apps: z
 			.looseObject({
 				disabled: z.array(z.string()),
+			})
+			.partial(),
+		audit: z
+			.looseObject({
+				allow_raw: z.boolean(),
+				/** How many days to keep events in the audit log */
+				retention: z.number().min(0),
+				min_severity: z.literal([
+					'emergency',
+					'alert',
+					'critical',
+					'error',
+					'warning',
+					'notice',
+					'info',
+					'debug',
+				] satisfies Lowercase<keyof typeof Severity>[]),
 			})
 			.partial(),
 		auth: z
@@ -97,6 +115,11 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 	},
 	apps: {
 		disabled: [],
+	},
+	audit: {
+		allow_raw: false,
+		retention: 30,
+		min_severity: 'error',
 	},
 	auth: {
 		origin: 'https://test.localhost',

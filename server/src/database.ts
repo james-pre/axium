@@ -7,6 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
 import type { Entries } from 'utilium';
+import type { Severity } from './audit.js';
 import type { UserInternal, VerificationRole } from './auth.js';
 import config from './config.js';
 import * as io from './io.js';
@@ -31,6 +32,7 @@ export interface Schema {
 		roles: string[];
 		tags: string[];
 		registeredAt: kysely.GeneratedAlways<Date>;
+		isSuspended: boolean;
 	};
 	sessions: {
 		id: kysely.GeneratedAlways<string>;
@@ -56,6 +58,16 @@ export interface Schema {
 		deviceType: CredentialDeviceType;
 		backedUp: boolean;
 		transports: AuthenticatorTransportFuture[];
+	};
+	audit_log: {
+		id: kysely.GeneratedAlways<string>;
+		userId: string | null;
+		timestamp: kysely.GeneratedAlways<Date>;
+		severity: Severity;
+		name: string;
+		tags: kysely.Generated<string[]>;
+		source: string;
+		extra: kysely.Generated<Record<string, unknown>>;
 	};
 	[key: `acl.${string}`]: DBAccessControl;
 }
@@ -278,6 +290,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('tags', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
 		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo('{}'))
 		.addColumn('registeredAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
+		.addColumn('isSuspended', 'boolean', col => col.notNull().defaultTo(false))
 		.execute()
 		.then(io.done)
 		.catch(maybeCheck('users'));
@@ -326,6 +339,21 @@ export async function init(opt: InitOptions): Promise<void> {
 
 	await createIndex('passkeys', 'userId');
 
+	io.start('Creating table audit_log');
+	await database.schema
+		.createTable('audit_log')
+		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`get_random_uuid()`))
+		.addColumn('timestamp', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
+		.addColumn('userId', 'uuid')
+		.addColumn('severity', 'integer', col => col.notNull())
+		.addColumn('name', 'text', col => col.notNull())
+		.addColumn('source', 'text', col => col.notNull())
+		.addColumn('tags', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
+		.addColumn('extra', 'jsonb', col => col.notNull().defaultTo('{}'))
+		.execute()
+		.then(io.done)
+		.catch(maybeCheck('audit_log'));
+
 	io.start('Creating schema acl');
 	await database.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
 
@@ -361,6 +389,7 @@ export const expectedTypes: ExpectedSchema = {
 		registeredAt: { type: 'timestamptz', required: true, hasDefault: true },
 		roles: { type: '_text', required: true, hasDefault: true },
 		tags: { type: '_text', required: true, hasDefault: true },
+		isSuspended: { type: 'bool', required: true, hasDefault: true },
 	},
 	verifications: {
 		userId: { type: 'uuid', required: true },
@@ -386,6 +415,16 @@ export const expectedTypes: ExpectedSchema = {
 		token: { type: 'text', required: true },
 		expires: { type: 'timestamptz', required: true },
 		elevated: { type: 'bool', required: true },
+	},
+	audit_log: {
+		userId: { type: 'uuid' },
+		timestamp: { type: 'timestamptz', required: true, hasDefault: true },
+		id: { type: 'uuid', required: true, hasDefault: true },
+		severity: { type: 'int4', required: true, hasDefault: true },
+		name: { type: 'text', required: true },
+		source: { type: 'text', required: true },
+		tags: { type: '_text', required: true, hasDefault: true },
+		extra: { type: 'jsonb', required: true, hasDefault: true },
 	},
 };
 
