@@ -13,7 +13,7 @@ import { getEvents, Severity, styleSeverity, type AuditFilter } from './audit.js
 import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
-import { _portActions, _portMethods, exit, handleError, output, restrictedPorts, setCommandTimeout, warn, type PortOptions } from './io.js';
+import * as io from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
 import { serveSvelteKit } from './serve.js';
@@ -51,7 +51,7 @@ const noAutoDB = ['init', 'serve', 'check'];
 program.hook('preAction', async function (_, action: Command) {
 	await config.loadDefaults();
 	const opt = action.optsWithGlobals<OptCommon>();
-	opt.force && output.warn('--force: Protections disabled.');
+	opt.force && io.output.warn('--force: Protections disabled.');
 	if (opt.debug === false) config.set({ debug: false });
 	try {
 		db.connect();
@@ -77,8 +77,8 @@ const opts = {
 	global: new Option('-g, --global', 'apply the operation globally').default(false),
 	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default('1000').argParser(value => {
 		const timeout = parseInt(value);
-		if (!Number.isSafeInteger(timeout) || timeout < 0) warn('Invalid timeout value, using default.');
-		setCommandTimeout(timeout);
+		if (!Number.isSafeInteger(timeout) || timeout < 0) io.warn('Invalid timeout value, using default.');
+		io.setCommandTimeout(timeout);
 	}),
 };
 
@@ -103,7 +103,7 @@ axiumDB
 	.addOption(opts.check)
 	.action(async (_localOpts, _: Command) => {
 		const opt = _.optsWithGlobals<OptDB & { skip: boolean; check: boolean }>();
-		await db.init(opt).catch(handleError);
+		await db.init(opt).catch(io.handleError);
 	});
 
 axiumDB
@@ -114,7 +114,7 @@ axiumDB
 		try {
 			console.log(await db.statText());
 		} catch {
-			output.error('Unavailable');
+			io.output.error('Unavailable');
 			process.exitCode = 1;
 		}
 	});
@@ -124,17 +124,17 @@ axiumDB
 	.description('Drop the Axium database and user')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
-		const stats = await db.count('users', 'passkeys', 'sessions').catch(exit);
+		const stats = await db.count('users', 'passkeys', 'sessions').catch(io.exit);
 
 		if (!opt.force)
 			for (const key of ['users', 'passkeys', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				output.warn(`Database has existing ${key}. Use --force if you really want to drop the database.`);
+				io.output.warn(`Database has existing ${key}. Use --force if you really want to drop the database.`);
 				process.exit(2);
 			}
 
-		await db.uninstall(opt).catch(exit);
+		await db.uninstall(opt).catch(io.exit);
 	});
 
 axiumDB
@@ -142,17 +142,17 @@ axiumDB
 	.description('Wipe the database')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
-		const stats = await db.count('users', 'passkeys', 'sessions').catch(exit);
+		const stats = await db.count('users', 'passkeys', 'sessions').catch(io.exit);
 
 		if (!opt.force)
 			for (const key of ['users', 'passkeys', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				output.warn(`Database has existing ${key}. Use --force if you really want to wipe the database.`);
+				io.output.warn(`Database has existing ${key}. Use --force if you really want to wipe the database.`);
 				process.exit(2);
 			}
 
-		await db.wipe(opt).catch(exit);
+		await db.wipe(opt).catch(io.exit);
 	});
 
 axiumDB
@@ -160,7 +160,7 @@ axiumDB
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
 	.action(async (opt: OptDB & { strict: boolean }) => {
-		await db.check(opt).catch(exit);
+		await db.check(opt).catch(io.exit);
 	});
 
 axiumDB
@@ -168,7 +168,7 @@ axiumDB
 	.description('Remove expired rows')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
-		await db.clean(opt).catch(exit);
+		await db.clean(opt).catch(io.exit);
 	});
 
 axiumDB
@@ -221,7 +221,7 @@ axiumConfig
 	.argument('<value>', 'the value')
 	.action((key: string, value: string) => {
 		const opt = axiumConfig.optsWithGlobals<OptConfig>();
-		if (opt.json && !isJSON(value)) exit('Invalid JSON');
+		if (opt.json && !isJSON(value)) io.exit('Invalid JSON');
 		const obj: Record<string, any> = {};
 		setByString(obj, key, opt.json ? JSON.parse(value) : value);
 		config.save(obj, opt.global);
@@ -281,7 +281,7 @@ axiumPlugin
 	.argument('<plugin>', 'the plugin to get information about')
 	.action((search: string) => {
 		const plugin = resolvePlugin(search);
-		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
+		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 		console.log(pluginText(plugin));
 	});
 
@@ -292,7 +292,7 @@ axiumPlugin
 	.argument('<plugin>', 'the plugin to remove')
 	.action(async (search: string, opt: OptCommon) => {
 		const plugin = resolvePlugin(search);
-		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
+		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 
 		const specifier = getSpecifier(plugin);
 
@@ -318,7 +318,7 @@ axiumPlugin
 	.argument('<plugin>', 'the plugin to initialize')
 	.action(async (search: string, opt: OptCommon & { check: boolean }) => {
 		const plugin = resolvePlugin(search);
-		if (!plugin) exit(`Can't find a plugin matching "${search}"`);
+		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 
 		await plugin.hooks.db_init?.({ force: false, ...opt, skip: true });
 	});
@@ -352,7 +352,7 @@ const lookup = new Argument('<user>', 'the UUID or email of the user to operate 
 	async (lookup: string): Promise<UserInternal> => {
 		const value = await (lookup.includes('@') ? z.email() : z.uuid())
 			.parseAsync(lookup.toLowerCase())
-			.catch(() => exit('Invalid user ID or email.'));
+			.catch(() => io.exit('Invalid user ID or email.'));
 
 		const result = await db.database
 			.selectFrom('users')
@@ -360,7 +360,7 @@ const lookup = new Argument('<user>', 'the UUID or email of the user to operate 
 			.selectAll()
 			.executeTakeFirst();
 
-		if (!result) exit('No user with matching ID or email.');
+		if (!result) io.exit('No user with matching ID or email.');
 
 		return result;
 	}
@@ -436,7 +436,7 @@ program
 					if (changeSuspend) console.log(opt.suspend ? '> Suspended' : '> Un-suspended');
 					return u;
 				})
-				.catch(e => exit('Failed to update user: ' + e.message));
+				.catch(e => io.exit('Failed to update user: ' + e.message));
 		}
 
 		if (opt.delete) {
@@ -453,7 +453,7 @@ program
 					.where('id', '=', user.id)
 					.executeTakeFirstOrThrow()
 					.then(() => console.log(styleText(['red', 'bold'], '> Deleted')))
-					.catch(e => exit('Failed to delete user: ' + e.message));
+					.catch(e => io.exit('Failed to delete user: ' + e.message));
 		}
 
 		console.log(
@@ -528,7 +528,7 @@ program
 		try {
 			console.log(await db.statText());
 		} catch {
-			output.error('Unavailable');
+			io.output.error('Unavailable');
 		}
 
 		console.log(
@@ -548,11 +548,11 @@ program
 program
 	.command('ports')
 	.description('Enable or disable use of restricted ports (e.g. 443)')
-	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
-	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
+	.addArgument(new Argument('<action>', 'The action to take').choices(io._portActions))
+	.addOption(new Option('-m, --method <method>', 'the method to use').choices(io._portMethods).default('node-cap'))
 	.option('-N, --node <path>', 'the path to the node binary')
-	.action(async (action: PortOptions['action'], opt: OptCommon & Omit<PortOptions, 'action'>) => {
-		await restrictedPorts({ ...opt, action }).catch(handleError);
+	.action(async (action: io.PortOptions['action'], opt: OptCommon & Omit<io.PortOptions, 'action'>) => {
+		await io.restrictedPorts({ ...opt, action }).catch(io.handleError);
 	});
 
 program
@@ -562,8 +562,8 @@ program
 	.addOption(opts.host)
 	.addOption(opts.check)
 	.action(async (opt: OptDB & { dbSkip: boolean; check: boolean }) => {
-		await db.init({ ...opt, skip: opt.dbSkip }).catch(handleError);
-		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(handleError);
+		await db.init({ ...opt, skip: opt.dbSkip }).catch(io.handleError);
+		await io.restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
 	});
 
 program
@@ -667,12 +667,19 @@ program
 			return;
 		}
 
+		let maxSource = 0,
+			maxName = 0;
+		for (const event of events) {
+			maxSource = Math.max(maxSource, event.source.length);
+			maxName = Math.max(maxName, event.name.length);
+		}
+
 		for (const event of events) {
 			console.log(
 				styleSeverity(event.severity, true),
-				event.timestamp.toLocaleString().padEnd(40),
-				event.source.padEnd(20),
-				event.name.padEnd(20)
+				io.prettyDate(event.timestamp),
+				event.source.padEnd(maxSource),
+				event.name.padEnd(maxName)
 			);
 		}
 	});

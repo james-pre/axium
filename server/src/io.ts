@@ -273,3 +273,15 @@ export function someWarnings(...allowList: [RegExp, string?][]): (error: string 
 		throw error;
 	};
 }
+
+const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+// Shortcut to convert to 2-digit. Mostly used to make the line shorter.
+const _2 = (v: number) => v.toString().padStart(2, '0');
+
+/**
+ * Get a human-readable string for a date that also fits into CLIs well (fixed-width)
+ */
+export function prettyDate(date: Date): string {
+	return `${date.getFullYear()} ${months[date.getMonth()]} ${_2(date.getDate())} ${_2(date.getHours())}:${_2(date.getMinutes())}:${_2(date.getSeconds())}.${_2(date.getMilliseconds())}`;
+}

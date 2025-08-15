@@ -54,7 +54,7 @@ export interface AuditEvent<T extends Record<string, unknown> = Record<string, u
 
 function output(event: AuditEvent) {
 	if (event.severity > Severity[capitalize(config.audit.min_severity)]) return;
-	console.error(`[audit] ${styleSeverity(event.severity)} ${event.name}`);
+	console.error('[audit]', styleText('dim', io.prettyDate(event.timestamp)), styleSeverity(event.severity), event.name);
 }
 
 export interface AuditEventInit extends Insertable<Schema['audit_log']> {}
