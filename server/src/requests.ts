@@ -8,8 +8,7 @@ import { config } from './config.js';
 import type { ServerRoute } from './routes.js';
 
 /**
- * @todo
- * Add parsing for Node.js `IncomingMessage` -> standard `Request` and standard `Response` -> Node.js `ServerResponse`
+ * @todo Add parsing for Node.js `IncomingMessage` -> standard `Request` and standard `Response` -> Node.js `ServerResponse`
  */
 
 /**

@@ -82,6 +82,7 @@ export interface AuditEventConfig {
 export interface $EventTypes {
 	user_created: never;
 	user_deleted: never;
+	acl_id_mismatch: { item: string };
 }
 
 export type EventName = keyof $EventTypes;
@@ -158,3 +159,4 @@ export async function getEvents(filter: AuditFilter): Promise<AuditEvent[]> {
 
 addEvent({ source: '@axium/server', name: 'user_created', severity: Severity.Info, tags: ['user'] });
 addEvent({ source: '@axium/server', name: 'user_deleted', severity: Severity.Info, tags: ['user'] });
+addEvent({ source: '@axium/server', name: 'acl_id_mismatch', severity: Severity.Critical, tags: ['acl', 'auth'] });

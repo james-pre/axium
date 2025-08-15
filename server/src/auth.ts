@@ -8,6 +8,7 @@ import * as acl from './acl.js';
 import { database as db, userFromId, type Schema } from './database.js';
 import type { RequestEvent } from './requests.js';
 import { error, getToken, withError } from './requests.js';
+import { audit } from './audit.js';
 
 export interface UserInternal extends User {
 	isAdmin: boolean;
@@ -205,7 +206,10 @@ export async function checkAuthForItem<const V extends acl.Target>(
 	if (!item.acl || !item.acl.length) error(403, 'Access denied');
 
 	const [control] = item.acl;
-	if (control.userId !== session.userId) error(500, 'Access control entry does not match session user'); // @todo: audit log
+	if (control.userId !== session.userId) {
+		await audit('acl_id_mismatch', session.userId, { item: itemId });
+		error(500, 'Access control entry does not match session user');
+	}
 
 	if (control.permission >= permission) return result;
 
