@@ -3,13 +3,21 @@ import { requestMethods } from '@axium/core/requests';
 import pkg from '../../package.json' with { type: 'json' };
 import { config } from '../config.js';
 import { plugins } from '../plugins.js';
-import { error } from '../requests.js';
+import { error, getToken } from '../requests.js';
 import { addRoute, routes } from '../routes.js';
+import { getSessionAndUser } from '../auth.js';
 
 addRoute({
 	path: '/api/metadata',
-	async GET(): Result<'GET', 'metadata'> {
-		if (config.api.disable_metadata) error(401, 'API metadata is disabled');
+	async GET(event): Result<'GET', 'metadata'> {
+		if (!config.debug) {
+			const token = getToken(event);
+			if (!token) error(401, 'Missing session token');
+			const session = await getSessionAndUser(token);
+			if (!session) error(401, 'Invalid session');
+			if (!session.user.isAdmin) error(403, 'User is not an administrator');
+			if (session.user.isSuspended) error(403, 'User is suspended');
+		}
 
 		return {
 			version: pkg.version,

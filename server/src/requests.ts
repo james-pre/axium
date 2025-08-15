@@ -85,7 +85,7 @@ export function getToken(event: RequestEvent, sensitive: boolean = false): strin
 	const header_token = event.request.headers.get('Authorization')?.replace('Bearer ', '');
 	if (header_token) return header_token;
 
-	if (config.debug || config.api.cookie_auth) {
+	if (config.debug || !config.auth.header_only) {
 		return event.cookies.get(sensitive ? 'elevated_token' : 'session_token');
 	}
 }

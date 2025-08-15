@@ -17,12 +17,6 @@ const z_audit_severity = z.literal([...audit_severity_levels, ...audit_severity_
 export const ConfigSchema = z
 	.looseObject({
 		allow_new_users: z.boolean(),
-		api: z
-			.looseObject({
-				disable_metadata: z.boolean(),
-				cookie_auth: z.boolean(),
-			})
-			.partial(),
 		apps: z
 			.looseObject({
 				disabled: z.array(z.string()),
@@ -49,6 +43,8 @@ export const ConfigSchema = z
 				verification_timeout: z.number(),
 				/** Whether users can verify emails */
 				email_verification: z.boolean(),
+				/** Whether only the `Authorization` header can be used to authenticate requests. */
+				header_only: z.boolean(),
 			})
 			.partial(),
 		db: z
@@ -107,10 +103,6 @@ const configShortcuts = {
 export const config: DeepRequired<Config> & typeof configShortcuts = _unique('config', {
 	...configShortcuts,
 	allow_new_users: true,
-	api: {
-		disable_metadata: false,
-		cookie_auth: true,
-	},
 	apps: {
 		disabled: [],
 	},
@@ -128,6 +120,7 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 		secure_cookies: true,
 		verification_timeout: 60,
 		email_verification: false,
+		header_only: false,
 	},
 	db: {
 		database: process.env.PGDATABASE || 'axium',
