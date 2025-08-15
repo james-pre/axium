@@ -354,7 +354,8 @@ const lookup = new Argument('<user>', 'the UUID or email of the user to operate 
 			.parseAsync(lookup.toLowerCase())
 			.catch(() => io.exit('Invalid user ID or email.'));
 
-		const result = await db.database
+		const result = await db
+			.connect()
 			.selectFrom('users')
 			.where(value.includes('@') ? 'email' : 'id', '=', value)
 			.selectAll()
