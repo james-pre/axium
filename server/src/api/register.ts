@@ -69,7 +69,7 @@ async function POST(event: RequestEvent) {
 		.executeTakeFirstOrThrow()
 		.catch(withError('Failed to create user'));
 
-	audit('user_created', userId);
+	await audit('user_created', userId);
 
 	await createPasskey({
 		transports: [],

@@ -91,7 +91,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Failed to delete user'));
 
-		audit('user_deleted', userId);
+		await audit('user_deleted', userId);
 
 		return result;
 	},
