@@ -301,7 +301,7 @@ export async function init(opt: InitOptions): Promise<void> {
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
 		.addColumn('token', 'text', col => col.notNull().unique())
-		.addColumn('created', 'timestamptz', col => col.notNull())
+		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('expires', 'timestamptz', col => col.notNull())
 		.addColumn('elevated', 'boolean', col => col.notNull())
 		.execute()
@@ -411,7 +411,7 @@ export const expectedTypes: ExpectedSchema = {
 	sessions: {
 		id: { type: 'uuid', required: true, hasDefault: true },
 		userId: { type: 'uuid', required: true },
-		created: { type: 'timestamptz', required: true },
+		created: { type: 'timestamptz', required: true, hasDefault: true },
 		token: { type: 'text', required: true },
 		expires: { type: 'timestamptz', required: true },
 		elevated: { type: 'bool', required: true },

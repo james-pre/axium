@@ -284,6 +284,8 @@ addRoute({
 			.execute()
 			.catch(withError('Failed to delete one or more sessions'));
 
+		await audit('logout', userId, { sessions: result.map(s => s.id) });
+
 		return result.map(s => omit(s, 'token'));
 	},
 });

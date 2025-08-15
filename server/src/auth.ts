@@ -43,6 +43,7 @@ export async function createSession(userId: string, elevated: boolean = false) {
 		created: new Date(),
 	};
 	await db.insertInto('sessions').values(session).execute();
+	await audit('new_session', userId, { id: session.id });
 	return session;
 }
 

@@ -1,7 +1,7 @@
 import type { Insertable } from 'kysely';
 import { styleText } from 'node:util';
 import { capitalize, omit } from 'utilium';
-import type z from 'zod';
+import * as z from 'zod';
 import config from './config.js';
 import { database, type Schema } from './database.js';
 import * as io from './io.js';
@@ -69,6 +69,28 @@ export async function audit_raw(event: AuditEventInit): Promise<void> {
 	output(result);
 }
 
+export interface $EventTypes {
+	user_created: never;
+	user_deleted: never;
+	new_session: { id: string };
+	logout: { sessions: string[] };
+	acl_id_mismatch: { item: string };
+	admin_change: { user: string };
+}
+
+export type EventName = keyof $EventTypes;
+export type EventExtra<T extends EventName> = $EventTypes[T];
+
+export interface AuditEventConfigInit {
+	name: EventName;
+	source: string;
+	severity: Severity;
+	tags: string[];
+	/** Schema for the extra data */
+	extra?: z.core.$ZodShape;
+	noAutoSuspend?: boolean;
+}
+
 export interface AuditEventConfig {
 	name: EventName;
 	source: string;
@@ -79,20 +101,15 @@ export interface AuditEventConfig {
 	noAutoSuspend?: boolean;
 }
 
-export interface $EventTypes {
-	user_created: never;
-	user_deleted: never;
-	acl_id_mismatch: { item: string };
-}
-
-export type EventName = keyof $EventTypes;
-export type EventExtra<T extends EventName> = $EventTypes[T];
-
 const events = new Map<EventName, AuditEventConfig>();
 
-export function addEvent(config: AuditEventConfig) {
-	if (events.has(config.name)) throw io.error(`Can not register multiple events with the same name ("${config.name}")`);
-	events.set(config.name, config);
+export function addEvent(init: AuditEventConfigInit) {
+	if (events.has(init.name)) throw io.error(`Can not register multiple events with the same name ("${init.name}")`);
+	const config = {
+		...init,
+		extra: init.extra ? z.object(init.extra) : undefined,
+	};
+	events.set(init.name, config);
 }
 
 export async function audit<T extends EventName>(eventName: T, userId?: string, extra?: EventExtra<T>) {
@@ -159,4 +176,20 @@ export async function getEvents(filter: AuditFilter): Promise<AuditEvent[]> {
 
 addEvent({ source: '@axium/server', name: 'user_created', severity: Severity.Info, tags: ['user'] });
 addEvent({ source: '@axium/server', name: 'user_deleted', severity: Severity.Info, tags: ['user'] });
-addEvent({ source: '@axium/server', name: 'acl_id_mismatch', severity: Severity.Critical, tags: ['acl', 'auth'] });
+addEvent({ source: '@axium/server', name: 'new_session', severity: Severity.Info, tags: ['user'], extra: { id: z.string() } });
+addEvent({ source: '@axium/server', name: 'logout', severity: Severity.Info, tags: ['user'], extra: { sessions: z.array(z.string()) } });
+addEvent({
+	source: '@axium/server',
+	name: 'admin_change',
+	severity: Severity.Notice,
+	tags: ['cli'],
+	extra: { user: z.string() },
+});
+addEvent({
+	source: '@axium/server',
+	name: 'acl_id_mismatch',
+	severity: Severity.Critical,
+	tags: ['acl', 'auth'],
+	extra: { item: z.string() },
+	noAutoSuspend: true,
+});

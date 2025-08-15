@@ -4,6 +4,7 @@ import { getSessionAndUser } from '../auth.js';
 import { database as db } from '../database.js';
 import { error, getToken, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
+import { audit } from '../audit.js';
 
 addRoute({
 	path: '/api/session',
@@ -29,6 +30,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch((e: Error) => (e.message == 'no result' ? error(404, 'Session does not exist') : error(400, 'Invalid session')));
 
+		await audit('logout', result.userId, { sessions: [result.id] });
 		return omit(result, 'token');
 	},
 });
