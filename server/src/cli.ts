@@ -662,11 +662,13 @@ program
 		if (opt.summary) {
 			const groups = Object.groupBy(events, e => e.severity);
 
+			const maxGroupLength = Math.max(...Object.values(groups).map(g => g.length.toString().length), 0);
+
 			for (const [severity, group] of Object.entries(groups) as any as Entries<typeof groups>) {
 				if (!group?.length) continue;
 
 				console.log(
-					group.length,
+					styleText('white', group.length.toString().padStart(maxGroupLength)),
 					styleSeverity(severity, true),
 					'events. Latest occurred',
 					group.at(-1)!.timestamp.toLocaleString()
