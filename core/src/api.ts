@@ -45,6 +45,14 @@ export interface NewSessionResponse {
 	token: string;
 }
 
+export interface AppMetadata {
+	readonly id: string;
+	readonly name?: string;
+	readonly version?: string;
+	readonly image?: string;
+	readonly icon?: string;
+}
+
 /**
  * Types for all API endpoints
  * @internal
@@ -56,6 +64,9 @@ export interface _apiTypes {
 			routes: Record<string, { params: Record<string, string | null>; methods: string[] }>;
 			plugins: Record<string, string>;
 		};
+	};
+	apps: {
+		GET: AppMetadata[];
 	};
 	session: {
 		GET: Session & { user: User };

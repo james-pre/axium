@@ -9,7 +9,7 @@ import { sql } from 'kysely';
 import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
-import { App } from '@axium/server/apps';
+import { addApp } from '@axium/server/apps';
 
 async function statusText(): Promise<string> {
 	const { storage: items } = await count('storage');
@@ -72,10 +72,11 @@ async function clean(opt: OpOptions) {
 		.then(done);
 }
 
-new App({
+addApp({
 	id: 'files',
 	name: 'Files',
 	version: pkg.version,
+	icon: 'folders',
 });
 
 export default {

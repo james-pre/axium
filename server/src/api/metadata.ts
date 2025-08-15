@@ -1,4 +1,4 @@
-import type { Result } from '@axium/core/api';
+import type { AppMetadata, Result } from '@axium/core/api';
 import { requestMethods } from '@axium/core/requests';
 import pkg from '../../package.json' with { type: 'json' };
 import { config } from '../config.js';
@@ -6,6 +6,8 @@ import { plugins } from '../plugins.js';
 import { error, getToken } from '../requests.js';
 import { addRoute, routes } from '../routes.js';
 import { getSessionAndUser } from '../auth.js';
+import { apps } from '../apps.js';
+import { pick } from 'utilium';
 
 addRoute({
 	path: '/api/metadata',
@@ -37,5 +39,19 @@ addRoute({
 			),
 			plugins: Object.fromEntries(plugins.values().map(plugin => [plugin.name, plugin.version])),
 		};
+	},
+});
+
+addRoute({
+	path: '/api/apps',
+	async GET(event): Result<'GET', 'apps'> {
+		const result: AppMetadata[] = [];
+
+		for (const app of apps.values()) {
+			if (config.apps.disabled.includes(app.id)) continue;
+			result.push(pick(app, ['id', 'name', 'version', 'image', 'icon']));
+		}
+
+		return result;
 	},
 });
