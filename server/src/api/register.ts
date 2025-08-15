@@ -10,6 +10,7 @@ import { database as db, type Schema } from '../database.js';
 import type { RequestEvent } from '../requests.js';
 import { createSessionData, error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
+import { audit } from '../audit.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
@@ -67,6 +68,8 @@ async function POST(event: RequestEvent) {
 		.values({ id: userId, name, email: email.toLowerCase() } as Schema['users'])
 		.executeTakeFirstOrThrow()
 		.catch(withError('Failed to create user'));
+
+	audit('user_created', userId);
 
 	await createPasskey({
 		transports: [],

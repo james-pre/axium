@@ -20,6 +20,7 @@ import { database as db } from '../database.js';
 import type { RequestEvent } from '../requests.js';
 import { createSessionData, error, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
+import { audit } from '../audit.js';
 
 interface UserAuth {
 	data: string;
@@ -89,6 +90,8 @@ addRoute({
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Failed to delete user'));
+
+		audit('user_deleted', userId);
 
 		return result;
 	},

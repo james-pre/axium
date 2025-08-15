@@ -70,19 +70,22 @@ export async function audit_raw(event: AuditEventInit): Promise<void> {
 }
 
 export interface AuditEventConfig {
-	name: string;
+	name: EventName;
 	source: string;
 	severity: Severity;
 	tags: string[];
 	/** Schema for the extra data */
-	extra: z.ZodObject;
+	extra?: z.ZodObject;
 	noAutoSuspend?: boolean;
 }
 
-export interface $EventTypes {}
+export interface $EventTypes {
+	user_created: never;
+	user_deleted: never;
+}
 
-export type EventName = keyof $EventTypes extends never ? string : keyof $EventTypes;
-export type EventExtra<T extends EventName> = T extends keyof $EventTypes ? $EventTypes[T] : Record<string, unknown>;
+export type EventName = keyof $EventTypes;
+export type EventExtra<T extends EventName> = $EventTypes[T];
 
 const events = new Map<EventName, AuditEventConfig>();
 
@@ -100,7 +103,7 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 	}
 
 	try {
-		extra = cfg.extra.parse(extra) as EventExtra<T>;
+		if (cfg.extra) extra = cfg.extra.parse(extra) as EventExtra<T>;
 	} catch (e) {
 		io.error('Audit event has invalid extra data: ' + eventName);
 		return;
@@ -150,3 +153,8 @@ export async function getEvents(filter: AuditFilter): Promise<AuditEvent[]> {
 
 	return await query.execute();
 }
+
+// Register built-ins
+
+addEvent({ source: '@axium/server', name: 'user_created', severity: Severity.Info, tags: ['user'] });
+addEvent({ source: '@axium/server', name: 'user_deleted', severity: Severity.Info, tags: ['user'] });
