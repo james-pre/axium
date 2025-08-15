@@ -9,7 +9,7 @@ import { capitalize, getByString, isJSON, setByString, uncapitalize, type Entrie
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
-import { getEvents, Severity, styleSeverity, type AuditEvent, type AuditFilter } from './audit.js';
+import { audit, getEvents, Severity, styleSeverity, type AuditEvent, type AuditFilter } from './audit.js';
 import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
@@ -506,6 +506,8 @@ program
 
 		const isAdmin = !user.isAdmin;
 		await db.database.updateTable('users').set({ isAdmin }).where('id', '=', user.id).executeTakeFirstOrThrow();
+
+		await audit('admin_change', undefined, { user: user.id });
 
 		console.log(
 			`${userText(user)} is ${isAdmin ? 'now' : 'no longer'} an administrator. (${styleText(['whiteBright', 'bold'], isAdmin.toString())})`
