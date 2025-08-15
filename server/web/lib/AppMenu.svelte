@@ -13,7 +13,7 @@
 
 	<div class="app-menu">
 		{#each apps as app}
-			<a class="app-menu-item" href="/{app.id}">
+			<a class="app-menu-item icon-text" href="/{app.id}">
 				{#if app.image}
 					<img src={app.image} alt={app.name} width="1em" height="1em" />
 				{:else if app.icon}
