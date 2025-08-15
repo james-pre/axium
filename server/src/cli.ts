@@ -9,7 +9,7 @@ import { capitalize, getByString, isJSON, setByString, uncapitalize, type Entrie
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
-import { getEvents, Severity, styleSeverity, type AuditFilter } from './audit.js';
+import { getEvents, Severity, styleSeverity, type AuditEvent, type AuditFilter } from './audit.js';
 import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
@@ -619,7 +619,7 @@ program
 		linkRoutes(opt);
 	});
 
-const auditSeverity = new Option('--severity <level>', 'Filter for events at or above a severity level')
+const auditOptSeverity = new Option('--severity <level>', 'Filter for events at or above a severity level')
 	.choices(
 		Object.keys(Severity)
 			.filter(k => isNaN(Number(k)))
@@ -631,24 +631,33 @@ const auditSeverity = new Option('--severity <level>', 'Filter for events at or 
 		return Severity[cap as keyof typeof Severity];
 	});
 
+const auditOptSummary = new Option('-s, --summary', 'Summarize audit log entries instead of displaying individual ones').conflicts([
+	'extra',
+	'includeTags',
+]);
+
 interface AuditCLIOptions extends AuditFilter {
 	summary: boolean;
+	extra: boolean;
+	includeTags: boolean;
 }
 
 program
 	.command('audit')
 	.description('View audit logs')
-	.option('-S, --summary', 'Summarize audit log entries instead of displaying individual ones')
+	.option('-x, --extra', 'Include the extra object when listing events')
+	.option('-t, --include-tags', 'Include tags when listing events')
+	.addOption(auditOptSummary)
 	.addOption(new Option('--since <date>', 'Filter for events since a date').argParser(v => new Date(v)))
 	.addOption(new Option('--until <date>', 'Filter for events until a date').argParser(v => new Date(v)))
 	.option('--cli', 'Filter for events triggered using the server CLI')
 	.addOption(new Option('--user <uuid>', 'Filter for events triggered by a user').argParser(v => z.uuid().parse(v)).conflicts('cli'))
-	.addOption(auditSeverity)
+	.addOption(auditOptSeverity)
 	.option('--source <source>', 'Filter by source')
 	.option('--tag <tag...>', 'Filter by tag(s)')
 	.option('--event <event>', 'Filter by event name')
 	.action(async (opt: AuditCLIOptions) => {
-		const events = await getEvents(opt);
+		const events: (AuditEvent & { _extra?: string; _tags?: string })[] = await getEvents(opt);
 
 		if (opt.summary) {
 			const groups = Object.groupBy(events, e => e.severity);
@@ -668,10 +677,21 @@ program
 		}
 
 		let maxSource = 0,
-			maxName = 0;
+			maxName = 0,
+			maxTags = 0,
+			maxExtra = 0;
 		for (const event of events) {
 			maxSource = Math.max(maxSource, event.source.length);
 			maxName = Math.max(maxName, event.name.length);
+			event._tags = !event.tags.length
+				? ''
+				: opt.includeTags
+					? '# ' + event.tags.join(', ')
+					: `(${event.tags.length} tag${event.tags.length == 1 ? '' : 's'})`;
+			maxTags = Math.max(maxTags, event._tags.length);
+			const extraKeys = Object.keys(event.extra);
+			event._extra = !extraKeys.length ? '' : opt.extra ? JSON.stringify(event.extra) : '+' + extraKeys.length;
+			maxExtra = Math.max(maxExtra, event._extra.length);
 		}
 
 		for (const event of events) {
@@ -679,7 +699,9 @@ program
 				styleSeverity(event.severity, true),
 				io.prettyDate(event.timestamp),
 				event.source.padEnd(maxSource),
-				event.name.padEnd(maxName)
+				event.name.padEnd(maxName),
+				styleText('gray', event._tags!.padEnd(maxTags)),
+				styleText('blue', event._extra!.padEnd(maxExtra))
 			);
 		}
 	});
