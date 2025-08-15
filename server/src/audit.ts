@@ -76,6 +76,7 @@ export interface AuditEventConfig {
 	tags: string[];
 	/** Schema for the extra data */
 	extra: z.ZodObject;
+	noAutoSuspend?: boolean;
 }
 
 export interface $EventTypes {}
@@ -90,27 +91,38 @@ export function addEvent(config: AuditEventConfig) {
 	events.set(config.name, config);
 }
 
-export async function audit<T extends EventName>(event: T, userId?: string, extra?: EventExtra<T>) {
-	const init = events.get(event);
+export async function audit<T extends EventName>(eventName: T, userId?: string, extra?: EventExtra<T>) {
+	const cfg = events.get(eventName);
 
-	if (!init) {
-		io.warn('Ignoring audit event with unknown event name: ' + event);
+	if (!cfg) {
+		io.warn('Ignoring audit event with unknown event name: ' + eventName);
 		return;
 	}
 
 	try {
-		extra = init.extra.parse(extra) as EventExtra<T>;
+		extra = cfg.extra.parse(extra) as EventExtra<T>;
 	} catch (e) {
-		io.error('Audit event has invalid extra data: ' + event);
+		io.error('Audit event has invalid extra data: ' + eventName);
 		return;
 	}
 
-	const result = await database
+	const event = await database
 		.insertInto('audit_log')
-		.values({ ...omit(init, 'extra'), extra })
+		.values({ ...omit(cfg, 'extra'), extra, userId })
 		.returningAll()
 		.executeTakeFirstOrThrow();
-	output(result);
+	output(event);
+
+	if (userId && !cfg.noAutoSuspend && event.severity < Severity[capitalize(config.audit.auto_suspend)]) {
+		await database
+			.updateTable('users')
+			.set({ isSuspended: true })
+			.where('id', '=', userId)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.then(user => console.error('[audit] Auto-suspended user:', user.id, `<${user.email}>`))
+			.catch(() => null);
+	}
 }
 
 export interface AuditFilter {

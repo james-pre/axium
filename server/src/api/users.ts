@@ -117,7 +117,9 @@ addRoute({
 		const userId = event.params.id!;
 		const { type } = await parseBody(event, UserAuthOptions);
 
-		await getUser(userId).catch(withError('User does not exist', 404));
+		const user = await getUser(userId).catch(withError('User does not exist', 404));
+
+		if (user.isSuspended) error(403, 'User is suspended');
 
 		const passkeys = await getPasskeysByUserId(userId);
 

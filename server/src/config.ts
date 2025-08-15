@@ -1,12 +1,18 @@
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
-import { deepAssign, omit, type DeepRequired } from 'utilium';
+import { capitalize, deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
 import type { Severity } from './audit.js';
 import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
+
+const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
+	keyof typeof Severity
+>[];
+
+const z_audit_severity = z.literal([...audit_severity_levels, ...audit_severity_levels.map(capitalize)]);
 
 export const ConfigSchema = z
 	.looseObject({
@@ -27,16 +33,8 @@ export const ConfigSchema = z
 				allow_raw: z.boolean(),
 				/** How many days to keep events in the audit log */
 				retention: z.number().min(0),
-				min_severity: z.literal([
-					'emergency',
-					'alert',
-					'critical',
-					'error',
-					'warning',
-					'notice',
-					'info',
-					'debug',
-				] satisfies Lowercase<keyof typeof Severity>[]),
+				min_severity: z_audit_severity,
+				auto_suspend: z_audit_severity,
 			})
 			.partial(),
 		auth: z
@@ -120,6 +118,7 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 		allow_raw: false,
 		retention: 30,
 		min_severity: 'error',
+		auto_suspend: 'critical',
 	},
 	auth: {
 		origin: 'https://test.localhost',

@@ -142,6 +142,8 @@ export async function checkAuthForUser(event: RequestEvent, userId: string, sens
 
 	const session = await getSessionAndUser(token).catch(withError('Invalid or expired session', 401));
 
+	if (session.user.isSuspended) error(403, 'User is suspended');
+
 	if (session.userId !== userId) {
 		if (!session.user?.isAdmin) error(403, 'User ID mismatch');
 
@@ -194,6 +196,7 @@ export async function checkAuthForItem<const V extends acl.Target>(
 	if (item.publicPermission >= permission) return result;
 
 	if (!session) error(403, 'Access denied');
+	if (session.user.isSuspended) error(403, 'User is suspended');
 
 	if (session.userId == item.userId) return result;
 
