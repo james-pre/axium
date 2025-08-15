@@ -1,32 +1,36 @@
 <script lang="ts">
-	import Icon from './Icon.svelte';
 	import type { AppMetadata } from '@axium/core';
+	import Icon from './Icon.svelte';
+	import Popover from './Popover.svelte';
 
 	const { apps }: { apps: AppMetadata[] } = $props();
 </script>
 
-<button style:display="contents" popovertarget="AppMenu">
-	<Icon i="grid" --size="2em" />
-</button>
+<Popover>
+	{#snippet toggle()}
+		<Icon i="grid" --size="2em" />
+	{/snippet}
 
-<div id="AppMenu" popover>
-	{#each apps as app}
-		<div class="AppMenu-item">
-			{#if app.image}
-				<img src={app.image} alt={app.name} />
-			{:else if app.icon}
-				<Icon i={app.icon} --size="2em" />
-			{:else}
-				<Icon i="image-circle-xmark" --size="2em" />
-			{/if}
-		</div>
-	{:else}
-		<i>No apps available.</i>
-	{/each}
-</div>
+	<div class="app-menu">
+		{#each apps as app}
+			<a class="app-menu-item" href="/{app.id}">
+				{#if app.image}
+					<img src={app.image} alt={app.name} width="1em" height="1em" />
+				{:else if app.icon}
+					<Icon i={app.icon} --size="1em" />
+				{:else}
+					<Icon i="image-circle-xmark" --size="1em" />
+				{/if}
+				<span>{app.name}</span>
+			</a>
+		{:else}
+			<i>No apps available.</i>
+		{/each}
+	</div>
+</Popover>
 
 <style>
-	#AppMenu {
+	.app-menu {
 		display: flex;
 		flex-direction: column;
 		gap: 0.1em;
@@ -35,18 +39,18 @@
 		border-radius: 0.5em;
 	}
 
-	.AppMenu-item {
+	.app-menu-item {
 		display: grid;
 		grid-template-columns: 2em 1fr;
 		gap: 1em;
 		padding: 0.5em 1em;
 	}
 
-	.AppMenu-item:hover {
+	.app-menu-item:hover {
 		background-color: #223;
 	}
 
-	.AppMenu-item:not(:last-child) {
+	.app-menu-item:not(:last-child) {
 		border-bottom: 1px solid #222;
 	}
 </style>
