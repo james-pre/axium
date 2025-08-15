@@ -420,7 +420,7 @@ export const expectedTypes: ExpectedSchema = {
 		userId: { type: 'uuid' },
 		timestamp: { type: 'timestamptz', required: true, hasDefault: true },
 		id: { type: 'uuid', required: true, hasDefault: true },
-		severity: { type: 'int4', required: true, hasDefault: true },
+		severity: { type: 'int4', required: true },
 		name: { type: 'text', required: true },
 		source: { type: 'text', required: true },
 		tags: { type: '_text', required: true, hasDefault: true },
