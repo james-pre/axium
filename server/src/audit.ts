@@ -37,7 +37,7 @@ export interface AuditEvent<T extends Record<string, unknown> = Record<string, u
 	/** UUID of the event */
 	id: string;
 	/** UUID of the user that triggered the event. `null` for events triggered via the server CLI */
-	userID?: string | null;
+	userId?: string | null;
 	/** When the event happened */
 	timestamp: Date;
 	/** How severe the event is */

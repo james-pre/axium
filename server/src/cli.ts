@@ -704,7 +704,7 @@ program
 				styleText('whiteBright', event.name.padEnd(maxName)),
 				styleText('gray', event._tags!.padEnd(maxTags)),
 				'by',
-				event.userID ? event.userID : styleText(['dim', 'italic'], 'unknown'.padEnd(36)),
+				event.userId ? event.userId : styleText(['dim', 'italic'], 'unknown'.padEnd(36)),
 				styleText('blue', event._extra!)
 			);
 		}
