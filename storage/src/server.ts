@@ -1,5 +1,6 @@
 import { Permission } from '@axium/core/access';
 import type { Result } from '@axium/core/api';
+import { addEvent, audit, Severity } from '@axium/server/audit';
 import { checkAuthForItem, checkAuthForUser, getSessionAndUser } from '@axium/server/auth';
 import { addConfigDefaults, config } from '@axium/server/config';
 import { database, expectedTypes, type Schema } from '@axium/server/database';
@@ -85,6 +86,23 @@ declare module '@axium/server/config' {
 		};
 	}
 }
+
+declare module '@axium/server/audit' {
+	export interface $EventTypes {
+		storage_type_mismatch: {
+			/** The ID of the target item */
+			item: string;
+		};
+		/** Mismatch between the actual size of an upload and the size reported in the header */
+		storage_size_mismatch: {
+			/** ID of the target item, null for new uploads */
+			item: string | null;
+		};
+	}
+}
+
+addEvent({ source: '@axium/storage', name: 'storage_type_mismatch', severity: Severity.Warning, tags: ['storage', 'mimetype'] });
+addEvent({ source: '@axium/storage', name: 'storage_size_mismatch', severity: Severity.Warning, tags: ['storage'] });
 
 const defaultCASMime = [/video\/.*/, /audio\/.*/];
 
@@ -289,8 +307,10 @@ addRoute({
 
 		const content = await event.request.bytes();
 
-		// @todo: add this to the audit log
-		if (content.byteLength > size) error(400, 'Content length does not match size header');
+		if (content.byteLength > size) {
+			await audit('storage_size_mismatch', userId, { item: null });
+			error(400, 'Content length does not match size header');
+		}
 
 		const type = event.request.headers.get('content-type') || 'application/octet-stream';
 		const isDirectory = type == 'inode/directory';
@@ -373,7 +393,7 @@ addRoute({
 
 		const itemId = event.params.id!;
 
-		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Edit);
+		const { item, session } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Edit);
 
 		if (item.immutable) error(405, 'Item is immutable');
 		if (item.type == 'inode/directory') error(409, 'Directories do not have content');
@@ -381,8 +401,10 @@ addRoute({
 
 		const type = event.request.headers.get('content-type') || 'application/octet-stream';
 
-		// @todo: add this to the audit log
-		if (type != item.type) error(400, 'Content type does not match existing item type');
+		if (type != item.type) {
+			await audit('storage_type_mismatch', session?.userId, { item: item.id });
+			error(400, 'Content type does not match existing item type');
+		}
 
 		const size = Number(event.request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
@@ -397,8 +419,10 @@ addRoute({
 
 		const content = await event.request.bytes();
 
-		// @todo: add this to the audit log
-		if (content.byteLength > size) error(400, 'Content length does not match size header');
+		if (content.byteLength > size) {
+			await audit('storage_size_mismatch', session?.userId, { item: item.id });
+			error(400, 'Actual content length does not match header');
+		}
 
 		const hash = createHash('BLAKE2b512').update(content).digest();
 
