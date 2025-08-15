@@ -1,31 +1,37 @@
 <script lang="ts">
-	import type { AppMetadata } from '@axium/core';
+	import { fetchAPI } from '@axium/client/requests';
 	import Icon from './Icon.svelte';
 	import Popover from './Popover.svelte';
-
-	const { apps }: { apps: AppMetadata[] } = $props();
 </script>
 
 <Popover>
 	{#snippet toggle()}
-		<Icon i="grid" --size="2em" />
+		<button style:display="contents">
+			<Icon i="grid" --size="1.5em" />
+		</button>
 	{/snippet}
 
 	<div class="app-menu">
-		{#each apps as app}
-			<a class="app-menu-item icon-text" href="/{app.id}">
-				{#if app.image}
-					<img src={app.image} alt={app.name} width="1em" height="1em" />
-				{:else if app.icon}
-					<Icon i={app.icon} --size="1em" />
-				{:else}
-					<Icon i="image-circle-xmark" --size="1em" />
-				{/if}
-				<span>{app.name}</span>
-			</a>
-		{:else}
-			<i>No apps available.</i>
-		{/each}
+		{#await fetchAPI('GET', 'apps')}
+			<i>Loading...</i>
+		{:then apps}
+			{#each apps as app}
+				<a class="app-menu-item icon-text" href="/{app.id}">
+					{#if app.image}
+						<img src={app.image} alt={app.name} width="1em" height="1em" />
+					{:else if app.icon}
+						<Icon i={app.icon} --size="1.5em" />
+					{:else}
+						<Icon i="image-circle-xmark" --size="1.5em" />
+					{/if}
+					<span>{app.name}</span>
+				</a>
+			{:else}
+				<i>No apps available.</i>
+			{/each}
+		{:catch}
+			<i>Couldn't load apps.</i>
+		{/await}
 	</div>
 </Popover>
 
