@@ -1,6 +1,6 @@
 {
 	"name": "@axium/storage",
-	"version": "0.6.3",
+	"version": "0.6.4",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "User file storage for Axium",
 	"funding": {
@@ -39,8 +39,8 @@
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.1.0",
-		"@axium/core": ">=0.5.0",
-		"@axium/server": ">=0.21.0",
+		"@axium/core": ">=0.5.4",
+		"@axium/server": ">=0.22.0",
 		"@sveltejs/kit": "^2.27.3",
 		"utilium": "^2.3.8"
 	},
