@@ -342,7 +342,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	io.start('Creating table audit_log');
 	await database.schema
 		.createTable('audit_log')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`get_random_uuid()`))
+		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('timestamp', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('userId', 'uuid')
 		.addColumn('severity', 'integer', col => col.notNull())
