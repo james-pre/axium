@@ -699,11 +699,13 @@ program
 		for (const event of events) {
 			console.log(
 				styleSeverity(event.severity, true),
-				io.prettyDate(event.timestamp),
+				styleText('dim', io.prettyDate(event.timestamp)),
 				event.source.padEnd(maxSource),
-				event.name.padEnd(maxName),
+				styleText('whiteBright', event.name.padEnd(maxName)),
 				styleText('gray', event._tags!.padEnd(maxTags)),
-				styleText('blue', event._extra!.padEnd(maxExtra))
+				'by',
+				event.userID ? event.userID : styleText(['dim', 'italic'], 'unknown'.padEnd(36)),
+				styleText('blue', event._extra!)
 			);
 		}
 	});
