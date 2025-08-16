@@ -34,7 +34,7 @@ export interface TaskList extends TaskListInit {
 declare module '@axium/core/api' {
 	export interface _apiTypes {
 		'users/:id/task_lists': {
-			GET: TaskList[];
+			GET: WithRequired<TaskList, 'tasks'>[];
 			PUT: [z.input<typeof TaskListInit>, TaskList];
 		};
 		'task_lists/:id': {

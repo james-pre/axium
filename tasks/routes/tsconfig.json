@@ -7,5 +7,6 @@
 		"target": "esnext",
 		"rootDir": ".."
 	},
-	"include": ["**/*", "../lib/*"]
+	"include": ["**/*", "../lib/*"],
+	"references": [{ "path": ".." }]
 }

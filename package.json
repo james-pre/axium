@@ -33,7 +33,8 @@
 		"client",
 		"core",
 		"server",
-		"storage"
+		"storage",
+		"tasks"
 	],
 	"keywords": [],
 	"type": "module",
