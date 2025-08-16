@@ -99,13 +99,13 @@
 	{#each tasks.filter(task => !task.parentId && !task.completed) as task}
 		{@render task_tree(task)}
 	{:else}
-		<i>No pending tasks.</i>
+		<i class="subtle">No pending tasks.</i>
 	{/each}
 	<h4>Completed</h4>
 	{#each tasks.filter(task => !task.parentId && task.completed) as task}
 		{@render task_tree(task)}
 	{:else}
-		<i>No completed tasks.</i>
+		<i class="subtle">No completed tasks.</i>
 	{/each}
 </div>
 
