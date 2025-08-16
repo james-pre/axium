@@ -320,6 +320,7 @@ axiumPlugin
 		const plugin = resolvePlugin(search);
 		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 
+		await using _ = db.connect();
 		await plugin.hooks.db_init?.({ force: false, ...opt, skip: true });
 	});
 

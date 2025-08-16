@@ -15,6 +15,21 @@ async function statusText(): Promise<string> {
 }
 
 async function db_init(): Promise<void> {
+	start('Creating table task_lists');
+	await database.schema
+		.createTable('task_lists')
+		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
+		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade'))
+		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
+		.addColumn('publicPermission', 'integer', col => col.notNull().defaultTo(0))
+		.addColumn('name', 'text', col => col.notNull())
+		.addColumn('description', 'text')
+		.execute()
+		.then(done)
+		.catch(warnExists);
+
+	await createIndex('task_lists', 'userId');
+
 	start('Creating table tasks');
 	await database.schema
 		.createTable('tasks')
@@ -30,24 +45,8 @@ async function db_init(): Promise<void> {
 		.then(done)
 		.catch(warnExists);
 
-	await createIndex('tasks', 'userId');
 	await createIndex('tasks', 'listId');
 	await createIndex('tasks', 'parentId');
-
-	start('Creating table task_lists');
-	await database.schema
-		.createTable('task_lists')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade'))
-		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('publicPermission', 'integer', col => col.notNull().defaultTo(0))
-		.addColumn('name', 'text', col => col.notNull())
-		.addColumn('description', 'text')
-		.execute()
-		.then(done)
-		.catch(warnExists);
-
-	await createIndex('task_lists', 'userId');
 }
 
 async function db_wipe(): Promise<void> {
