@@ -19,14 +19,13 @@ async function db_init(): Promise<void> {
 	await database.schema
 		.createTable('tasks')
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade'))
 		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
 		.addColumn('listId', 'uuid', col => col.notNull().references('task_lists.id').onDelete('cascade'))
 		.addColumn('summary', 'text', col => col.notNull())
-		.addColumn('description', 'text', col => col)
+		.addColumn('description', 'text')
 		.addColumn('parentId', 'uuid', col => col.references('tasks.id').onDelete('cascade'))
 		.addColumn('completed', 'boolean', col => col.notNull().defaultTo(false))
-		.addColumn('due', 'timestamptz', col => col)
+		.addColumn('due', 'timestamptz')
 		.execute()
 		.then(done)
 		.catch(warnExists);
@@ -41,8 +40,9 @@ async function db_init(): Promise<void> {
 		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
 		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade'))
 		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
+		.addColumn('publicPermission', 'integer', col => col.notNull().defaultTo(0))
 		.addColumn('name', 'text', col => col.notNull())
-		.addColumn('description', 'text', col => col)
+		.addColumn('description', 'text')
 		.execute()
 		.then(done)
 		.catch(warnExists);
