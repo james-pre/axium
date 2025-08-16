@@ -43,3 +43,20 @@ To get started with Axium
 - Install postgreSQL
 - `npm install -g @axium/server`
 - `sudo axium init`
+
+## Plugins
+
+One of the key features of Axium is its plugin system.
+Plugins allow you to extend the functionality of Axium by adding new API endpoints, GUI applications and routes, database models, and more.
+Below you'll find descriptions of the official plugins maintained in this repository.
+
+#### @axium/storage
+
+The storage plugin, at a high level, is a cloud storage application.
+It is similar to the cloud storage offered by large tech companies.
+Unlike widely-used solutions, you can self-host it and always have full control over your data.
+This plugin includes the Files app along with significant code infrastructure for managing files.
+
+#### @axium/tasks
+
+Create to-do lists with ease. The tasks plugins adds the Tasks app and APIs to Axium.
