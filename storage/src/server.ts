@@ -87,23 +87,6 @@ declare module '@axium/server/config' {
 	}
 }
 
-declare module '@axium/server/audit' {
-	export interface $EventTypes {
-		storage_type_mismatch: {
-			/** The ID of the target item */
-			item: string;
-		};
-		/** Mismatch between the actual size of an upload and the size reported in the header */
-		storage_size_mismatch: {
-			/** ID of the target item, null for new uploads */
-			item: string | null;
-		};
-	}
-}
-
-addEvent({ source: '@axium/storage', name: 'storage_type_mismatch', severity: Severity.Warning, tags: ['mimetype'] });
-addEvent({ source: '@axium/storage', name: 'storage_size_mismatch', severity: Severity.Warning, tags: [] });
-
 const defaultCASMime = [/video\/.*/, /audio\/.*/];
 
 addConfigDefaults({
@@ -124,6 +107,23 @@ addConfigDefaults({
 		},
 	},
 });
+
+declare module '@axium/server/audit' {
+	export interface $EventTypes {
+		storage_type_mismatch: {
+			/** The ID of the target item */
+			item: string;
+		};
+		/** Mismatch between the actual size of an upload and the size reported in the header */
+		storage_size_mismatch: {
+			/** ID of the target item, null for new uploads */
+			item: string | null;
+		};
+	}
+}
+
+addEvent({ source: '@axium/storage', name: 'storage_type_mismatch', severity: Severity.Warning, tags: ['mimetype'] });
+addEvent({ source: '@axium/storage', name: 'storage_size_mismatch', severity: Severity.Warning, tags: [] });
 
 export interface StorageItem extends StorageItemMetadata {
 	data: Uint8Array<ArrayBufferLike>;
@@ -230,16 +230,14 @@ addRoute({
 		const auth = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Manage);
 		const item = parseItem(auth.item);
 
-		await database
+		const results = await database
 			.deleteFrom('storage')
 			.where('id', '=', itemId)
 			.returningAll()
-			.executeTakeFirstOrThrow()
+			.execute()
 			.catch(withError('Could not delete item'));
 
-		if (item.type == 'inode/directory') return item;
-
-		unlinkSync(join(config.storage.data, item.id));
+		for (const { id } of results) unlinkSync(join(config.storage.data, id));
 
 		return item;
 	},
