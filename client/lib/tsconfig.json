@@ -1,8 +1,9 @@
 {
-	"extends": ["../tsconfig.json", "../.svelte-kit/tsconfig.json"],
+	"extends": ["../tsconfig.json"],
 	"compilerOptions": {
 		"target": "ES2023",
 		"strict": true,
+		"rootDir": ".",
 		"lib": ["ESNext", "DOM", "DOM.Iterable"]
 	},
 	"include": ["./**/*"],
