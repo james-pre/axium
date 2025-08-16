@@ -129,7 +129,12 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 		port: process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432,
 		user: process.env.PGUSER || 'axium',
 	},
-	debug: false,
+	debug: await z
+		.stringbool()
+		.optional()
+		.default(false)
+		.parseAsync(process.env.AXIUM_DEBUG)
+		.catch(() => false),
 	log: {
 		console: true,
 		level: 'info',
