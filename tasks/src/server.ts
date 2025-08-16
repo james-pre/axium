@@ -154,20 +154,18 @@ addRoute({
 	path: '/api/tasks/:id',
 	params: { id: z.uuid() },
 	async PATCH(event): Result<'PATCH', 'tasks/:id'> {
-		const init = await parseBody(event, TaskInit);
+		const init = await parseBody(event, TaskInit.omit({ listId: true }));
 
 		const id = event.params.id!;
+
 		const task = await database
 			.selectFrom('tasks')
-			.selectAll()
+			.select('listId')
 			.where('id', '=', id)
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not get task'));
 
-		if (init.listId != task.listId) {
-			if (init.listId) await checkAuthForItem(event, 'task_lists', init.listId, Permission.Edit);
-			if (task.listId) await checkAuthForItem(event, 'task_lists', task.listId, Permission.Edit);
-		}
+		await checkAuthForItem(event, 'task_lists', task.listId, Permission.Edit);
 
 		return await database
 			.updateTable('tasks')
@@ -181,7 +179,7 @@ addRoute({
 		const id = event.params.id!;
 		const task = await database
 			.selectFrom('tasks')
-			.selectAll()
+			.select('listId')
 			.where('id', '=', id)
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not fetch task'));

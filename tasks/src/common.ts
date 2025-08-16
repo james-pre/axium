@@ -3,7 +3,7 @@ import type { WithRequired } from 'utilium';
 import * as z from 'zod';
 
 export const TaskInit = z.object({
-	summary: z.string().max(100),
+	summary: z.string().max(100).default(''),
 	description: z.string().max(500).optional().nullable(),
 	listId: z.uuid(),
 	parentId: z.uuid().optional().nullable(),
@@ -44,7 +44,7 @@ declare module '@axium/core/api' {
 			DELETE: TaskList;
 		};
 		'tasks/:id': {
-			PATCH: [z.input<typeof TaskInit>, Task];
+			PATCH: [Omit<z.input<typeof TaskInit>, 'listId'>, Task];
 			DELETE: Task;
 		};
 	}

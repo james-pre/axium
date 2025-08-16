@@ -12,11 +12,31 @@
 </script>
 
 {#snippet task_tree(root: Task)}
-	<form class="task">
-		<div>
-			<Icon i="regular/circle{root.completed ? '-check' : ''}" />
-		</div>
-		<span>{root.summary}</span>
+	<div class="task">
+		<label for="task-completed#{root.id}">
+			<Icon i="regular/circle{root.completed ? '-check' : ''}" --size="20px" />
+		</label>
+		<input
+			type="checkbox"
+			name="completed"
+			bind:checked={root.completed}
+			id="task-completed#{root.id}"
+			style:display="none"
+			onchange={e => {
+				root.completed = e.currentTarget.checked;
+				fetchAPI('PATCH', 'tasks/:id', { completed: root.completed }, root.id);
+			}}
+		/>
+		<input
+			type="text"
+			name="summary"
+			class="editable-text"
+			bind:value={root.summary}
+			onchange={e => {
+				root.summary = e.currentTarget.value;
+				fetchAPI('PATCH', 'tasks/:id', { summary: root.summary }, root.id);
+			}}
+		/>
 		<Popover>
 			<div
 				class="menu-item"
@@ -30,7 +50,7 @@
 				<Icon i="trash" /> Delete
 			</div>
 		</Popover>
-	</form>
+	</div>
 	{#each tasks.filter(task => task.parentId == root.id) as child}
 		{@render task_tree(child)}
 	{/each}
@@ -38,7 +58,15 @@
 
 <div class="task-list">
 	<div class="task-list-header">
-		<h3>{list.name}</h3>
+		<input
+			type="text"
+			bind:value={list.name}
+			class="editable-text"
+			onblur={e => {
+				list.name = e.currentTarget.value;
+				fetchAPI('PATCH', 'task_lists/:id', { name: list.name }, list.id);
+			}}
+		/>
 		<Popover>
 			<div
 				class="menu-item"
@@ -82,10 +110,16 @@
 </div>
 
 <style>
+	.editable-text {
+		background: none;
+		border: none;
+	}
+
 	.task {
 		display: grid;
 		grid-template-columns: 1em 1fr 2em;
 		align-items: center;
+		gap: 1em;
 
 		.task {
 			padding-left: 1em;
@@ -98,7 +132,6 @@
 		gap: 0.5em;
 		border-radius: 1em;
 		padding: 1em;
-		padding-top: 0;
 		border: 1px solid #334;
 		background-color: #232325;
 	}
@@ -107,6 +140,12 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+
+		input {
+			font-size: 1.5em;
+			font-weight: bold;
+			padding: 0;
+		}
 	}
 
 	.task :global(.popover-toggle) {
