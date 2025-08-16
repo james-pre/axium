@@ -80,6 +80,17 @@
 			>
 				<Icon i="trash" /> Delete
 			</div>
+			{#if lists}
+				<div
+					class="menu-item"
+					onclick={e => {
+						e.currentTarget.parentElement?.togglePopover();
+						open(`/tasks/${list.id}`);
+					}}
+				>
+					<Icon i="arrow-up-right-from-square" /> Open in New Tab
+				</div>
+			{/if}
 		</Popover>
 	</div>
 	<div>
