@@ -4,6 +4,8 @@ import type { Session } from '@axium/core';
 import { parseList } from '@axium/tasks/client';
 import type { LoadEvent } from '@sveltejs/kit';
 
+export const ssr = false;
+
 export async function load({ parent }: LoadEvent) {
 	let { session }: { session?: Session } = await parent();
 
