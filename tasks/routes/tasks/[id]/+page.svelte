@@ -4,10 +4,12 @@
 
 	const { data } = $props();
 
-	let opener = $state<Window | null>(window.opener);
+	let opener = $state.raw<Window | null>(window.opener);
 
-	opener?.addEventListener('beforeunload', () => {
-		opener = null;
+	opener?.addEventListener('beforeunload', () => (opener = null));
+	opener?.addEventListener('load', () => (opener = null));
+	opener?.addEventListener('popstate', () => {
+		opener = opener?.location.pathname == '/tasks' ? window.opener : null;
 	});
 </script>
 
@@ -40,5 +42,9 @@
 		gap: 1em;
 		padding: 1em;
 		inset: 1em;
+	}
+
+	:global(.task-list-header [popover]) {
+		right: 1em;
 	}
 </style>
