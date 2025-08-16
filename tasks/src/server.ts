@@ -6,6 +6,7 @@ import { addRoute } from '@axium/server/routes';
 import type { Generated, GeneratedAlways } from 'kysely';
 import * as z from 'zod';
 import { TaskInit, TaskListInit, type Task, type TaskList } from './common.js';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
 declare module '@axium/server/database' {
 	export interface Schema {
@@ -62,14 +63,20 @@ addRoute({
 		const userId = event.params.id!;
 		await checkAuthForUser(event, userId);
 
-		return await database
+		const lists = await database
 			.selectFrom('task_lists')
 			.selectAll()
-			.select(eb => eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'task_lists.id').$castTo<any>().as('tasks'))
-			.$narrowType<{ tasks: Task[] }>()
+			.select(eb =>
+				jsonArrayFrom<Task>(eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'task_lists.id')).as('tasks')
+			)
 			.where('userId', '=', userId)
 			.execute()
 			.catch(withError('Could not get task lists'));
+
+		return lists.map(list => ({
+			...list,
+			tasks: list.tasks.map(t => ({ ...t, created: new Date(t.created), due: t.due ? new Date(t.due) : null })),
+		}));
 	},
 	async PUT(event): Result<'PUT', 'users/:id/task_lists'> {
 		const init = await parseBody(event, TaskListInit);
