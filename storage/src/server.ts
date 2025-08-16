@@ -192,6 +192,16 @@ export async function* getRecursive(id: string): AsyncGenerator<string> {
 	}
 }
 
+export async function deleteRecursive(itemId: string, deleteSelf: boolean): Promise<void> {
+	const toDelete = await Array.fromAsync(getRecursive(itemId)).catch(withError('Could not get items to delete'));
+
+	if (deleteSelf) toDelete.push(itemId);
+
+	await database.deleteFrom('storage').where('id', '=', itemId).returningAll().execute().catch(withError('Could not delete item'));
+
+	for (const id of toDelete) unlinkSync(join(config.storage.data, id));
+}
+
 addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
@@ -239,11 +249,7 @@ addRoute({
 		const auth = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Manage);
 		const item = parseItem(auth.item);
 
-		const toDelete = await Array.fromAsync(getRecursive(itemId)).catch(withError('Could not get items to delete'));
-
-		await database.deleteFrom('storage').where('id', '=', itemId).returningAll().execute().catch(withError('Could not delete item'));
-
-		for (const id of toDelete) unlinkSync(join(config.storage.data, id));
+		await deleteRecursive(itemId, item.type != 'inode/directory');
 
 		return item;
 	},
