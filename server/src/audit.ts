@@ -149,18 +149,17 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 export interface AuditFilter {
 	since?: Date;
 	until?: Date;
-	user?: string;
+	user?: string | null;
 	severity?: Severity;
 	source?: string;
 	tags?: string[];
 	event?: string;
-	cli?: boolean;
 }
 
 export async function getEvents(filter: AuditFilter): Promise<AuditEvent[]> {
 	let query = database.selectFrom('audit_log').selectAll();
 
-	if (filter.cli) query = query.where('userId', 'is', null);
+	if ('user' in filter && !filter.user) query = query.where('userId', 'is', null);
 	else if (filter.user) query = query.where('userId', '=', filter.user);
 	if (filter.source) query = query.where('source', '=', filter.source);
 	if (filter.event) query = query.where('name', '=', filter.event);

@@ -80,6 +80,7 @@ const opts = {
 		if (!Number.isSafeInteger(timeout) || timeout < 0) io.warn('Invalid timeout value, using default.');
 		io.setCommandTimeout(timeout);
 	}),
+	packagesDir: new Option('-p, --packages-dir <dir>', 'the directory to look for packages in'),
 };
 
 interface OptCommon {
@@ -565,9 +566,11 @@ program
 	.addOption(opts.force)
 	.addOption(opts.host)
 	.addOption(opts.check)
-	.action(async (opt: OptDB & { dbSkip: boolean; check: boolean }) => {
+	.addOption(opts.packagesDir)
+	.action(async (opt: OptDB & { dbSkip: boolean; check: boolean; packagesDir?: string }) => {
 		await db.init({ ...opt, skip: opt.dbSkip }).catch(io.handleError);
 		await io.restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
+		linkRoutes(opt);
 	});
 
 program
@@ -594,7 +597,7 @@ program
 program
 	.command('link')
 	.description('Link routes provided by plugins and the server')
-	.option('-p, --packages-dir <dir>', 'the directory to look for packages in')
+	.addOption(opts.packagesDir)
 	.addOption(new Option('-l, --list', 'list route links').conflicts('delete'))
 	.option('-d, --delete', 'delete route links')
 	.argument('[name...]', 'List of plugin names to operate on. If not specified, operates on all plugins and built-in routes.')
@@ -623,23 +626,6 @@ program
 		linkRoutes(opt);
 	});
 
-const auditOptSeverity = new Option('--severity <level>', 'Filter for events at or above a severity level')
-	.choices(
-		Object.keys(Severity)
-			.filter(k => isNaN(Number(k)))
-			.map(uncapitalize) as Lowercase<keyof typeof Severity>[]
-	)
-	.argParser(v => {
-		const cap = capitalize(v);
-		if (!(cap in Severity)) throw new Error('Invalid severity: ' + v);
-		return Severity[cap as keyof typeof Severity];
-	});
-
-const auditOptSummary = new Option('-s, --summary', 'Summarize audit log entries instead of displaying individual ones').conflicts([
-	'extra',
-	'includeTags',
-]);
-
 interface AuditCLIOptions extends AuditFilter {
 	summary: boolean;
 	extra: boolean;
@@ -651,12 +637,34 @@ program
 	.description('View audit logs')
 	.option('-x, --extra', 'Include the extra object when listing events')
 	.option('-t, --include-tags', 'Include tags when listing events')
-	.addOption(auditOptSummary)
+	.addOption(
+		new Option('-s, --summary', 'Summarize audit log entries instead of displaying individual ones').conflicts(['extra', 'includeTags'])
+	)
+	.optionsGroup('Filters:')
 	.addOption(new Option('--since <date>', 'Filter for events since a date').argParser(v => new Date(v)))
 	.addOption(new Option('--until <date>', 'Filter for events until a date').argParser(v => new Date(v)))
-	.option('--cli', 'Filter for events triggered using the server CLI')
-	.addOption(new Option('--user <uuid>', 'Filter for events triggered by a user').argParser(v => z.uuid().parse(v)).conflicts('cli'))
-	.addOption(auditOptSeverity)
+	.addOption(
+		new Option('--user <uuid|null>', 'Filter for events triggered by a user').argParser(v => {
+			try {
+				return z.union([z.uuid(), z.literal(['null', '']).transform(() => null)]).parse(v);
+			} catch (e: any) {
+				throw z.prettifyError(e);
+			}
+		})
+	)
+	.addOption(
+		new Option('--severity <level>', 'Filter for events at or above a severity level')
+			.choices(
+				Object.keys(Severity)
+					.filter(k => isNaN(Number(k)))
+					.map(uncapitalize) as Lowercase<keyof typeof Severity>[]
+			)
+			.argParser(v => {
+				const cap = capitalize(v);
+				if (!(cap in Severity)) throw new Error('Invalid severity: ' + v);
+				return Severity[cap as keyof typeof Severity];
+			})
+	)
 	.option('--source <source>', 'Filter by source')
 	.option('--tag <tag...>', 'Filter by tag(s)')
 	.option('--event <event>', 'Filter by event name')
