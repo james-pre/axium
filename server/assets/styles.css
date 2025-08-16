@@ -30,7 +30,7 @@ form.main {
 }
 
 form {
-	div {
+	div:has(label ~ input) {
 		display: flex;
 		flex-direction: column;
 		gap: 0;
