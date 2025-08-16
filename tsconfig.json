@@ -14,10 +14,11 @@
 			"@axium/core": ["./core/*"],
 			"@axium/client": ["./client/*"],
 			"@axium/server": ["./server/*"],
-			"@axium/storage": ["./storage/*"]
+			"@axium/storage": ["./storage/*"],
+			"@axium/tasks": ["./tasks/*"]
 		}
 	},
 	"exclude": ["node_modules"],
 	"files": [],
-	"references": [{ "path": "./core" }, { "path": "./client" }, { "path": "./server" }, { "path": "./storage" }]
+	"references": [{ "path": "./core" }, { "path": "./client" }, { "path": "./server" }, { "path": "./storage" }, { "path": "./tasks" }]
 }

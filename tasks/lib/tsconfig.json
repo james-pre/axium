@@ -1,0 +1,12 @@
+{
+	"extends": ["../tsconfig.json", "../.svelte-kit/tsconfig.json"],
+	"compilerOptions": {
+		"rootDir": "..",
+		"noEmit": true,
+		"module": "preserve",
+		"moduleResolution": "Bundler"
+	},
+	"include": ["**/*.svelte", "**/*.ts"],
+	"exclude": [],
+	"references": [{ "path": ".." }]
+}

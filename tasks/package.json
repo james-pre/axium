@@ -1,0 +1,47 @@
+{
+	"name": "@axium/tasks",
+	"version": "0.0.1",
+	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"description": "",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"license": "LGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
+	},
+	"routes": "routes",
+	"files": [
+		"dist",
+		"lib",
+		"routes"
+	],
+	"scripts": {
+		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/client": ">=0.1.0",
+		"@axium/core": ">=0.5.4",
+		"@axium/server": ">=0.22.0",
+		"@sveltejs/kit": "^2.27.3",
+		"utilium": "^2.3.8"
+	},
+	"dependencies": {
+		"zod": "^4.0.5"
+	}
+}
