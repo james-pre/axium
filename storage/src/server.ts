@@ -183,6 +183,15 @@ export async function getLimits(userId?: string): Promise<StorageLimits> {
 	}
 }
 
+export async function* getRecursive(id: string): AsyncGenerator<string> {
+	const items = await database.selectFrom('storage').where('parentId', '=', id).selectAll().execute();
+
+	for (const item of items) {
+		if (item.type != 'inode/directory') yield item.id;
+		else yield* getRecursive(item.id);
+	}
+}
+
 addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
@@ -230,16 +239,11 @@ addRoute({
 		const auth = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Manage);
 		const item = parseItem(auth.item);
 
-		const results = await database
-			.deleteFrom('storage')
-			.where('id', '=', itemId)
-			.returningAll()
-			.execute()
-			.catch(withError('Could not delete item'));
+		const toDelete = await Array.fromAsync(getRecursive(itemId)).catch(withError('Could not get items to delete'));
 
-		for (const { id, type } of results) {
-			if (type != 'inode/directory') unlinkSync(join(config.storage.data, id));
-		}
+		await database.deleteFrom('storage').where('id', '=', itemId).returningAll().execute().catch(withError('Could not delete item'));
+
+		for (const id of toDelete) unlinkSync(join(config.storage.data, id));
 
 		return item;
 	},
