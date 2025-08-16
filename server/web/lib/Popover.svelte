@@ -15,7 +15,9 @@
 		{#if toggle}
 			{@render toggle()}
 		{:else}
-			<Icon i="ellipsis" />
+			<span class="popover-toggle">
+				<Icon i="ellipsis" />
+			</span>
 		{/if}
 	</div>
 
@@ -23,3 +25,9 @@
 		{@render children()}
 	</div>
 </div>
+
+<style>
+	.popover-toggle:hover {
+		cursor: pointer;
+	}
+</style>
