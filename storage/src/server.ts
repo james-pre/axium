@@ -237,7 +237,9 @@ addRoute({
 			.execute()
 			.catch(withError('Could not delete item'));
 
-		for (const { id } of results) unlinkSync(join(config.storage.data, id));
+		for (const { id, type } of results) {
+			if (type != 'inode/directory') unlinkSync(join(config.storage.data, id));
+		}
 
 		return item;
 	},
