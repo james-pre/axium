@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { FormDialog, Icon } from '@axium/server/components';
+	import { FormDialog, Icon } from '@axium/client/components';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import '../styles/list.css';

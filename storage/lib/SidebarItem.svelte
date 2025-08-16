@@ -1,6 +1,6 @@
 <script lang="ts">
 	import * as icon from '@axium/core/icons';
-	import { ClipboardCopy, FormDialog, Icon } from '@axium/server/components';
+	import { ClipboardCopy, FormDialog, Icon } from '@axium/client/components';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { debug, getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';

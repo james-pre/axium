@@ -20,7 +20,6 @@ export default {
 		adapter: node(),
 		files: {
 			routes: config.web.routes,
-			lib: fixed('web/lib'),
 			assets: fixed('assets'),
 			appTemplate: fixed('web/template.html'),
 			hooks: {

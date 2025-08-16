@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Icon } from '@axium/server/components';
+	import { Icon } from '@axium/client/components';
 	import { TaskList } from '@axium/tasks/components';
 
 	const { data } = $props();

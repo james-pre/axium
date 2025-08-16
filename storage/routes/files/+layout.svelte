@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Icon } from '@axium/server/components';
+	import { Icon } from '@axium/client/components';
 	import { StorageUsage } from '@axium/storage/components';
 	import { capitalize } from 'utilium';
 

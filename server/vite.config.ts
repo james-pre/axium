@@ -21,7 +21,7 @@ export default {
 	},
 	optimizeDeps: {
 		exclude: [],
-		include: ['@axium/server/components'],
+		include: ['@axium/client/components'],
 	},
 	build: {
 		rollupOptions: {

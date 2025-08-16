@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Register from '@axium/server/components/Register';
+	import Register from '@axium/client/components/Register';
 </script>
 
 <svelte:head>

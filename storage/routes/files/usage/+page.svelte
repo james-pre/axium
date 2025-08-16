@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatBytes } from '@axium/core/format';
 	import { forMime } from '@axium/core/icons';
-	import { FormDialog, Icon, NumberBar } from '@axium/server/components';
+	import { FormDialog, Icon, NumberBar } from '@axium/client/components';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemUpdate } from '@axium/storage/common';
 	import { StorageList } from '@axium/storage/components';

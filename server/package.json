@@ -21,8 +21,6 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
-		"./components": "./web/lib/index.js",
-		"./components/*": "./web/lib/*.svelte",
 		"./$hooks": "./web/hooks.server.ts",
 		"./$routes": "./routes",
 		"./$template": "./web/template.html",

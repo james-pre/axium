@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Icon } from '@axium/server/components';
+	import { Icon } from '@axium/client/components';
 	import { StorageAdd, StorageList } from '@axium/storage/components';
 	import type { PageProps } from './$types';
 	import { updateItemMetadata } from '@axium/storage/client';

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { Icon } from '@axium/server/components';
+	import { Icon } from '@axium/client/components';
 	import '@axium/storage/styles/list';
 	import type { PageProps } from './$types';
 

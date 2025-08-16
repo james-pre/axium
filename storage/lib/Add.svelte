@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { forMime } from '@axium/core/icons';
-	import { FormDialog, Icon, Popover, Upload } from '@axium/server/components';
+	import { FormDialog, Icon, Popover, Upload } from '@axium/client/components';
 	import { uploadItem } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 

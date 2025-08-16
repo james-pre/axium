@@ -23,7 +23,9 @@
 	],
 	"exports": {
 		".": "./dist/index.js",
-		"./*": "./dist/*.js"
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
 	},
 	"scripts": {
 		"build": "tsc"
@@ -31,7 +33,8 @@
 	"peerDependencies": {
 		"@axium/core": ">=0.3.0",
 		"utilium": "^2.3.8",
-		"zod": "^4.0.5"
+		"zod": "^4.0.5",
+		"svelte": "^5.36.0"
 	},
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.1.0",

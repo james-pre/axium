@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fetchAPI } from '@axium/client/requests';
-	import { FormDialog, Icon } from '@axium/server/components';
+	import { FormDialog, Icon } from '@axium/client/components';
 	import { parseList } from '@axium/tasks/client';
 	import { TaskListInit } from '@axium/tasks/common';
 	import { TaskList } from '@axium/tasks/components';

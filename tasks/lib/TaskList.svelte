@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { fetchAPI } from '@axium/client/requests';
-	import { Icon, Popover } from '@axium/server/components';
+	import { Icon, Popover } from '@axium/client/components';
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
 

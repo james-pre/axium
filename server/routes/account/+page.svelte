@@ -10,7 +10,7 @@
 		updateUser,
 	} from '@axium/client/user';
 	import { getUserImage } from '@axium/core/user';
-	import { ClipboardCopy, FormDialog, Icon, Logout } from '@axium/server/components';
+	import { ClipboardCopy, FormDialog, Icon, Logout } from '@axium/client/components';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
