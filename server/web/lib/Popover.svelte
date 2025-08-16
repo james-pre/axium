@@ -30,4 +30,17 @@
 	.popover-toggle:hover {
 		cursor: pointer;
 	}
+
+	[popover] :global(.menu-item) {
+		display: inline-flex;
+		align-items: center;
+		padding: 0.5em 0.75em;
+		gap: 1em;
+		border-radius: 0.5em;
+
+		&:hover {
+			background-color: #223;
+			cursor: pointer;
+		}
+	}
 </style>
