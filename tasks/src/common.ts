@@ -4,11 +4,11 @@ import * as z from 'zod';
 
 export const TaskInit = z.object({
 	summary: z.string().max(100).optional(),
-	description: z.string().max(500).optional().nullable(),
+	description: z.string().max(500).nullish(),
 	listId: z.uuid(),
-	parentId: z.uuid().optional().nullable(),
+	parentId: z.uuid().nullish(),
 	completed: z.boolean().optional(),
-	due: z.date().optional().nullable(),
+	due: z.date().nullish(),
 });
 export type TaskInit = z.infer<typeof TaskInit>;
 
@@ -19,7 +19,7 @@ export interface Task extends TaskInit {
 
 export const TaskListInit = z.object({
 	name: z.string().min(1).max(50),
-	description: z.string().max(500).optional().nullable(),
+	description: z.string().max(500).nullish(),
 });
 export type TaskListInit = z.infer<typeof TaskListInit>;
 
