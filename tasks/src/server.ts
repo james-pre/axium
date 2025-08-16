@@ -110,6 +110,19 @@ addRoute({
 
 		return Object.assign(item, { tasks });
 	},
+	async PUT(event): Result<'PUT', 'task_lists/:id'> {
+		const listId = event.params.id!;
+		const init = await parseBody(event, TaskInit.omit({ listId: true }));
+
+		await checkAuthForItem<TaskList>(event, 'task_lists', listId, Permission.Edit);
+
+		return await database
+			.insertInto('tasks')
+			.values({ ...init, listId })
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not update task list'));
+	},
 	async PATCH(event): Result<'PATCH', 'task_lists/:id'> {
 		const id = event.params.id!;
 		await checkAuthForItem<TaskList>(event, 'task_lists', id, Permission.Edit);

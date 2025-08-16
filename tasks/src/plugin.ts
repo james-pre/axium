@@ -29,6 +29,7 @@ async function db_init(): Promise<void> {
 		.catch(warnExists);
 
 	await createIndex('task_lists', 'userId');
+	await acl.createTable('task_lists');
 
 	start('Creating table tasks');
 	await database.schema
@@ -55,6 +56,8 @@ async function db_wipe(): Promise<void> {
 
 	start('Wiping data from task_lists');
 	await database.deleteFrom('task_lists').execute().then(done);
+
+	await acl.wipeTable('task_lists');
 }
 
 async function remove() {

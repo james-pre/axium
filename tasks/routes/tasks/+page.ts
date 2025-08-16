@@ -13,5 +13,5 @@ export async function load({ parent }: LoadEvent) {
 
 	for (const list of lists) parseList(list);
 
-	return { lists };
+	return { lists, session };
 }
