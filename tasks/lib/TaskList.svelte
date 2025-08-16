@@ -13,7 +13,7 @@
 
 {#snippet task_tree(root: Task)}
 	<div class="task">
-		<label for="task-completed#{root.id}">
+		<label for="task-completed#{root.id}" style:cursor="pointer">
 			<Icon i="regular/circle{root.completed ? '-check' : ''}" --size="20px" />
 		</label>
 		<input

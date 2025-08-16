@@ -118,7 +118,7 @@ addRoute({
 
 		return await database
 			.insertInto('tasks')
-			.values({ ...init, listId })
+			.values({ summary: '', ...init, listId })
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update task list'));
