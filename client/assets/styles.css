@@ -52,7 +52,8 @@ select {
 	padding: 0.5em 1em;
 }
 
-input {
+input,
+textarea {
 	outline: none;
 }
 
@@ -124,4 +125,8 @@ button:hover {
 	display: inline-flex;
 	align-items: center;
 	gap: 1em;
+}
+
+a:has(button, div) {
+	display: contents;
 }
