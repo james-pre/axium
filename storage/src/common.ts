@@ -1,7 +1,7 @@
 import * as z from 'zod';
 
 declare module '@axium/core/api' {
-	export interface _apiTypes {
+	export interface $API {
 		'users/:id/storage': {
 			OPTIONS: UserStorageInfo;
 			GET: UserStorage;

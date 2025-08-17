@@ -57,7 +57,7 @@ export interface AppMetadata {
  * Types for all API endpoints
  * @internal
  */
-export interface _apiTypes {
+export interface $API {
 	metadata: {
 		GET: {
 			version: string;
@@ -118,22 +118,22 @@ export interface _apiTypes {
 	};
 }
 
-export type Endpoint = keyof _apiTypes;
+export type Endpoint = keyof $API;
 
-export type APIFunction<Method extends RequestMethod, E extends Endpoint> = Method extends keyof _apiTypes[E]
-	? _apiTypes[E][Method] extends [infer Body, infer Result]
+export type APIFunction<Method extends RequestMethod, E extends Endpoint> = Method extends keyof $API[E]
+	? $API[E][Method] extends [infer Body, infer Result]
 		? (body: Body) => Promise<Result>
-		: () => _apiTypes[E][Method]
+		: () => $API[E][Method]
 	: unknown;
 
-export type RequestBody<Method extends RequestMethod, E extends Endpoint> = Method extends keyof _apiTypes[E]
-	? _apiTypes[E][Method] extends [infer Body, unknown]
+export type RequestBody<Method extends RequestMethod, E extends Endpoint> = Method extends keyof $API[E]
+	? $API[E][Method] extends [infer Body, unknown]
 		? Body
 		: any
 	: unknown;
 
 export type Result<Method extends RequestMethod, E extends Endpoint> = Promise<
-	Method extends keyof _apiTypes[E] ? (_apiTypes[E][Method] extends [unknown, infer R] ? R : _apiTypes[E][Method]) : unknown
+	Method extends keyof $API[E] ? ($API[E][Method] extends [unknown, infer R] ? R : $API[E][Method]) : unknown
 >;
 
 export type APIParameters<S extends string> = S extends `${string}/:${infer Right}` ? [string, ...APIParameters<Right>] : [];
