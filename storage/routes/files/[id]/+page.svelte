@@ -11,7 +11,7 @@
 </script>
 
 <svelte:head>
-	<title>Files - Preview - {item.name}</title>
+	<title>Files — {item.name}</title>
 </svelte:head>
 
 {#if item.trashedAt}
