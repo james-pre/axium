@@ -143,8 +143,8 @@
 		gap: 0.5em;
 		border-radius: 1em;
 		padding: 1em;
-		border: 1px solid #334;
-		background-color: #232325;
+		border: 1px solid var(--bg-accent);
+		background-color: var(--bg-alt);
 	}
 
 	.task-list-header {

@@ -23,7 +23,7 @@
 			<i>No files yet</i>
 		{/each}
 	{:catch error}
-		<i style:color="#c44">{error.message}</i>
+		<i class="error-text">{error.message}</i>
 	{/await}
 </div>
 

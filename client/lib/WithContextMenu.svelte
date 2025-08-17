@@ -67,7 +67,7 @@
 
 	div.action:hover {
 		cursor: pointer;
-		background-color: #223;
+		background-color: var(--bg-strong);
 		border-radius: 0.25em;
 	}
 </style>

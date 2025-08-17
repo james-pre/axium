@@ -10,7 +10,7 @@
 <style>
 	dialog {
 		border-radius: 1em;
-		background: #111;
+		background: var(--bg-menu);
 		border: 1px solid #8888;
 		padding: 1em;
 

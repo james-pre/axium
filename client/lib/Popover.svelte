@@ -39,7 +39,7 @@
 		border-radius: 0.5em;
 
 		&:hover {
-			background-color: #223;
+			background-color: var(--bg-strong);
 			cursor: pointer;
 		}
 	}

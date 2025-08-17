@@ -87,7 +87,7 @@
 					<SidebarItem bind:item={children[i]} bind:items={children} />
 				{/each}
 			{:catch error}
-				<i style:color="#c44">{error.message}</i>
+				<i class="error-text">{error.message}</i>
 			{/await}
 		</div>
 	</details>
@@ -166,14 +166,13 @@
 	}
 
 	.StorageSidebarItem:hover {
-		background: #334;
+		background: var(--bg-strong);
 		cursor: pointer;
 	}
 
 	.selected {
 		border: 1px solid #555;
-		background: #334;
-		color: #fff;
+		background: var(--bg-strong);
 	}
 
 	details > div {
@@ -182,7 +181,7 @@
 
 	div.action:hover {
 		cursor: pointer;
-		background-color: #223;
+		background-color: var(--bg-accent);
 		border-radius: 0.25em;
 	}
 </style>

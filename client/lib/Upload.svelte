@@ -44,7 +44,7 @@
 
 	label {
 		padding: 0.5em 1em;
-		border: 1px solid #cccc;
+		border: 1px solid hsl(0 0 calc(var(--fg-light) + var(--light-step)) / 80);
 		cursor: pointer;
 		display: flex;
 		align-items: center;

@@ -1,0 +1,41 @@
+@property --hue {
+	syntax: '<number>|<angle>';
+	inherits: true;
+	initial-value: 240deg;
+}
+
+@property --fg-light {
+	syntax: '<percentage>';
+	inherits: true;
+	initial-value: 73%;
+}
+
+@property --bg-light {
+	syntax: '<percentage>';
+	inherits: true;
+	initial-value: 13.3%;
+}
+
+@property --light-step {
+	syntax: '<percentage>';
+	inherits: true;
+	initial-value: 6.6%;
+}
+
+@property --bg-light-status {
+	syntax: '<percentage>';
+	inherits: true;
+	initial-value: 33%;
+}
+
+/* html is used so themes can use :root to override these if needed */
+html {
+	--bg-normal: hsl(0 0 var(--bg-light));
+	--bg-menu: hsl(0 0 calc(var(--bg-light) - var(--light-step)));
+	--bg-accent: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
+	--bg-alt: hsl(var(--hue) 5 calc(var(--bg-light) + var(--light-step)));
+	--bg-strong: hsl(var(--hue) 20 calc(var(--bg-light) + var(--light-step)));
+	--bg-error: hsl(0 40 var(--bg-light-status));
+	--bg-success: hsl(120 40 var(--bg-light-status));
+	--fg-accent: hsl(var(--hue) 15 var(--fg-light));
+}

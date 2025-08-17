@@ -44,12 +44,12 @@
 	}
 
 	.item:hover {
-		background-color: #333;
+		background-color: var(--bg-accent);
 		cursor: pointer;
 	}
 
 	.item.active {
-		background-color: #334;
+		background-color: var(--bg-accent);
 	}
 
 	.usage {

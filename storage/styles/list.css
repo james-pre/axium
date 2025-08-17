@@ -6,7 +6,7 @@
 
 .list-header {
 	font-weight: bold;
-	border-bottom: 1.5px solid #bbc;
+	border-bottom: 1.5px solid var(--fg-accent);
 }
 
 .list-item-container {
@@ -25,7 +25,7 @@
 }
 
 .list-item:not(.list-header, :first-child) {
-	border-top: 1px solid #bbc;
+	border-top: 1px solid var(--fg-accent);
 }
 
 .list-item:not(.list-header):hover {

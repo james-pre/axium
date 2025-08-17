@@ -12,7 +12,7 @@
 		position: relative;
 		border-radius: calc(var(--height, 2em) / 2);
 		height: var(--height, 2em);
-		background-color: #444;
+		background-color: hsl(0 0 calc(var(--bg-light) + (var(--light-step) * 2)));
 		overflow: hidden;
 	}
 

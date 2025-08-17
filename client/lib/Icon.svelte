@@ -13,6 +13,6 @@
 		width: var(--size, 1em);
 		height: var(--size, 1em);
 		display: inline-block;
-		fill: var(--fill, #bbb);
+		fill: var(--fill, hsl(var(--hue) 0 var(--fg-light)));
 	}
 </style>

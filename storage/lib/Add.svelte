@@ -72,10 +72,3 @@
 		</div>
 	{/if}
 </FormDialog>
-
-<style>
-	.menu-item:hover {
-		cursor: pointer;
-		background-color: #4455;
-	}
-</style>
