@@ -1,5 +1,7 @@
 * {
 	box-sizing: border-box;
+	color: hsl(0 0 var(--fg-light));
+	accent-color: hsl(0 0 var(--fg-light));
 }
 
 body {
