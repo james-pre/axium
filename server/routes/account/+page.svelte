@@ -10,7 +10,7 @@
 		updateUser,
 	} from '@axium/client/user';
 	import { getUserImage } from '@axium/core/user';
-	import { ClipboardCopy, FormDialog, Icon, Logout } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, Logout, Preferences } from '@axium/client/components';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
@@ -198,6 +198,11 @@
 		>
 			<p>Are you sure you want to log out all sessions?</p>
 		</FormDialog>
+	</div>
+
+	<div class="section main">
+		<h3>Preferences</h3>
+		<Preferences userId={user.id} bind:preferences={user.preferences} />
 	</div>
 </div>
 

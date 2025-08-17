@@ -9,6 +9,8 @@ export { default as Login } from './Login.svelte';
 export { default as Logout } from './Logout.svelte';
 export { default as NumberBar } from './NumberBar.svelte';
 export { default as Popover } from './Popover.svelte';
+export { default as Preference } from './Preference.svelte';
+export { default as Preferences } from './Preferences.svelte';
 export { default as Register } from './Register.svelte';
 export { default as Toast } from './Toast.svelte';
 export { default as Upload } from './Upload.svelte';

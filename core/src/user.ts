@@ -1,10 +1,5 @@
 import * as z from 'zod';
-
-/**
- * User preferences.
- * Modify with `declare module ...`
- */
-export interface Preferences {}
+import type { Preferences } from './preferences.js';
 
 export const User = z.object({
 	id: z.uuid(),
@@ -35,7 +30,9 @@ export const UserChangeable = User.pick({
 	preferences: true,
 }).partial();
 
-export type UserChangeable = z.infer<typeof UserChangeable>;
+export interface UserChangeable extends z.infer<typeof UserChangeable> {
+	preferences?: Preferences;
+}
 
 export function getUserImage(user: Partial<User>): string {
 	if (user.image) return user.image;
