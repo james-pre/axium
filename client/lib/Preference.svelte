@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { fetchAPI } from '@axium/client/requests';
-	import { zIs, type Preferences, type ZodPref } from '@axium/core';
+	import { preferenceDefaults, zIs, type Preferences, type ZodPref } from '@axium/core';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
 	import Icon from './Icon.svelte';
@@ -48,15 +48,28 @@
 	}
 
 	function onchange(e: Event) {
-		const raw = input instanceof HTMLInputElement && input.type === 'checkbox' ? input.checked : input.value;
+		const value = schema.parse(input instanceof HTMLInputElement && input.type === 'checkbox' ? input.checked : input.value);
+		if (value == getByString(preferences, path)) return;
 
-		setByString(preferences, path, schema.parse(raw));
+		if (getByString(preferenceDefaults, path) == value) {
+			const parts = path.split('.');
+			const prop = parts.pop()!;
+			delete getByString<Record<string, any>>(preferences, parts.join('.'))[prop];
+		} else setByString(preferences, path, value);
+
 		fetchAPI('PATCH', 'users/:id', { preferences }, userId);
 	}
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
-	<input bind:this={input} {id} {...rest} value={getByString(preferences, path)} {onchange} required={!optional} />
+	<input
+		bind:this={input}
+		{id}
+		{...rest}
+		value={getByString(preferences, path) ?? getByString(preferenceDefaults, path)}
+		{onchange}
+		required={!optional}
+	/>
 {/snippet}
 
 {#if zIs(schema, 'string')}
@@ -91,15 +104,15 @@
 	<Preference {userId} bind:preferences {path} schema={schema.def.innerType} optional={true} />
 {:else if zIs(schema, 'array')}
 	<div class="pref-sub">
-		{#each Object.entries(getByString<object>(preferences, path)) as element, i}
+		{#each getByString<unknown[]>(preferences, path), i}
 			<div class="pref-record-entry">
-				<Preference {userId} bind:preferences path="{path}[{i}]" schema={schema.element} />
+				<Preference {userId} bind:preferences path="{path}.{i}" schema={schema.element} />
 			</div>
 		{/each}
 	</div>
 {:else if zIs(schema, 'record')}
 	<div class="pref-sub">
-		{#each Object.entries(getByString<object>(preferences, path)) as [key, v]}
+		{#each Object.keys(getByString<object>(preferences, path)) as key}
 			<div class="pref-record-entry">
 				<label for={id}>{key}</label>
 				<Preference {userId} bind:preferences path="{path}.{key}" schema={schema.valueType} />
@@ -116,7 +129,7 @@
 {:else if zIs(schema, 'tuple')}
 	<div class="pref-sub" data-rest={schema.def.rest}>
 		{#each schema.def.items as item, i}
-			<Preference {userId} bind:preferences path="{path}[{i}]" schema={item} />
+			<Preference {userId} bind:preferences path="{path}.{i}" schema={item} />
 		{/each}
 	</div>
 {:else if zIs(schema, 'enum')}
@@ -127,8 +140,7 @@
 	</select>
 {:else}
 	<!-- No idea how to render this -->
-	<i class="error-text">Invalid preference type: {(schema as any).type}</i>
-	{@debug schema}
+	<i class="error-text">Invalid preference type: {JSON.stringify((schema as ZodPref)?.def?.type)}</i>
 {/if}
 
 <style>
