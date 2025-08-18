@@ -1,6 +1,9 @@
 import type { StorageItemMetadata } from '@axium/storage/common';
 import { getDirectoryMetadata } from '@axium/storage/client';
 import { SvelteSet } from 'svelte/reactivity';
+import { preferenceDefaults, type Preferences } from '@axium/core';
+
+export const preferences = $state<Preferences>(preferenceDefaults);
 
 export const selection = $state(new SvelteSet());
 
@@ -11,9 +14,6 @@ let lastSelected = $state<string>();
 export function getLastSelected() {
 	return lastSelected;
 }
-
-/** @todo move this into user preferences somehow */
-export let debug = false;
 
 export async function getDirectory(id: string, assignTo?: StorageItemMetadata[]) {
 	const data = await getDirectoryMetadata(id);

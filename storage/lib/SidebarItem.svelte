@@ -1,9 +1,9 @@
 <script lang="ts">
-	import * as icon from '@axium/core/icons';
 	import { ClipboardCopy, FormDialog, Icon } from '@axium/client/components';
+	import * as icon from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
-	import { debug, getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
+	import { getDirectory, preferences, selection, toggle, toggleRange } from '@axium/storage/sidebar';
 	import SidebarItem from './SidebarItem.svelte';
 
 	let {
@@ -104,7 +104,7 @@
 	{#if item.type == 'cas_item'}
 		{@render action('download', 'download', 'Download')}
 	{/if}
-	{#if debug}
+	{#if preferences.debug}
 		<ClipboardCopy value={item.id} />
 	{/if}
 </div>
