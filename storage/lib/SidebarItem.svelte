@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { ClipboardCopy, FormDialog, Icon } from '@axium/client/components';
+	import { FormDialog, Icon } from '@axium/client/components';
+	import { copy } from '@axium/client/clipboard';
 	import * as icon from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
@@ -58,7 +59,7 @@
 			e.preventDefault();
 			dialogs[name].showModal();
 		}}
-		class="action"
+		class="action icon-text"
 	>
 		<Icon {i} --size="14px" />
 		{text}
@@ -105,7 +106,10 @@
 		{@render action('download', 'download', 'Download')}
 	{/if}
 	{#if preferences.debug}
-		<ClipboardCopy value={item.id} />
+		<div class="action icon-text" onclick={() => copy('text/plain', item.id)}>
+			<Icon i="copy" --size="14px" />
+			Copy ID
+		</div>
 	{/if}
 </div>
 
