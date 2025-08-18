@@ -1,19 +1,17 @@
 import { fetchAPI } from '@axium/client/requests';
-import { getCurrentSession } from '@axium/client/user';
-import type { Session } from '@axium/core';
 import { parseList } from '@axium/tasks/client';
-import type { LoadEvent } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 
 export const ssr = false;
 
-export async function load({ parent }: LoadEvent) {
-	let { session }: { session?: Session } = await parent();
+export async function load({ parent }) {
+	const { session } = await parent();
 
-	session ||= await getCurrentSession();
+	if (!session) redirect(307, '/login?after=/tasks');
 
 	const lists = await fetchAPI('GET', 'users/:id/task_lists', {}, session.userId);
 
 	for (const list of lists) parseList(list);
 
-	return { lists, session };
+	return { lists };
 }

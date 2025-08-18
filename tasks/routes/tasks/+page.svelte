@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { fetchAPI } from '@axium/client/requests';
 	import { FormDialog, Icon } from '@axium/client/components';
+	import { fetchAPI } from '@axium/client/requests';
 	import { parseList } from '@axium/tasks/client';
 	import { TaskListInit } from '@axium/tasks/common';
 	import { TaskList } from '@axium/tasks/components';
@@ -34,7 +34,7 @@
 	submitText="Create List"
 	submit={async rawInit => {
 		const init = TaskListInit.parse(rawInit);
-		const result = await fetchAPI('PUT', 'users/:id/task_lists', init, data.session.userId);
+		const result = await fetchAPI('PUT', 'users/:id/task_lists', init, data.session!.userId);
 		parseList(result);
 		lists.push(Object.assign(result, { tasks: [] }));
 	}}

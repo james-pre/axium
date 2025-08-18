@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { fetchAPI } from '@axium/client/requests';
+	import { page } from '$app/state';
+	import { copy } from '@axium/client/clipboard';
 	import { Icon, Popover } from '@axium/client/components';
+	import { fetchAPI } from '@axium/client/requests';
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
 
@@ -49,6 +51,11 @@
 			>
 				<Icon i="trash" /> Delete
 			</div>
+			{#if page.data.session?.user.preferences.debug}
+				<div class="menu-item" onclick={() => copy('text/plain', root.id)}>
+					<Icon i="copy" --size="14px" /> Copy ID
+				</div>
+			{/if}
 		</Popover>
 	</div>
 	{#each tasks.filter(task => task.parentId == root.id) as child}
@@ -89,6 +96,11 @@
 					}}
 				>
 					<Icon i="arrow-up-right-from-square" /> Open in New Tab
+				</div>
+			{/if}
+			{#if page.data.session?.user.preferences.debug}
+				<div class="menu-item" onclick={() => copy('text/plain', list.id)}>
+					<Icon i="copy" --size="14px" /> Copy ID
 				</div>
 			{/if}
 		</Popover>
