@@ -20,5 +20,12 @@
 	},
 	"exclude": ["node_modules"],
 	"files": [],
-	"references": [{ "path": "./core" }, { "path": "./client" }, { "path": "./server" }, { "path": "./storage" }, { "path": "./tasks" }]
+	"references": [
+		{ "path": "./core" },
+		{ "path": "./client" },
+		{ "path": "./notes" },
+		{ "path": "./server" },
+		{ "path": "./storage" },
+		{ "path": "./tasks" }
+	]
 }

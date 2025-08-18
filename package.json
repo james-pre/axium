@@ -32,6 +32,7 @@
 	"workspaces": [
 		"client",
 		"core",
+		"notes",
 		"server",
 		"storage",
 		"tasks"
