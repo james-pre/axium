@@ -47,7 +47,7 @@
 			{/if}
 			{#if page.data.session?.user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', note.id)}>
-					<Icon i="copy" --size="14px" />
+					<Icon i="hashtag" --size="14px" />
 					Copy ID
 				</div>
 			{/if}
