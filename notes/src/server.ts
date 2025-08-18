@@ -13,9 +13,9 @@ declare module '@axium/server/database' {
 			id: GeneratedAlways<string>;
 			userId: string;
 			created: GeneratedAlways<Date>;
-			modified: GeneratedAlways<Date>;
+			modified: Generated<Date>;
 			title: string;
-			content: string;
+			content: string | null;
 			publicPermission: Generated<Permission>;
 			labels: Generated<string[]>;
 		};
@@ -32,9 +32,9 @@ expectedTypes.notes = {
 	created: { type: 'timestamptz', required: true, hasDefault: true },
 	modified: { type: 'timestamptz', required: true, hasDefault: true },
 	title: { type: 'text', required: true },
-	content: { type: 'text', required: true },
+	content: { type: 'text' },
 	publicPermission: { type: 'int4', required: true, hasDefault: true },
-	labels: { type: '_text', required: false, hasDefault: true },
+	labels: { type: '_text', required: true, hasDefault: true },
 };
 
 addRoute({
@@ -86,6 +86,7 @@ addRoute({
 		return await database
 			.updateTable('notes')
 			.set(init)
+			.set('modified', new Date())
 			.where('id', '=', id)
 			.returningAll()
 			.executeTakeFirstOrThrow()

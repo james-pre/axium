@@ -1,14 +1,12 @@
 <script lang="ts">
+	import { Icon } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
-	import { FormDialog, Icon } from '@axium/client/components';
 	import { parseNote } from '@axium/notes/client';
-	import { NoteInit } from '@axium/notes/common';
 	import { Note } from '@axium/notes/components';
 
 	const { data } = $props();
 
 	let notes = $state(data.notes);
-	let dialog = $state<HTMLDialogElement>();
 </script>
 
 <svelte:head>
@@ -18,7 +16,14 @@
 <div class="notes-main">
 	<h1>Notes</h1>
 	<span>
-		<button class="icon-text" onclick={() => dialog!.showModal()}>
+		<button
+			class="icon-text"
+			onclick={async () => {
+				const result = await fetchAPI('PUT', 'users/:id/notes', { title: '' }, data.session.userId);
+				parseNote(result);
+				notes.push(result);
+			}}
+		>
 			<Icon i="plus" /> New Note
 		</button>
 	</span>
@@ -28,26 +33,6 @@
 		{/each}
 	</div>
 </div>
-
-<FormDialog
-	bind:dialog
-	submitText="Create Note"
-	submit={async rawInit => {
-		const init = NoteInit.parse(rawInit);
-		const result = await fetchAPI('PUT', 'users/:id/notes', init, data.session.userId);
-		parseNote(result);
-		notes.push(result);
-	}}
->
-	<div>
-		<label for="name">Name</label>
-		<input name="name" type="text" required />
-	</div>
-	<div>
-		<label for="description">Description <span class="subtle">(optional)</span></label>
-		<input name="description" type="text" />
-	</div>
-</FormDialog>
 
 <style>
 	.notes-main {

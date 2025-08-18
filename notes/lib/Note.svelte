@@ -15,7 +15,7 @@
 			type="text"
 			bind:value={note.title}
 			class="editable-text"
-			onblur={e => {
+			onchange={e => {
 				note.title = e.currentTarget.value;
 				fetchAPI('PATCH', 'notes/:id', note, note.id);
 			}}
@@ -52,7 +52,14 @@
 			{/if}
 		</Popover>
 	</div>
-	<textarea name="content" class="note-content">{note.content}</textarea>
+	<textarea
+		name="content"
+		class="editable-text"
+		onchange={e => {
+			note.content = e.currentTarget.value;
+			fetchAPI('PATCH', 'notes/:id', note, note.id);
+		}}>{note.content}</textarea
+	>
 </div>
 
 <style>
@@ -89,9 +96,5 @@
 
 	.note:hover :global(.popover-toggle) {
 		visibility: visible;
-	}
-
-	.note-content {
-		background-color: inherit;
 	}
 </style>

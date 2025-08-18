@@ -3,9 +3,9 @@ import * as z from 'zod';
 
 export const NoteInit = z.object({
 	title: z.string().max(100),
-	content: z.string().max(1000),
-	labels: z.array(z.string().max(50)),
-	publicPermission: z.int().min(0).max(5),
+	content: z.string().max(10_000).nullish(),
+	labels: z.array(z.string().max(30)).default([]),
+	publicPermission: z.int().min(0).max(5).default(0),
 });
 
 export interface NoteInit extends z.infer<typeof NoteInit> {
