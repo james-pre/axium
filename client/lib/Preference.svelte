@@ -19,6 +19,7 @@
 
 	let input = $state<HTMLInputElement | HTMLSelectElement>()!;
 	let checked = $state(schema.def.type == 'boolean' && getByString<boolean>(preferences, path));
+	const initialValue = $derived<any>(getByString(preferences, path) ?? getByString(preferenceDefaults, path));
 
 	function dateAttr(date: Date | null, format: 'date' | 'time' | 'datetime' | 'time+sec') {
 		if (!date) return null;
@@ -62,14 +63,7 @@
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
-	<input
-		bind:this={input}
-		{id}
-		{...rest}
-		value={getByString(preferences, path) ?? getByString(preferenceDefaults, path)}
-		{onchange}
-		required={!optional}
-	/>
+	<input bind:this={input} {id} {...rest} value={initialValue} {onchange} required={!optional} />
 {/snippet}
 
 {#if zIs(schema, 'string')}
@@ -94,7 +88,7 @@
 {:else if zIs(schema, 'literal')}
 	<select bind:this={input} {id} {onchange} required={!optional}>
 		{#each schema.values as value}
-			<option {value} selected={getByString(preferences, path) === value}>{value}</option>
+			<option {value} selected={initialValue === value}>{value}</option>
 		{/each}
 	</select>
 {:else if zIs(schema, 'template_literal')}
@@ -104,7 +98,7 @@
 	<Preference {userId} bind:preferences {path} schema={schema.def.innerType} optional={true} />
 {:else if zIs(schema, 'array')}
 	<div class="pref-sub">
-		{#each getByString<unknown[]>(preferences, path), i}
+		{#each initialValue, i}
 			<div class="pref-record-entry">
 				<Preference {userId} bind:preferences path="{path}.{i}" schema={schema.element} />
 			</div>
@@ -112,7 +106,7 @@
 	</div>
 {:else if zIs(schema, 'record')}
 	<div class="pref-sub">
-		{#each Object.keys(getByString<object>(preferences, path)) as key}
+		{#each Object.keys(initialValue) as key}
 			<div class="pref-record-entry">
 				<label for={id}>{key}</label>
 				<Preference {userId} bind:preferences path="{path}.{key}" schema={schema.valueType} />
@@ -135,7 +129,7 @@
 {:else if zIs(schema, 'enum')}
 	<select bind:this={input} {id} {onchange} required={!optional}>
 		{#each Object.entries(schema.enum) as [key, value]}
-			<option value selected={getByString(preferences, path) === value}>{key}</option>
+			<option {value} selected={initialValue === value}>{key}</option>
 		{/each}
 	</select>
 {:else}
