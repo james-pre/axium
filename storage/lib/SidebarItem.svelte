@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { FormDialog, Icon } from '@axium/client/components';
+	import { page } from '$app/state';
 	import { copy } from '@axium/client/clipboard';
+	import { FormDialog, Icon } from '@axium/client/components';
 	import * as icon from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
-	import { getDirectory, preferences, selection, toggle, toggleRange } from '@axium/storage/sidebar';
+	import { getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
 	import SidebarItem from './SidebarItem.svelte';
 
 	let {
@@ -105,7 +106,7 @@
 	{#if item.type == 'cas_item'}
 		{@render action('download', 'download', 'Download')}
 	{/if}
-	{#if preferences.debug}
+	{#if page.data.session?.user.preferences.debug}
 		<div class="action icon-text" onclick={() => copy('text/plain', item.id)}>
 			<Icon i="copy" --size="14px" />
 			Copy ID

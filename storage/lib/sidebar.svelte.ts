@@ -1,9 +1,6 @@
-import type { StorageItemMetadata } from '@axium/storage/common';
 import { getDirectoryMetadata } from '@axium/storage/client';
+import type { StorageItemMetadata } from '@axium/storage/common';
 import { SvelteSet } from 'svelte/reactivity';
-import { preferenceDefaults, type Preferences } from '@axium/core';
-
-export const preferences = $state<Preferences>(preferenceDefaults);
 
 export const selection = $state(new SvelteSet());
 
