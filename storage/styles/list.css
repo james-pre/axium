@@ -39,7 +39,7 @@ p.list-empty {
 	font-style: italic;
 }
 
-.action {
+.list-item .action {
 	visibility: hidden;
 }
 
