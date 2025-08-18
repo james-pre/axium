@@ -14,6 +14,7 @@
 		<input
 			type="text"
 			bind:value={note.title}
+			placeholder="Unnamed Note"
 			class="editable-text"
 			onchange={e => {
 				note.title = e.currentTarget.value;
@@ -55,6 +56,7 @@
 	<textarea
 		name="content"
 		class="editable-text"
+		placeholder="It's a beautiful day outside..."
 		onchange={e => {
 			note.content = e.currentTarget.value;
 			fetchAPI('PATCH', 'notes/:id', note, note.id);
