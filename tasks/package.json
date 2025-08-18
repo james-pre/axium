@@ -1,6 +1,6 @@
 {
 	"name": "@axium/tasks",
-	"version": "0.1.6",
+	"version": "0.1.7",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "Tasks for Axium",
 	"funding": {
