@@ -4,7 +4,8 @@
 		"target": "ES2023",
 		"strict": true,
 		"rootDir": ".",
-		"lib": ["ESNext", "DOM", "DOM.Iterable"]
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
+		"types": ["@sveltejs/kit"]
 	},
 	"include": ["./**/*"],
 	"references": [{ "path": ".." }]
