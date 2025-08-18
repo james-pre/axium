@@ -424,13 +424,12 @@ program
 
 		const [updatedRoles, roles, rolesDiff] = diffUpdate(user.roles, opt.addRole, opt.removeRole);
 		const [updatedTags, tags, tagsDiff] = diffUpdate(user.tags, opt.tag, opt.untag);
-		const changeSuspend =
-			(typeof opt.suspend == 'boolean' || typeof opt.unsuspend == 'boolean') && user.isSuspended != (opt.suspend ?? opt.unsuspend);
+		const changeSuspend = (opt.suspend || opt.unsuspend) && user.isSuspended != (opt.suspend ?? !opt.unsuspend);
 
 		if (updatedRoles || updatedTags || changeSuspend) {
 			user = await db.database
 				.updateTable('users')
-				.set({ roles, tags, isSuspended: opt.suspend ?? opt.unsuspend })
+				.set({ roles, tags, isSuspended: !changeSuspend ? user.isSuspended : (opt.suspend ?? !opt.unsuspend) })
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.then(u => {
