@@ -69,7 +69,7 @@
 			type="text"
 			bind:value={list.name}
 			class="editable-text"
-			onblur={e => {
+			onchange={e => {
 				list.name = e.currentTarget.value;
 				fetchAPI('PATCH', 'task_lists/:id', { name: list.name }, list.id);
 			}}
