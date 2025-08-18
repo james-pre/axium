@@ -60,3 +60,7 @@ This plugin includes the Files app along with significant code infrastructure fo
 #### @axium/tasks
 
 Create to-do lists with ease. The tasks plugins adds the Tasks app and APIs to Axium.
+
+#### @axium/notes
+
+Take and manage notes. This plugin adds the Notes app and APIs to Axium.
