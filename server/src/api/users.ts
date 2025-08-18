@@ -21,6 +21,7 @@ import type { RequestEvent } from '../requests.js';
 import { createSessionData, error, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 import { audit } from '../audit.js';
+import { preferenceDefaults, preferenceSchemas } from '@axium/core';
 
 interface UserAuth {
 	data: string;
@@ -68,6 +69,11 @@ addRoute({
 		await checkAuthForUser(event, userId);
 
 		if ('email' in body) body.emailVerified = null;
+		if ('preferences' in body)
+			body.preferences = Object.assign(
+				structuredClone(preferenceDefaults),
+				await z.object(preferenceSchemas).partial().parseAsync(body.preferences).catch(withError('Invalid preferences'))
+			);
 
 		const result = await db
 			.updateTable('users')
