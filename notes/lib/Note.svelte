@@ -5,6 +5,7 @@
 	import type { Note } from '@axium/notes/common';
 	import { page } from '$app/state';
 	import { copy } from '@axium/client/clipboard';
+	import { download } from 'utilium/dom.js';
 
 	let { note = $bindable(), notes = $bindable() }: { note: Note; notes?: Note[] } = $props();
 </script>
@@ -33,6 +34,9 @@
 				}}
 			>
 				<Icon i="trash" /> Delete
+			</div>
+			<div class="menu-item" onclick={() => download(note.title + '.txt', note.content ?? '')}>
+				<Icon i="file-arrow-down" /> Download
 			</div>
 			{#if notes}
 				<div
