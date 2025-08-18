@@ -13,7 +13,7 @@
 		{/each}
 
 		<div class="usage">
-			<StorageUsage userId={data.session.userId} />
+			<StorageUsage userId={data.session?.userId} />
 		</div>
 	</div>
 

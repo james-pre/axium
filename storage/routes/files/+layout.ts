@@ -1,16 +1,13 @@
 import { getCurrentSession } from '@axium/client/user';
-import { redirect } from '@sveltejs/kit';
-import type { LayoutLoadEvent, LayoutRouteId } from './$types';
 import type { Session } from '@axium/core';
+import type { LayoutRouteId } from './$types';
 
 export const ssr = false;
 
-export async function load({ url, route, parent }: LayoutLoadEvent) {
+export async function load({ url, route, parent }) {
 	let { session }: { session?: Session | null } = await parent();
 
 	session ||= await getCurrentSession().catch(() => null);
-
-	if (!session) redirect(307, '/login?after=' + url.pathname);
 
 	const tabs = [
 		{ name: 'files', href: '/files', icon: 'folders', active: route.id.endsWith('/files/[id]') || route.id.endsWith('/files') },

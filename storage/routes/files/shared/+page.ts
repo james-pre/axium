@@ -1,12 +1,12 @@
-import type { LoadEvent } from '@sveltejs/kit';
 import { itemsSharedWith } from '@axium/storage/client';
+import { redirect } from '@sveltejs/kit';
 
 export const ssr = false;
 
-export async function load({ parent }: LoadEvent) {
+export async function load({ parent, url }) {
 	const { session } = await parent();
 
-	return {
-		items: await itemsSharedWith(session.userId),
-	};
+	if (!session) redirect(307, '/login?after=' + url.pathname);
+
+	return { items: await itemsSharedWith(session.userId) };
 }

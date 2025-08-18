@@ -1,12 +1,12 @@
 import { getUserTrash } from '@axium/storage/client';
-import type { LoadEvent } from '@sveltejs/kit';
+import { redirect } from '@sveltejs/kit';
 
 export const ssr = false;
 
-export async function load({ parent }: LoadEvent) {
+export async function load({ parent, url }) {
 	const { session } = await parent();
 
-	return {
-		items: await getUserTrash(session.userId),
-	};
+	if (!session) redirect(307, '/login?after=' + url.pathname);
+
+	return { items: await getUserTrash(session.userId) };
 }
