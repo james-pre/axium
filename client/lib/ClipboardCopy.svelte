@@ -2,15 +2,14 @@
 	import { fade } from 'svelte/transition';
 	import { wait } from 'utilium';
 	import Icon from './Icon.svelte';
+	import * as clip from '@axium/client/clipboard';
 
 	const { value, type = 'text/plain' }: { value: BlobPart; type?: string } = $props();
 
 	let success = $state(false);
 
 	async function onclick() {
-		const blob = new Blob([value], { type });
-		const item = new ClipboardItem({ [type]: blob });
-		await navigator.clipboard.write([item]);
+		await clip.copy(type, value);
 		success = true;
 		await wait(3000);
 		success = false;
