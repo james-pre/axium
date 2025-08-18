@@ -52,7 +52,10 @@ program.hook('preAction', async function (_, action: Command) {
 	await config.loadDefaults();
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && io.output.warn('--force: Protections disabled.');
-	if (opt.debug === false) config.set({ debug: false });
+	if (typeof opt.debug == 'boolean') {
+		config.set({ debug: opt.debug });
+		io._setDebugOutput(opt.debug);
+	}
 	try {
 		db.connect();
 	} catch (e) {

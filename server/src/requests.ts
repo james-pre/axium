@@ -76,7 +76,7 @@ export async function parseBody<const Schema extends z.ZodType, const Result ext
 	try {
 		return schema.parse(body) as Result;
 	} catch (e: any) {
-		error(400, z.prettifyError(e));
+		error(400, e instanceof z.core.$ZodError ? z.prettifyError(e) : 'invalid body');
 	}
 }
 
@@ -132,7 +132,7 @@ export async function handleAPIRequest(event: RequestEvent, route: ServerRoute):
 		try {
 			event.params[key] = type.parse(event.params[key]) as any;
 		} catch (e: any) {
-			error(400, `Invalid parameter: ${z.prettifyError(e)}`);
+			error(400, `Invalid parameter: ${e instanceof z.core.$ZodError ? z.prettifyError(e) : '<unknown error>'}`);
 		}
 	}
 

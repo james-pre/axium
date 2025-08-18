@@ -88,7 +88,7 @@ function _checkId(userId: string): void {
 	try {
 		z.uuid().parse(userId);
 	} catch (e: any) {
-		throw z.prettifyError(e);
+		throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
 	}
 }
 
@@ -103,7 +103,7 @@ export async function userInfo(userId: string): Promise<UserPublic & Partial<Use
 export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>): Promise<User> {
 	_checkId(userId);
 	const body = await UserChangeable.parseAsync(data).catch(e => {
-		throw z.prettifyError(e);
+		throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
 	});
 
 	const result = await fetchAPI('PATCH', 'users/:id', body, userId);

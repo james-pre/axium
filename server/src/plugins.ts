@@ -66,7 +66,7 @@ export async function loadPlugin(specifier: string) {
 		const plugin: PluginInternal = Object.assign(
 			{ hooks: {}, [kSpecifier]: specifier },
 			await Plugin.parseAsync(maybePlugin).catch(e => {
-				throw z.prettifyError(e);
+				throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
 			})
 		);
 
