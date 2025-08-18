@@ -94,7 +94,7 @@
 {:else if zIs(schema, 'literal')}
 	<select bind:this={input} {id} {onchange} required={!optional}>
 		{#each schema.values as value}
-			<option {value}>{value}</option>
+			<option {value} selected={getByString(preferences, path) === value}>{value}</option>
 		{/each}
 	</select>
 {:else if zIs(schema, 'template_literal')}
@@ -134,8 +134,8 @@
 	</div>
 {:else if zIs(schema, 'enum')}
 	<select bind:this={input} {id} {onchange} required={!optional}>
-		{#each Object.entries(schema.enum) as [key, val]}
-			<option value={val}>{key}</option>
+		{#each Object.entries(schema.enum) as [key, value]}
+			<option value selected={getByString(preferences, path) === value}>{key}</option>
 		{/each}
 	</select>
 {:else}
