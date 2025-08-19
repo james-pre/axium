@@ -45,7 +45,7 @@ declare module '@axium/core/api' {
 		'task_lists/:id': {
 			GET: WithRequired<TaskList, 'tasks'>;
 			PATCH: [z.input<typeof TaskListInit>, TaskList];
-			POST: [z.input<typeof TaskListUpdate>, void];
+			POST: [z.input<typeof TaskListUpdate>, {}];
 			PUT: [Omit<z.input<typeof TaskInit>, 'listId'>, Task];
 			DELETE: TaskList;
 		};

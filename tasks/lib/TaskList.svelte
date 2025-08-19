@@ -7,7 +7,6 @@
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
 	import { download } from 'utilium/dom.js';
-	import TaskTree from './TaskTree.svelte';
 
 	let { list = $bindable(), lists = $bindable() }: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[] } =
 		$props();
@@ -23,10 +22,56 @@
 
 		return `[${task.completed ? 'x' : ' '}] ${task.summary}` + children;
 	}
-
-	const rootPending = $derived(tasks.filter(task => !task.parentId && !task.completed));
-	const rootCompleted = $derived(tasks.filter(task => !task.parentId && task.completed));
 </script>
+
+{#snippet task_tree(task: Task)}
+	<div class="task">
+		<label for="task-completed#{task.id}" style:cursor="pointer">
+			<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="20px" />
+		</label>
+		<input
+			type="checkbox"
+			name="completed"
+			bind:checked={task.completed}
+			id="task-completed#{task.id}"
+			style:display="none"
+			onchange={e => {
+				task.completed = e.currentTarget.checked;
+				fetchAPI('PATCH', 'tasks/:id', { completed: task.completed }, task.id);
+			}}
+		/>
+		<input
+			type="text"
+			name="summary"
+			class="editable-text"
+			bind:value={task.summary}
+			onchange={e => {
+				task.summary = e.currentTarget.value;
+				fetchAPI('PATCH', 'tasks/:id', { summary: task.summary }, task.id);
+			}}
+		/>
+		<Popover>
+			<div
+				class="menu-item"
+				onclick={() =>
+					fetchAPI('DELETE', 'tasks/:id', {}, task.id).then(() => {
+						tasks.splice(tasks.indexOf(task), 1);
+					})}
+			>
+				<Icon i="trash" /> Delete
+			</div>
+			{#if page.data.session?.user.preferences.debug}
+				<div class="menu-item" onclick={() => copy('text/plain', task.id)}>
+					<Icon i="hashtag" --size="14px" /> Copy ID
+				</div>
+			{/if}
+		</Popover>
+	</div>
+
+	{#each tasks.filter(task => task.parentId == task.id) as task (task.id)}
+		{@render task_tree(task)}
+	{/each}
+{/snippet}
 
 <div class="task-list">
 	<div class="task-list-header">
@@ -112,14 +157,14 @@
 		</button>
 	</div>
 	<h4>Pending</h4>
-	{#each rootPending as task, i (task.id)}
-		<TaskTree bind:tasks bind:task={rootPending[i]} />
+	{#each tasks.filter(task => !task.parentId && !task.completed) as task (task.id)}
+		{@render task_tree(task)}
 	{:else}
 		<i class="subtle">No pending tasks.</i>
 	{/each}
 	<h4>Completed</h4>
-	{#each rootCompleted as task, i (task.id)}
-		<TaskTree bind:tasks bind:task={rootCompleted[i]} />
+	{#each tasks.filter(task => !task.parentId && task.completed) as task (task.id)}
+		{@render task_tree(task)}
 	{:else}
 		<i class="subtle">No completed tasks.</i>
 	{/each}
@@ -129,6 +174,25 @@
 	.editable-text {
 		background: none;
 		border: none;
+	}
+
+	.task {
+		display: grid;
+		grid-template-columns: 1em 1fr 2em;
+		align-items: center;
+		gap: 1em;
+
+		.task {
+			padding-left: 1em;
+		}
+	}
+
+	.task :global(.popover-toggle) {
+		visibility: hidden;
+	}
+
+	.task:hover :global(.popover-toggle) {
+		visibility: visible;
 	}
 
 	.task-list {

@@ -152,9 +152,9 @@ addRoute({
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not update task list'));
-
-			return;
 		}
+
+		return {};
 	},
 	async DELETE(event): Result<'DELETE', 'task_lists/:id'> {
 		const id = event.params.id!;
