@@ -138,12 +138,14 @@ export async function handleAPIRequest(event: RequestEvent, route: ServerRoute):
 
 	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
 
-	const result: (object & { _warnings?: string[] }) | Response = await route[method](event);
+	const result: void | (object & { _warnings?: string[] }) | Response = await route[method](event);
 
 	if (result instanceof Response) return result;
 
-	result._warnings ||= [];
-	result._warnings.push(..._warnings);
+	if (typeof result == 'object' || typeof result == 'function') {
+		result._warnings ||= [];
+		result._warnings.push(..._warnings);
+	}
 
 	return json(result);
 }
