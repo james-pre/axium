@@ -34,7 +34,10 @@
 				<Icon i="trash" /> Delete
 			</div>
 			<div class="menu-item" onclick={() => download(note.title + '.txt', note.content ?? '')}>
-				<Icon i="file-arrow-down" /> Download
+				<Icon i="download" /> Download
+			</div>
+			<div class="menu-item" onclick={() => copy('text/plain', `${location.origin}/notes/${note.id}`)}>
+				<Icon i="link-horizontal" /> Copy Link
 			</div>
 			{#if notes}
 				<div class="menu-item" onclick={() => open(`/notes/${note.id}`)}>
