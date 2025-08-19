@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import type { Preferences } from './preferences.js';
+import { PasskeyRegistration } from './passkeys.js';
 
 export const User = z.object({
 	id: z.uuid(),
@@ -54,3 +55,19 @@ export function getUserImage(user: Partial<User>): string {
 		<text x="23" y="28" style="font-family:sans-serif;font-weight:bold;" fill="white">${user.name.replaceAll(/\W/g, '')[0]}</text>
 	</svg>`.replaceAll(/[\t\n]/g, '');
 }
+
+export const UserRegistration = z.object({
+	name: z.string().min(1).max(100),
+	email: z.email(),
+	userId: z.uuid(),
+	response: PasskeyRegistration,
+});
+
+export const UserAuthOptions = z.object({ type: z.literal(['login', 'action']) });
+
+export type UserAuthOptions = z.infer<typeof UserAuthOptions>;
+
+export const LogoutSessions = z.object({
+	id: z.array(z.uuid()).optional(),
+	confirm_all: z.boolean().optional(),
+});

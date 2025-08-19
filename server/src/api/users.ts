@@ -1,10 +1,12 @@
 /** Register a new passkey for a new or existing user. */
+import { preferenceDefaults, preferenceSchemas } from '@axium/core';
 import type { Result } from '@axium/core/api';
-import { LogoutSessions, PasskeyAuthenticationResponse, PasskeyRegistration, UserAuthOptions } from '@axium/core/schemas';
-import { UserChangeable, type User } from '@axium/core/user';
+import { PasskeyAuthenticationResponse, PasskeyRegistration } from '@axium/core/passkeys';
+import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
 import * as webauthn from '@simplewebauthn/server';
 import { omit, pick } from 'utilium';
 import * as z from 'zod';
+import { audit } from '../audit.js';
 import {
 	checkAuthForUser,
 	createPasskey,
@@ -20,8 +22,6 @@ import { database as db } from '../database.js';
 import type { RequestEvent } from '../requests.js';
 import { createSessionData, error, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { audit } from '../audit.js';
-import { preferenceDefaults, preferenceSchemas } from '@axium/core';
 
 interface UserAuth {
 	data: string;

@@ -1,16 +1,16 @@
 /** Register a new user. */
 import type { Result } from '@axium/core/api';
-import { APIUserRegistration } from '@axium/core/schemas';
+import { UserRegistration } from '@axium/core/user';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
+import { audit } from '../audit.js';
 import { createPasskey, getUser } from '../auth.js';
 import config from '../config.js';
 import { database as db, type Schema } from '../database.js';
 import type { RequestEvent } from '../requests.js';
 import { createSessionData, error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { audit } from '../audit.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
@@ -46,7 +46,7 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 async function POST(event: RequestEvent) {
 	if (!config.allow_new_users) error(409, 'New user registration is disabled');
 
-	const { userId, email, name, response } = await parseBody(event, APIUserRegistration);
+	const { userId, email, name, response } = await parseBody(event, UserRegistration);
 
 	const existing = await db.selectFrom('users').selectAll().where('email', '=', email.toLowerCase()).executeTakeFirst();
 	if (existing) error(409, 'Email already in use');

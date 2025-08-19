@@ -1,21 +1,9 @@
-import type {
-	AuthenticatorTransportFuture,
-	CredentialDeviceType,
-	PublicKeyCredentialCreationOptionsJSON,
-	PublicKeyCredentialRequestOptionsJSON,
-} from '@simplewebauthn/types';
+import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
 import type z from 'zod';
-import type { RequestMethod } from './requests.js';
-import type {
-	APIUserRegistration,
-	LogoutSessions,
-	PasskeyAuthenticationResponse,
-	PasskeyChangeable,
-	PasskeyRegistration,
-	UserAuthOptions,
-} from './schemas.js';
-import type { User, UserChangeable, UserPublic } from './user.js';
 import type { AccessControl } from './access.js';
+import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
+import type { RequestMethod } from './requests.js';
+import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserPublic, UserRegistration } from './user.js';
 
 export interface Session {
 	id: string;
@@ -28,16 +16,6 @@ export interface Session {
 export interface Verification {
 	userId: string;
 	expires: Date;
-}
-
-export interface Passkey {
-	id: string;
-	name?: string | null;
-	createdAt: Date;
-	userId: string;
-	deviceType: CredentialDeviceType;
-	backedUp: boolean;
-	transports: AuthenticatorTransportFuture[];
 }
 
 export interface NewSessionResponse {
@@ -77,7 +55,7 @@ export interface $API {
 			userId: string;
 			options: PublicKeyCredentialCreationOptionsJSON;
 		};
-		POST: [z.input<typeof APIUserRegistration>, NewSessionResponse];
+		POST: [z.input<typeof UserRegistration>, NewSessionResponse];
 	};
 	'users/:id': {
 		GET: UserPublic & Partial<User>;

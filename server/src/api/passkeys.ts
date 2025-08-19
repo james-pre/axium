@@ -1,5 +1,5 @@
 import type { Result } from '@axium/core/api';
-import { PasskeyChangeable } from '@axium/core/schemas';
+import { PasskeyChangeable } from '@axium/core/passkeys';
 import { omit } from 'utilium';
 import * as z from 'zod';
 import { checkAuthForUser, getPasskey } from '../auth.js';
