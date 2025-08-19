@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
@@ -52,7 +53,7 @@
 			onclick={async () => {
 				if (item.type != 'inode/directory') {
 					// @todo get preview
-				} else if (appMode) location.href = '/files/' + item.id;
+				} else if (appMode) goto('/files/' + item.id);
 				else items = await getDirectoryMetadata(item.id);
 			}}
 		>
