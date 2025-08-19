@@ -43,5 +43,12 @@
 	},
 	"dependencies": {
 		"zod": "^4.0.5"
-	}
+	},
+	"apps": [
+		{
+			"id": "tasks",
+			"name": "Tasks",
+			"icon": "list-check"
+		}
+	]
 }

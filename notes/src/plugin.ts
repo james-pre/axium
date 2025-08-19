@@ -1,5 +1,4 @@
 import * as acl from '@axium/server/acl';
-import { addApp } from '@axium/server/apps';
 import { count, createIndex, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
 import type { Plugin } from '@axium/server/plugins';
@@ -47,13 +46,6 @@ async function remove() {
 	start('Dropping table notes');
 	await database.schema.dropTable('notes').execute().then(done);
 }
-
-addApp({
-	id: 'notes',
-	name: 'Notes',
-	icon: 'notes',
-	version: pkg.version,
-});
 
 export default {
 	...pkg,

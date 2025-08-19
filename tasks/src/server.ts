@@ -1,4 +1,5 @@
-import { Permission, type Result } from '@axium/core';
+import { Permission } from '@axium/core';
+import type { Result } from '@axium/core/api';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
 import { database, expectedTypes } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';

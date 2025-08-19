@@ -1,8 +1,10 @@
+import { App } from '@axium/core';
 import { zAsyncFunction } from '@axium/core/schemas';
 import * as fs from 'node:fs';
 import { resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import * as z from 'zod';
+import { apps } from './apps.js';
 import type { InitOptions, OpOptions } from './database.js';
 import { output } from './io.js';
 import { _unique } from './state.js';
@@ -12,6 +14,7 @@ export const PluginMetadata = z.looseObject({
 	version: z.string(),
 	description: z.string().optional(),
 	routes: z.string().optional(),
+	apps: z.array(App).optional(),
 });
 
 const hookNames = ['db_init', 'remove', 'db_wipe', 'clean'] as const satisfies (keyof Hooks)[];
@@ -72,6 +75,11 @@ export async function loadPlugin(specifier: string) {
 
 		if (plugin.name.startsWith('#') || plugin.name.includes(' ')) {
 			throw 'Invalid plugin name. Plugin names can not start with a hash or contain spaces.';
+		}
+
+		for (const app of plugin.apps ?? []) {
+			if (apps.has(app.id)) throw new ReferenceError(`App with ID "${app.id}" already exists.`);
+			apps.set(app.id, app);
 		}
 
 		plugins.add(plugin);
