@@ -7,6 +7,7 @@
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
 	import { download } from 'utilium/dom.js';
+	import TaskTree from './TaskTree.svelte';
 
 	let { list = $bindable(), lists = $bindable() }: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[] } =
 		$props();
@@ -22,55 +23,10 @@
 
 		return `[${task.completed ? 'x' : ' '}] ${task.summary}` + children;
 	}
-</script>
 
-{#snippet task_tree(root: Task)}
-	<div class="task">
-		<label for="task-completed#{root.id}" style:cursor="pointer">
-			<Icon i="regular/circle{root.completed ? '-check' : ''}" --size="20px" />
-		</label>
-		<input
-			type="checkbox"
-			name="completed"
-			bind:checked={root.completed}
-			id="task-completed#{root.id}"
-			style:display="none"
-			onchange={e => {
-				root.completed = e.currentTarget.checked;
-				fetchAPI('PATCH', 'tasks/:id', { completed: root.completed }, root.id);
-			}}
-		/>
-		<input
-			type="text"
-			name="summary"
-			class="editable-text"
-			bind:value={root.summary}
-			onchange={e => {
-				root.summary = e.currentTarget.value;
-				fetchAPI('PATCH', 'tasks/:id', { summary: root.summary }, root.id);
-			}}
-		/>
-		<Popover>
-			<div
-				class="menu-item"
-				onclick={() =>
-					fetchAPI('DELETE', 'tasks/:id', {}, root.id).then(() => {
-						tasks.splice(tasks.indexOf(root), 1);
-					})}
-			>
-				<Icon i="trash" /> Delete
-			</div>
-			{#if page.data.session?.user.preferences.debug}
-				<div class="menu-item" onclick={() => copy('text/plain', root.id)}>
-					<Icon i="hashtag" --size="14px" /> Copy ID
-				</div>
-			{/if}
-		</Popover>
-	</div>
-	{#each tasks.filter(task => task.parentId == root.id) as child}
-		{@render task_tree(child)}
-	{/each}
-{/snippet}
+	const rootPending = $derived(tasks.filter(task => !task.parentId && !task.completed));
+	const rootCompleted = $derived(tasks.filter(task => !task.parentId && task.completed));
+</script>
 
 <div class="task-list">
 	<div class="task-list-header">
@@ -107,6 +63,28 @@
 			>
 				<Icon i="regular/file-export" /> Export
 			</div>
+			{#if tasks.some(t => !t.completed)}
+				<div
+					class="menu-item"
+					onclick={() => {
+						for (const task of tasks) task.completed = true;
+						fetchAPI('POST', 'task_lists/:id', { all_completed: true }, list.id);
+					}}
+				>
+					<Icon i="regular/circle-check" /> Complete All
+				</div>
+			{/if}
+			{#if tasks.some(t => t.completed)}
+				<div
+					class="menu-item"
+					onclick={() => {
+						for (const task of tasks) task.completed = false;
+						fetchAPI('POST', 'task_lists/:id', { all_completed: false }, list.id);
+					}}
+				>
+					<Icon i="regular/circle" /> Un-complete All
+				</div>
+			{/if}
 			<div class="menu-item" onclick={() => copy('text/plain', `${location.origin}/tasks/${list.id}`)}>
 				<Icon i="link-horizontal" /> Copy Link
 			</div>
@@ -134,14 +112,14 @@
 		</button>
 	</div>
 	<h4>Pending</h4>
-	{#each tasks.filter(task => !task.parentId && !task.completed) as task}
-		{@render task_tree(task)}
+	{#each rootPending as task, i (task.id)}
+		<TaskTree bind:tasks bind:task={rootPending[i]} />
 	{:else}
 		<i class="subtle">No pending tasks.</i>
 	{/each}
 	<h4>Completed</h4>
-	{#each tasks.filter(task => !task.parentId && task.completed) as task}
-		{@render task_tree(task)}
+	{#each rootCompleted as task, i (task.id)}
+		<TaskTree bind:tasks bind:task={rootCompleted[i]} />
 	{:else}
 		<i class="subtle">No completed tasks.</i>
 	{/each}
@@ -151,17 +129,6 @@
 	.editable-text {
 		background: none;
 		border: none;
-	}
-
-	.task {
-		display: grid;
-		grid-template-columns: 1em 1fr 2em;
-		align-items: center;
-		gap: 1em;
-
-		.task {
-			padding-left: 1em;
-		}
 	}
 
 	.task-list {
@@ -184,13 +151,5 @@
 			font-weight: bold;
 			padding: 0;
 		}
-	}
-
-	.task :global(.popover-toggle) {
-		visibility: hidden;
-	}
-
-	.task:hover :global(.popover-toggle) {
-		visibility: visible;
 	}
 </style>

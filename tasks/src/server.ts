@@ -5,7 +5,7 @@ import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import type { Generated, GeneratedAlways } from 'kysely';
 import * as z from 'zod';
-import { TaskInit, TaskListInit, type Task, type TaskList } from './common.js';
+import { TaskInit, TaskListInit, TaskListUpdate, type Task, type TaskList } from './common.js';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 
 declare module '@axium/server/database' {
@@ -136,6 +136,25 @@ addRoute({
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update task list'));
+	},
+	async POST(event): Result<'POST', 'task_lists/:id'> {
+		const body = await parseBody(event, TaskListUpdate);
+
+		const id = event.params.id!;
+		await checkAuthForItem<TaskList>(event, 'task_lists', id, Permission.Edit);
+
+		if (typeof body.all_completed == 'boolean') {
+			await database
+				.updateTable('tasks')
+				.set('completed', body.all_completed)
+				.where('listId', '=', id)
+				.where('completed', '=', !body.all_completed)
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not update task list'));
+
+			return;
+		}
 	},
 	async DELETE(event): Result<'DELETE', 'task_lists/:id'> {
 		const id = event.params.id!;

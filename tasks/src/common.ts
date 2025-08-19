@@ -23,6 +23,11 @@ export const TaskListInit = z.object({
 });
 export type TaskListInit = z.infer<typeof TaskListInit>;
 
+export const TaskListUpdate = z.object({
+	all_completed: z.boolean().optional(),
+});
+export type TaskListUpdate = z.infer<typeof TaskListUpdate>;
+
 export interface TaskList extends TaskListInit {
 	id: string;
 	userId: string;
@@ -40,6 +45,7 @@ declare module '@axium/core/api' {
 		'task_lists/:id': {
 			GET: WithRequired<TaskList, 'tasks'>;
 			PATCH: [z.input<typeof TaskListInit>, TaskList];
+			POST: [z.input<typeof TaskListUpdate>, void];
 			PUT: [Omit<z.input<typeof TaskInit>, 'listId'>, Task];
 			DELETE: TaskList;
 		};
