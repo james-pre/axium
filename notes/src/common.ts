@@ -1,4 +1,5 @@
 import type { Permission } from '@axium/core';
+import type {} from '@axium/core/api';
 import * as z from 'zod';
 
 export const NoteInit = z.object({

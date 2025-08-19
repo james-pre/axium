@@ -1,6 +1,6 @@
 {
 	"name": "@axium/notes",
-	"version": "0.1.7",
+	"version": "0.1.8",
 	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
 	"description": "Notes for Axium",
 	"funding": {
@@ -36,8 +36,8 @@
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.4.0",
-		"@axium/core": ">=0.6.0",
-		"@axium/server": ">=0.22.0",
+		"@axium/core": ">=0.7.0",
+		"@axium/server": ">=0.23.0",
 		"@sveltejs/kit": "^2.27.3",
 		"utilium": "^2.4.0"
 	},
