@@ -1,35 +1,11 @@
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
 import type z from 'zod';
 import type { AccessControl } from './access.js';
+import type { App } from './apps.js';
+import type { NewSessionResponse, Session, Verification } from './auth.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
 import type { RequestMethod } from './requests.js';
 import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserPublic, UserRegistration } from './user.js';
-
-export interface Session {
-	id: string;
-	userId: string;
-	expires: Date;
-	created: Date;
-	elevated: boolean;
-}
-
-export interface Verification {
-	userId: string;
-	expires: Date;
-}
-
-export interface NewSessionResponse {
-	userId: string;
-	token: string;
-}
-
-export interface AppMetadata {
-	readonly id: string;
-	readonly name?: string;
-	readonly version?: string;
-	readonly image?: string;
-	readonly icon?: string;
-}
 
 /**
  * Types for all API endpoints
@@ -44,7 +20,7 @@ export interface $API {
 		};
 	};
 	apps: {
-		GET: AppMetadata[];
+		GET: App[];
 	};
 	session: {
 		GET: Session & { user: User };
