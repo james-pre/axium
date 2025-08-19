@@ -10,16 +10,16 @@
 	}
 </script>
 
-<div onclick={e => e.stopPropagation()}>
-	<div style:display="contents" {onclick}>
-		{#if toggle}
-			{@render toggle()}
-		{:else}
-			<span class="popover-toggle">
-				<Icon i="ellipsis" />
-			</span>
-		{/if}
-	</div>
+<!-- svelte-ignore a11y_click_events_have_key_events -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<div {onclick}>
+	{#if toggle}
+		{@render toggle()}
+	{:else}
+		<span class="popover-toggle">
+			<Icon i="ellipsis" />
+		</span>
+	{/if}
 
 	<div popover bind:this={popover}>
 		{@render children()}
