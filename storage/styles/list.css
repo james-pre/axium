@@ -30,6 +30,7 @@
 
 .list-item:not(.list-header):hover {
 	background-color: var(--bg-alt);
+	cursor: pointer;
 }
 
 p.list-empty {

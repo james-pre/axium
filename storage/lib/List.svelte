@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
+	import { FormDialog, Icon } from '@axium/client/components';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { FormDialog, Icon } from '@axium/client/components';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import '../styles/list.css';
@@ -39,18 +40,6 @@
 	{/if}
 {/snippet}
 
-{#snippet _item(item: StorageItemMetadata, i: number)}
-	<div class="list-item">
-		<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
-		<span class="name">{item.name}</span>
-		<span>{item.modifiedAt.toLocaleString()}</span>
-		<span>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span>
-		{@render action('rename', 'pencil', i)}
-		{@render action('download', 'download', i)}
-		{@render action('trash', 'trash', i)}
-	</div>
-{/snippet}
-
 <div class="list">
 	<div class="list-item list-header">
 		<span></span>
@@ -59,11 +48,23 @@
 		<span>Size</span>
 	</div>
 	{#each items as item, i (item.id)}
-		{#if item.type == 'inode/directory' && appMode}
-			<a class="list-item-container" href="/files/{item.id}">{@render _item(item, i)}</a>
-		{:else}
-			{@render _item(item, i)}
-		{/if}
+		<div
+			class="list-item"
+			onclick={async () => {
+				if (item.type != 'inode/directory') {
+					// @todo get preview
+				} else if (appMode) goto('/files/' + item.id);
+				else items = await getDirectoryMetadata(item.id);
+			}}
+		>
+			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
+			<span class="name">{item.name}</span>
+			<span>{item.modifiedAt.toLocaleString()}</span>
+			<span>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span>
+			{@render action('rename', 'pencil', i)}
+			{@render action('download', 'download', i)}
+			{@render action('trash', 'trash', i)}
+		</div>
 	{:else}
 		<p class="list-empty">{emptyText}</p>
 	{/each}
