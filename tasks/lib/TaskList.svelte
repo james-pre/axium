@@ -105,7 +105,10 @@
 							.join('\n')
 					)}
 			>
-				<Icon i="file-arrow-down" /> Export
+				<Icon i="regular/file-export" /> Export
+			</div>
+			<div class="menu-item" onclick={() => copy('text/plain', `${location.origin}/tasks/${list.id}`)}>
+				<Icon i="link-horizontal" /> Copy Link
 			</div>
 			{#if lists}
 				<div class="menu-item" onclick={() => open(`/tasks/${list.id}`)}>
