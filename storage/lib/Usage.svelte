@@ -17,7 +17,6 @@
 					max={info.limits.user_size * 1_000_000}
 					value={info.usage.bytes}
 					text="Using {formatBytes(info.usage.bytes)} of {formatBytes(info.limits.user_size * 1_000_000)}"
-					--fill="#345"
 				/>
 			</a>
 		</p>

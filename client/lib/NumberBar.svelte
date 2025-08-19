@@ -26,6 +26,6 @@
 	.fill {
 		border-radius: calc(var(--height, 2em) / 2);
 		height: 100%;
-		background-color: var(--fill, #465);
+		background-color: var(--bg-strong);
 	}
 </style>

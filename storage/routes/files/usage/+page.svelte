@@ -29,6 +29,6 @@
 
 <h2>Storage Usage</h2>
 
-<p><NumberBar max={limits.user_size * 1_000_000} value={usage?.bytes} text={barText} --fill="#345" /></p>
+<p><NumberBar max={limits.user_size * 1_000_000} value={usage?.bytes} text={barText} /></p>
 
 <StorageList bind:items emptyText="You have not uploaded any files yet." />
