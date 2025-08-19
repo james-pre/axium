@@ -6,11 +6,22 @@
 	import { fetchAPI } from '@axium/client/requests';
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
+	import { download } from 'utilium/dom.js';
 
 	let { list = $bindable(), lists = $bindable() }: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[] } =
 		$props();
 
 	let tasks = $state(list.tasks);
+
+	function exportTask(task: Task): string {
+		const children = tasks
+			.filter(t => t.parentId === task.id)
+			.map(exportTask)
+			.map(str => '\t' + str)
+			.join('\n');
+
+		return `[${task.completed ? 'x' : ' '}] ${task.summary}` + children;
+	}
 </script>
 
 {#snippet task_tree(root: Task)}
@@ -42,18 +53,16 @@
 		<Popover>
 			<div
 				class="menu-item"
-				onclick={e => {
-					e.stopPropagation();
+				onclick={() =>
 					fetchAPI('DELETE', 'tasks/:id', {}, root.id).then(() => {
 						tasks.splice(tasks.indexOf(root), 1);
-					});
-				}}
+					})}
 			>
 				<Icon i="trash" /> Delete
 			</div>
 			{#if page.data.session?.user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', root.id)}>
-					<Icon i="copy" --size="14px" /> Copy ID
+					<Icon i="hashtag" --size="14px" /> Copy ID
 				</div>
 			{/if}
 		</Popover>
@@ -77,30 +86,35 @@
 		<Popover>
 			<div
 				class="menu-item"
-				onclick={e => {
-					e.stopPropagation();
+				onclick={() =>
 					fetchAPI('DELETE', 'task_lists/:id', {}, list.id).then(() => {
 						if (!lists) goto('/tasks');
 						else lists.splice(lists.indexOf(list), 1);
-					});
-				}}
+					})}
 			>
 				<Icon i="trash" /> Delete
 			</div>
+			<div
+				class="menu-item"
+				onclick={() =>
+					download(
+						list.name + '.txt',
+						list.tasks
+							.filter(task => !task.parentId)
+							.map(exportTask)
+							.join('\n')
+					)}
+			>
+				<Icon i="file-arrow-down" /> Export
+			</div>
 			{#if lists}
-				<div
-					class="menu-item"
-					onclick={e => {
-						e.currentTarget.parentElement?.togglePopover();
-						open(`/tasks/${list.id}`);
-					}}
-				>
+				<div class="menu-item" onclick={() => open(`/tasks/${list.id}`)}>
 					<Icon i="arrow-up-right-from-square" /> Open in New Tab
 				</div>
 			{/if}
 			{#if page.data.session?.user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', list.id)}>
-					<Icon i="copy" --size="14px" /> Copy ID
+					<Icon i="hashtag" --size="14px" /> Copy ID
 				</div>
 			{/if}
 		</Popover>
@@ -108,12 +122,10 @@
 	<div>
 		<button
 			class="icon-text"
-			onclick={e => {
-				e.stopPropagation();
+			onclick={() =>
 				fetchAPI('PUT', 'task_lists/:id', { summary: '' }, list.id)
 					.then(t => t)
-					.then(tasks.push.bind(tasks));
-			}}
+					.then(tasks.push.bind(tasks))}
 		>
 			<Icon i="regular/circle-plus" /> Add Task
 		</button>

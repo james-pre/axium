@@ -25,13 +25,11 @@
 		<Popover>
 			<div
 				class="menu-item"
-				onclick={e => {
-					e.stopPropagation();
+				onclick={() =>
 					fetchAPI('DELETE', 'notes/:id', {}, note.id).then(() => {
 						if (!notes) goto('/notes');
 						else notes.splice(notes.indexOf(note), 1);
-					});
-				}}
+					})}
 			>
 				<Icon i="trash" /> Delete
 			</div>
@@ -39,13 +37,7 @@
 				<Icon i="file-arrow-down" /> Download
 			</div>
 			{#if notes}
-				<div
-					class="menu-item"
-					onclick={e => {
-						e.currentTarget.parentElement?.togglePopover();
-						open(`/notes/${note.id}`);
-					}}
-				>
+				<div class="menu-item" onclick={() => open(`/notes/${note.id}`)}>
 					<Icon i="arrow-up-right-from-square" /> Open in New Tab
 				</div>
 			{/if}
