@@ -472,7 +472,7 @@ program
 				`Roles: ${user.roles.length ? user.roles.join(', ') : styleText('dim', '(none)')}`,
 				`Tags: ${user.tags.length ? user.tags.join(', ') : styleText('dim', '(none)')}`,
 			]
-				.filter(Boolean)
+				.filter(v => v)
 				.join('\n')
 		);
 

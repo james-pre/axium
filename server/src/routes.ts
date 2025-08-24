@@ -91,12 +91,12 @@ export function resolveRoute(event: { url: URL; params?: object }): Route | unde
 		const params: Record<string, string> = {};
 
 		// Split the path and route into parts, zipped together
-		const pathParts = pathname.split('/').filter(Boolean);
+		const pathParts = pathname.split('/').filter(v => v);
 
 		// Skips routes in disabled apps
 		if (apps.has(pathParts[0]) && config.apps.disabled.includes(pathParts[0])) continue;
 
-		for (const routePart of route.path.split('/').filter(Boolean)) {
+		for (const routePart of route.path.split('/').filter(v => v)) {
 			const pathPart = pathParts.shift();
 
 			if (!pathPart) continue _routes;
