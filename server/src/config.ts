@@ -235,7 +235,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	configFiles.set(path, file);
 	setConfig(file);
 	output.debug('Loaded config: ' + path);
-	for (const include of file.include ?? []) await loadConfig(join(dirname(path), include), { optional: true });
+	for (const include of file.include ?? []) await loadConfig(resolve(dirname(path), include), { optional: true });
 	for (const plugin of file.plugins ?? []) await loadPlugin(plugin.startsWith('.') ? resolve(dirname(path), plugin) : plugin);
 }
 
