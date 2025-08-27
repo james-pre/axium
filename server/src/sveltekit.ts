@@ -38,7 +38,7 @@ export async function handleSvelteKit({
 }) {
 	const route = resolveRoute(event);
 
-	if (!route && event.url.pathname === '/' && config.debug)
+	if (!route && event.url.pathname === '/' && config.debug_home)
 		return new Response(null, { status: 303, headers: { Location: '/_axium/default' } });
 
 	if (config.debug) console.log(styleText('blueBright', event.request.method.padEnd(7)), route ? route.path : event.url.pathname);

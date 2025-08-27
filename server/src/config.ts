@@ -57,6 +57,8 @@ export const ConfigSchema = z
 			})
 			.partial(),
 		debug: z.boolean(),
+		/** Whether to show a default home page for debugging */
+		debug_home: z.boolean(),
 		log: z
 			.looseObject({
 				level: z.enum(levelText),
@@ -135,6 +137,7 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 		.default(false)
 		.parseAsync(process.env.AXIUM_DEBUG)
 		.catch(() => false),
+	debug_home: false,
 	log: {
 		console: true,
 		level: 'info',
