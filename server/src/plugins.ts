@@ -60,9 +60,13 @@ export function pluginText(plugin: PluginInternal): string {
 	].join('\n');
 }
 
+const _importedPlugins = _unique('imported_raw', new Set<object>());
+
 export async function loadPlugin(specifier: string) {
 	try {
 		const imported = await import(/* @vite-ignore */ specifier);
+		if (_importedPlugins.has(imported)) return; // already loaded this exact module
+		_importedPlugins.add(imported);
 
 		const maybePlugin = 'default' in imported ? imported.default : imported;
 
