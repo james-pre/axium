@@ -41,8 +41,8 @@ export async function init() {
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	process.on('beforeExit', () => database.destroy());
 
-	process.on('SIGHUP', async () => {
+	process.on('SIGHUP', () => {
 		output.info('Reloading configuration.');
-		await loadDefaultConfigs();
+		void loadDefaultConfigs();
 	});
 }
