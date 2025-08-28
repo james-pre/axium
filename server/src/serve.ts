@@ -6,7 +6,7 @@ import config from './config.js';
 import '@axium/server/api/index';
 import { loadDefaultConfigs } from '@axium/server/config';
 import { clean, connect, database } from '@axium/server/database';
-import { dirs, logger } from '@axium/server/io';
+import { dirs, logger, output } from '@axium/server/io';
 import { allLogLevels } from 'logzen';
 import { createWriteStream } from 'node:fs';
 import { join } from 'node:path/posix';
@@ -40,4 +40,9 @@ export async function init() {
 
 	// eslint-disable-next-line @typescript-eslint/no-misused-promises
 	process.on('beforeExit', () => database.destroy());
+
+	process.on('SIGHUP', async () => {
+		output.info('Reloading configuration.');
+		await loadDefaultConfigs();
+	});
 }
