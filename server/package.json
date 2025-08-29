@@ -34,7 +34,8 @@
 		"routes",
 		"svelte.config.js",
 		"web",
-		"vite.config.js"
+		"vite.config.js",
+		"axiumd.service"
 	],
 	"bin": {
 		"axium": "dist/cli.js"
