@@ -1,0 +1,28 @@
+[Unit]
+Description=Axium Server Daemon
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%Y
+StartLimitIntervalSec=1min
+StartLimitBurst=5
+StartLimitAction=none
+FailureAction=none
+
+[Service]
+Type=simple
+User=axium
+WorkingDirectory=%Y/../../..
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=false
+# 1 GiB. Users should never need to send a request larger than this
+Environment=BODY_SIZE_LIMIT=1048576
+ExecStart=/usr/bin/env npx --prefix "%Y/../../.." axium serve
+ExecReload=kill -HUP $MAINPID
+SyslogIdentifier=axium
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=15s
+
+[Install]
+WantedBy=multi-user.target

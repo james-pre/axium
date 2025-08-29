@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
+import { spawnSync } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import { join } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
@@ -524,31 +525,58 @@ program
 	.description('Get information about the server')
 	.addOption(opts.host)
 	.action(async () => {
-		console.log('Axium Server v' + program.version());
+		console.log('Axium Server v' + $pkg.version);
 
 		console.log(styleText('whiteBright', 'Debug mode:'), config.debug ? styleText('yellow', 'enabled') : 'disabled');
 
-		console.log(styleText('whiteBright', 'Loaded config files:'), config.files.keys().toArray().join(', '));
+		const configFiles = config.files.keys().toArray();
+		console.log(
+			styleText('whiteBright', 'Loaded config files:'),
+			styleText(['dim', 'bold'], `(${configFiles.length})`),
+			configFiles.join(', ')
+		);
+
+		process.stdout.write(styleText('whiteBright', 'Daemon: '));
+
+		const daemonIs = (sub: string) =>
+			spawnSync('systemctl', ['is-' + sub, 'axiumd'], {
+				stdio: 'pipe',
+				encoding: 'utf8',
+			});
+
+		const { status: dNotActive, stdout: dStatus } = daemonIs('active');
+		const { status: dNotFailed } = daemonIs('failed');
+		const { stdout: dEnabled } = daemonIs('enabled');
+
+		if (dEnabled.trim() == 'not-found') console.log(styleText('dim', 'not found'));
+		else {
+			process.stdout.write(dEnabled.trim() + ', ');
+			const status = dStatus.trim();
+			if (!dNotFailed) console.log(styleText('red', status));
+			else if (!dNotActive) console.log(styleText('green', status));
+			else console.log(styleText('yellow', status));
+		}
 
 		process.stdout.write(styleText('whiteBright', 'Database: '));
 
 		try {
 			console.log(await db.statText());
 		} catch {
-			io.output.error('Unavailable');
+			console.log(styleText('red', 'Unavailable'));
 		}
 
 		console.log(
 			styleText('whiteBright', 'Loaded plugins:'),
+			styleText(['dim', 'bold'], `(${plugins.size || 'none'})`),
 			Array.from(plugins)
 				.map(plugin => plugin.name)
-				.join(', ') || styleText('dim', '(none)')
+				.join(', ')
 		);
 
 		for (const plugin of plugins) {
 			if (!plugin.statusText) continue;
-			console.log(styleText('bold', plugin.name), plugin.version + ':');
-			console.log(await plugin.statusText());
+			const text = await plugin.statusText();
+			console.log(styleText('bold', plugin.name), plugin.version + ':', text.includes('\n') ? '\n' + text : text);
 		}
 	});
 
