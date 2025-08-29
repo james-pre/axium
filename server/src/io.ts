@@ -1,15 +1,13 @@
 import { Logger, type LoggerConsole } from 'logzen';
 import { exec } from 'node:child_process';
 import * as fs from 'node:fs';
-import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { _unique } from './state.js';
 
 export const systemDir = '/etc/axium';
-export const userDir = join(homedir(), '.axium');
 
-export const dirs = _unique('dirs', [systemDir, userDir]);
+export const dirs = _unique('dirs', [systemDir]);
 for (let dir = resolve(process.cwd()); dir !== '/'; dir = dirname(dir)) {
 	if (fs.existsSync(join(dir, '.axium'))) dirs.push(join(dir, '.axium'));
 }
@@ -20,7 +18,6 @@ try {
 } catch {
 	// Missing permissions
 }
-fs.mkdirSync(userDir, { recursive: true });
 
 export const logger = new Logger({
 	hideWarningStack: true,
