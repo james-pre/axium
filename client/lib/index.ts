@@ -1,4 +1,3 @@
-export { default as AccessControl } from './AccessControl.svelte';
 export { default as AccessControlDialog } from './AccessControlDialog.svelte';
 export { default as AppMenu } from './AppMenu.svelte';
 export { default as ClipboardCopy } from './ClipboardCopy.svelte';
