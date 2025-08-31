@@ -1,5 +1,5 @@
+import type { $API, APIParameters, Endpoint, RequestBody } from '@axium/core/api';
 import type { RequestMethod } from '@axium/core/requests';
-import type { Endpoint, RequestBody, Result, APIParameters } from '@axium/core/api';
 
 export let token: string | null = null;
 
@@ -18,7 +18,7 @@ export async function fetchAPI<const M extends RequestMethod, const E extends En
 	endpoint: E,
 	data?: RequestBody<M, E>,
 	...params: APIParameters<E>
-): Promise<Result<M, E>> {
+): Promise<M extends keyof $API[E] ? ($API[E][M] extends [unknown, infer R] ? R : $API[E][M]) : unknown> {
 	const options: RequestInit & { headers: Record<string, string> } = {
 		method,
 		headers: {
