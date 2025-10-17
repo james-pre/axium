@@ -2,8 +2,6 @@ node_modules
 dist
 tmp
 build
-.svelte-kit
-.env
 secrets.*
 logs
 *.log
@@ -11,3 +9,10 @@ logs
 _tmp.*
 *.tsbuildinfo
 server/schema.json
+.*
+!.gitignore
+!.prettierignore
+!.prettierrc
+!.vscode
+!.github
+!server/.axium/config.json
