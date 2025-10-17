@@ -12,7 +12,8 @@ declare const globalThis: {
 const sym = Symbol.for('Axium:state');
 globalThis[sym] ||= Object.create({ _errored: false });
 
-let _doWarnings = false;
+const { SHOW_DUPLICATE_STATE } = process.env;
+let _doWarnings: boolean = SHOW_DUPLICATE_STATE ? ['1', 'true', 'y', 'yes'].includes(SHOW_DUPLICATE_STATE.toLowerCase()) : false;
 
 export function _duplicateStateWarnings(value: boolean) {
 	_doWarnings = value;
