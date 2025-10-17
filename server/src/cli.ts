@@ -608,7 +608,7 @@ program
 	.description('Start the Axium server')
 	.option('-p, --port <port>', 'the port to listen on')
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
-	.option('-B, --build', 'the path to a built SvelteKit server handler')
+	.option('-B, --build <path>', 'the path to a built SvelteKit server handler')
 	.action(async (opt: OptCommon & { ssl?: string; port?: string; build?: string }) => {
 		const server = await serveSvelteKit({
 			secure: opt.ssl ? true : config.web.secure,
