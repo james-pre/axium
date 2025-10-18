@@ -5,7 +5,6 @@ import { omit } from 'utilium';
 import * as acl from './acl.js';
 import { audit } from './audit.js';
 import { database as db, userFromId, type Schema } from './database.js';
-import type { RequestEvent } from './requests.js';
 import { error, getToken, withError } from './requests.js';
 
 export interface UserInternal extends User {
@@ -106,7 +105,7 @@ export async function useVerification(role: VerificationRole, userId: string, to
 }
 
 export interface PasskeyInternal extends Passkey {
-	publicKey: Uint8Array;
+	publicKey: Uint8Array<ArrayBuffer>;
 	counter: number;
 }
 
@@ -135,8 +134,8 @@ export interface UserAuthResult extends SessionAndUser {
 	accessor: UserInternal;
 }
 
-export async function checkAuthForUser(event: RequestEvent, userId: string, sensitive: boolean = false): Promise<UserAuthResult> {
-	const token = getToken(event, sensitive);
+export async function checkAuthForUser(request: Request, userId: string, sensitive: boolean = false): Promise<UserAuthResult> {
+	const token = getToken(request, sensitive);
 
 	if (!token) throw error(401, 'Missing token');
 
@@ -167,12 +166,12 @@ export interface ItemAuthResult<T extends acl.Target> {
 }
 
 export async function checkAuthForItem<const V extends acl.Target>(
-	event: RequestEvent,
+	request: Request,
 	itemType: acl.TargetName,
 	itemId: string,
 	permission: Permission
 ) {
-	const token = getToken(event, false);
+	const token = getToken(request, false);
 	if (!token) error(401, 'Missing token');
 
 	const session = await getSessionAndUser(token).catch(() => null);

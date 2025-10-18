@@ -11,9 +11,9 @@ import { addRoute, routes } from '../routes.js';
 
 addRoute({
 	path: '/api/metadata',
-	async GET(event): Result<'GET', 'metadata'> {
+	async GET(request): Result<'GET', 'metadata'> {
 		if (!config.debug) {
-			const token = getToken(event);
+			const token = getToken(request);
 			if (!token) error(401, 'Missing session token');
 			const session = await getSessionAndUser(token);
 			if (!session) error(401, 'Invalid session');
@@ -44,7 +44,7 @@ addRoute({
 
 addRoute({
 	path: '/api/apps',
-	async GET(event): Result<'GET', 'apps'> {
+	async GET(): Result<'GET', 'apps'> {
 		const result: App[] = [];
 
 		for (const app of apps.values()) {

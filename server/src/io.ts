@@ -109,7 +109,7 @@ export interface Output {
 	(tag: Exclude<OutputTag, 'done'>, message: string): void;
 }
 
-let _debugOutput = false;
+export let _debugOutput = false;
 
 /**
  * Enable or disable debug output.

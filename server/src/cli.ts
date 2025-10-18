@@ -2,7 +2,6 @@
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
 import { spawnSync } from 'node:child_process';
-import { access } from 'node:fs/promises';
 import { join } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
@@ -15,9 +14,8 @@ import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import * as io from './io.js';
-import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
-import { getSpecifier, plugins, pluginText, resolvePlugin } from './plugins.js';
-import { serveSvelteKit } from './serve.js';
+import { plugins, pluginText, type PluginInternal } from './plugins.js';
+import { serve } from './serve.js';
 
 function readline() {
 	const rl = createInterface({
@@ -35,22 +33,26 @@ function userText(user: UserInternal, bold: boolean = false): string {
 	return bold ? styleText('bold', text) : text;
 }
 
+let safe = false;
+
 program
 	.version($pkg.version)
 	.name('axium')
 	.description('Axium server CLI')
 	.configureHelp({ showGlobalOptions: true })
+	.option('--safe', 'do not execute code from plugins')
 	.option('--debug', 'override debug mode')
 	.option('--no-debug', 'override debug mode')
 	.option('-c, --config <path>', 'path to the config file');
 
+program.on('option:safe', () => (safe = true));
 program.on('option:debug', () => config.set({ debug: true }));
-program.on('option:config', () => void config.load(program.opts<OptCommon>().config));
+program.on('option:config', () => void config.load(program.opts<OptCommon>().config, { safe }));
 
 const noAutoDB = ['init', 'serve', 'check'];
 
 program.hook('preAction', async function (_, action: Command) {
-	await config.loadDefaults();
+	await config.loadDefaults(safe);
 	const opt = action.optsWithGlobals<OptCommon>();
 	opt.force && io.output.warn('--force: Protections disabled.');
 	if (typeof opt.debug == 'boolean') {
@@ -265,28 +267,29 @@ axiumPlugin
 		}
 
 		if (!opt.long) {
-			console.log(
-				Array.from(plugins)
-					.map(plugin => plugin.name)
-					.join(', ')
-			);
+			console.log(Array.from(plugins.keys()).join(', '));
 			return;
 		}
 
 		console.log(styleText('whiteBright', plugins.size + ' plugin(s) loaded:'));
 
-		for (const plugin of plugins) {
+		for (const plugin of plugins.values()) {
 			console.log(plugin.name, opt.versions ? plugin.version : '');
 		}
 	});
+
+function _findPlugin(search: string): PluginInternal {
+	const plugin = plugins.get(search) ?? plugins.values().find(p => p.specifier.toLowerCase() == search.toLowerCase());
+	if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
+	return plugin;
+}
 
 axiumPlugin
 	.command('info')
 	.description('Get information about a plugin')
 	.argument('<plugin>', 'the plugin to get information about')
 	.action((search: string) => {
-		const plugin = resolvePlugin(search);
-		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
+		const plugin = _findPlugin(search);
 		console.log(pluginText(plugin));
 	});
 
@@ -296,21 +299,18 @@ axiumPlugin
 	.description('Remove a plugin')
 	.argument('<plugin>', 'the plugin to remove')
 	.action(async (search: string, opt: OptCommon) => {
-		const plugin = resolvePlugin(search);
-		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
+		const plugin = _findPlugin(search);
 
-		const specifier = getSpecifier(plugin);
-
-		await plugin.hooks.remove?.(opt);
+		await plugin._hooks?.remove?.(opt);
 
 		for (const [path, data] of configFiles) {
 			if (!data.plugins) continue;
 
-			data.plugins = data.plugins.filter(p => p !== specifier);
+			data.plugins = data.plugins.filter(p => p !== plugin.specifier);
 			saveConfigTo(path, data);
 		}
 
-		plugins.delete(plugin);
+		plugins.delete(plugin.name);
 	});
 
 axiumPlugin
@@ -322,11 +322,11 @@ axiumPlugin
 	.addOption(opts.check)
 	.argument('<plugin>', 'the plugin to initialize')
 	.action(async (search: string, opt: OptCommon & { check: boolean }) => {
-		const plugin = resolvePlugin(search);
+		const plugin = _findPlugin(search);
 		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 
 		await using _ = db.connect();
-		await plugin.hooks.db_init?.({ force: false, ...opt, skip: true });
+		await plugin._hooks?.db_init?.({ force: false, ...opt, skip: true });
 	});
 
 const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);
@@ -568,14 +568,12 @@ program
 		console.log(
 			styleText('whiteBright', 'Loaded plugins:'),
 			styleText(['dim', 'bold'], `(${plugins.size || 'none'})`),
-			Array.from(plugins)
-				.map(plugin => plugin.name)
-				.join(', ')
+			Array.from(plugins.keys()).join(', ')
 		);
 
-		for (const plugin of plugins) {
-			if (!plugin.statusText) continue;
-			const text = await plugin.statusText();
+		for (const plugin of plugins.values()) {
+			if (!plugin._hooks?.statusText) continue;
+			const text = await plugin._hooks?.statusText();
 			console.log(styleText('bold', plugin.name), plugin.version + ':', text.includes('\n') ? '\n' + text : text);
 		}
 	});
@@ -600,7 +598,6 @@ program
 	.action(async (opt: OptDB & { dbSkip: boolean; check: boolean; packagesDir?: string }) => {
 		await db.init({ ...opt, skip: opt.dbSkip }).catch(io.handleError);
 		await io.restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
-		linkRoutes(opt);
 	});
 
 program
@@ -608,13 +605,11 @@ program
 	.description('Start the Axium server')
 	.option('-p, --port <port>', 'the port to listen on')
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
-	.option('-B, --build <path>', 'the path to a built SvelteKit server handler')
 	.action(async (opt: OptCommon & { ssl?: string; port?: string; build?: string }) => {
-		const server = await serveSvelteKit({
+		const server = await serve({
 			secure: opt.ssl ? true : config.web.secure,
 			ssl_cert: opt.ssl ? join(opt.ssl, 'cert.pem') : config.web.ssl_cert,
 			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,
-			build: opt.build ?? config.web.build,
 		});
 
 		const port = !Number.isNaN(Number.parseInt(opt.port ?? '')) ? Number.parseInt(opt.port!) : config.web.port;
@@ -622,38 +617,6 @@ program
 		server.listen(port, () => {
 			console.log('Server is listening on port ' + port);
 		});
-	});
-
-program
-	.command('link')
-	.description('Link routes provided by plugins and the server')
-	.addOption(opts.packagesDir)
-	.addOption(new Option('-l, --list', 'list route links').conflicts('delete'))
-	.option('-d, --delete', 'delete route links')
-	.argument('[name...]', 'List of plugin names to operate on. If not specified, operates on all plugins and built-in routes.')
-	.action(async function (this: Command, names: string[]) {
-		const opt = this.optsWithGlobals<OptCommon & LinkOptions & { list?: boolean; delete?: boolean }>();
-		if (names.length) opt.only = names;
-
-		if (opt.list) {
-			for (const link of listRouteLinks(opt)) {
-				const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
-				const fromColor = await access(link.from)
-					.then(() => 'cyanBright' as const)
-					.catch(() => 'redBright' as const);
-				console.log(
-					`${idText}:\t ${styleText(fromColor, link.from)}\t->\t${link.to.replace(/.*\/node_modules\//, styleText('dim', '$&'))}`
-				);
-			}
-			return;
-		}
-
-		if (opt.delete) {
-			unlinkRoutes(opt);
-			return;
-		}
-
-		linkRoutes(opt);
 	});
 
 interface AuditCLIOptions extends AuditFilter {

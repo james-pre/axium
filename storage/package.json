@@ -27,11 +27,10 @@
 		"./components/*": "./lib/*.svelte",
 		"./styles/*": "./styles/*.css"
 	},
-	"routes": "routes",
 	"files": [
 		"dist",
 		"lib",
-		"routes",
+		"build",
 		"styles"
 	],
 	"scripts": {
@@ -48,11 +47,15 @@
 		"blakejs": "^1.2.1",
 		"zod": "^4.0.5"
 	},
-	"apps": [
-		{
-			"id": "files",
-			"name": "Files",
-			"icon": "folders"
-		}
-	]
+	"axium": {
+		"http_handler": "./build/handler.js",
+		"hooks": "./dist/hooks.js",
+		"apps": [
+			{
+				"id": "files",
+				"name": "Files",
+				"icon": "folders"
+			}
+		]
+	}
 }

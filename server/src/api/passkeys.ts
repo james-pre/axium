@@ -12,15 +12,15 @@ addRoute({
 	params: {
 		id: z.string(),
 	},
-	async GET(event): Result<'GET', 'passkeys/:id'> {
-		const passkey = await getPasskey(event.params.id!);
-		await checkAuthForUser(event, passkey.userId);
+	async GET(request, params): Result<'GET', 'passkeys/:id'> {
+		const passkey = await getPasskey(params.id!);
+		await checkAuthForUser(request, passkey.userId);
 		return omit(passkey, 'counter', 'publicKey');
 	},
-	async PATCH(event): Result<'PATCH', 'passkeys/:id'> {
-		const body = await parseBody(event, PasskeyChangeable);
-		const passkey = await getPasskey(event.params.id!);
-		await checkAuthForUser(event, passkey.userId);
+	async PATCH(request, params): Result<'PATCH', 'passkeys/:id'> {
+		const body = await parseBody(request, PasskeyChangeable);
+		const passkey = await getPasskey(params.id!);
+		await checkAuthForUser(request, passkey.userId);
 		const result = await db
 			.updateTable('passkeys')
 			.set(body)
@@ -31,9 +31,9 @@ addRoute({
 
 		return omit(result, 'counter', 'publicKey');
 	},
-	async DELETE(event): Result<'DELETE', 'passkeys/:id'> {
-		const passkey = await getPasskey(event.params.id!);
-		await checkAuthForUser(event, passkey.userId);
+	async DELETE(request, params): Result<'DELETE', 'passkeys/:id'> {
+		const passkey = await getPasskey(params.id!);
+		await checkAuthForUser(request, passkey.userId);
 
 		const { count } = await db
 			.selectFrom('passkeys')

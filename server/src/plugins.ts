@@ -1,7 +1,7 @@
-import { App } from '@axium/core';
-import { zAsyncFunction } from '@axium/core/schemas';
+import { App, zAsyncFunction } from '@axium/core';
 import * as fs from 'node:fs';
-import { resolve } from 'node:path/posix';
+import { dirname, join, resolve } from 'node:path/posix';
+import { fileURLToPath } from 'node:url';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import { apps } from './apps.js';
@@ -9,73 +9,94 @@ import type { InitOptions, OpOptions } from './database.js';
 import { output } from './io.js';
 import { _unique } from './state.js';
 
-export const PluginMetadata = z.looseObject({
+export const Plugin = z.looseObject({
 	name: z.string(),
 	version: z.string(),
 	description: z.string().optional(),
-	routes: z.string().optional(),
+	/** The path to the hooks script */
+	hooks: z.string().optional(),
+	/** The path to the HTTP handler */
+	http_handler: z.string().optional(),
 	apps: z.array(App).optional(),
 });
 
-const hookNames = ['db_init', 'remove', 'db_wipe', 'clean'] as const satisfies (keyof Hooks)[];
-
-const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
-export const Plugin = PluginMetadata.extend({
-	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })),
-	hooks: z.partialRecord(z.literal(hookNames), fn).optional(),
-});
-
-const kSpecifier = Symbol('specifier');
-
 export type Plugin = z.infer<typeof Plugin>;
 
-interface PluginInternal extends Plugin {
-	[kSpecifier]: string;
-	hooks: Hooks;
+export interface PluginInternal extends Plugin {
+	readonly path: string;
+	readonly dirname: string;
+	readonly specifier: string;
+	readonly _loadedBy: string;
+	readonly _hooks?: Hooks;
 }
 
+const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
+
+const PluginHooks = z.object({
+	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })).optional(),
+	db_init: fn.optional(),
+	remove: fn.optional(),
+	db_wipe: fn.optional(),
+	clean: fn.optional(),
+});
+
 export interface Hooks {
+	statusText?(): string | Promise<string>;
 	db_init?: (opt: InitOptions) => void | Promise<void>;
 	remove?: (opt: { force?: boolean }) => void | Promise<void>;
 	db_wipe?: (opt: OpOptions) => void | Promise<void>;
 	clean?: (opt: Partial<OpOptions>) => void | Promise<void>;
 }
 
-export const plugins = _unique('plugins', new Set<PluginInternal>());
-
-export function resolvePlugin(search: string): PluginInternal | undefined {
-	for (const plugin of plugins) {
-		if (plugin.name === search) return plugin;
-	}
-}
+export const plugins = _unique('plugins', new Map<string, PluginInternal>());
 
 export function pluginText(plugin: PluginInternal): string {
 	return [
 		styleText('whiteBright', plugin.name),
 		`Version: ${plugin.version}`,
 		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
-		`Hooks: ${Object.keys(plugin.hooks).join(', ') || styleText('dim', '(none)')}`,
-		// @todo list the routes when debug output is enabled
-		`Routes: ${plugin.routes || styleText('dim', '(none)')}`,
+		`Hooks: ${plugin._hooks ? styleText(['dim', 'bold'], `(${Object.keys(plugin._hooks).length}) `) + Object.keys(plugin._hooks).join(', ') : plugin.hooks || styleText('dim', '(none)')}`,
+		`HTTP Handler: ${plugin.http_handler ?? styleText('dim', '(none)')}`,
 	].join('\n');
 }
 
-const _importedPlugins = _unique('imported_raw', new Set<object>());
+function _locatePlugin(specifier: string, _loadedBy: string): string {
+	if (specifier[0] == '/' || specifier.startsWith('./') || specifier.startsWith('../')) {
+		return resolve(dirname(_loadedBy), specifier);
+	}
 
-export async function loadPlugin(specifier: string) {
+	let packageDir = dirname(fileURLToPath(import.meta.resolve(specifier)));
+	for (; !fs.existsSync(join(packageDir, 'package.json')); packageDir = dirname(packageDir));
+	return join(packageDir, 'package.json');
+}
+
+export async function loadPlugin(specifier: string, _loadedBy: string, safeMode: boolean = false) {
 	try {
-		const imported = await import(/* @vite-ignore */ specifier);
-		if (_importedPlugins.has(imported)) return; // already loaded this exact module
-		_importedPlugins.add(imported);
+		const path = _locatePlugin(specifier, _loadedBy);
 
-		const maybePlugin = 'default' in imported ? imported.default : imported;
+		let imported: any;
+		try {
+			imported = JSON.parse(fs.readFileSync(path, 'utf8'));
+		} catch (e) {
+			throw new Error('Invalid or missing metadata for ' + specifier);
+		}
+
+		if ('axium' in imported) Object.assign(imported, imported.axium); // support axium field in package.json
 
 		const plugin: PluginInternal = Object.assign(
-			{ hooks: {}, [kSpecifier]: specifier },
-			await Plugin.parseAsync(maybePlugin).catch(e => {
+			await Plugin.parseAsync(imported).catch(e => {
 				throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
-			})
+			}),
+			{ path, specifier, _loadedBy, dirname: dirname(path) }
 		);
+
+		if (!safeMode && plugin.hooks) {
+			Object.assign(plugin, { _hooks: await import(resolve(plugin.dirname, plugin.hooks)) });
+		}
+
+		Object.freeze(plugin);
+
+		if (plugins.has(plugin.name)) throw 'Plugin already loaded';
 
 		if (plugin.name.startsWith('#') || plugin.name.includes(' ')) {
 			throw 'Invalid plugin name. Plugin names can not start with a hash or contain spaces.';
@@ -86,25 +107,9 @@ export async function loadPlugin(specifier: string) {
 			apps.set(app.id, app);
 		}
 
-		plugins.add(plugin);
+		plugins.set(plugin.name, plugin);
 		output.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
 	} catch (e: any) {
 		output.debug(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
-	}
-}
-
-export function getSpecifier(plugin: PluginInternal): string {
-	return plugin[kSpecifier];
-}
-
-export async function loadPlugins(dir: string) {
-	fs.mkdirSync(dir, { recursive: true });
-	const files = fs.readdirSync(dir);
-	for (const file of files) {
-		const path = resolve(dir, file);
-		const stats = fs.statSync(path);
-
-		if (stats.isDirectory() || !['.js', '.mjs'].some(ext => path.endsWith(ext))) return;
-		await loadPlugin(path);
 	}
 }

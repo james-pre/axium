@@ -53,7 +53,7 @@ export interface Schema {
 		name: string | null;
 		createdAt: kysely.GeneratedAlways<Date>;
 		userId: string;
-		publicKey: Uint8Array;
+		publicKey: Uint8Array<ArrayBuffer>;
 		counter: number;
 		deviceType: CredentialDeviceType;
 		backedUp: boolean;
@@ -357,10 +357,10 @@ export async function init(opt: InitOptions): Promise<void> {
 	io.start('Creating schema acl');
 	await database.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
 
-	for (const plugin of plugins) {
-		if (!plugin.hooks.db_init) continue;
+	for (const plugin of plugins.values()) {
+		if (!plugin._hooks?.db_init) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.db_init(opt);
+		await plugin._hooks?.db_init(opt);
 	}
 }
 
@@ -525,10 +525,10 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 	io.start('Removing expired verifications');
 	await database.deleteFrom('verifications').where('verifications.expires', '<', now).execute().then(io.done);
 
-	for (const plugin of plugins) {
-		if (!plugin.hooks.clean) continue;
+	for (const plugin of plugins.values()) {
+		if (!plugin._hooks?.clean) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.clean(opt);
+		await plugin._hooks?.clean(opt);
 	}
 }
 
@@ -536,10 +536,10 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
  * Completely remove Axium from the database.
  */
 export async function uninstall(opt: OpOptions): Promise<void> {
-	for (const plugin of plugins) {
-		if (!plugin.hooks.remove) continue;
+	for (const plugin of plugins.values()) {
+		if (!plugin._hooks?.remove) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.remove(opt);
+		await plugin._hooks?.remove(opt);
 	}
 
 	await _sql('DROP DATABASE axium', 'Dropping database');
@@ -565,10 +565,10 @@ export async function uninstall(opt: OpOptions): Promise<void> {
  * Removes all data from tables.
  */
 export async function wipe(opt: OpOptions): Promise<void> {
-	for (const plugin of plugins) {
-		if (!plugin.hooks.db_wipe) continue;
+	for (const plugin of plugins.values()) {
+		if (!plugin._hooks?.db_wipe) continue;
 		io.plugin(plugin.name);
-		await plugin.hooks.db_wipe(opt);
+		await plugin._hooks?.db_wipe(opt);
 	}
 
 	for (const table of ['users', 'passkeys', 'sessions', 'verifications'] as const) {

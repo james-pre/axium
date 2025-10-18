@@ -1,6 +1,6 @@
 import type { RequestMethod } from '@axium/core/requests';
 import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
-import { serialize as serializeCookie } from 'cookie';
+import * as cookie from 'cookie';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import { createSession, type UserInternal } from './auth.js';
@@ -13,6 +13,7 @@ import type { ServerRoute } from './routes.js';
 
 /**
  * A `Request` with some commonly used stuff pre-parsed for convenience.
+ * @deprecated
  */
 export interface RequestEvent<Params extends Partial<Record<string, string>> = Partial<Record<string, string>>> {
 	request: Request;
@@ -65,13 +66,13 @@ export function json(data: object, init?: ResponseInit): Response {
 }
 
 export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(
-	event: RequestEvent,
+	request: Request,
 	schema: Schema
 ): Promise<Result> {
-	const contentType = event.request.headers.get('content-type');
+	const contentType = request.headers.get('content-type');
 	if (!contentType || !contentType.includes('application/json')) error(415, 'Invalid content type');
 
-	const body: unknown = await event.request.json().catch(() => error(415, 'Invalid JSON'));
+	const body: unknown = await request.json().catch(() => error(415, 'Invalid JSON'));
 
 	try {
 		return schema.parse(body) as Result;
@@ -80,12 +81,12 @@ export async function parseBody<const Schema extends z.ZodType, const Result ext
 	}
 }
 
-export function getToken(event: RequestEvent, sensitive: boolean = false): string | undefined {
-	const header_token = event.request.headers.get('Authorization')?.replace('Bearer ', '');
+export function getToken(request: Request, sensitive: boolean = false): string | undefined {
+	const header_token = request.headers.get('Authorization')?.replace('Bearer ', '');
 	if (header_token) return header_token;
 
 	if (config.debug || !config.auth.header_only) {
-		return event.cookies.get(sensitive ? 'elevated_token' : 'session_token');
+		return cookie.parse(request.headers.get('cookie') || '')[sensitive ? 'elevated_token' : 'session_token'];
 	}
 }
 
@@ -94,7 +95,7 @@ export async function createSessionData(userId: string, elevated: boolean = fals
 
 	const response = json({ userId, token: elevated ? '[[redacted:elevated]]' : token }, { status: 201 });
 
-	const cookies = serializeCookie(elevated ? 'elevated_token' : 'session_token', token, {
+	const cookies = cookie.serialize(elevated ? 'elevated_token' : 'session_token', token, {
 		httpOnly: true,
 		path: '/',
 		expires,
@@ -117,20 +118,20 @@ export function withError(text: string, code: number = 500) {
 	};
 }
 
-export async function handleAPIRequest(event: RequestEvent, route: ServerRoute): Promise<Response> {
-	const method = event.request.method as RequestMethod;
+export async function handleAPIRequest(request: Request, params: Record<string, any>, route: ServerRoute): Promise<Response> {
+	const method = request.method as RequestMethod;
 
 	const _warnings: string[] = [];
-	if (route.api && !event.request.headers.get('Accept')?.includes('application/json')) {
+	if (route.api && !request.headers.get('Accept')?.includes('application/json')) {
 		_warnings.push('Only application/json is supported');
-		event.request.headers.set('Accept', 'application/json');
+		request.headers.set('Accept', 'application/json');
 	}
 
 	for (const [key, type] of Object.entries(route.params || {})) {
 		if (!type) continue;
 
 		try {
-			event.params[key] = type.parse(event.params[key]) as any;
+			params[key] = type.parse(params[key]) as any;
 		} catch (e: any) {
 			error(400, `Invalid parameter: ${e instanceof z.core.$ZodError ? z.prettifyError(e) : '<unknown error>'}`);
 		}
@@ -138,7 +139,7 @@ export async function handleAPIRequest(event: RequestEvent, route: ServerRoute):
 
 	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
 
-	const result: void | (object & { _warnings?: string[] }) | Response = await route[method](event);
+	const result: void | (object & { _warnings?: string[] }) | Response = await route[method](request, params);
 
 	if (result instanceof Response) return result;
 

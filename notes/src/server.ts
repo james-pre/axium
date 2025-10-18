@@ -40,9 +40,9 @@ expectedTypes.notes = {
 addRoute({
 	path: '/api/users/:id/notes',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'users/:id/notes'> {
-		const userId = event.params.id!;
-		await checkAuthForUser(event, userId);
+	async GET(request, params): Result<'GET', 'users/:id/notes'> {
+		const userId = params.id!;
+		await checkAuthForUser(request, userId);
 
 		return await database
 			.selectFrom('notes')
@@ -51,11 +51,11 @@ addRoute({
 			.execute()
 			.catch(withError('Could not get notes'));
 	},
-	async PUT(event): Result<'PUT', 'users/:id/notes'> {
-		const init = await parseBody(event, NoteInit);
+	async PUT(request, params): Result<'PUT', 'users/:id/notes'> {
+		const init = await parseBody(request, NoteInit);
 
-		const userId = event.params.id!;
-		await checkAuthForUser(event, userId);
+		const userId = params.id!;
+		await checkAuthForUser(request, userId);
 
 		return await database
 			.insertInto('notes')
@@ -69,19 +69,19 @@ addRoute({
 addRoute({
 	path: '/api/notes/:id',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'notes/:id'> {
-		const id = event.params.id!;
+	async GET(request, params): Result<'GET', 'notes/:id'> {
+		const id = params.id!;
 
-		const { item } = await checkAuthForItem<Note>(event, 'notes', id, Permission.Read);
+		const { item } = await checkAuthForItem<Note>(request, 'notes', id, Permission.Read);
 
 		return item;
 	},
-	async PATCH(event): Result<'PATCH', 'notes/:id'> {
-		const init = await parseBody(event, NoteInit);
+	async PATCH(request, params): Result<'PATCH', 'notes/:id'> {
+		const init = await parseBody(request, NoteInit);
 
-		const id = event.params.id!;
+		const id = params.id!;
 
-		await checkAuthForItem(event, 'notes', id, Permission.Edit);
+		await checkAuthForItem(request, 'notes', id, Permission.Edit);
 
 		return await database
 			.updateTable('notes')
@@ -92,10 +92,10 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update note'));
 	},
-	async DELETE(event): Result<'DELETE', 'notes/:id'> {
-		const id = event.params.id!;
+	async DELETE(request, params): Result<'DELETE', 'notes/:id'> {
+		const id = params.id!;
 
-		await checkAuthForItem(event, 'notes', id, Permission.Manage);
+		await checkAuthForItem(request, 'notes', id, Permission.Manage);
 
 		return await database
 			.deleteFrom('notes')

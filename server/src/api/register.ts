@@ -8,17 +8,16 @@ import { audit } from '../audit.js';
 import { createPasskey, getUser } from '../auth.js';
 import config from '../config.js';
 import { database as db, type Schema } from '../database.js';
-import type { RequestEvent } from '../requests.js';
 import { createSessionData, error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
-async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
+async function OPTIONS(request: Request): Result<'OPTIONS', 'register'> {
 	if (!config.allow_new_users) error(409, 'New user registration is disabled');
 
-	const { name, email } = await parseBody(event, z.object({ name: z.string().optional(), email: z.email().optional() }));
+	const { name, email } = await parseBody(request, z.object({ name: z.string().optional(), email: z.email().optional() }));
 
 	const userId = randomUUID();
 	const user = await getUser(userId).catch(() => null);
@@ -43,10 +42,10 @@ async function OPTIONS(event: RequestEvent): Result<'OPTIONS', 'register'> {
 	return { userId, options };
 }
 
-async function POST(event: RequestEvent) {
+async function POST(request: Request) {
 	if (!config.allow_new_users) error(409, 'New user registration is disabled');
 
-	const { userId, email, name, response } = await parseBody(event, UserRegistration);
+	const { userId, email, name, response } = await parseBody(request, UserRegistration);
 
 	const existing = await db.selectFrom('users').selectAll().where('email', '=', email.toLowerCase()).executeTakeFirst();
 	if (existing) error(409, 'Email already in use');

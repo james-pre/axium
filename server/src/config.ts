@@ -65,19 +65,16 @@ export const ConfigSchema = z
 				console: z.boolean(),
 			})
 			.partial(),
+		request_size_limit: z.number().min(0).optional(),
 		show_duplicate_state: z.boolean(),
 		web: z
 			.looseObject({
-				assets: z.string(),
-				build: z.string(),
 				disable_cache: z.boolean(),
 				port: z.number().min(1).max(65535),
 				prefix: z.string(),
-				routes: z.string(),
 				secure: z.boolean(),
 				ssl_key: z.string(),
 				ssl_cert: z.string(),
-				template: z.string(),
 			})
 			.partial(),
 	})
@@ -143,17 +140,14 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 		level: 'info',
 	},
 	show_duplicate_state: false,
+	request_size_limit: 0,
 	web: {
-		assets: '',
-		build: '../build/handler.js',
 		disable_cache: false,
 		port: 443,
 		prefix: '',
-		routes: 'routes',
 		secure: true,
 		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
-		template: join(import.meta.dirname, '../web/template.html'),
 	},
 });
 export default config;
@@ -204,6 +198,11 @@ export interface LoadOptions {
 	optional?: boolean;
 
 	/**
+	 * If enabled, code from plugins will not be executed.
+	 */
+	safe?: boolean;
+
+	/**
 	 * If `optional`, this function will be called with the error if the config file is invalid or can't be read.
 	 */
 	onError?(error: Error): void;
@@ -235,11 +234,11 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	configFiles.set(path, file);
 	setConfig(file);
 	output.debug('Loaded config: ' + path);
-	for (const include of file.include ?? []) await loadConfig(resolve(dirname(path), include), { optional: true });
-	for (const plugin of file.plugins ?? []) await loadPlugin(plugin.startsWith('.') ? resolve(dirname(path), plugin) : plugin);
+	for (const include of file.include ?? []) await loadConfig(resolve(dirname(path), include), { ...options, optional: true });
+	for (const plugin of file.plugins ?? []) await loadPlugin(plugin, path, options.safe);
 }
 
-export async function loadDefaultConfigs() {
+export async function loadDefaultConfigs(safe: boolean = false) {
 	for (const path of findConfigPaths()) {
 		if (!existsSync(path)) {
 			try {
@@ -248,7 +247,7 @@ export async function loadDefaultConfigs() {
 				continue;
 			}
 		}
-		await loadConfig(path, { optional: true });
+		await loadConfig(path, { optional: true, safe });
 	}
 }
 

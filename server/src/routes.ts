@@ -4,7 +4,6 @@ import type z from 'zod';
 import { apps } from './apps.js';
 import config from './config.js';
 import { output } from './io.js';
-import type { RequestEvent } from './requests.js';
 import { _unique } from './state.js';
 
 type _Params = Partial<Record<string, string>>;
@@ -12,7 +11,7 @@ type _Params = Partial<Record<string, string>>;
 type MaybePromise<T> = T | Promise<T>;
 
 export type EndpointHandlers<Params extends _Params = _Params> = Partial<
-	Record<RequestMethod, (event: RequestEvent<Params>) => MaybePromise<object | Response>>
+	Record<RequestMethod, (request: Request, params: Params) => MaybePromise<object | Response>>
 >;
 
 export type RouteParamOptions = z.ZodType;
@@ -30,7 +29,7 @@ export interface ServerRouteOptions<Params extends _Params = _Params> extends Co
 }
 
 export interface WebRouteOptions extends CommonRouteOptions {
-	load?(event: RequestEvent): object | Promise<object>;
+	load?(request: Request): object | Promise<object>;
 	/** the Svelte page */
 	page?: Component;
 }
@@ -49,7 +48,7 @@ export interface ServerRoute extends RouteCommon, EndpointHandlers {
 
 export interface WebRoute extends RouteCommon {
 	server: false;
-	load?(event: RequestEvent): object | Promise<object>;
+	load?(request: Request): object | Promise<object>;
 	page: Component;
 }
 
@@ -81,10 +80,10 @@ export function addRoute(opt: RouteOptions): void {
  * Resolve a request URL into a route.
  * This handles parsing of parameters in the URL.
  */
-export function resolveRoute(event: { url: URL; params?: object }): Route | undefined {
-	const { pathname } = event.url;
+export function resolveRoute(url: URL): [Route, params: object] | void {
+	const { pathname } = url;
 
-	if (routes.has(pathname) && !pathname.split('/').some(p => p.startsWith(':'))) return routes.get(pathname);
+	if (routes.has(pathname) && !pathname.split('/').some(p => p.startsWith(':'))) return [routes.get(pathname)!, {}];
 
 	// Otherwise we must have a parameterized route
 	_routes: for (const route of routes.values()) {
@@ -111,7 +110,6 @@ export function resolveRoute(event: { url: URL; params?: object }): Route | unde
 		// we didn't find a match, since an exact match would have been found already
 		if (pathParts.length || !Object.keys(params).length) continue;
 
-		event.params = params;
-		return route;
+		return [route, params];
 	}
 }

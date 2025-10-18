@@ -1,13 +1,6 @@
-import config from '@axium/server/config';
 import node from '@sveltejs/adapter-node';
 import { join } from 'node:path/posix';
 import { fileURLToPath } from 'node:url';
-
-/**
- * Paths relative to the directory of this file.
- * This allows this file to be imported from other projects and still resolve to the correct paths.
- */
-const fixed = p => join(import.meta.dirname, p);
 
 /** @type {import('@sveltejs/kit').Config} */
 export default {
@@ -20,11 +13,10 @@ export default {
 	kit: {
 		adapter: node(),
 		files: {
-			routes: config.web.routes,
 			assets: join(fileURLToPath(new URL(import.meta.resolve('@axium/client'))), '../../assets'),
-			appTemplate: fixed('web/template.html'),
+			appTemplate: join(import.meta.dirname, 'template.html'),
 			hooks: {
-				server: fixed('web/hooks.server.ts'),
+				universal: '/dev/null',
 			},
 		},
 	},

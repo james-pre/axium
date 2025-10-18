@@ -11,12 +11,12 @@ addRoute({
 		itemType: z.string(),
 		itemId: z.uuid(),
 	},
-	async PUT(event): Result<'PUT', 'acl/:itemType/:itemId'> {
-		const type = event.params.itemType as keyof Schema;
-		const itemId = event.params.itemId!;
+	async PUT(request, params): Result<'PUT', 'acl/:itemType/:itemId'> {
+		const type = params.itemType as keyof Schema;
+		const itemId = params.itemId!;
 
 		const data = await parseBody(
-			event,
+			request,
 			z.object({
 				userId: z.uuid(),
 				permission: z.number().int().min(0).max(5),

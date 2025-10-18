@@ -205,23 +205,23 @@ export async function deleteRecursive(itemId: string, deleteSelf: boolean): Prom
 addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'storage/item/:id'> {
+	async GET(request, params): Result<'GET', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = params.id!;
 
-		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
 
 		return parseItem(item);
 	},
-	async PATCH(event): Result<'PATCH', 'storage/item/:id'> {
+	async PATCH(request, params): Result<'PATCH', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = params.id!;
 
-		const body = await parseBody(event, StorageItemUpdate);
+		const body = await parseBody(request, StorageItemUpdate);
 
-		await checkAuthForItem(event, 'storage', itemId, Permission.Manage);
+		await checkAuthForItem(request, 'storage', itemId, Permission.Manage);
 
 		const values: Partial<Pick<StorageItemMetadata, 'publicPermission' | 'trashedAt' | 'userId' | 'name'>> = {};
 		if ('publicPermission' in body) values.publicPermission = body.publicPermission;
@@ -241,12 +241,12 @@ addRoute({
 				.catch(withError('Could not update item'))
 		);
 	},
-	async DELETE(event): Result<'DELETE', 'storage/item/:id'> {
+	async DELETE(request, params): Result<'DELETE', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = params.id!;
 
-		const auth = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Manage);
+		const auth = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Manage);
 		const item = parseItem(auth.item);
 
 		await deleteRecursive(itemId, item.type != 'inode/directory');
@@ -258,12 +258,12 @@ addRoute({
 addRoute({
 	path: '/api/storage/directory/:id',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'storage/directory/:id'> {
+	async GET(request, params): Result<'GET', 'storage/directory/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = params.id!;
 
-		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -280,10 +280,10 @@ addRoute({
 
 addRoute({
 	path: '/raw/storage',
-	async PUT(event): Promise<StorageItemMetadata> {
+	async PUT(request): Promise<StorageItemMetadata> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const token = getToken(event);
+		const token = getToken(request);
 		if (!token) error(401, 'Missing session token');
 
 		const { userId } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
@@ -292,11 +292,11 @@ addRoute({
 			withError('Could not fetch usage and/or limits')
 		);
 
-		const name = event.request.headers.get('x-name');
+		const name = request.headers.get('x-name');
 		if (!name) error(400, 'Missing name header');
 		if (name.length > 255) error(400, 'Name is too long');
 
-		const maybeParentId = event.request.headers.get('x-parent');
+		const maybeParentId = request.headers.get('x-parent');
 		const parentId = maybeParentId
 			? await z
 					.uuid()
@@ -304,9 +304,9 @@ addRoute({
 					.catch(() => error(400, 'Invalid parent ID'))
 			: null;
 
-		if (parentId) await checkAuthForItem(event, 'storage', parentId, Permission.Edit);
+		if (parentId) await checkAuthForItem(request, 'storage', parentId, Permission.Edit);
 
-		const size = Number(event.request.headers.get('content-length'));
+		const size = Number(request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 
 		if (usage.items >= limits.user_items) error(409, 'Too many items');
@@ -315,14 +315,14 @@ addRoute({
 
 		if (size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
-		const content = await event.request.bytes();
+		const content = await request.bytes();
 
 		if (content.byteLength > size) {
 			await audit('storage_size_mismatch', userId, { item: null });
 			error(400, 'Content length does not match size header');
 		}
 
-		const type = event.request.headers.get('content-type') || 'application/octet-stream';
+		const type = request.headers.get('content-type') || 'application/octet-stream';
 		const isDirectory = type == 'inode/directory';
 
 		if (isDirectory && size > 0) error(400, 'Directories can not have content');
@@ -380,12 +380,12 @@ addRoute({
 addRoute({
 	path: '/raw/storage/:id',
 	params: { id: z.uuid() },
-	async GET(event) {
+	async GET(request, params) {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = params.id!;
 
-		const { item } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -398,25 +398,25 @@ addRoute({
 			},
 		});
 	},
-	async POST(event) {
+	async POST(request, params) {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = event.params.id!;
+		const itemId = params.id!;
 
-		const { item, session } = await checkAuthForItem<SelectedItem>(event, 'storage', itemId, Permission.Edit);
+		const { item, session } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Edit);
 
 		if (item.immutable) error(405, 'Item is immutable');
 		if (item.type == 'inode/directory') error(409, 'Directories do not have content');
 		if (item.trashedAt) error(410, 'Trashed items can not be changed');
 
-		const type = event.request.headers.get('content-type') || 'application/octet-stream';
+		const type = request.headers.get('content-type') || 'application/octet-stream';
 
 		if (type != item.type) {
 			await audit('storage_type_mismatch', session?.userId, { item: item.id });
 			error(400, 'Content type does not match existing item type');
 		}
 
-		const size = Number(event.request.headers.get('content-length'));
+		const size = Number(request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 
 		const [usage, limits] = await Promise.all([currentUsage(item.userId), getLimits(item.userId)]).catch(
@@ -427,7 +427,7 @@ addRoute({
 
 		if (size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
-		const content = await event.request.bytes();
+		const content = await request.bytes();
 
 		if (content.byteLength > size) {
 			await audit('storage_size_mismatch', session?.userId, { item: item.id });
@@ -460,22 +460,22 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage',
 	params: { id: z.uuid() },
-	async OPTIONS(event): Result<'OPTIONS', 'users/:id/storage'> {
+	async OPTIONS(request, params): Result<'OPTIONS', 'users/:id/storage'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const userId = event.params.id!;
-		await checkAuthForUser(event, userId);
+		const userId = params.id!;
+		await checkAuthForUser(request, userId);
 
 		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(withError('Could not fetch data'));
 
 		return { usage, limits };
 	},
-	async GET(event): Result<'GET', 'users/:id/storage'> {
+	async GET(request, params): Result<'GET', 'users/:id/storage'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const userId = event.params.id!;
+		const userId = params.id!;
 
-		await checkAuthForUser(event, userId);
+		await checkAuthForUser(request, userId);
 
 		const [items, usage, limits] = await Promise.all([
 			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', 'is', null).selectAll().execute(),
@@ -490,12 +490,12 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage/root',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'users/:id/storage/root'> {
+	async GET(request, params): Result<'GET', 'users/:id/storage/root'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const userId = event.params.id!;
+		const userId = params.id!;
 
-		await checkAuthForUser(event, userId);
+		await checkAuthForUser(request, userId);
 
 		const items = await database
 			.selectFrom('storage')
@@ -524,12 +524,12 @@ function existsInACL(column: 'id' | 'parentId', userId: string) {
 addRoute({
 	path: '/api/users/:id/storage/shared',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'users/:id/storage/shared'> {
+	async GET(request, params): Result<'GET', 'users/:id/storage/shared'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const userId = event.params.id!;
+		const userId = params.id!;
 
-		await checkAuthForUser(event, userId);
+		await checkAuthForUser(request, userId);
 
 		const items = await database
 			.selectFrom('storage as item')
@@ -547,12 +547,12 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage/trash',
 	params: { id: z.uuid() },
-	async GET(event): Result<'GET', 'users/:id/storage/trash'> {
+	async GET(request, params): Result<'GET', 'users/:id/storage/trash'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const userId = event.params.id!;
+		const userId = params.id!;
 
-		await checkAuthForUser(event, userId);
+		await checkAuthForUser(request, userId);
 
 		const items = await database
 			.selectFrom('storage')

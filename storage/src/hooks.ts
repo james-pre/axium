@@ -4,13 +4,11 @@ import config from '@axium/server/config';
 import type { InitOptions, OpOptions } from '@axium/server/database';
 import { count, createIndex, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
-import type { Plugin } from '@axium/server/plugins';
 import { sql } from 'kysely';
-import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
 
-async function statusText(): Promise<string> {
+export async function statusText(): Promise<string> {
 	const { storage: items } = await count('storage');
 	const { size } = await database
 		.selectFrom('storage')
@@ -20,7 +18,7 @@ async function statusText(): Promise<string> {
 	return `${items} items totaling ${formatBytes(Number(size))}`;
 }
 
-async function db_init(opt: InitOptions) {
+export async function db_init(opt: InitOptions) {
 	start('Creating table storage');
 	await database.schema
 		.createTable('storage')
@@ -46,20 +44,20 @@ async function db_init(opt: InitOptions) {
 	await acl.createTable('storage');
 }
 
-async function db_wipe(opt: OpOptions) {
+export async function db_wipe(opt: OpOptions) {
 	start('Removing data from user storage');
 	await database.deleteFrom('storage').execute().then(done);
 	await acl.wipeTable('storage');
 }
 
-async function remove(opt: OpOptions) {
+export async function remove(opt: OpOptions) {
 	start('Dropping table storage');
 	await database.schema.dropTable('storage').execute();
 	await acl.dropTable('storage');
 	done();
 }
 
-async function clean(opt: OpOptions) {
+export async function clean(opt: OpOptions) {
 	start('Removing expired trash items');
 
 	const nDaysAgo = new Date(Date.now() - 86400000 * config.storage.trash_duration);
@@ -70,9 +68,3 @@ async function clean(opt: OpOptions) {
 		.executeTakeFirstOrThrow()
 		.then(done);
 }
-
-export default {
-	...pkg,
-	statusText,
-	hooks: { db_init, db_wipe, remove, clean },
-} satisfies Plugin;
