@@ -1,4 +1,4 @@
-import type { Permission, Preferences, Severity } from '@axium/core';
+import type { Permission, Preferences, Severity, UserInternal } from '@axium/core';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import type * as kysely from 'kysely';
 import { Kysely, PostgresDialect, sql } from 'kysely';
@@ -7,7 +7,7 @@ import { randomBytes } from 'node:crypto';
 import { readFileSync, writeFileSync } from 'node:fs';
 import pg from 'pg';
 import type { Entries } from 'utilium';
-import type { UserInternal, VerificationRole } from './auth.js';
+import type { VerificationRole } from './auth.js';
 import config from './config.js';
 import * as io from './io.js';
 import { plugins } from './plugins.js';

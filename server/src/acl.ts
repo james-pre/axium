@@ -1,8 +1,7 @@
-import type { AccessControl, Permission } from '@axium/core';
+import type { AccessControl, Permission, UserInternal } from '@axium/core';
 import type { AliasedRawBuilder, Expression, ExpressionBuilder, Selectable } from 'kysely';
 import { sql } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
-import type { UserInternal } from './auth.js';
 import * as db from './database.js';
 import * as io from './io.js';
 

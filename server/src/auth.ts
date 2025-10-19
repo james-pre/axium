@@ -1,4 +1,4 @@
-import type { AccessControl, Passkey, Permission, Session, User, Verification } from '@axium/core';
+import type { AccessControl, Passkey, Permission, Session, UserInternal, Verification } from '@axium/core';
 import type { Insertable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit } from 'utilium';
@@ -6,13 +6,6 @@ import * as acl from './acl.js';
 import { audit } from './audit.js';
 import { database as db, userFromId, type Schema } from './database.js';
 import { error, getToken, withError } from './requests.js';
-
-export interface UserInternal extends User {
-	isAdmin: boolean;
-	isSuspended: boolean;
-	/** Tags are internal, roles are public */
-	tags: string[];
-}
 
 export async function getUser(id: string): Promise<UserInternal> {
 	return await db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();

@@ -6,7 +6,7 @@ import type { AuditEvent, AuditFilter } from './audit.js';
 import type { NewSessionResponse, Session, Verification } from './auth.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
 import type { RequestMethod } from './requests.js';
-import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserPublic, UserRegistration } from './user.js';
+import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserInternal, UserPublic, UserRegistration } from './user.js';
 
 /**
  * Types for all API endpoints
@@ -72,7 +72,7 @@ export interface $API {
 		PUT: [{ userId: string; permission: number }, AccessControl];
 	};
 	'admin/users': {
-		GET: User[];
+		GET: UserInternal[];
 	};
 	'admin/config': {
 		GET: {

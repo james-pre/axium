@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { Severity, type AuditEvent, type AuditFilter } from '@axium/core/audit';
+import type { UserInternal, AuditEvent, AuditFilter } from '@axium/core';
+import { Severity } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
 import { spawnSync } from 'node:child_process';
@@ -12,7 +13,6 @@ import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
 import { audit, getEvents, styleSeverity } from './audit.js';
-import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import * as io from './io.js';

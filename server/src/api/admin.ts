@@ -1,6 +1,6 @@
-import type { Result } from '@axium/core/api';
+import type { Result, UserInternal } from '@axium/core';
 import { audit, getEvents } from '../audit.js';
-import { getSessionAndUser, type UserInternal } from '../auth.js';
+import { getSessionAndUser } from '../auth.js';
 import { database as db } from '../database.js';
 import { error, getToken, parseBody, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';

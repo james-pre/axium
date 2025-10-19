@@ -1,9 +1,9 @@
-import type { RequestMethod } from '@axium/core/requests';
-import { userProtectedFields, userPublicFields, type User } from '@axium/core/user';
+import type { RequestMethod, User, UserInternal } from '@axium/core';
+import { userProtectedFields, userPublicFields } from '@axium/core/user';
 import * as cookie from 'cookie';
 import { pick } from 'utilium';
 import * as z from 'zod';
-import { createSession, type UserInternal } from './auth.js';
+import { createSession } from './auth.js';
 import { config } from './config.js';
 import type { ServerRoute } from './routes.js';
 
