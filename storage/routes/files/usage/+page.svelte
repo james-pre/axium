@@ -14,7 +14,9 @@
 	const usage = $state(data.info.usage);
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
-	let barText = $derived(`Using ${formatBytes(usage?.bytes)} of ${formatBytes(limits.user_size * 1_000_000)}`);
+	let barText = $derived(
+		`Using ${formatBytes(usage?.bytes)} ${limits.user_size ? 'of ' + formatBytes(limits.user_size * 1_000_000) : ''}`
+	);
 </script>
 
 <svelte:head>
