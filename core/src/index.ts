@@ -1,6 +1,7 @@
 export * from './access.js';
 export * from './api.js';
 export * from './apps.js';
+export * from './audit.js';
 export * from './auth.js';
 export * as icons from './icons.js';
 export * from './passkeys.js';

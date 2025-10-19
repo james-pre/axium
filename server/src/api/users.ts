@@ -36,7 +36,7 @@ const params = { id: z.uuid() };
  */
 addRoute({
 	path: '/api/user_id',
-	async POST(request, params): Result<'POST', 'user_id'> {
+	async POST(request): Result<'POST', 'user_id'> {
 		const { value } = await parseBody(request, z.object({ using: z.literal('email'), value: z.email() }));
 
 		const { id } = await db

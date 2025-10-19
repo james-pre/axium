@@ -5,17 +5,7 @@ import * as z from 'zod';
 import config from './config.js';
 import { database, type Schema } from './database.js';
 import * as io from './io.js';
-
-export enum Severity {
-	Emergency,
-	Alert,
-	Critical,
-	Error,
-	Warning,
-	Notice,
-	Info,
-	Debug,
-}
+import { Severity, type AuditEvent, type AuditFilter } from '@axium/core/audit';
 
 const severityFormat = {
 	[Severity.Emergency]: ['bgRedBright', 'white', 'underline'],
@@ -31,25 +21,6 @@ const severityFormat = {
 export function styleSeverity(sev: Severity, align: boolean = false) {
 	const text = align ? Severity[sev].padEnd(9) : Severity[sev];
 	return styleText(severityFormat[sev], text.toUpperCase());
-}
-
-export interface AuditEvent<T extends Record<string, unknown> = Record<string, unknown>> {
-	/** UUID of the event */
-	id: string;
-	/** UUID of the user that triggered the event. `null` for events triggered via the server CLI */
-	userId?: string | null;
-	/** When the event happened */
-	timestamp: Date;
-	/** How severe the event is */
-	severity: Severity;
-	/** Snake case name for the event */
-	name: string;
-	/** The source of the event. This should be a package name */
-	source: string;
-	/** Tags for the event. For example, `auth` for authentication events */
-	tags: string[];
-	/** Additional event specific data. */
-	extra: T;
 }
 
 function output(event: AuditEvent) {
@@ -76,6 +47,7 @@ export interface $EventTypes {
 	logout: { sessions: string[] };
 	acl_id_mismatch: { item: string };
 	admin_change: { user: string };
+	admin_api: { route: string; session: string };
 }
 
 export type EventName = keyof $EventTypes;
@@ -146,16 +118,6 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 	}
 }
 
-export interface AuditFilter {
-	since?: Date;
-	until?: Date;
-	user?: string | null;
-	severity?: Severity;
-	source?: string;
-	tags?: string[];
-	event?: string;
-}
-
 export async function getEvents(filter: AuditFilter): Promise<AuditEvent[]> {
 	let query = database.selectFrom('audit_log').selectAll();
 
@@ -191,4 +153,11 @@ addEvent({
 	tags: ['acl', 'auth'],
 	extra: { item: z.string() },
 	noAutoSuspend: true,
+});
+addEvent({
+	source: '@axium/server',
+	name: 'admin_api',
+	severity: Severity.Info,
+	tags: ['auth'],
+	extra: { route: z.string(), session: z.string() },
 });

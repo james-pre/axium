@@ -8,7 +8,7 @@ import { addRoute } from '../routes.js';
 
 addRoute({
 	path: '/api/session',
-	async GET(request, params): Result<'GET', 'session'> {
+	async GET(request): Result<'GET', 'session'> {
 		const token = getToken(request);
 		if (!token) error(401, 'Missing token');
 
@@ -19,7 +19,7 @@ addRoute({
 			user: stripUser(result.user, true),
 		};
 	},
-	async DELETE(request, params): Result<'DELETE', 'session'> {
+	async DELETE(request): Result<'DELETE', 'session'> {
 		const token = getToken(request);
 		if (!token) error(401, 'Missing token');
 

@@ -10,8 +10,8 @@ type _Params = Partial<Record<string, string>>;
 
 export type MaybePromise<T> = T | Promise<T>;
 
-export type EndpointHandlers<Params extends _Params = _Params> = Partial<
-	Record<RequestMethod, (request: Request, params: Params) => MaybePromise<object | Response>>
+export type EndpointHandlers<Params extends _Params = _Params, This = unknown> = Partial<
+	Record<RequestMethod, (this: This, request: Request, params: Params) => MaybePromise<object | Response>>
 >;
 
 export type RouteParamOptions = z.ZodType;
@@ -24,7 +24,9 @@ export interface CommonRouteOptions<Params extends _Params = _Params> {
 /**
  * A route with server-side handlers for different HTTP methods.
  */
-export interface ServerRouteOptions<Params extends _Params = _Params> extends CommonRouteOptions<Params>, EndpointHandlers<Params> {
+export interface ServerRouteOptions<Params extends _Params = _Params>
+	extends CommonRouteOptions<Params>,
+		EndpointHandlers<Params, RouteCommon> {
 	api?: boolean;
 }
 

@@ -1,9 +1,9 @@
+import type { Severity } from '@axium/core/audit';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { capitalize, deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
-import type { Severity } from './audit.js';
 import { _setDebugOutput, dirs, logger, output } from './io.js';
 import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
@@ -16,6 +16,8 @@ const z_audit_severity = z.literal([...audit_severity_levels, ...audit_severity_
 
 export const ConfigSchema = z
 	.looseObject({
+		/** Whether /api/admin is enabled */
+		admin_api: z.boolean(),
 		allow_new_users: z.boolean(),
 		apps: z
 			.looseObject({
@@ -102,6 +104,7 @@ const configShortcuts = {
 
 export const config: DeepRequired<Config> & typeof configShortcuts = _unique('config', {
 	...configShortcuts,
+	admin_api: true,
 	allow_new_users: true,
 	apps: {
 		disabled: [],

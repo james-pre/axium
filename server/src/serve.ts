@@ -185,7 +185,7 @@ async function _getLinkedBuildHandler(
 				return;
 			}
 
-			const run = route[request.method as RequestMethod];
+			const run = route[request.method as RequestMethod]?.bind(route);
 			if (typeof run !== 'function') {
 				res.writeHead(405).end(`Method ${request.method} not allowed for ${route.path}`);
 				return;
