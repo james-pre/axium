@@ -3,7 +3,9 @@
 </script>
 
 <div class="Bar">
-	<div class="fill" style="width: {((value - min) / (max - min)) * 100}%"></div>
+	{#if max}
+		<div class="fill" style="width: {((value - min) / (max - min)) * 100}%"></div>
+	{/if}
 	{#if text}<span class="text">{text}</span>{/if}
 </div>
 

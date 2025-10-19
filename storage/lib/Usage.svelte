@@ -14,9 +14,11 @@
 		<p>
 			<a href="/files/usage">
 				<NumberBar
-					max={info.limits.user_size * 1_000_000}
+					max={info.limits.user_size && info.limits.user_size * 1_000_000}
 					value={info.usage.bytes}
-					text="Using {formatBytes(info.usage.bytes)} of {formatBytes(info.limits.user_size * 1_000_000)}"
+					text="Using {formatBytes(info.usage.bytes)} {!info.limits.user_size
+						? ''
+						: 'of ' + formatBytes(info.limits.user_size * 1_000_000)}"
 				/>
 			</a>
 		</p>
