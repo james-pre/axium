@@ -1,19 +1,17 @@
 import * as acl from '@axium/server/acl';
 import { count, createIndex, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
-import type { Plugin } from '@axium/server/plugins';
 import { sql } from 'kysely';
-import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
 
-async function statusText(): Promise<string> {
+export async function statusText(): Promise<string> {
 	const { tasks, task_lists } = await count('tasks', 'task_lists');
 
 	return `${tasks} tasks, ${task_lists} lists`;
 }
 
-async function db_init(): Promise<void> {
+export async function db_init(): Promise<void> {
 	start('Creating table task_lists');
 	await database.schema
 		.createTable('task_lists')
@@ -49,7 +47,7 @@ async function db_init(): Promise<void> {
 	await createIndex('tasks', 'parentId');
 }
 
-async function db_wipe(): Promise<void> {
+export async function db_wipe(): Promise<void> {
 	start('Wiping data from tasks');
 	await database.deleteFrom('tasks').execute().then(done);
 
@@ -59,7 +57,7 @@ async function db_wipe(): Promise<void> {
 	await acl.wipeTable('task_lists');
 }
 
-async function remove() {
+export async function remove() {
 	start('Dropping table tasks');
 	await database.schema.dropTable('tasks').execute().then(done);
 
@@ -67,9 +65,3 @@ async function remove() {
 	await database.schema.dropTable('task_lists').execute().then(done);
 	await acl.dropTable('task_lists');
 }
-
-export default {
-	...pkg,
-	statusText,
-	hooks: { db_init, db_wipe, remove },
-} satisfies Plugin;

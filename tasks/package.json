@@ -25,7 +25,6 @@
 		"./components": "./lib/index.js",
 		"./components/*": "./lib/*.svelte"
 	},
-	"routes": "routes",
 	"files": [
 		"dist",
 		"lib",
@@ -44,11 +43,15 @@
 	"dependencies": {
 		"zod": "^4.0.5"
 	},
-	"apps": [
-		{
-			"id": "tasks",
-			"name": "Tasks",
-			"icon": "list-check"
-		}
-	]
+	"axium": {
+		"routes": "routes",
+		"hooks": "./dist/hooks.js",
+		"apps": [
+			{
+				"id": "tasks",
+				"name": "Tasks",
+				"icon": "list-check"
+			}
+		]
+	}
 }

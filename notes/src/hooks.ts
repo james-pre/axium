@@ -1,19 +1,17 @@
 import * as acl from '@axium/server/acl';
 import { count, createIndex, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
-import type { Plugin } from '@axium/server/plugins';
 import { sql } from 'kysely';
-import pkg from '../package.json' with { type: 'json' };
 import './common.js';
 import './server.js';
 
-async function statusText(): Promise<string> {
+export async function statusText(): Promise<string> {
 	const { notes } = await count('notes');
 
 	return `${notes} notes`;
 }
 
-async function db_init(): Promise<void> {
+export async function db_init(): Promise<void> {
 	start('Creating table notes');
 	await database.schema
 		.createTable('notes')
@@ -33,22 +31,16 @@ async function db_init(): Promise<void> {
 	await acl.createTable('notes');
 }
 
-async function db_wipe(): Promise<void> {
+export async function db_wipe(): Promise<void> {
 	start('Wiping data from notes');
 	await database.deleteFrom('notes').execute().then(done);
 
 	await acl.wipeTable('notes');
 }
 
-async function remove() {
+export async function remove() {
 	await acl.dropTable('notes');
 
 	start('Dropping table notes');
 	await database.schema.dropTable('notes').execute().then(done);
 }
-
-export default {
-	...pkg,
-	statusText,
-	hooks: { db_init, db_wipe, remove },
-} satisfies Plugin;
