@@ -31,6 +31,7 @@
 		"dist",
 		"lib",
 		"build",
+		"routes",
 		"styles"
 	],
 	"scripts": {
@@ -50,6 +51,7 @@
 	"axium": {
 		"http_handler": "./build/handler.js",
 		"hooks": "./dist/hooks.js",
+		"routes": "./routes",
 		"apps": [
 			{
 				"id": "files",

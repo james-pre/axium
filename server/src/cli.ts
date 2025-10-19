@@ -2,7 +2,8 @@
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
 import { spawnSync } from 'node:child_process';
-import { join } from 'node:path/posix';
+import { access } from 'node:fs/promises';
+import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
 import { capitalize, getByString, isJSON, setByString, uncapitalize, type Entries } from 'utilium';
@@ -14,6 +15,7 @@ import type { UserInternal } from './auth.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import * as io from './io.js';
+import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { plugins, pluginText, type PluginInternal } from './plugins.js';
 import { serve } from './serve.js';
 
@@ -605,11 +607,13 @@ program
 	.description('Start the Axium server')
 	.option('-p, --port <port>', 'the port to listen on')
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
+	.option('-b, --build <path>', 'the path to the handler build')
 	.action(async (opt: OptCommon & { ssl?: string; port?: string; build?: string }) => {
 		const server = await serve({
 			secure: opt.ssl ? true : config.web.secure,
 			ssl_cert: opt.ssl ? join(opt.ssl, 'cert.pem') : config.web.ssl_cert,
 			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,
+			build: opt.build ? resolve(opt.build) : undefined,
 		});
 
 		const port = !Number.isNaN(Number.parseInt(opt.port ?? '')) ? Number.parseInt(opt.port!) : config.web.port;
@@ -617,6 +621,38 @@ program
 		server.listen(port, () => {
 			console.log('Server is listening on port ' + port);
 		});
+	});
+
+program
+	.command('link')
+	.description('Link routes provided by plugins and the server')
+	.addOption(opts.packagesDir)
+	.addOption(new Option('-l, --list', 'list route links').conflicts('delete'))
+	.option('-d, --delete', 'delete route links')
+	.argument('[name...]', 'List of plugin names to operate on. If not specified, operates on all plugins and built-in routes.')
+	.action(async function (this: Command, names: string[]) {
+		const opt = this.optsWithGlobals<OptCommon & LinkOptions & { list?: boolean; delete?: boolean }>();
+		if (names.length) opt.only = names;
+
+		if (opt.list) {
+			for (const link of listRouteLinks(opt)) {
+				const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
+				const fromColor = await access(link.from)
+					.then(() => 'cyanBright' as const)
+					.catch(() => 'redBright' as const);
+				console.log(
+					`${idText}:\t ${styleText(fromColor, link.from)}\t->\t${link.to.replace(/.*\/node_modules\//, styleText('dim', '$&'))}`
+				);
+			}
+			return;
+		}
+
+		if (opt.delete) {
+			unlinkRoutes(opt);
+			return;
+		}
+
+		linkRoutes(opt);
 	});
 
 interface AuditCLIOptions extends AuditFilter {

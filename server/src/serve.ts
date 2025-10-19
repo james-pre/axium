@@ -15,18 +15,10 @@ import config from './config.js';
 import { convertFromResponse, convertToRequest } from './internal_requests.js';
 import { plugins } from './plugins.js';
 import { error, handleAPIRequest, handleResponseError, json, noCacheHeaders } from './requests.js';
-import { resolveRoute } from './routes.js';
+import { resolveRoute, type MaybePromise } from './routes.js';
 
 const template = readFileSync(join(import.meta.dirname, '../template.html'), 'utf-8');
 
-export interface ServeOptions {
-	secure: boolean;
-	ssl_key: string;
-	ssl_cert: string;
-	build: string;
-}
-
-/** @deprecated */
 function fillSvelteKitTemplate(
 	{ head, body }: Record<'head' | 'body', string>,
 	env: Record<string, string> = {},
@@ -97,7 +89,15 @@ function __next(error?: any): never {
 	throw { [kNext]: error };
 }
 
-export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
+export interface ServeOptions {
+	secure: boolean;
+	ssl_key: string;
+	ssl_cert: string;
+	build: string;
+	multiBuild: boolean;
+}
+
+async function _getMultiBuildHandler(): Promise<(req: IncomingMessage, res: ServerResponse) => void> {
 	const handlers: ((req: IncomingMessage, res: ServerResponse, next: (error?: any) => never) => void)[] = [];
 
 	for (const plugin of plugins.values()) {
@@ -142,6 +142,73 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
 		const req = convertToRequest(incoming);
 		void handleRequestDefault(req).then(res => convertFromResponse(response, res));
 	}
+
+	return handle;
+}
+
+async function _runRoute(
+	run: (request: Request, params: Partial<Record<string, string>>) => MaybePromise<object | Response>,
+	request: Request,
+	params: Partial<Record<string, string>>
+): Promise<Response> {
+	try {
+		const result = await run(request, params);
+		if (result instanceof Response) return result;
+		return json(result);
+	} catch (e: any) {
+		return handleResponseError(e);
+	}
+}
+
+async function _getLinkedBuildHandler(
+	buildPath: string = '../build/handler.js'
+): Promise<(req: IncomingMessage, res: ServerResponse) => void> {
+	const { handler: handleFrontendRequest } = await import(buildPath);
+
+	return function handle(req: IncomingMessage, res: ServerResponse) {
+		const url = new URL(req.url!, config.auth.origin);
+		const [route, params = {}] = resolveRoute(url) ?? [];
+
+		if (!route && url.pathname === '/' && config.debug_home) {
+			res.writeHead(303, { Location: '/_axium/default' }).end();
+			return;
+		}
+
+		if (config.debug) console.log(styleText('blueBright', req.method!.padEnd(7)), route ? route.path : url.pathname);
+
+		if (route && route.server == true) {
+			const request = convertToRequest(req);
+			if (route.api) {
+				void handleAPIRequest(request, params, route)
+					.catch(handleResponseError)
+					.then(response => convertFromResponse(res, response));
+				return;
+			}
+
+			const run = route[request.method as RequestMethod];
+			if (typeof run !== 'function') {
+				res.writeHead(405).end(`Method ${request.method} not allowed for ${route.path}`);
+				return;
+			}
+			void _runRoute(run, request, params).then(response => convertFromResponse(res, response));
+			return;
+		}
+
+		// Check to see if this is for an app that is disabled.
+		const maybeApp = url.pathname.split('/')[1];
+		if (apps.has(maybeApp) && config.apps.disabled.includes(maybeApp)) {
+			const body = fillSvelteKitTemplate(appDisabledContent);
+			res.writeHead(503, noCacheHeaders).end(body);
+			return;
+		}
+
+		handleFrontendRequest(req, res);
+		return;
+	};
+}
+
+export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
+	const handle = await _getLinkedBuildHandler(opt.build);
 
 	if (!opt.secure && !config.web.secure) return createServer(handle);
 

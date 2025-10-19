@@ -17,10 +17,11 @@ export default {
 		sourceRoot: 'web',
 	},
 	ssr: {
-		external: ['@axium/server/serve', '@axium/server/sveltekit'],
+		external: ['@axium/server'],
+		noExternal: [],
 	},
 	optimizeDeps: {
-		exclude: [],
+		exclude: ['@axium/server'],
 		include: ['@axium/client/components'],
 	},
 	build: {

@@ -33,7 +33,8 @@
 		"dist",
 		"routes",
 		"svelte.config.js",
-		"web",
+		"web.tsconfig.json",
+		"template.html",
 		"vite.config.js",
 		"axiumd.service"
 	],

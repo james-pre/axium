@@ -1,6 +1,7 @@
 import node from '@sveltejs/adapter-node';
 import { join } from 'node:path/posix';
 import { fileURLToPath } from 'node:url';
+import config from '@axium/server/config';
 
 /** @type {import('@sveltejs/kit').Config} */
 export default {
@@ -15,6 +16,7 @@ export default {
 		files: {
 			assets: join(fileURLToPath(new URL(import.meta.resolve('@axium/client'))), '../../assets'),
 			appTemplate: join(import.meta.dirname, 'template.html'),
+			routes: config.web.routes,
 			hooks: {
 				universal: '/dev/null',
 			},

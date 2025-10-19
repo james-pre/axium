@@ -18,6 +18,7 @@ export const Plugin = z.looseObject({
 	/** The path to the HTTP handler */
 	http_handler: z.string().optional(),
 	apps: z.array(App).optional(),
+	routes: z.string().optional(),
 });
 
 export type Plugin = z.infer<typeof Plugin>;

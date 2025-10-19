@@ -8,7 +8,7 @@ import { _unique } from './state.js';
 
 type _Params = Partial<Record<string, string>>;
 
-type MaybePromise<T> = T | Promise<T>;
+export type MaybePromise<T> = T | Promise<T>;
 
 export type EndpointHandlers<Params extends _Params = _Params> = Partial<
 	Record<RequestMethod, (request: Request, params: Params) => MaybePromise<object | Response>>
