@@ -172,7 +172,9 @@ export const FileSchema = z
 	.partial();
 export interface File extends z.infer<typeof FileSchema> {}
 
-export function addConfigDefaults(other: Config, _target: Record<string, any> = defaultConfig): void {
+export function addConfigDefaults(other: Config, _target: Record<string, any> = config, _noDefault: boolean = false): void {
+	if (!_noDefault) deepAssign(defaultConfig, other);
+
 	for (const [key, value] of Object.entries(other)) {
 		if (!(key in _target) || _target[key] === null || _target[key] === undefined || Number.isNaN(_target[key])) {
 			_target[key] = value;
@@ -180,7 +182,7 @@ export function addConfigDefaults(other: Config, _target: Record<string, any> = 
 		}
 
 		if (typeof value == 'object' && value != null && typeof _target[key] == 'object') {
-			addConfigDefaults(value as any, _target[key]);
+			addConfigDefaults(value as any, _target[key], true);
 		}
 	}
 }
