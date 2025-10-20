@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { AuditFilter, type AuditEvent, type UserInternal } from '@axium/core';
+import type { AuditEvent, UserInternal, PluginInternal } from '@axium/core';
+import { AuditFilter } from '@axium/core/audit';
 import { severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
@@ -17,7 +18,7 @@ import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import * as io from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
-import { plugins, pluginText, type PluginInternal } from './plugins.js';
+import { plugins, pluginText } from './plugins.js';
 import { serve } from './serve.js';
 
 function readline() {

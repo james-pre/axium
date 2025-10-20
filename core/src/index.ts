@@ -5,6 +5,7 @@ export * from './audit.js';
 export * from './auth.js';
 export * as icons from './icons.js';
 export * from './passkeys.js';
+export * from './plugins.js';
 export * from './preferences.js';
 export * from './requests.js';
 export * from './schemas.js';

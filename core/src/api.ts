@@ -7,6 +7,7 @@ import type { NewSessionResponse, Session, Verification } from './auth.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
 import type { RequestMethod } from './requests.js';
 import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserInternal, UserPublic, UserRegistration } from './user.js';
+import type { PluginInternal } from './plugins.js';
 
 /**
  * Types for all API endpoints
@@ -91,6 +92,9 @@ export interface $API {
 			files: Record<string, object>;
 			config: Record<string, unknown>;
 		};
+	};
+	'admin/plugins': {
+		GET: PluginInternal[];
 	};
 	'admin/audit/events': {
 		GET: [filter: z.input<typeof AuditFilter>, result: AuditEvent[]];

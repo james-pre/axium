@@ -1,4 +1,4 @@
-import { App, zAsyncFunction } from '@axium/core';
+import { Plugin, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { fileURLToPath } from 'node:url';
@@ -8,38 +8,6 @@ import { apps } from './apps.js';
 import type { InitOptions, OpOptions } from './database.js';
 import { output } from './io.js';
 import { _unique } from './state.js';
-
-export const Plugin = z.looseObject({
-	name: z.string(),
-	version: z.string(),
-	description: z.string().optional(),
-	/** The path to the hooks script */
-	hooks: z.string().optional(),
-	/** The path to the HTTP handler */
-	http_handler: z.string().optional(),
-	apps: z.array(App).optional(),
-	routes: z.string().optional(),
-});
-
-export type Plugin = z.infer<typeof Plugin>;
-
-export interface PluginInternal extends Plugin {
-	readonly path: string;
-	readonly dirname: string;
-	readonly specifier: string;
-	readonly _loadedBy: string;
-	readonly _hooks?: Hooks;
-}
-
-const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
-
-const PluginHooks = z.object({
-	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })).optional(),
-	db_init: fn.optional(),
-	remove: fn.optional(),
-	db_wipe: fn.optional(),
-	clean: fn.optional(),
-});
 
 export interface Hooks {
 	statusText?(): string | Promise<string>;

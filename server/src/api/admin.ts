@@ -1,4 +1,4 @@
-import type { Result, UserInternal } from '@axium/core';
+import type { PluginInternal, Result, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
@@ -9,6 +9,7 @@ import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
 import { error, getToken, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
+import { plugins } from '../plugins.js';
 
 async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
 	const token = getToken(req);
@@ -40,6 +41,15 @@ addRoute({
 			auditEvents,
 			configFiles: config.files.size,
 		};
+	},
+});
+
+addRoute({
+	path: '/api/admin/plugins',
+	async GET(req): Result<'GET', 'admin/plugins'> {
+		await assertAdmin(this, req);
+
+		return Array.from(plugins.values()).map(p => omit(p, '_hooks') as PluginInternal);
 	},
 });
 

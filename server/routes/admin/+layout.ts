@@ -19,6 +19,7 @@ export async function load({
 			active: route.id.endsWith('/admin/users') || route.id.endsWith('/admin/users/[id]'),
 		},
 		{ name: 'configuration', href: '/admin/config', icon: 'sliders', active: route.id.endsWith('/admin/config') },
+		{ name: 'plugins', href: '/admin/plugins', icon: 'puzzle-piece-simple', active: route.id.endsWith('/admin/plugins') },
 		{ name: 'audit log', href: '/admin/audit', icon: 'file-shield', active: route.id.endsWith('/admin/audit') },
 	] satisfies { name: string; href: LayoutRouteId; icon: string; active: boolean }[];
 
