@@ -1,6 +1,6 @@
 {
 	"name": "@axium/tasks",
-	"version": "0.2.2",
+	"version": "0.2.3",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Tasks for Axium",
 	"funding": {
@@ -34,9 +34,9 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.4.0",
-		"@axium/core": ">=0.7.0",
-		"@axium/server": ">=0.23.0",
+		"@axium/client": ">=0.5.0",
+		"@axium/core": ">=0.8.0",
+		"@axium/server": ">=0.25.0",
 		"@sveltejs/kit": "^2.27.3",
 		"utilium": "^2.3.8"
 	},
