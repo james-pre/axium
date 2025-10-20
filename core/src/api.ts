@@ -71,8 +71,11 @@ export interface $API {
 	'acl/:itemType/:itemId': {
 		PUT: [{ userId: string; permission: number }, AccessControl];
 	};
-	'admin/users': {
+	'admin/users/all': {
 		GET: UserInternal[];
+	};
+	'admin/users/:userId': {
+		GET: UserInternal & { sessions: Session[] };
 	};
 	'admin/config': {
 		GET: {

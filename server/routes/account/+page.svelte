@@ -1,16 +1,8 @@
 <script lang="ts">
-	import {
-		createPasskey,
-		deletePasskey,
-		deleteUser,
-		logout,
-		logoutAll,
-		sendVerificationEmail,
-		updatePasskey,
-		updateUser,
-	} from '@axium/client/user';
+	import { ClipboardCopy, FormDialog, Icon, Logout, Preferences, SessionList } from '@axium/client/components';
+	import '@axium/client/styles/account';
+	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
 	import { getUserImage } from '@axium/core/user';
-	import { ClipboardCopy, FormDialog, Icon, Logout, Preferences } from '@axium/client/components';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
@@ -31,7 +23,7 @@
 </script>
 
 <svelte:head>
-	<title>Account</title>
+	<title>Your Account</title>
 </svelte:head>
 
 {#snippet action(name: string, i: string = 'pen')}
@@ -159,45 +151,7 @@
 
 	<div class="section main">
 		<h3>Sessions</h3>
-		{#each sessions as session}
-			<div class="item session">
-				<p>
-					{session.id.slice(0, 4)}...{session.id.slice(-4)}
-					{#if session.id == currentSession.id}
-						<span class="current">Current</span>
-					{/if}
-					{#if session.elevated}
-						<span class="elevated">Elevated</span>
-					{/if}
-				</p>
-				<p>Created {session.created.toLocaleString()}</p>
-				<p>Expires {session.expires.toLocaleString()}</p>
-				{@render action('logout#' + session.id, 'right-from-bracket')}
-			</div>
-			<FormDialog
-				bind:dialog={dialogs['logout#' + session.id]}
-				submit={async () => {
-					await logout(user.id, session.id);
-					dialogs['logout#' + session.id].remove();
-					sessions.splice(sessions.indexOf(session), 1);
-					if (session.id == currentSession.id) window.location.href = '/';
-				}}
-				submitText="Logout"
-			>
-				<p>Are you sure you want to log out this session?</p>
-			</FormDialog>
-		{/each}
-		<span>
-			<button onclick={() => dialogs.logout_all.showModal()} class="danger">Logout All</button>
-		</span>
-		<FormDialog
-			bind:dialog={dialogs['logout_all']}
-			submit={() => logoutAll(user.id).then(() => (window.location.href = '/'))}
-			submitText="Logout All Sessions"
-			submitDanger
-		>
-			<p>Are you sure you want to log out all sessions?</p>
-		</FormDialog>
+		<SessionList {sessions} {currentSession} {user} redirectAfterLogoutAll />
 	</div>
 
 	<div class="section main">
@@ -232,63 +186,5 @@
 
 	.signout {
 		margin-top: 2em;
-	}
-
-	.section {
-		width: 50%;
-		padding-top: 4em;
-
-		/* This is causing duplicate separators when removing sessions/passkeys
-		> div:has(+ div) {
-			border-bottom: 1px solid #8888;
-		}
-		*/
-	}
-
-	.section .item {
-		display: grid;
-		align-items: center;
-		width: 100%;
-		gap: 1em;
-		text-wrap: nowrap;
-		border-top: 1px solid #8888;
-		padding-bottom: 1em;
-	}
-
-	.info {
-		grid-template-columns: 10em 1fr 2em;
-
-		> :first-child {
-			margin-left: 1em;
-		}
-
-		> :nth-child(2) {
-			text-overflow: ellipsis;
-			overflow: hidden;
-		}
-	}
-
-	.passkey {
-		grid-template-columns: 1em 1em 1fr 1fr 1em 1em;
-
-		dfn:not(.disabled) {
-			cursor: help;
-		}
-	}
-
-	.session {
-		grid-template-columns: 1fr 1fr 1fr 1em;
-
-		.current {
-			border-radius: 2em;
-			padding: 0 0.5em;
-			background-color: #337;
-		}
-
-		.elevated {
-			border-radius: 2em;
-			padding: 0 0.5em;
-			background-color: #733;
-		}
 	}
 </style>

@@ -23,7 +23,7 @@
 		<span>Attributes</span>
 	</div>
 	{#each data.users as user}
-		<div class="user list-item">
+		<div class="user list-item" onclick={e => e.currentTarget === e.target && (location.href = '/admin/users/' + user.id)}>
 			<span>{user.name}</span>
 			<span>{user.email}</span>
 			<span>

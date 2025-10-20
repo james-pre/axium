@@ -94,7 +94,7 @@
 		</div>
 
 		{#each data.events as event}
-			<div class="list-item">
+			<div class="list-item" onclick={e => e.currentTarget === e.target && (location.href = '/admin/audit/' + event.id)}>
 				<span>{new Date(event.timestamp).toLocaleString()}</span>
 				<span class="severity--{Severity[event.severity].toLowerCase()}">{Severity[event.severity]}</span>
 				<span>{event.source}</span>

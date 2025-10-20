@@ -10,7 +10,7 @@
 
 <pre>{JSON.stringify(data.config, null, 4)}</pre>
 
-<h2>Load Files</h2>
+<h2>Loaded Files</h2>
 
 {#each Object.entries(data.files) as [path, config]}
 	<details>
@@ -20,9 +20,9 @@
 {/each}
 
 <style>
-	pre {
-		background-color: var(--bg-menu);
-		padding: 1em;
-		border-radius: 0.5em;
+	summary {
+		cursor: pointer;
+		padding: 1em 0;
+		font-size: large;
 	}
 </style>

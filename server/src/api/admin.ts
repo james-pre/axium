@@ -1,9 +1,10 @@
-import type { Result, UserInternal } from '@axium/core';
+import type { Result, Session, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
-import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { omit } from 'utilium';
 import * as z from 'zod';
 import { audit, getEvents } from '../audit.js';
-import { getSessionAndUser } from '../auth.js';
+import { getSessionAndUser, type SessionInternal } from '../auth.js';
 import config, { type Config } from '../config.js';
 import { database as db } from '../database.js';
 import { error, getToken, withError } from '../requests.js';
@@ -24,13 +25,44 @@ async function assertAdmin(route: RouteCommon, req: Request): Promise<UserIntern
 }
 
 addRoute({
-	path: '/api/admin/users',
-	async GET(req): Result<'GET', 'admin/users'> {
+	path: '/api/admin/users/all',
+	async GET(req): Result<'GET', 'admin/users/all'> {
 		await assertAdmin(this, req);
 
 		const users: UserInternal[] = await db.selectFrom('users').selectAll().execute();
 
 		return users;
+	},
+});
+
+addRoute({
+	path: '/api/admin/users/:userId',
+	params: { userId: z.uuid() },
+	async GET(req, params): Result<'GET', 'admin/users/:userId'> {
+		await assertAdmin(this, req);
+
+		if (!params.userId) error(400, 'Missing user ID');
+
+		const user = await db
+			.selectFrom('users')
+			.selectAll()
+			.select(eb =>
+				jsonArrayFrom(eb.selectFrom('sessions').whereRef('sessions.userId', '=', 'users.id').selectAll())
+					.$castTo<SessionInternal[]>()
+					.as('sessions')
+			)
+			.where('id', '=', params.userId)
+			.executeTakeFirstOrThrow()
+			.catch(withError('User not found', 404));
+
+		return {
+			...user,
+			sessions: user.sessions.map(s => ({
+				...omit(s, 'token'),
+				created: new Date(s.created),
+				expires: new Date(s.expires),
+			})),
+		};
 	},
 });
 

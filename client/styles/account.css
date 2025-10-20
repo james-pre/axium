@@ -1,0 +1,57 @@
+.section {
+	width: 50%;
+	padding-top: 4em;
+
+	/* This is causing duplicate separators when removing sessions/passkeys
+		> div:has(+ div) {
+			border-bottom: 1px solid #8888;
+		}
+		*/
+}
+
+.section .item {
+	display: grid;
+	align-items: center;
+	width: 100%;
+	gap: 1em;
+	text-wrap: nowrap;
+	border-top: 1px solid #8888;
+	padding-bottom: 1em;
+}
+
+.info {
+	grid-template-columns: 10em 1fr 2em;
+
+	> :first-child {
+		margin-left: 1em;
+	}
+
+	> :nth-child(2) {
+		text-overflow: ellipsis;
+		overflow: hidden;
+	}
+}
+
+.passkey {
+	grid-template-columns: 1em 1em 1fr 1fr 1em 1em;
+
+	dfn:not(.disabled) {
+		cursor: help;
+	}
+}
+
+.session {
+	grid-template-columns: 1fr 1fr 1fr 1em;
+
+	.current {
+		border-radius: 2em;
+		padding: 0 0.5em;
+		background-color: #337;
+	}
+
+	.elevated {
+		border-radius: 2em;
+		padding: 0 0.5em;
+		background-color: #733;
+	}
+}

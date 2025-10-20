@@ -73,6 +73,13 @@ button:hover {
 	background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
 }
 
+code,
+pre {
+	background-color: var(--bg-menu);
+	padding: 1em;
+	border-radius: 0.5em;
+}
+
 .error {
 	padding: 1em;
 	border-radius: 0.5em;
