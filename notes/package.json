@@ -1,7 +1,7 @@
 {
 	"name": "@axium/notes",
 	"version": "0.1.8",
-	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Notes for Axium",
 	"funding": {
 		"type": "individual",

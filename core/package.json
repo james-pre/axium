@@ -1,7 +1,7 @@
 {
 	"name": "@axium/core",
 	"version": "0.7.0",
-	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"author": "James Prevett <axium@jamespre.dev>",
 	"funding": {
 		"type": "individual",
 		"url": "https://github.com/sponsors/james-pre"

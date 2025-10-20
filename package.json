@@ -3,7 +3,7 @@
 	"version": "0.0.0",
 	"private": true,
 	"description": "A self-hosted productivity platform",
-	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"author": "James Prevett <axium@jamespre.dev>",
 	"funding": {
 		"type": "individual",
 		"url": "https://github.com/sponsors/james-pre"

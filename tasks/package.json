@@ -1,7 +1,7 @@
 {
 	"name": "@axium/tasks",
 	"version": "0.2.2",
-	"author": "James Prevett <axium@jamespre.dev> (https://jamespre.dev)",
+	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Tasks for Axium",
 	"funding": {
 		"type": "individual",
