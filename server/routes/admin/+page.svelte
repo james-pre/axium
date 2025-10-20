@@ -10,6 +10,8 @@
 
 <h2>Administration</h2>
 
+<p>Axium Server version {data.version}</p>
+
 <h3><a href="/admin/users">Users</a></h3>
 
 <p>{data.users} users, {data.sessions} sessions, {data.passkeys} passkeys.</p>

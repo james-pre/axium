@@ -10,6 +10,7 @@ import { count, database as db } from '../database.js';
 import { error, getToken, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 import { plugins } from '../plugins.js';
+import pkg from '../../package.json' with { type: 'json' };
 
 async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
 	const token = getToken(req);
@@ -40,6 +41,7 @@ addRoute({
 			...(await count('users', 'passkeys', 'sessions')),
 			auditEvents,
 			configFiles: config.files.size,
+			version: pkg.version,
 		};
 	},
 });
