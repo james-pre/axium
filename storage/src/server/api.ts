@@ -5,18 +5,22 @@ import { database, type Schema } from '@axium/server/database';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import type { ExpressionBuilder } from 'kysely';
+import { pick } from 'utilium';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
-import { StorageItemUpdate } from '../common.js';
+import { batchFormatVersion, StorageItemUpdate, syncProtocolVersion } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { currentUsage, deleteRecursive, parseItem, type SelectedItem } from './db.js';
-import { pick } from 'utilium';
 
 addRoute({
 	path: '/api/storage',
 	async OPTIONS(): Result<'OPTIONS', 'storage'> {
-		return pick(config.storage, 'batch', 'chunk', 'max_chunks', 'max_transfer_size', 'sync');
+		return {
+			...pick(config.storage, 'batch', 'chunk', 'max_chunks', 'max_transfer_size', 'sync'),
+			syncProtocolVersion,
+			batchFormatVersion,
+		};
 	},
 });
 

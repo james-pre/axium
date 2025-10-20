@@ -16,7 +16,10 @@ declare module '@axium/core/api' {
 			GET: StorageItemMetadata[];
 		};
 		storage: {
-			OPTIONS: StoragePublicConfig;
+			OPTIONS: StoragePublicConfig & {
+				syncProtocolVersion: number;
+				batchFormatVersion: number;
+			};
 		};
 		'storage/batch': {
 			POST: [StorageBatchUpdate[], StorageItemMetadata[]];
