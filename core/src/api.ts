@@ -2,7 +2,7 @@ import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequest
 import type z from 'zod';
 import type { AccessControl } from './access.js';
 import type { App } from './apps.js';
-import type { AuditEvent, AuditFilter } from './audit.js';
+import type { AuditEvent, AuditFilter, Severity } from './audit.js';
 import type { NewSessionResponse, Session, Verification } from './auth.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
 import type { RequestMethod } from './requests.js';
@@ -70,6 +70,15 @@ export interface $API {
 	};
 	'acl/:itemType/:itemId': {
 		PUT: [{ userId: string; permission: number }, AccessControl];
+	};
+	'admin/summary': {
+		GET: {
+			users: number;
+			passkeys: number;
+			sessions: number;
+			auditEvents: Record<keyof typeof Severity, number>;
+			configFiles: number;
+		};
 	};
 	'admin/users/all': {
 		GET: UserInternal[];

@@ -1,12 +1,12 @@
-import type { Result, Session, UserInternal } from '@axium/core';
+import type { Result, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
 import { audit, getEvents } from '../audit.js';
 import { getSessionAndUser, type SessionInternal } from '../auth.js';
-import config, { type Config } from '../config.js';
-import { database as db } from '../database.js';
+import { config, type Config } from '../config.js';
+import { count, database as db } from '../database.js';
 import { error, getToken, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 
@@ -23,6 +23,25 @@ async function assertAdmin(route: RouteCommon, req: Request): Promise<UserIntern
 
 	return admin.user;
 }
+
+addRoute({
+	path: '/api/admin/summary',
+	async GET(req): Result<'GET', 'admin/summary'> {
+		await assertAdmin(this, req);
+
+		const groups = Object.groupBy(await getEvents({}).execute(), e => e.severity);
+		const auditEvents = Object.fromEntries(Object.entries(groups).map(([sev, events]) => [sev, events.length])) as Record<
+			keyof typeof Severity,
+			number
+		>;
+
+		return {
+			...(await count('users', 'passkeys', 'sessions')),
+			auditEvents,
+			configFiles: config.files.size,
+		};
+	},
+});
 
 addRoute({
 	path: '/api/admin/users/all',
