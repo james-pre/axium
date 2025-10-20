@@ -15,6 +15,12 @@ declare module '@axium/core/api' {
 		'users/:id/storage/shared': {
 			GET: StorageItemMetadata[];
 		};
+		storage: {
+			OPTIONS: StoragePublicConfig;
+		};
+		'storage/batch': {
+			POST: [StorageBatchUpdate[], StorageItemMetadata[]];
+		};
 		'storage/item/:id': {
 			GET: StorageItemMetadata;
 			DELETE: StorageItemMetadata;
@@ -25,6 +31,35 @@ declare module '@axium/core/api' {
 		};
 	}
 }
+
+export interface StoragePublicConfig {
+	/** Configuration for batch updates */
+	batch: {
+		/** Whether to enable sending multiple files per request */
+		enabled: boolean;
+		/** Maximum number of items that can be included in a single batch update */
+		max_items: number;
+		/** Maximum size in KiB per item */
+		max_item_size: number;
+	};
+	/** Whether to split files larger than `max_transfer_size` into multiple chunks */
+	chunk: boolean;
+	/** Maximum size in MiB per transfer/request */
+	max_transfer_size: number;
+	/** Maximum number of chunks */
+	max_chunks: number;
+	/** Configuration for local file syncing */
+	sync: {
+		/** Whether file syncing is enabled */
+		enabled: boolean;
+		/** Mime types to include when syncing */
+		include: string[];
+		/** Mime types to exclude when syncing */
+		exclude: string[];
+	};
+}
+
+export const syncProtocolVersion = 0;
 
 export interface StorageLimits {
 	/** The maximum size per item in MB */
@@ -80,3 +115,19 @@ export interface StorageItemMetadata<T extends Record<string, unknown> = Record<
 	type: string;
 	metadata: T;
 }
+
+export const batchFormatVersion = 0;
+
+export const BatchedContentChange = z.object({
+	/** Offset in request body */
+	offset: z.int().nonnegative(),
+	size: z.int().nonnegative(),
+});
+
+export const StorageBatchUpdate = z.object({
+	deleted: z.uuid().array().optional(),
+	metadata: z.record(z.uuid(), StorageItemUpdate).optional(),
+	content: z.record(z.uuid(), BatchedContentChange).optional(),
+});
+
+export interface StorageBatchUpdate extends z.infer<typeof StorageBatchUpdate> {}

@@ -5,8 +5,8 @@ import type { InitOptions, OpOptions } from '@axium/server/database';
 import { count, createIndex, database, warnExists } from '@axium/server/database';
 import { done, start } from '@axium/server/io';
 import { sql } from 'kysely';
-import './common.js';
-import './server.js';
+import '../common.js';
+import './index.js';
 
 export async function statusText(): Promise<string> {
 	const { storage: items } = await count('storage');

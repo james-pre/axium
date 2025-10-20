@@ -21,6 +21,7 @@
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": "./dist/index.js",
+		"./client": "./dist/client/index.js",
 		"./*": "./dist/*.js",
 		"./sidebar": "./lib/sidebar.svelte.js",
 		"./components": "./lib/index.js",
@@ -49,7 +50,7 @@
 	},
 	"axium": {
 		"http_handler": "./build/handler.js",
-		"hooks": "./dist/hooks.js",
+		"hooks": "./dist/server/hooks.js",
 		"routes": "./routes",
 		"apps": [
 			{

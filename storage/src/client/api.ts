@@ -1,5 +1,5 @@
 import { fetchAPI, token } from '@axium/client/requests';
-import type { StorageItemMetadata, StorageItemUpdate, UserStorage, UserStorageInfo } from './common.js';
+import type { StorageItemMetadata, StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.js';
 
 async function _upload(
 	method: 'PUT' | 'POST',
