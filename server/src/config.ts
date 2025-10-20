@@ -196,6 +196,8 @@ export function setConfig(other: Config) {
 	_duplicateStateWarnings(config.show_duplicate_state);
 }
 
+const kWasIncluded = Symbol.for('_wasIncluded');
+
 export interface LoadOptions {
 	/**
 	 * If enabled, the config file will still be loaded if it does not match the schema.
@@ -247,7 +249,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		output.debug(`Loading invalid config from ${path} (${e.message})`);
 		file = json;
 	}
-	configFiles.set(path, { ...file, _wasIncluded: !!options._markIncluded });
+	configFiles.set(path, { ...file, [kWasIncluded]: !!options._markIncluded });
 	setConfig(file);
 	output.debug('Loaded config: ' + path);
 	for (const include of file.include ?? [])
@@ -272,7 +274,7 @@ export async function reloadConfigs(safe: boolean = false) {
 	const paths = Array.from(
 		configFiles
 			.entries()
-			.filter(([, cfg]) => !cfg._wasIncluded)
+			.filter(([, cfg]) => !cfg[kWasIncluded as any])
 			.map(([p]) => p)
 	);
 	configFiles.clear();
