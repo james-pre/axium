@@ -20,6 +20,10 @@
 
 <p>{data.configFiles} files loaded.</p>
 
+<h3><a href="/admin/plugins">Plugins</a></h3>
+
+<p>{data.plugins} plugins loaded.</p>
+
 <h3><a href="/admin/audit">Audit Log</a></h3>
 
 <p>

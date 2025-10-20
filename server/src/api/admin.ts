@@ -41,6 +41,7 @@ addRoute({
 			...(await count('users', 'passkeys', 'sessions')),
 			auditEvents,
 			configFiles: config.files.size,
+			plugins: plugins.size,
 			version: pkg.version,
 		};
 	},

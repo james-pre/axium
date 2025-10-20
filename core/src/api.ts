@@ -79,6 +79,7 @@ export interface $API {
 			sessions: number;
 			auditEvents: Record<keyof typeof Severity, number>;
 			configFiles: number;
+			plugins: number;
 			version: string;
 		};
 	};
