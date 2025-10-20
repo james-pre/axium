@@ -1,6 +1,6 @@
 #!/usr/bin/env node
-import type { UserInternal, AuditEvent, AuditFilter } from '@axium/core';
-import { Severity } from '@axium/core/audit';
+import { AuditFilter, type AuditEvent, type UserInternal } from '@axium/core';
+import { severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program, type Command } from 'commander';
 import { spawnSync } from 'node:child_process';
@@ -8,7 +8,7 @@ import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
-import { capitalize, getByString, isJSON, setByString, uncapitalize, type Entries } from 'utilium';
+import { getByString, isJSON, setByString, type Entries } from 'utilium';
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { apps } from './apps.js';
@@ -671,35 +671,17 @@ program
 		new Option('-s, --summary', 'Summarize audit log entries instead of displaying individual ones').conflicts(['extra', 'includeTags'])
 	)
 	.optionsGroup('Filters:')
-	.addOption(new Option('--since <date>', 'Filter for events since a date').argParser(v => new Date(v)))
-	.addOption(new Option('--until <date>', 'Filter for events until a date').argParser(v => new Date(v)))
-	.addOption(
-		new Option('--user <uuid|null>', 'Filter for events triggered by a user').argParser(v => {
-			try {
-				return z.union([z.uuid(), z.literal(['null', '']).transform(() => null)]).parse(v);
-			} catch (e: any) {
-				throw z.prettifyError(e);
-			}
-		})
-	)
-	.addOption(
-		new Option('--severity <level>', 'Filter for events at or above a severity level')
-			.choices(
-				Object.keys(Severity)
-					.filter(k => isNaN(Number(k)))
-					.map(uncapitalize) as Lowercase<keyof typeof Severity>[]
-			)
-			.argParser(v => {
-				const cap = capitalize(v);
-				if (!(cap in Severity)) throw new Error('Invalid severity: ' + v);
-				return Severity[cap as keyof typeof Severity];
-			})
-	)
+	.option('--since <date>', 'Filter for events since a date')
+	.option('--until <date>', 'Filter for events until a date')
+	.option('--user <uuid|null>', 'Filter for events triggered by a user')
+	.addOption(new Option('--severity <level>', 'Filter for events at or above a severity level').choices(severityNames))
 	.option('--source <source>', 'Filter by source')
 	.option('--tag <tag...>', 'Filter by tag(s)')
 	.option('--event <event>', 'Filter by event name')
 	.action(async (opt: AuditCLIOptions) => {
-		const events: (AuditEvent & { _extra?: string; _tags?: string })[] = await getEvents(opt);
+		const filter = await AuditFilter.parseAsync(opt).catch(e => io.exit('Invalid filter: ' + z.prettifyError(e)));
+
+		const events: (AuditEvent & { _extra?: string; _tags?: string })[] = await getEvents(filter).execute();
 
 		if (opt.summary) {
 			const groups = Object.groupBy(events, e => e.severity);

@@ -31,8 +31,7 @@
 		"dist",
 		"lib",
 		"build",
-		"routes",
-		"styles"
+		"routes"
 	],
 	"scripts": {
 		"build": "tsc"

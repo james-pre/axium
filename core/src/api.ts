@@ -80,8 +80,11 @@ export interface $API {
 			config: Record<string, unknown>;
 		};
 	};
-	'admin/audit': {
-		POST: [filter: z.input<typeof AuditFilter>, result: AuditEvent[]];
+	'admin/audit/events': {
+		GET: [filter: z.input<typeof AuditFilter>, result: AuditEvent[]];
+	};
+	'admin/audit/:eventId': {
+		GET: AuditEvent;
 	};
 }
 

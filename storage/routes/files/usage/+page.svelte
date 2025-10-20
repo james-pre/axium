@@ -1,11 +1,8 @@
 <script lang="ts">
+	import { Icon, NumberBar } from '@axium/client/components';
 	import { formatBytes } from '@axium/core/format';
-	import { forMime } from '@axium/core/icons';
-	import { FormDialog, Icon, NumberBar } from '@axium/client/components';
-	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
-	import type { StorageItemUpdate } from '@axium/storage/common';
 	import { StorageList } from '@axium/storage/components';
-	import '@axium/storage/styles/list';
+	import '@axium/client/styles/list';
 
 	const { data } = $props();
 	const { limits } = data.info;

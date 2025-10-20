@@ -1,9 +1,9 @@
 <script lang="ts">
+	import { FormDialog, Icon } from '@axium/client/components';
+	import '@axium/client/styles/list';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { FormDialog, Icon } from '@axium/client/components';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
-	import '@axium/storage/styles/list';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();

@@ -1,11 +1,11 @@
-import type { Insertable } from 'kysely';
+import { Severity, type AuditEvent, type AuditFilter } from '@axium/core/audit';
+import type { Insertable, SelectQueryBuilder } from 'kysely';
 import { styleText } from 'node:util';
 import { capitalize, omit } from 'utilium';
 import * as z from 'zod';
 import config from './config.js';
 import { database, type Schema } from './database.js';
 import * as io from './io.js';
-import { Severity, type AuditEvent, type AuditFilter } from '@axium/core/audit';
 
 const severityFormat = {
 	[Severity.Emergency]: ['bgRedBright', 'white', 'underline'],
@@ -118,7 +118,7 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 	}
 }
 
-export async function getEvents(filter: AuditFilter): Promise<AuditEvent[]> {
+export function getEvents(filter: AuditFilter): SelectQueryBuilder<Schema, 'audit_log', AuditEvent> {
 	let query = database.selectFrom('audit_log').selectAll();
 
 	if ('user' in filter && !filter.user) query = query.where('userId', 'is', null);
@@ -130,7 +130,7 @@ export async function getEvents(filter: AuditFilter): Promise<AuditEvent[]> {
 	if (filter.since) query = query.where('timestamp', '>=', filter.since);
 	if (filter.until) query = query.where('timestamp', '<=', filter.until);
 
-	return await query.execute();
+	return query;
 }
 
 // Register built-ins
@@ -157,7 +157,7 @@ addEvent({
 addEvent({
 	source: '@axium/server',
 	name: 'admin_api',
-	severity: Severity.Info,
+	severity: Severity.Debug,
 	tags: ['auth'],
 	extra: { route: z.string(), session: z.string() },
 });

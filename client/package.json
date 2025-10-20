@@ -21,13 +21,15 @@
 	"files": [
 		"assets",
 		"dist",
-		"lib"
+		"lib",
+		"styles"
 	],
 	"exports": {
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
 		"./components": "./lib/index.js",
-		"./components/*": "./lib/*.svelte"
+		"./components/*": "./lib/*.svelte",
+		"./styles/*": "./styles/*.css"
 	},
 	"scripts": {
 		"build": "tsc"

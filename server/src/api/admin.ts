@@ -1,11 +1,13 @@
 import type { Result, UserInternal } from '@axium/core';
+import { AuditFilter, Severity } from '@axium/core';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import * as z from 'zod';
 import { audit, getEvents } from '../audit.js';
 import { getSessionAndUser } from '../auth.js';
+import config, { type Config } from '../config.js';
 import { database as db } from '../database.js';
-import { error, getToken, parseBody, withError } from '../requests.js';
+import { error, getToken, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
-import config from '../config.js';
-import { AuditFilter } from '@axium/core';
 
 async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
 	const token = getToken(req);
@@ -23,7 +25,7 @@ async function assertAdmin(route: RouteCommon, req: Request): Promise<UserIntern
 
 addRoute({
 	path: '/api/admin/users',
-	async GET(req: Request): Result<'GET', 'admin/users'> {
+	async GET(req): Result<'GET', 'admin/users'> {
 		await assertAdmin(this, req);
 
 		const users: UserInternal[] = await db.selectFrom('users').selectAll().execute();
@@ -32,25 +34,70 @@ addRoute({
 	},
 });
 
+/**
+ * Redacts critical information that we don't want to send over the API, even to admins.
+ */
+function _redactConfig(config: Config): Config {
+	if (config.db?.password) {
+		config.db.password = '*'.repeat(config.db.password.length);
+	}
+
+	return config;
+}
+
 addRoute({
 	path: '/api/admin/config',
-	async GET(req: Request): Result<'GET', 'admin/config'> {
+	async GET(req): Result<'GET', 'admin/config'> {
 		await assertAdmin(this, req);
 
 		return {
-			config: config.plain(),
-			files: Object.fromEntries(config.files),
+			config: _redactConfig(config.plain()),
+			files: Object.fromEntries(config.files.entries().map(([path, cfg]) => [path, _redactConfig(cfg)])),
 		};
 	},
 });
 
 addRoute({
-	path: '/api/admin/audit',
-	async POST(req: Request): Result<'POST', 'admin/audit'> {
+	path: '/api/admin/audit/events',
+	async GET(req): Result<'GET', 'admin/audit/events'> {
 		await assertAdmin(this, req);
 
-		const filter = await parseBody(req, AuditFilter);
+		const filter: AuditFilter = { severity: Severity.Info };
+		try {
+			const search = Object.fromEntries(new URL(req.url).searchParams);
+			Object.assign(filter, AuditFilter.parse(search));
+		} catch (e: any) {
+			error(400, e instanceof z.core.$ZodError ? z.prettifyError(e) : 'invalid body');
+		}
 
-		return await getEvents(filter);
+		return await getEvents(filter)
+			.select(eb =>
+				jsonObjectFrom(eb.selectFrom('users').whereRef('users.id', '=', 'audit_log.userId').select(['id', 'name'])).as('user')
+			)
+			.execute();
+	},
+});
+
+addRoute({
+	path: '/api/admin/audit/:eventId',
+	params: { eventId: z.uuid() },
+	async GET(req, params): Result<'GET', 'admin/audit/:eventId'> {
+		await assertAdmin(this, req);
+
+		if (!params.eventId) error(400, 'Missing event ID');
+
+		const event = await db
+			.selectFrom('audit_log')
+			.selectAll()
+			.select(eb =>
+				jsonObjectFrom(eb.selectFrom('users').whereRef('users.id', '=', 'audit_log.userId').selectAll())
+					.$castTo<UserInternal | null | undefined>()
+					.as('user')
+			)
+			.where('id', '=', params.eventId)
+			.executeTakeFirstOrThrow()
+			.catch(withError('Audit event not found', 404));
+
+		return event;
 	},
 });

@@ -12,6 +12,7 @@ export const User = z.object({
 	preferences: z.record(z.string(), z.any()),
 	roles: z.array(z.string()),
 	registeredAt: z.date(),
+	isAdmin: z.boolean(),
 });
 
 export interface User extends z.infer<typeof User> {
@@ -19,7 +20,6 @@ export interface User extends z.infer<typeof User> {
 }
 
 export interface UserInternal extends User {
-	isAdmin: boolean;
 	isSuspended: boolean;
 	/** Tags are internal, roles are public */
 	tags: string[];
@@ -30,7 +30,7 @@ export const userPublicFields = ['id', 'image', 'name', 'registeredAt', 'roles']
 type UserPublicField = (typeof userPublicFields)[number];
 export interface UserPublic extends Pick<User, UserPublicField> {}
 
-export const userProtectedFields = ['email', 'emailVerified', 'preferences'] as const satisfies (keyof User)[];
+export const userProtectedFields = ['email', 'emailVerified', 'preferences', 'isAdmin'] as const satisfies (keyof User)[];
 
 export const UserChangeable = User.pick({
 	name: true,

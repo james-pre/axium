@@ -1,0 +1,31 @@
+.severity--emergency {
+	background-color: red;
+	color: white;
+	text-decoration: underline;
+}
+
+.severity--alert {
+	background-color: red;
+	color: white;
+}
+
+.severity--critical {
+	font-weight: bold;
+	color: red;
+}
+
+.severity--error {
+	color: red;
+}
+
+.severity--warning {
+	color: yellow;
+}
+
+.severity--notice {
+	color: cyan;
+}
+
+.severity--debug {
+	opacity: 0.7;
+}

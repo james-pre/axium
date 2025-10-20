@@ -28,6 +28,10 @@ export async function fetchAPI<const M extends RequestMethod, const E extends En
 	};
 
 	if (method !== 'GET' && method !== 'HEAD') options.body = JSON.stringify(data);
+	const search =
+		method != 'GET' || typeof data != 'object' || data == null || !Object.keys(data).length
+			? ''
+			: '?' + new URLSearchParams(data as Record<string, string>).toString();
 
 	if (token) options.headers.Authorization = 'Bearer ' + token;
 
@@ -43,7 +47,7 @@ export async function fetchAPI<const M extends RequestMethod, const E extends En
 		parts.push(value);
 	}
 
-	const response = await fetch(prefix + parts.join('/'), options);
+	const response = await fetch(prefix + parts.join('/') + search, options);
 
 	if (!response.headers.get('Content-Type')?.includes('application/json')) {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);

@@ -1,3 +1,12 @@
+.list-container {
+	overflow-x: hidden;
+	overflow-y: scroll;
+
+	.list {
+		height: 100%;
+	}
+}
+
 .list {
 	display: flex;
 	flex-direction: column;
@@ -7,6 +16,8 @@
 .list-header {
 	font-weight: bold;
 	border-bottom: 1.5px solid var(--fg-accent);
+	position: sticky;
+	top: 0em;
 }
 
 .list-item-container {

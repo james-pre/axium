@@ -24,6 +24,13 @@
 		<span>Your Account</span>
 	</a>
 
+	{#if user.isAdmin}
+		<a class="menu-item" href="/admin">
+			<Icon i="gear-complex" --size="1.5em" />
+			<span>Administration</span>
+		</a>
+	{/if}
+
 	{#await fetchAPI('GET', 'apps')}
 		<i>Loading...</i>
 	{:then apps}
