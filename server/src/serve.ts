@@ -1,6 +1,6 @@
 import type { RequestMethod } from '@axium/core';
 import '@axium/server/api/index';
-import { loadDefaultConfigs } from '@axium/server/config';
+import { loadDefaultConfigs, reloadConfigs } from '@axium/server/config';
 import { clean, connect, database } from '@axium/server/database';
 import { _debugOutput, dirs, logger, output } from '@axium/server/io';
 import { allLogLevels } from 'logzen';
@@ -231,7 +231,7 @@ export async function init() {
 	process.on('beforeExit', () => database.destroy());
 
 	process.on('SIGHUP', () => {
-		output.info('Reloading configuration.');
-		void loadDefaultConfigs();
+		output.info('Reloading configuration due to SIGHUP.');
+		void reloadConfigs();
 	});
 }

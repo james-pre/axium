@@ -91,19 +91,7 @@ export function plainConfig(): Omit<DeepRequired<Config>, keyof typeof configSho
 	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);
 }
 
-const configShortcuts = {
-	findPath: findConfigPaths,
-	load: loadConfig,
-	loadDefaults: loadDefaultConfigs,
-	plain: plainConfig,
-	save: saveConfig,
-	saveTo: saveConfigTo,
-	set: setConfig,
-	files: configFiles,
-};
-
-export const config: DeepRequired<Config> & typeof configShortcuts = _unique('config', {
-	...configShortcuts,
+export const defaultConfig: DeepRequired<Config> = {
 	admin_api: true,
 	allow_new_users: true,
 	apps: {
@@ -154,6 +142,23 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
 	},
+};
+
+const configShortcuts = {
+	findPath: findConfigPaths,
+	load: loadConfig,
+	loadDefaults: loadDefaultConfigs,
+	plain: plainConfig,
+	save: saveConfig,
+	saveTo: saveConfigTo,
+	set: setConfig,
+	files: configFiles,
+	defaults: defaultConfig,
+};
+
+export const config: DeepRequired<Config> & typeof configShortcuts = _unique('config', {
+	...configShortcuts,
+	...defaultConfig,
 });
 export default config;
 
@@ -167,7 +172,7 @@ export const FileSchema = z
 	.partial();
 export interface File extends z.infer<typeof FileSchema> {}
 
-export function addConfigDefaults(other: Config, _target: Record<string, any> = config): void {
+export function addConfigDefaults(other: Config, _target: Record<string, any> = defaultConfig): void {
 	for (const [key, value] of Object.entries(other)) {
 		if (!(key in _target) || _target[key] === null || _target[key] === undefined || Number.isNaN(_target[key])) {
 			_target[key] = value;
@@ -211,6 +216,12 @@ export interface LoadOptions {
 	 * If `optional`, this function will be called with the error if the config file is invalid or can't be read.
 	 */
 	onError?(error: Error): void;
+
+	/**
+	 * Used to mark included files
+	 * @internal
+	 */
+	_markIncluded?: boolean;
 }
 
 /**
@@ -236,10 +247,11 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		output.debug(`Loading invalid config from ${path} (${e.message})`);
 		file = json;
 	}
-	configFiles.set(path, file);
+	configFiles.set(path, { ...file, _wasIncluded: !!options._markIncluded });
 	setConfig(file);
 	output.debug('Loaded config: ' + path);
-	for (const include of file.include ?? []) await loadConfig(resolve(dirname(path), include), { ...options, optional: true });
+	for (const include of file.include ?? [])
+		await loadConfig(resolve(dirname(path), include), { ...options, optional: true, _markIncluded: true });
 	for (const plugin of file.plugins ?? []) await loadPlugin(plugin, path, options.safe);
 }
 
@@ -254,6 +266,19 @@ export async function loadDefaultConfigs(safe: boolean = false) {
 		}
 		await loadConfig(path, { optional: true, safe });
 	}
+}
+
+export async function reloadConfigs(safe: boolean = false) {
+	const paths = Array.from(
+		configFiles
+			.entries()
+			.filter(([, cfg]) => !cfg._wasIncluded)
+			.map(([p]) => p)
+	);
+	configFiles.clear();
+	setConfig(defaultConfig);
+	for (const path of paths) await loadConfig(path, { safe });
+	output.info('Reloaded configuration files');
 }
 
 /**
