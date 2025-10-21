@@ -25,5 +25,7 @@ export async function load({
 
 	session ||= await getCurrentSession().catch(() => null);
 
+	if (!session) location.href = '/login?after=' + encodeURIComponent(location.pathname + location.search);
+
 	return { session, tabs };
 }

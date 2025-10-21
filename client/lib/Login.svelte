@@ -1,15 +1,17 @@
 <script lang="ts">
 	import { loginByEmail } from '@axium/client/user';
 	import FormDialog from './FormDialog.svelte';
+	import redirectAfter from './auth_redirect.js';
 
 	let { dialog = $bindable(), fullPage = false }: { dialog?: HTMLDialogElement; fullPage?: boolean } = $props();
 
-	function submit(data: { email: string }) {
+	async function submit(data: { email: string }) {
 		if (typeof data.email != 'string') {
 			throw 'Tried to upload a file for an email. Huh?!';
 		}
 
-		return loginByEmail(data.email);
+		await loginByEmail(data.email);
+		if (fullPage && redirectAfter) location.href = redirectAfter;
 	}
 </script>
 

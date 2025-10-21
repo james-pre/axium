@@ -1,14 +1,6 @@
 <script lang="ts">
 	import Dialog from './Dialog.svelte';
 
-	function resolveRedirectAfter() {
-		const url = new URL(location.href);
-		const maybe = url.searchParams.get('after');
-		if (!maybe || maybe == url.pathname) return '/';
-		for (const prefix of ['/api/']) if (maybe.startsWith(prefix)) return '/';
-		return maybe || '/';
-	}
-
 	let {
 		children,
 		dialog = $bindable(),
@@ -52,8 +44,7 @@
 		const data = Object.fromEntries(new FormData(e.currentTarget));
 		submit(data)
 			.then(result => {
-				if (pageMode) window.location.href = resolveRedirectAfter();
-				else dialog!.close();
+				if (!pageMode) dialog!.close();
 			})
 			.catch((e: any) => {
 				if (!e) error = 'An unknown error occurred';

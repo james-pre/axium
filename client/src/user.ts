@@ -69,7 +69,7 @@ export async function logoutCurrentSession(): Promise<Session> {
 	return await fetchAPI('DELETE', 'session');
 }
 
-export async function register(_data: Record<string, FormDataEntryValue>): Promise<void> {
+export async function register(_data: Record<string, unknown>): Promise<void> {
 	const data = z.object({ name: z.string(), email: z.email() }).parse(_data);
 
 	const { options, userId } = await fetchAPI('OPTIONS', 'register', data);
