@@ -74,6 +74,9 @@
 			for (let [key, value] of fd.entries()) {
 				if (!value) continue;
 				switch (key) {
+					case 'severity':
+						if (value != 'info') params.set(key, value as string);
+						break;
 					case 'since':
 					case 'until':
 						params.set(key, new Date(value as string).toISOString());
