@@ -37,7 +37,7 @@ addConfigDefaults({
 	storage: {
 		app_enabled: true,
 		batch: {
-			enabled: true,
+			enabled: false,
 			max_items: 100,
 			max_item_size: 100,
 		},
@@ -56,11 +56,6 @@ addConfigDefaults({
 		},
 		max_chunks: 10,
 		max_transfer_size: 100,
-		sync: {
-			enabled: true,
-			include: [],
-			exclude: [],
-		},
 		trash_duration: 30,
 	},
 });

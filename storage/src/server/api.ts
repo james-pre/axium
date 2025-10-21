@@ -17,7 +17,7 @@ addRoute({
 	path: '/api/storage',
 	async OPTIONS(): Result<'OPTIONS', 'storage'> {
 		return {
-			...pick(config.storage, 'batch', 'chunk', 'max_chunks', 'max_transfer_size', 'sync'),
+			...pick(config.storage, 'batch', 'chunk', 'max_chunks', 'max_transfer_size'),
 			syncProtocolVersion,
 			batchFormatVersion,
 		};
@@ -71,7 +71,7 @@ addRoute({
 		const auth = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Manage);
 		const item = parseItem(auth.item);
 
-		await deleteRecursive(itemId, item.type != 'inode/directory');
+		await deleteRecursive(item.type != 'inode/directory', itemId);
 
 		return item;
 	},

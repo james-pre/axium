@@ -51,15 +51,6 @@ export interface StoragePublicConfig {
 	max_transfer_size: number;
 	/** Maximum number of chunks */
 	max_chunks: number;
-	/** Configuration for local file syncing */
-	sync: {
-		/** Whether file syncing is enabled */
-		enabled: boolean;
-		/** Mime types to include when syncing */
-		include: string[];
-		/** Mime types to exclude when syncing */
-		exclude: string[];
-	};
 }
 
 export const syncProtocolVersion = 0;
@@ -119,6 +110,14 @@ export interface StorageItemMetadata<T extends Record<string, unknown> = Record<
 	metadata: T;
 }
 
+/**
+ * Formats:
+ *
+ * **v0**:
+ * - Metadata transferred using JSON
+ * - `x-batch-header-size` HTTP header used to determine batch header size
+ * - Binary data appended after batch header
+ */
 export const batchFormatVersion = 0;
 
 export const BatchedContentChange = z.object({
@@ -128,9 +127,9 @@ export const BatchedContentChange = z.object({
 });
 
 export const StorageBatchUpdate = z.object({
-	deleted: z.uuid().array().optional(),
-	metadata: z.record(z.uuid(), StorageItemUpdate).optional(),
-	content: z.record(z.uuid(), BatchedContentChange).optional(),
+	deleted: z.uuid().array(),
+	metadata: z.record(z.uuid(), StorageItemUpdate),
+	content: z.record(z.uuid(), BatchedContentChange),
 });
 
 export interface StorageBatchUpdate extends z.infer<typeof StorageBatchUpdate> {}
