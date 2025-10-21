@@ -1,8 +1,10 @@
 import { fetchAPI } from '@axium/client/requests';
-import { AuditFilter, Severity } from '@axium/core';
+import { AuditFilter } from '@axium/core';
 import { prettifyError, type input } from 'zod';
 
 export const ssr = false;
+
+const configured = await fetchAPI('OPTIONS', 'admin/audit/events').catch(() => false as const);
 
 export async function load({ url }) {
 	let filterError = null;
@@ -16,5 +18,5 @@ export async function load({ url }) {
 
 	const events = await fetchAPI('GET', 'admin/audit/events', filter);
 
-	return { events, filterError, filter };
+	return { events, filterError, filter, configured };
 }

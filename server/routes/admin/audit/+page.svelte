@@ -41,10 +41,28 @@
 	<input type="text" name="tags" value={data.filter.tags} />
 
 	<span>Event Name:</span>
-	<input type="text" name="event" value={data.filter.event} />
+	{#if data.configured}
+		<select name="event">
+			<option value="">Any</option>
+			{#each data.configured.name as name}
+				<option value={name} selected={data.filter.event == name}>{name}</option>
+			{/each}
+		</select>
+	{:else}
+		<input type="text" name="event" value={data.filter.event} />
+	{/if}
 
 	<span>Source:</span>
-	<input type="text" name="source" value={data.filter.source} />
+	{#if data.configured}
+		<select name="source">
+			<option value="">Any</option>
+			{#each data.configured.source as source}
+				<option value={source} selected={data.filter.source == source}>{source}</option>
+			{/each}
+		</select>
+	{:else}
+		<input type="text" name="source" value={data.filter.source} />
+	{/if}
 
 	<span>User UUID:</span>
 	<input type="text" name="user" size="36" value={data.filter.user} />

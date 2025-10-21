@@ -99,6 +99,7 @@ export interface $API {
 		GET: PluginInternal[];
 	};
 	'admin/audit/events': {
+		OPTIONS: { name: string[]; source: string[]; tags: string[] } | false;
 		GET: [filter: z.input<typeof AuditFilter>, result: AuditEvent[]];
 	};
 	'admin/audit/:eventId': {

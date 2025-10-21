@@ -73,7 +73,7 @@ export interface AuditEventConfig {
 	noAutoSuspend?: boolean;
 }
 
-const events = new Map<EventName, AuditEventConfig>();
+export const events = new Map<EventName, AuditEventConfig>();
 
 export function addEvent(init: AuditEventConfigInit) {
 	if (events.has(init.name)) throw io.error(`Can not register multiple events with the same name ("${init.name}")`);

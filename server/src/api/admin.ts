@@ -3,7 +3,7 @@ import { AuditFilter, Severity } from '@axium/core';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
-import { audit, getEvents } from '../audit.js';
+import { audit, getEvents, events } from '../audit.js';
 import { getSessionAndUser, type SessionInternal } from '../auth.js';
 import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
@@ -123,6 +123,27 @@ addRoute({
 
 addRoute({
 	path: '/api/admin/audit/events',
+	async OPTIONS(req): Result<'OPTIONS', 'admin/audit/events'> {
+		await assertAdmin(this, req);
+
+		if (config.audit.allow_raw) return false;
+
+		const tags = new Set<string>(),
+			source = new Set<string>(),
+			name: string[] = [];
+
+		for (const event of events.values()) {
+			for (const tag of event.tags) tags.add(tag);
+			source.add(event.source);
+			name.push(event.name);
+		}
+
+		return {
+			tags: Array.from(tags),
+			source: Array.from(source),
+			name: name,
+		};
+	},
 	async GET(req): Result<'GET', 'admin/audit/events'> {
 		await assertAdmin(this, req);
 
