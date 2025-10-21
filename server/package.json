@@ -57,7 +57,7 @@
 		"@sveltejs/kit": "^2.23.0",
 		"@types/pg": "^8.11.11",
 		"commander": "^14.0.0",
-		"cookie": "^1.0.2",
+		"cookie_v1": "npm:cookie@^1.0.2",
 		"logzen": "^0.7.0",
 		"pg": "^8.14.1",
 		"svelte": "^5.36.0"

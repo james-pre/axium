@@ -1,6 +1,6 @@
 import type { RequestMethod, User, UserInternal } from '@axium/core';
 import { userProtectedFields, userPublicFields } from '@axium/core/user';
-import * as cookie from 'cookie';
+import * as cookie from 'cookie_v1';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import { createSession } from './auth.js';
