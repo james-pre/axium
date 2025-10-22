@@ -1,17 +1,16 @@
 #! /usr/bin/env node
 
+import type { NewSessionResponse } from '@axium/core';
 import * as io from '@axium/core/node/io';
 import { program, type Command } from 'commander';
-import { createInterface } from 'node:readline/promises';
-import $pkg from '../../package.json' with { type: 'json' };
-import { loadSession, resolveServerURL, saveSession } from './config.js';
-import { fetchAPI, setPrefix, setToken } from '../requests.js';
 import { createServer } from 'node:http';
-import type { NewSessionResponse } from '@axium/core';
 import type { AddressInfo } from 'node:net';
-import { getCurrentSession } from '../user.js';
-import { writeFileSync } from 'node:fs';
+import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
+import $pkg from '../../package.json' with { type: 'json' };
+import { setPrefix, setToken } from '../requests.js';
+import { getCurrentSession } from '../user.js';
+import { _dayMs, loadSession, resolveServerURL, saveSession, session } from './config.js';
 
 using rl = createInterface({
 	input: process.stdin,
@@ -27,13 +26,29 @@ program
 	.description('Axium client CLI')
 	.configureHelp({ showGlobalOptions: true })
 	.option('--debug', 'override debug mode')
-	.option('--no-debug', 'override debug mode');
+	.option('--no-debug', 'override debug mode')
+	.option('--refresh', 'Force a refresh of session and user metadata from server');
 
 program.on('option:debug', () => io._setDebugOutput(true));
 
-program.hook('preAction', (_, action: Command) => {
+program.hook('preAction', async (_, action: Command) => {
 	if (action.name() == 'login') return;
 	loadSession();
+	if (!session) return;
+	const opt = action.optsWithGlobals<{ refresh: boolean }>();
+	if (opt.refresh || session._fetched + _dayMs < Date.now()) {
+		io.start('Fetching session metadata');
+		try {
+			const data = await getCurrentSession();
+			Object.assign(session, data);
+			session._fetched = Date.now();
+			saveSession(session);
+			io.done();
+		} catch {
+			io.warn('Failed to refresh session metadata');
+			return;
+		}
+	}
 });
 
 program
@@ -114,7 +129,7 @@ program
 
 		console.log(`Welcome ${user.name}! Your session is valid until ${expires.toLocaleDateString()}.`);
 
-		saveSession({ token, server: url, userId, sessionId, user });
+		saveSession({ token, server: url, userId, sessionId, user, _fetched: Date.now() });
 	});
 
 program.command('logout').action(() => {
@@ -122,7 +137,21 @@ program.command('logout').action(() => {
 });
 
 program.command('status').action(() => {
-	console.error('Not implemented yet');
+	if (!session) {
+		console.log('Not logged in.');
+		return;
+	}
+
+	console.log('Logged in to', new URL(session.server).host);
+	console.log(styleText('whiteBright', 'Session ID:'), session.sessionId);
+	if (!session.user) io.warn('User data unavailable.');
+	else
+		console.log(
+			styleText('whiteBright', 'User:'),
+			session.user.name,
+			`<${session.user.email}>`,
+			styleText('dim', `(${session.user.id})`)
+		);
 });
 
 await program.parseAsync();

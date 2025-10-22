@@ -16,23 +16,19 @@ const ClientSession = z.object({
 	// Cached to reduce server load:
 	sessionId: z.uuid(),
 	user: User.optional(),
+	_fetched: z.int(),
 });
 
 export interface ClientSession extends z.infer<typeof ClientSession> {}
 
-export let userId: string | null = null;
-
-export function setUserId(id: string) {
-	userId = id;
-}
+export let session: ClientSession | null = null;
 
 export function loadSession() {
 	try {
 		const sessionData = JSON.parse(readFileSync(join(axcDir, 'session.json'), 'utf-8'));
-		const session = ClientSession.parse(sessionData);
+		session = ClientSession.parse(sessionData);
 		setPrefix(session.server);
 		setToken(session.token);
-		userId = session.userId;
 	} catch (e: any) {
 		io.debug('Failed to load session: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : e.message));
 	}
@@ -61,3 +57,5 @@ export function resolveServerURL(server: string) {
 
 	return url.href;
 }
+
+export const _dayMs = 24 * 3600_000;

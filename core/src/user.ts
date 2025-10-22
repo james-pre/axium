@@ -11,7 +11,7 @@ export const User = z.object({
 	image: z.url().nullish(),
 	preferences: z.record(z.string(), z.any()),
 	roles: z.array(z.string()),
-	registeredAt: z.date(),
+	registeredAt: z.coerce.date(),
 	isAdmin: z.boolean(),
 });
 
