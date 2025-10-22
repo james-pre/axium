@@ -45,7 +45,6 @@
 		"utilium": "^2.3.8"
 	},
 	"dependencies": {
-		"blakejs": "^1.2.1",
 		"zod": "^4.0.5"
 	},
 	"axium": {
@@ -54,6 +53,9 @@
 			"hooks": "./dist/server/hooks.js",
 			"routes": "./routes",
 			"cli": "./dist/server/cli.js"
+		},
+		"client": {
+			"cli": "./dist/client/cli.js"
 		},
 		"apps": [
 			{

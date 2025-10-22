@@ -1,23 +1,23 @@
 import { App, Session, User } from '@axium/core';
 import * as io from '@axium/core/node/io';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { loadPlugin } from '@axium/core/node/plugins';
+import { mkdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import { fetchAPI, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession } from '../user.js';
-import { loadPlugin } from '@axium/core/node/plugins';
 
-const axcDir = join(homedir(), '.config/axium');
-mkdirSync(axcDir, { recursive: true });
-const axcConfig = join(axcDir, 'config.json');
+export const configDir = join(homedir(), '.config/axium');
+mkdirSync(configDir, { recursive: true });
+const axcConfig = join(configDir, 'config.json');
 
-const ClientConfig = z.object({
+const ClientConfig = z.looseObject({
 	token: z.base64().nullish(),
 	server: z.url().nullish(),
 	// Cache to reduce server load:
 	cache: z
-		.object({
+		.looseObject({
 			fetched: z.int(),
 			session: Session.extend({ user: User }),
 			apps: App.array(),
@@ -30,6 +30,12 @@ export interface ClientConfig extends z.infer<typeof ClientConfig> {}
 
 export let config: ClientConfig;
 
+export function session() {
+	if (!config.token) io.exit('Not logged in.', 4);
+	if (!config.cache) io.exit('No session data available.', 3);
+	return config.cache.session;
+}
+
 export async function loadConfig(safe: boolean) {
 	try {
 		config = ClientConfig.parse(JSON.parse(readFileSync(axcConfig, 'utf-8')));
@@ -37,17 +43,13 @@ export async function loadConfig(safe: boolean) {
 		if (config.token) setToken(config.token);
 		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfig, safe);
 	} catch (e: any) {
-		io.debug('Failed to load session: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : e.message));
+		io.warn('Failed to load config: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : e.message));
 	}
 }
 
 export function saveConfig() {
-	writeFileSync(
-		axcConfig,
-		JSON.stringify(config, null, 4).replaceAll(/^( {4})+/g, match => '\t'.repeat(match.length / 4)),
-		'utf-8'
-	);
-	io.debug('Saved session to ' + axcConfig);
+	io.writeJSON(axcConfig, config);
+	io.debug('Saved config to ' + axcConfig);
 }
 
 export function resolveServerURL(server: string) {

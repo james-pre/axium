@@ -91,6 +91,6 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 		plugins.set(plugin.name, plugin);
 		output.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
 	} catch (e: any) {
-		output.debug(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
+		output.warn(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
 	}
 }

@@ -7,7 +7,7 @@ import { StorageBatchUpdate, type StorageItemMetadata } from '../common.js';
 import * as z from 'zod';
 import { getSessionAndUser } from '@axium/server/auth';
 import { getLimits } from './config.js';
-import { currentUsage, getRecursive, parseItem } from './db.js';
+import { currentUsage, getRecursive, getRecursiveIds, parseItem } from './db.js';
 import { audit } from '@axium/server/audit';
 import * as acl from '@axium/server/acl';
 import { database } from '@axium/server/database';
@@ -126,7 +126,9 @@ addRoute({
 				results.set(itemId, parseItem(result));
 			}
 
-			const toDelete = await Array.fromAsync(getRecursive(...header.deleted)).catch(withError('Could not get items to delete', 500));
+			const toDelete = await Array.fromAsync(getRecursiveIds(...header.deleted)).catch(
+				withError('Could not get items to delete', 500)
+			);
 
 			const deleted = await tx.deleteFrom('storage').where('id', 'in', header.deleted).returningAll().execute();
 			for (const id of toDelete) unlinkSync(join(config.storage.data, id));

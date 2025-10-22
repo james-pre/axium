@@ -32,6 +32,9 @@ declare module '@axium/core/api' {
 		'storage/directory/:id': {
 			GET: StorageItemMetadata[];
 		};
+		'storage/directory/:id/recursive': {
+			GET: (StorageItemMetadata & { path: string })[];
+		};
 	}
 }
 

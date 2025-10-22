@@ -91,17 +91,30 @@ export async function get(itemId: string): Promise<StorageItemMetadata> {
 	return parseItem(result);
 }
 
-export async function* getRecursive(...ids: string[]): AsyncGenerator<string> {
+export async function* getRecursive(
+	this: { path: string } | void,
+	...ids: string[]
+): AsyncGenerator<StorageItemMetadata & { path: string }> {
 	const items = await database.selectFrom('storage').where('parentId', 'in', ids).selectAll().execute();
 
 	for (const item of items) {
+		const path = this?.path ? this.path + '/' + item.name : item.name;
+		if (item.type != 'inode/directory') yield Object.assign(parseItem(item), { path });
+		else yield* getRecursive.call({ path }, item.id);
+	}
+}
+
+export async function* getRecursiveIds(...ids: string[]): AsyncGenerator<string> {
+	const items = await database.selectFrom('storage').where('parentId', 'in', ids).select(['id', 'type']).execute();
+
+	for (const item of items) {
 		if (item.type != 'inode/directory') yield item.id;
-		else yield* getRecursive(item.id);
+		else yield* getRecursiveIds(item.id);
 	}
 }
 
 export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]): Promise<void> {
-	const toDelete = await Array.fromAsync(getRecursive(...itemId)).catch(withError('Could not get items to delete'));
+	const toDelete = await Array.fromAsync(getRecursiveIds(...itemId)).catch(withError('Could not get items to delete'));
 
 	if (deleteSelf) toDelete.push(...itemId);
 

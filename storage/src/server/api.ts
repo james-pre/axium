@@ -11,7 +11,7 @@ import type { StorageItemMetadata } from '../common.js';
 import { batchFormatVersion, StorageItemUpdate, syncProtocolVersion } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { currentUsage, deleteRecursive, parseItem, type SelectedItem } from './db.js';
+import { currentUsage, deleteRecursive, getRecursive, parseItem, type SelectedItem } from './db.js';
 
 addRoute({
 	path: '/api/storage',
@@ -97,6 +97,23 @@ addRoute({
 			.execute();
 
 		return items.map(parseItem);
+	},
+});
+
+addRoute({
+	path: '/api/storage/directory/:id/recursive',
+	params: { id: z.uuid() },
+	async GET(request, params): Result<'GET', 'storage/directory/:id/recursive'> {
+		if (!config.storage.enabled) error(503, 'User storage is disabled');
+
+		const itemId = params.id!;
+
+		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
+
+		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
+
+		const items = await Array.fromAsync(getRecursive(itemId)).catch(withError('Could not get some directory items'));
+		return items;
 	},
 });
 

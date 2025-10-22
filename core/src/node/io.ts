@@ -1,4 +1,5 @@
 import { exec } from 'node:child_process';
+import { writeFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 
 /**
@@ -183,4 +184,12 @@ const _2 = (v: number) => v.toString().padStart(2, '0');
  */
 export function prettyDate(date: Date): string {
 	return `${date.getFullYear()} ${months[date.getMonth()]} ${_2(date.getDate())} ${_2(date.getHours())}:${_2(date.getMinutes())}:${_2(date.getSeconds())}.${date.getMilliseconds().toString().padStart(3, '0')}`;
+}
+
+export function writeJSON(path: string, data: any) {
+	writeFileSync(
+		path,
+		JSON.stringify(data, null, 4).replaceAll(/^( {4})+/g, match => '\t'.repeat(match.length / 4)),
+		'utf-8'
+	);
 }
