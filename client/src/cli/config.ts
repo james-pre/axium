@@ -74,6 +74,7 @@ export async function updateCache(force: boolean) {
 
 	try {
 		config.cache = { fetched: Date.now(), session, apps };
+		saveConfig(config);
 		io.done();
 	} catch {
 		return;
