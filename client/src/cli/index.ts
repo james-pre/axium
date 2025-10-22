@@ -9,8 +9,9 @@ import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
 import $pkg from '../../package.json' with { type: 'json' };
 import { setPrefix, setToken } from '../requests.js';
-import { getCurrentSession } from '../user.js';
+import { getCurrentSession, logout } from '../user.js';
 import { _dayMs, loadSession, resolveServerURL, saveSession, session } from './config.js';
+import { pick } from 'utilium';
 
 using rl = createInterface({
 	input: process.stdin,
@@ -32,7 +33,6 @@ program
 program.on('option:debug', () => io._setDebugOutput(true));
 
 program.hook('preAction', async (_, action: Command) => {
-	if (action.name() == 'login') return;
 	loadSession();
 	if (!session) return;
 	const opt = action.optsWithGlobals<{ refresh: boolean }>();
@@ -40,8 +40,11 @@ program.hook('preAction', async (_, action: Command) => {
 		io.start('Fetching session metadata');
 		try {
 			const data = await getCurrentSession();
-			Object.assign(session, data);
-			session._fetched = Date.now();
+			Object.assign(session, {
+				...pick(data, 'user', 'userId'),
+				sessionId: data.id,
+				_fetched: Date.now(),
+			});
 			saveSession(session);
 			io.done();
 		} catch {
@@ -132,8 +135,10 @@ program
 		saveSession({ token, server: url, userId, sessionId, user, _fetched: Date.now() });
 	});
 
-program.command('logout').action(() => {
-	console.error('Not implemented yet');
+program.command('logout').action(async () => {
+	if (!session) return io.exit('Not logged in.', 3);
+
+	await logout(session.userId, session.sessionId);
 });
 
 program.command('status').action(() => {
