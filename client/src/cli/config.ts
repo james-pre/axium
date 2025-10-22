@@ -10,19 +10,17 @@ import { getCurrentSession } from '../user.js';
 const axcDir = join(homedir(), '.axium/client');
 mkdirSync(axcDir, { recursive: true });
 
-const CachedSessionInfo = Session.extend({ user: User });
-
-const ClientCache = z.object({
-	fetched: z.int(),
-	session: CachedSessionInfo,
-	apps: App.array(),
-});
-
 const ClientConfig = z.object({
 	token: z.base64().nullish(),
 	server: z.url().nullish(),
 	// Cache to reduce server load:
-	cache: ClientCache.nullish(),
+	cache: z
+		.object({
+			fetched: z.int(),
+			session: Session.extend({ user: User }),
+			apps: App.array(),
+		})
+		.nullish(),
 });
 
 export interface ClientConfig extends z.infer<typeof ClientConfig> {}
