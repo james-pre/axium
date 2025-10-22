@@ -8,7 +8,7 @@ https://github.com/microsoft/TypeScript/issues/61695
 @todo Remove when TypeScript 5.9 is released
 */
 
-import { output } from '@axium/server/io';
+import { output } from '@axium/core/node/io';
 
 declare global {
 	interface Uint8ArrayConstructor {

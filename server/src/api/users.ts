@@ -170,11 +170,14 @@ addRoute({
 		switch (type) {
 			case 'login':
 				return await createSessionData(userId);
+			case 'client_login':
+				/** @todo tag in DB so users can manage easier */
+				return await createSessionData(userId, { noCookie: true });
 			case 'action':
 				if ((Date.now() - passkey.createdAt.getTime()) / 60_000 < config.auth.passkey_probation)
 					error(403, 'You can not authorize sensitive actions with a newly created passkey');
 
-				return await createSessionData(userId, true);
+				return await createSessionData(userId, { elevated: true });
 		}
 	},
 });

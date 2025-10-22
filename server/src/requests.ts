@@ -90,10 +90,17 @@ export function getToken(request: Request, sensitive: boolean = false): string |
 	}
 }
 
-export async function createSessionData(userId: string, elevated: boolean = false): Promise<Response> {
+export interface CreateSessionOptions {
+	elevated?: boolean;
+	noCookie?: boolean;
+}
+
+export async function createSessionData(userId: string, { elevated = false, noCookie }: CreateSessionOptions = {}): Promise<Response> {
 	const { token, expires } = await createSession(userId, elevated);
 
 	const response = json({ userId, token: elevated ? '[[redacted:elevated]]' : token }, { status: 201 });
+
+	if (noCookie) return response;
 
 	const cookies = cookie.serialize(elevated ? 'elevated_token' : 'session_token', token, {
 		httpOnly: true,
