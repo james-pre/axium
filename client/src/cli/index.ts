@@ -11,6 +11,7 @@ import $pkg from '../../package.json' with { type: 'json' };
 import { prefix, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession, logout } from '../user.js';
 import { config, loadConfig, resolveServerURL, saveConfig, updateCache } from './config.js';
+import { _findPlugin, plugins, pluginText } from '@axium/core/node/plugins';
 
 using rl = createInterface({
 	input: process.stdin,
@@ -28,14 +29,15 @@ program
 	.option('--debug', 'override debug mode')
 	.option('--no-debug', 'override debug mode')
 	.option('--refresh', 'Force a refresh of session and user metadata from server')
-	.option('--cache-only', 'Run entirely from local cache, even if it is expired.');
+	.option('--cache-only', 'Run entirely from local cache, even if it is expired.')
+	.option('--safe', 'do not execute code from plugins');
 
 program.on('option:debug', () => io._setDebugOutput(true));
 
 program.hook('preAction', async (_, action: Command) => {
-	loadConfig();
+	const opt = action.optsWithGlobals<{ refresh: boolean; cacheOnly: boolean; safe: boolean }>();
+	await loadConfig(opt.safe);
 	if (!config.token) return;
-	const opt = action.optsWithGlobals<{ refresh: boolean; cacheOnly: boolean }>();
 	if (!opt.cacheOnly) await updateCache(opt.refresh);
 });
 
@@ -118,7 +120,9 @@ program
 
 		console.log(`Welcome ${session.user.name}! Your session is valid until ${session.expires.toLocaleDateString()}.`);
 
-		saveConfig({ token, server: url });
+		config.token = token;
+		config.server = url;
+		saveConfig();
 		await updateCache(true);
 	});
 
@@ -138,5 +142,54 @@ program.command('status').action(() => {
 	const { user } = config.cache.session;
 	console.log(styleText('whiteBright', 'User:'), user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
 });
+
+const axiumPlugin = program.command('plugin').alias('plugins').description('Manage plugins');
+
+axiumPlugin
+	.command('list')
+	.alias('ls')
+	.description('List loaded plugins')
+	.option('-l, --long', 'use the long listing format')
+	.option('--no-versions', 'do not show plugin versions')
+	.action((opt: { long: boolean; versions: boolean }) => {
+		if (!plugins.size) {
+			console.log('No plugins loaded.');
+			return;
+		}
+
+		if (!opt.long) {
+			console.log(Array.from(plugins.keys()).join(', '));
+			return;
+		}
+
+		console.log(styleText('whiteBright', plugins.size + ' plugin(s) loaded:'));
+
+		for (const plugin of plugins.values()) {
+			console.log(plugin.name, opt.versions ? plugin.version : '');
+		}
+	});
+
+axiumPlugin
+	.command('info')
+	.description('Get information about a plugin')
+	.argument('<plugin>', 'the plugin to get information about')
+	.action((search: string) => {
+		const plugin = _findPlugin(search);
+		for (const line of pluginText(plugin)) console.log(line);
+	});
+
+axiumPlugin
+	.command('remove')
+	.alias('rm')
+	.description('Remove a plugin')
+	.argument('<plugin>', 'the plugin to remove')
+	.action(async (search: string) => {
+		const plugin = _findPlugin(search);
+
+		config.plugins = config.plugins.filter(p => p !== plugin.specifier);
+
+		plugins.delete(plugin.name);
+		saveConfig();
+	});
 
 await program.parseAsync();

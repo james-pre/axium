@@ -1,5 +1,6 @@
 import type { RequestMethod } from '@axium/core';
 import { _debugOutput, output } from '@axium/core/node/io';
+import { plugins } from '@axium/core/node/plugins';
 import '@axium/server/api/index';
 import { loadDefaultConfigs, reloadConfigs } from '@axium/server/config';
 import { clean, connect, database } from '@axium/server/database';
@@ -14,7 +15,6 @@ import { styleText } from 'node:util';
 import { appDisabledContent, apps } from './apps.js';
 import config from './config.js';
 import { convertFromResponse, convertToRequest } from './internal_requests.js';
-import { plugins } from './plugins.js';
 import { error, handleAPIRequest, handleResponseError, json, noCacheHeaders } from './requests.js';
 import { resolveRoute, type MaybePromise } from './routes.js';
 
@@ -102,10 +102,10 @@ async function _getMultiBuildHandler(): Promise<(req: IncomingMessage, res: Serv
 	const handlers: ((req: IncomingMessage, res: ServerResponse, next: (error?: any) => never) => void)[] = [];
 
 	for (const plugin of plugins.values()) {
-		if (!plugin.http_handler) continue;
+		if (!plugin.server?.http_handler) continue;
 
 		try {
-			const { handler } = await import(join(plugin.dirname, plugin.http_handler));
+			const { handler } = await import(join(plugin.dirname, plugin.server.http_handler));
 			handlers.push(handler);
 			output.debug(`Loaded plugin handler: ${plugin.name}`);
 		} catch (e: any) {

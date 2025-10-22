@@ -1,16 +1,16 @@
 import type { PluginInternal, Result, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
+import { plugins } from '@axium/core/node/plugins';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
-import { audit, getEvents, events } from '../audit.js';
+import pkg from '../../package.json' with { type: 'json' };
+import { audit, events, getEvents } from '../audit.js';
 import { getSessionAndUser, type SessionInternal } from '../auth.js';
 import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
 import { error, getToken, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
-import { plugins } from '../plugins.js';
-import pkg from '../../package.json' with { type: 'json' };
 
 async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
 	const token = getToken(req);

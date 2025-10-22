@@ -6,12 +6,24 @@ export const Plugin = z.looseObject({
 	name: z.string(),
 	version: z.string(),
 	description: z.string().optional(),
-	/** The path to the hooks script */
-	hooks: z.string().optional(),
-	/** The path to the HTTP handler */
-	http_handler: z.string().optional(),
 	apps: z.array(App).optional(),
-	routes: z.string().optional(),
+	client: z
+		.object({
+			/** CLI mixin path */
+			cli: z.string().optional(),
+		})
+		.optional(),
+	server: z
+		.object({
+			/** The path to the hooks script */
+			hooks: z.string().optional(),
+			http_handler: z.string().optional(),
+			/** The path to the HTTP handler used by the server */
+			routes: z.string().optional(),
+			/** CLI mixin path */
+			cli: z.string().optional(),
+		})
+		.optional(),
 });
 
 export type Plugin = z.infer<typeof Plugin>;
@@ -21,12 +33,15 @@ export interface PluginInternal extends Plugin {
 	readonly dirname: string;
 	readonly specifier: string;
 	readonly _loadedBy: string;
-	readonly _hooks?: Hooks;
+	readonly cli?: string;
+	/** @internal */
+	readonly _hooks?: ServerHooks;
+	readonly isServer: boolean;
 }
 
 const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
 
-export const PluginHooks = z.object({
+export const PluginServerHooks = z.object({
 	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })).optional(),
 	db_init: fn.optional(),
 	remove: fn.optional(),
@@ -40,7 +55,7 @@ interface _InitOptions {
 	check: boolean;
 }
 
-export interface Hooks {
+export interface ServerHooks {
 	statusText?(): string | Promise<string>;
 	db_init?: (opt: _InitOptions) => void | Promise<void>;
 	remove?: (opt: { force?: boolean }) => void | Promise<void>;

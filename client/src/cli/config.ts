@@ -6,9 +6,11 @@ import { join } from 'node:path/posix';
 import * as z from 'zod';
 import { fetchAPI, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession } from '../user.js';
+import { loadPlugin } from '@axium/core/node/plugins';
 
 const axcDir = join(homedir(), '.config/axium');
 mkdirSync(axcDir, { recursive: true });
+const axcConfig = join(axcDir, 'config.json');
 
 const ClientConfig = z.object({
 	token: z.base64().nullish(),
@@ -21,31 +23,31 @@ const ClientConfig = z.object({
 			apps: App.array(),
 		})
 		.nullish(),
+	plugins: z.string().array().default([]),
 });
 
 export interface ClientConfig extends z.infer<typeof ClientConfig> {}
 
 export let config: ClientConfig;
 
-export function loadConfig() {
+export async function loadConfig(safe: boolean) {
 	try {
-		config = ClientConfig.parse(JSON.parse(readFileSync(join(axcDir, 'config.json'), 'utf-8')));
+		config = ClientConfig.parse(JSON.parse(readFileSync(axcConfig, 'utf-8')));
 		if (config.server) setPrefix(config.server);
 		if (config.token) setToken(config.token);
+		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfig, safe);
 	} catch (e: any) {
 		io.debug('Failed to load session: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : e.message));
 	}
 }
 
-export function saveConfig(config: ClientConfig) {
-	const path = join(axcDir, 'config.json');
-
+export function saveConfig() {
 	writeFileSync(
-		path,
+		axcConfig,
 		JSON.stringify(config, null, 4).replaceAll(/^( {4})+/g, match => '\t'.repeat(match.length / 4)),
 		'utf-8'
 	);
-	io.debug('Saved session to ' + path);
+	io.debug('Saved session to ' + axcConfig);
 }
 
 export function resolveServerURL(server: string) {
@@ -71,7 +73,7 @@ export async function updateCache(force: boolean) {
 
 	try {
 		config.cache = { fetched: Date.now(), session, apps };
-		saveConfig(config);
+		saveConfig();
 		io.done();
 	} catch {
 		return;

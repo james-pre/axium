@@ -1,8 +1,8 @@
 import * as io from '@axium/core/node/io';
+import { plugins } from '@axium/core/node/plugins';
 import { existsSync, symlinkSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path/posix';
 import config from './config.js';
-import { plugins } from './plugins.js';
 
 const textFor: Record<string, string> = {
 	builtin: 'built-in routes',
@@ -32,12 +32,12 @@ export function* listRouteLinks(options: LinkOptions = {}): Generator<LinkInfo> 
 	}
 
 	for (const plugin of plugins.values()) {
-		if (!plugin.routes) continue;
+		if (!plugin.server?.routes) continue;
 		if (options.only && !options.only.includes(plugin.name)) continue;
 
 		const [text, link] = info(plugin.name);
 
-		const to = resolve(join(plugin.dirname, plugin.routes));
+		const to = resolve(join(plugin.dirname, plugin.server.routes));
 		yield { text, id: plugin.name, from: link, to };
 	}
 }

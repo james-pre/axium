@@ -1,12 +1,12 @@
 import type { Severity } from '@axium/core/audit';
 import { _setDebugOutput, output } from '@axium/core/node/io';
+import { loadPlugin } from '@axium/core/node/plugins';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { capitalize, deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
 import { dirs, logger } from './io.js';
-import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
 
 const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
@@ -167,8 +167,8 @@ export default config;
 export const FileSchema = z
 	.looseObject({
 		...ConfigSchema.shape,
-		include: z.array(z.string()),
-		plugins: z.array(z.string()),
+		include: z.string().array(),
+		plugins: z.string().array(),
 	})
 	.partial();
 export interface File extends z.infer<typeof FileSchema> {}
@@ -257,7 +257,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	output.debug('Loaded config: ' + path);
 	for (const include of file.include ?? [])
 		await loadConfig(resolve(dirname(path), include), { ...options, optional: true, _markIncluded: true });
-	for (const plugin of file.plugins ?? []) await loadPlugin(plugin, path, options.safe);
+	for (const plugin of file.plugins ?? []) await loadPlugin('server', plugin, path, options.safe);
 }
 
 export async function loadDefaultConfigs(safe: boolean = false) {

@@ -1,11 +1,11 @@
 import type { App } from '@axium/core';
 import type { Result } from '@axium/core/api';
+import { plugins } from '@axium/core/node/plugins';
 import { requestMethods } from '@axium/core/requests';
 import pkg from '../../package.json' with { type: 'json' };
 import { apps } from '../apps.js';
 import { getSessionAndUser } from '../auth.js';
 import { config } from '../config.js';
-import { plugins } from '../plugins.js';
 import { error, getToken } from '../requests.js';
 import { addRoute, routes } from '../routes.js';
 

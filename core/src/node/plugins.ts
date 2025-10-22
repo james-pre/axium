@@ -1,32 +1,24 @@
-import { output } from '@axium/core/node/io';
+import { exit, output } from '@axium/core/node/io';
 import { Plugin, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { fileURLToPath } from 'node:url';
 import { styleText } from 'node:util';
 import * as z from 'zod';
-import { apps } from './apps.js';
-import type { InitOptions, OpOptions } from './database.js';
-import { _unique } from './state.js';
+import { apps } from '../apps.js';
 
-export interface Hooks {
-	statusText?(): string | Promise<string>;
-	db_init?: (opt: InitOptions) => void | Promise<void>;
-	remove?: (opt: { force?: boolean }) => void | Promise<void>;
-	db_wipe?: (opt: OpOptions) => void | Promise<void>;
-	clean?: (opt: Partial<OpOptions>) => void | Promise<void>;
-}
+export const plugins = new Map<string, PluginInternal>();
 
-export const plugins = _unique('plugins', new Map<string, PluginInternal>());
+export function* pluginText(plugin: PluginInternal): Generator<string> {
+	yield styleText('whiteBright', plugin.name);
+	yield `Version: ${plugin.version}`;
+	yield `Description: ${plugin.description ?? styleText('dim', '(none)')}`;
+	yield `CLI Integration: ${plugin.cli ? 'Yes' : 'No'}`;
 
-export function pluginText(plugin: PluginInternal): string {
-	return [
-		styleText('whiteBright', plugin.name),
-		`Version: ${plugin.version}`,
-		`Description: ${plugin.description ?? styleText('dim', '(none)')}`,
-		`Hooks: ${plugin._hooks ? styleText(['dim', 'bold'], `(${Object.keys(plugin._hooks).length}) `) + Object.keys(plugin._hooks).join(', ') : plugin.hooks || styleText('dim', '(none)')}`,
-		`HTTP Handler: ${plugin.http_handler ?? styleText('dim', '(none)')}`,
-	].join('\n');
+	if (plugin.isServer) {
+		yield `Hooks: ${plugin._hooks ? styleText(['dim', 'bold'], `(${Object.keys(plugin._hooks).length}) `) + Object.keys(plugin._hooks).join(', ') : plugin.server!.hooks || styleText('dim', '(none)')}`;
+		yield `HTTP Handler: ${plugin.server!.http_handler ?? styleText('dim', '(none)')}`;
+	}
 }
 
 function _locatePlugin(specifier: string, _loadedBy: string): string {
@@ -39,7 +31,21 @@ function _locatePlugin(specifier: string, _loadedBy: string): string {
 	return join(packageDir, 'package.json');
 }
 
-export async function loadPlugin(specifier: string, _loadedBy: string, safeMode: boolean = false) {
+/**
+ * @internal
+ */
+export function _findPlugin(search: string): PluginInternal {
+	const plugin = plugins.get(search) ?? plugins.values().find(p => p.specifier.toLowerCase() == search.toLowerCase());
+	if (!plugin) exit(`Can't find a plugin matching "${search}"`);
+	return plugin;
+}
+
+export async function loadPlugin<const T extends 'client' | 'server'>(
+	mode: T,
+	specifier: string,
+	_loadedBy: string,
+	safeMode: boolean = false
+) {
 	try {
 		const path = _locatePlugin(specifier, _loadedBy);
 
@@ -56,11 +62,17 @@ export async function loadPlugin(specifier: string, _loadedBy: string, safeMode:
 			await Plugin.parseAsync(imported).catch(e => {
 				throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
 			}),
-			{ path, specifier, _loadedBy, dirname: dirname(path) }
+			{ path, specifier, _loadedBy, dirname: dirname(path), cli: imported[mode]?.cli, isServer: mode === 'server' }
 		);
 
-		if (!safeMode && plugin.hooks) {
-			Object.assign(plugin, { _hooks: await import(resolve(plugin.dirname, plugin.hooks)) });
+		if (!plugin[mode]) throw `Plugin does not support running ${mode}-side`;
+
+		if (!safeMode) {
+			if (plugin.cli) await import(resolve(plugin.dirname, plugin.cli));
+
+			if (mode == 'server') {
+				if (plugin.server!.hooks) Object.assign(plugin, { _hooks: await import(resolve(plugin.dirname, plugin.server!.hooks)) });
+			}
 		}
 
 		Object.freeze(plugin);

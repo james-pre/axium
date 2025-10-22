@@ -44,8 +44,10 @@
 		"zod": "^4.0.5"
 	},
 	"axium": {
-		"routes": "routes",
-		"hooks": "./dist/hooks.js",
+		"server": {
+			"routes": "routes",
+			"hooks": "./dist/hooks.js"
+		},
 		"apps": [
 			{
 				"id": "notes",

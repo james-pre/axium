@@ -1,8 +1,9 @@
 #!/usr/bin/env node
-import type { AuditEvent, PluginInternal, UserInternal } from '@axium/core';
+import type { AuditEvent, UserInternal } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
 import * as io from '@axium/core/node/io';
+import { _findPlugin, plugins, pluginText } from '@axium/core/node/plugins';
 import { Argument, Option, program, type Command } from 'commander';
 import { spawnSync } from 'node:child_process';
 import { access } from 'node:fs/promises';
@@ -18,19 +19,12 @@ import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
-import { plugins, pluginText } from './plugins.js';
 import { serve } from './serve.js';
 
-function readline() {
-	const rl = createInterface({
-		input: process.stdin,
-		output: process.stdout,
-	});
-
-	return Object.assign(rl, {
-		[Symbol.dispose]: rl.close.bind(rl),
-	});
-}
+using rl = createInterface({
+	input: process.stdin,
+	output: process.stdout,
+});
 
 function userText(user: UserInternal, bold: boolean = false): string {
 	const text = `${user.name} <${user.email}> (${user.id})`;
@@ -282,19 +276,13 @@ axiumPlugin
 		}
 	});
 
-function _findPlugin(search: string): PluginInternal {
-	const plugin = plugins.get(search) ?? plugins.values().find(p => p.specifier.toLowerCase() == search.toLowerCase());
-	if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
-	return plugin;
-}
-
 axiumPlugin
 	.command('info')
 	.description('Get information about a plugin')
 	.argument('<plugin>', 'the plugin to get information about')
 	.action((search: string) => {
 		const plugin = _findPlugin(search);
-		console.log(pluginText(plugin));
+		for (const line of pluginText(plugin)) console.log(line);
 	});
 
 axiumPlugin
@@ -450,7 +438,6 @@ program
 		}
 
 		if (opt.delete) {
-			using rl = readline();
 			const confirmed = await rl
 				.question(`Are you sure you want to delete ${userText(user, true)}? (y/N) `)
 				.then(v => z.stringbool().parseAsync(v))

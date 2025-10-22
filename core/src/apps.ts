@@ -8,3 +8,5 @@ export const App = z.object({
 });
 
 export interface App extends z.infer<typeof App> {}
+
+export const apps = new Map<string, App>();

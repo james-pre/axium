@@ -49,9 +49,11 @@
 		"zod": "^4.0.5"
 	},
 	"axium": {
-		"http_handler": "./build/handler.js",
-		"hooks": "./dist/server/hooks.js",
-		"routes": "./routes",
+		"server": {
+			"http_handler": "./build/handler.js",
+			"hooks": "./dist/server/hooks.js",
+			"routes": "./routes"
+		},
 		"apps": [
 			{
 				"id": "files",
