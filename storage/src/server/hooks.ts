@@ -5,6 +5,7 @@ import config from '@axium/server/config';
 import type { InitOptions, OpOptions } from '@axium/server/database';
 import { count, createIndex, database, warnExists } from '@axium/server/database';
 import { sql } from 'kysely';
+import { mkdirSync } from 'node:fs';
 import '../common.js';
 import './index.js';
 
@@ -16,6 +17,10 @@ export async function statusText(): Promise<string> {
 		.executeTakeFirstOrThrow();
 
 	return `${items} items totaling ${formatBytes(Number(size))}`;
+}
+
+export async function init() {
+	mkdirSync(config.storage.data, { recursive: true });
 }
 
 export async function db_init(opt: InitOptions) {

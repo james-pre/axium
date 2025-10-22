@@ -1,7 +1,6 @@
 import { Severity } from '@axium/core';
 import { addEvent } from '@axium/server/audit';
 import { addConfigDefaults, config } from '@axium/server/config';
-import { dirs } from '@axium/server/io';
 import type { StorageLimits, StoragePublicConfig } from '../common.js';
 import '../polyfills.js';
 
@@ -47,7 +46,7 @@ addConfigDefaults({
 			exclude: [],
 		},
 		chunk: false,
-		data: dirs.at(-1)! + '/storage',
+		data: '/srv/axium/storage',
 		enabled: true,
 		limits: {
 			user_size: 1000,
