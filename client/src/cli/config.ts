@@ -39,13 +39,12 @@ export function loadConfig() {
 	}
 }
 
-export function saveConfig(session: Omit<ClientConfig, 'fetched'>) {
+export function saveConfig(config: ClientConfig) {
 	const path = join(axcDir, 'config.json');
-	Object.assign(session, { fetched: Date.now() });
 
 	writeFileSync(
 		path,
-		JSON.stringify(session, null, 4).replaceAll(/^( {4})+/g, match => '\t'.repeat(match.length / 4)),
+		JSON.stringify(config, null, 4).replaceAll(/^( {4})+/g, match => '\t'.repeat(match.length / 4)),
 		'utf-8'
 	);
 	io.debug('Saved session to ' + path);
