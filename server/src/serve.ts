@@ -2,7 +2,7 @@ import type { RequestMethod } from '@axium/core';
 import '@axium/server/api/index';
 import { loadDefaultConfigs, reloadConfigs } from '@axium/server/config';
 import { clean, connect, database } from '@axium/server/database';
-import { _debugOutput, dirs, logger, output } from '@axium/server/io';
+import { dirs, logger } from '@axium/server/io';
 import { allLogLevels } from 'logzen';
 import { createWriteStream, readFileSync } from 'node:fs';
 import type { IncomingMessage, Server } from 'node:http';

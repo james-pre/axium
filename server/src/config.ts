@@ -1,10 +1,11 @@
 import type { Severity } from '@axium/core/audit';
+import { _setDebugOutput, output } from '@axium/core/node/io';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { capitalize, deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
-import { _setDebugOutput, dirs, logger, output } from './io.js';
+import { dirs, logger } from './io.js';
 import { loadPlugin } from './plugins.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
 

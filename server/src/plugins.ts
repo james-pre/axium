@@ -1,3 +1,4 @@
+import { output } from '@axium/core/node/io';
 import { Plugin, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
@@ -6,7 +7,6 @@ import { styleText } from 'node:util';
 import * as z from 'zod';
 import { apps } from './apps.js';
 import type { InitOptions, OpOptions } from './database.js';
-import { output } from './io.js';
 import { _unique } from './state.js';
 
 export interface Hooks {

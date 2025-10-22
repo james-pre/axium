@@ -1,9 +1,9 @@
 import type { AccessControl, Permission, UserInternal } from '@axium/core';
+import * as io from '@axium/core/node/io';
 import type { AliasedRawBuilder, Expression, ExpressionBuilder, Selectable } from 'kysely';
 import { sql } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import * as db from './database.js';
-import * as io from './io.js';
 
 export interface Target {
 	userId: string;

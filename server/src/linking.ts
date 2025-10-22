@@ -1,7 +1,7 @@
+import * as io from '@axium/core/node/io';
 import { existsSync, symlinkSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path/posix';
 import config from './config.js';
-import * as io from './io.js';
 import { plugins } from './plugins.js';
 
 const textFor: Record<string, string> = {

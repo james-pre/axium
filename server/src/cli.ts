@@ -1,8 +1,8 @@
 #!/usr/bin/env node
-import type { AuditEvent, UserInternal, PluginInternal } from '@axium/core';
-import { AuditFilter } from '@axium/core/audit';
-import { severityNames } from '@axium/core/audit';
+import type { AuditEvent, PluginInternal, UserInternal } from '@axium/core';
+import { AuditFilter, severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
+import * as io from '@axium/core/node/io';
 import { Argument, Option, program, type Command } from 'commander';
 import { spawnSync } from 'node:child_process';
 import { access } from 'node:fs/promises';
@@ -16,7 +16,7 @@ import { apps } from './apps.js';
 import { audit, getEvents, styleSeverity } from './audit.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
-import * as io from './io.js';
+import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { plugins, pluginText } from './plugins.js';
 import { serve } from './serve.js';
@@ -585,11 +585,11 @@ program
 program
 	.command('ports')
 	.description('Enable or disable use of restricted ports (e.g. 443)')
-	.addArgument(new Argument('<action>', 'The action to take').choices(io._portActions))
-	.addOption(new Option('-m, --method <method>', 'the method to use').choices(io._portMethods).default('node-cap'))
+	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
+	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
 	.option('-N, --node <path>', 'the path to the node binary')
-	.action(async (action: io.PortOptions['action'], opt: OptCommon & Omit<io.PortOptions, 'action'>) => {
-		await io.restrictedPorts({ ...opt, action }).catch(io.handleError);
+	.action(async (action: PortOptions['action'], opt: OptCommon & Omit<PortOptions, 'action'>) => {
+		await restrictedPorts({ ...opt, action }).catch(io.handleError);
 	});
 
 program
@@ -601,7 +601,7 @@ program
 	.addOption(opts.packagesDir)
 	.action(async (opt: OptDB & { dbSkip: boolean; check: boolean; packagesDir?: string }) => {
 		await db.init({ ...opt, skip: opt.dbSkip }).catch(io.handleError);
-		await io.restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
+		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
 	});
 
 program

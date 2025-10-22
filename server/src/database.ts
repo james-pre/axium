@@ -1,4 +1,5 @@
 import type { Permission, Preferences, Severity, UserInternal } from '@axium/core';
+import * as io from '@axium/core/node/io';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import type * as kysely from 'kysely';
 import { Kysely, PostgresDialect, sql } from 'kysely';
@@ -9,7 +10,6 @@ import pg from 'pg';
 import type { Entries } from 'utilium';
 import type { VerificationRole } from './auth.js';
 import config from './config.js';
-import * as io from './io.js';
 import { plugins } from './plugins.js';
 
 export interface DBAccessControl {
