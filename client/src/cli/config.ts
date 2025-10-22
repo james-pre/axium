@@ -7,7 +7,7 @@ import * as z from 'zod';
 import { fetchAPI, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession } from '../user.js';
 
-const axcDir = join(homedir(), '.axium/client');
+const axcDir = join(homedir(), '.config/axium');
 mkdirSync(axcDir, { recursive: true });
 
 const ClientConfig = z.object({
