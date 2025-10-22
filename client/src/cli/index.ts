@@ -8,10 +8,9 @@ import type { AddressInfo } from 'node:net';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
 import $pkg from '../../package.json' with { type: 'json' };
-import { setPrefix, setToken } from '../requests.js';
+import { prefix, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession, logout } from '../user.js';
-import { _dayMs, loadSession, resolveServerURL, saveSession, session } from './config.js';
-import { pick } from 'utilium';
+import { config, loadConfig, resolveServerURL, saveConfig, updateCache } from './config.js';
 
 using rl = createInterface({
 	input: process.stdin,
@@ -28,37 +27,24 @@ program
 	.configureHelp({ showGlobalOptions: true })
 	.option('--debug', 'override debug mode')
 	.option('--no-debug', 'override debug mode')
-	.option('--refresh', 'Force a refresh of session and user metadata from server');
+	.option('--refresh', 'Force a refresh of session and user metadata from server')
+	.option('--cache-only', 'Run entirely from local cache, even if it is expired.');
 
 program.on('option:debug', () => io._setDebugOutput(true));
 
 program.hook('preAction', async (_, action: Command) => {
-	loadSession();
-	if (!session) return;
-	const opt = action.optsWithGlobals<{ refresh: boolean }>();
-	if (opt.refresh || session._fetched + _dayMs < Date.now()) {
-		io.start('Fetching session metadata');
-		try {
-			const data = await getCurrentSession();
-			Object.assign(session, {
-				...pick(data, 'user', 'userId'),
-				sessionId: data.id,
-				_fetched: Date.now(),
-			});
-			saveSession(session);
-			io.done();
-		} catch {
-			io.warn('Failed to refresh session metadata');
-			return;
-		}
-	}
+	loadConfig();
+	if (!config.token) return;
+	const opt = action.optsWithGlobals<{ refresh: boolean; cacheOnly: boolean }>();
+	if (!opt.cacheOnly) await updateCache(opt.refresh);
 });
 
 program
 	.command('login')
 	.description('Log in to your account on an Axium server')
 	.argument('[server]', 'Axium server URL')
-	.action(async (url: string) => {
+	.action(async (url?: string) => {
+		if (prefix[0] != '/') url ||= prefix;
 		url ||= await rl.question('Axium server URL: ');
 		url = resolveServerURL(url);
 		setPrefix(url);
@@ -119,44 +105,38 @@ program
 		const authURL = new URL('/login/client?port=' + port, url).href;
 		console.log('Authenticate by visiting this URL in your browser: ' + styleText('underline', authURL));
 
-		const { token, userId } = await sessionReady.promise.catch(e => io.exit('Failed to obtain session: ' + e, 4));
+		const { token } = await sessionReady.promise.catch(e => io.exit('Failed to obtain session: ' + e, 6));
 		setToken(token);
 
 		server.close();
 
 		io.start('Verifying session');
-		const { id: sessionId, expires, user } = await getCurrentSession().catch(e => io.exit(e.message, 6));
+		const session = await getCurrentSession().catch(e => io.exit(e.message, 6));
 		io.done();
 
-		io.debug('Session UUID: ' + sessionId);
+		io.debug('Session UUID: ' + session.id);
 
-		console.log(`Welcome ${user.name}! Your session is valid until ${expires.toLocaleDateString()}.`);
+		console.log(`Welcome ${session.user.name}! Your session is valid until ${session.expires.toLocaleDateString()}.`);
 
-		saveSession({ token, server: url, userId, sessionId, user, _fetched: Date.now() });
+		saveConfig({ token, server: url });
+		await updateCache(true);
 	});
 
 program.command('logout').action(async () => {
-	if (!session) return io.exit('Not logged in.', 3);
+	if (!config.token) io.exit('Not logged in.', 4);
+	if (!config.cache) io.exit('No session data available.', 3);
 
-	await logout(session.userId, session.sessionId);
+	await logout(config.cache.session.userId, config.cache.session.id);
 });
 
 program.command('status').action(() => {
-	if (!session) {
-		console.log('Not logged in.');
-		return;
-	}
+	if (!config.token) return console.log('Not logged in.');
+	if (!config.cache) return console.log('No session data available.');
 
-	console.log('Logged in to', new URL(session.server).host);
-	console.log(styleText('whiteBright', 'Session ID:'), session.sessionId);
-	if (!session.user) io.warn('User data unavailable.');
-	else
-		console.log(
-			styleText('whiteBright', 'User:'),
-			session.user.name,
-			`<${session.user.email}>`,
-			styleText('dim', `(${session.user.id})`)
-		);
+	console.log('Logged in to', new URL(prefix).host);
+	console.log(styleText('whiteBright', 'Session ID:'), config.cache.session.id);
+	const { user } = config.cache.session;
+	console.log(styleText('whiteBright', 'User:'), user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
 });
 
 await program.parseAsync();

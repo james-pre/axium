@@ -1,41 +1,47 @@
-import { User } from '@axium/core';
+import { App, Session, User } from '@axium/core';
 import * as io from '@axium/core/node/io';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
-import { setPrefix, setToken } from '../requests.js';
+import { fetchAPI, setPrefix, setToken } from '../requests.js';
+import { getCurrentSession } from '../user.js';
 
 const axcDir = join(homedir(), '.axium/client');
 mkdirSync(axcDir, { recursive: true });
 
-const ClientSession = z.object({
-	token: z.string(),
-	server: z.url(),
-	userId: z.uuid(),
-	// Cached to reduce server load:
-	sessionId: z.uuid(),
-	user: User.optional(),
-	_fetched: z.int(),
+const CachedSessionInfo = Session.extend({ user: User });
+
+const ClientCache = z.object({
+	fetched: z.int(),
+	session: CachedSessionInfo,
+	apps: App.array(),
 });
 
-export interface ClientSession extends z.infer<typeof ClientSession> {}
+const ClientConfig = z.object({
+	token: z.base64().nullish(),
+	server: z.url().nullish(),
+	// Cache to reduce server load:
+	cache: ClientCache.nullish(),
+});
 
-export let session: ClientSession | null = null;
+export interface ClientConfig extends z.infer<typeof ClientConfig> {}
 
-export function loadSession() {
+export let config: ClientConfig;
+
+export function loadConfig() {
 	try {
-		const sessionData = JSON.parse(readFileSync(join(axcDir, 'session.json'), 'utf-8'));
-		session = ClientSession.parse(sessionData);
-		setPrefix(session.server);
-		setToken(session.token);
+		config = ClientConfig.parse(JSON.parse(readFileSync(join(axcDir, 'config.json'), 'utf-8')));
+		if (config.server) setPrefix(config.server);
+		if (config.token) setToken(config.token);
 	} catch (e: any) {
 		io.debug('Failed to load session: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : e.message));
 	}
 }
 
-export function saveSession(session: ClientSession) {
-	const path = join(axcDir, 'session.json');
+export function saveConfig(session: Omit<ClientConfig, 'fetched'>) {
+	const path = join(axcDir, 'config.json');
+	Object.assign(session, { fetched: Date.now() });
 
 	writeFileSync(
 		path,
@@ -59,3 +65,17 @@ export function resolveServerURL(server: string) {
 }
 
 export const _dayMs = 24 * 3600_000;
+
+export async function updateCache(force: boolean) {
+	if (!force && config.cache && config.cache.fetched + _dayMs > Date.now()) return;
+	io.start('Fetching metadata');
+
+	const [session, apps] = await Promise.all([getCurrentSession(), fetchAPI('GET', 'apps')]).catch(err => io.exit(err.message));
+
+	try {
+		config.cache = { fetched: Date.now(), session, apps };
+		io.done();
+	} catch {
+		return;
+	}
+}
