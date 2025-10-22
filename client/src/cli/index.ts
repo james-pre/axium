@@ -2,6 +2,7 @@
 
 import type { NewSessionResponse } from '@axium/core';
 import * as io from '@axium/core/node/io';
+import * as z from 'zod';
 import { program, type Command } from 'commander';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -12,6 +13,10 @@ import { prefix, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession, logout } from '../user.js';
 import { config, loadConfig, resolveServerURL, saveConfig, updateCache } from './config.js';
 import { _findPlugin, plugins, pluginText } from '@axium/core/node/plugins';
+
+const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
+
+await loadConfig(safe);
 
 using rl = createInterface({
 	input: process.stdin,
@@ -36,7 +41,7 @@ program.on('option:debug', () => io._setDebugOutput(true));
 
 program.hook('preAction', async (_, action: Command) => {
 	const opt = action.optsWithGlobals<{ refresh: boolean; cacheOnly: boolean; safe: boolean }>();
-	await loadConfig(opt.safe);
+
 	if (!config.token) return;
 	if (!opt.cacheOnly) await updateCache(opt.refresh);
 });

@@ -17,7 +17,7 @@ import { apps } from './apps.js';
 import { audit, getEvents, styleSeverity } from './audit.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
-import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
+import { _portActions, _portMethods, restrictedPorts, systemDir, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { serve } from './serve.js';
 
@@ -31,7 +31,9 @@ function userText(user: UserInternal, bold: boolean = false): string {
 	return bold ? styleText('bold', text) : text;
 }
 
-let safe = false;
+const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
+
+await config.load(join(systemDir, 'config.json'), { safe });
 
 program
 	.version($pkg.version)
@@ -43,7 +45,6 @@ program
 	.option('--no-debug', 'override debug mode')
 	.option('-c, --config <path>', 'path to the config file');
 
-program.on('option:safe', () => (safe = true));
 program.on('option:debug', () => config.set({ debug: true }));
 program.on('option:config', () => void config.load(program.opts<OptCommon>().config, { safe }));
 
@@ -722,4 +723,4 @@ program
 		}
 	});
 
-program.parse();
+await program.parseAsync();

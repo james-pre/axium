@@ -52,7 +52,8 @@
 		"server": {
 			"http_handler": "./build/handler.js",
 			"hooks": "./dist/server/hooks.js",
-			"routes": "./routes"
+			"routes": "./routes",
+			"cli": "./dist/server/cli.js"
 		},
 		"apps": [
 			{
