@@ -1,15 +1,14 @@
-import { configDir, session } from '@axium/client/cli/config';
+import { session } from '@axium/client/cli/config';
 import { formatBytes } from '@axium/core/format';
-import { exit, output, writeJSON } from '@axium/core/node/io';
+import { exit, output } from '@axium/core/node/io';
 import { program } from 'commander';
 import { stat } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import { styleText } from 'node:util';
 import { getUserStorage, getUserStorageInfo, getUserStorageRoot } from './api.js';
 import { config, saveConfig } from './config.js';
 import { walkItems } from './paths.js';
-import { computeDelta, getItems, fetchSyncItems } from './sync.js';
-import { join, resolve } from 'node:path';
-import { writeFileSync } from 'node:fs';
+import { computeDelta, fetchSyncItems } from './sync.js';
 
 const cli = program.command('files').helpGroup('Plugins:').description('CLI integration for @axium/storage');
 
@@ -29,19 +28,32 @@ cli.command('ls')
 		output.error('Not implemented yet.');
 	});
 
-cli.command('status').action(() => {
-	console.log(styleText('bold', `${config.sync.length} synced folder(s):`));
-	for (const sync of config.sync) {
-		const delta = computeDelta(sync.itemId, sync.localPath);
+cli.command('status')
+	.option('-v, --verbose', 'Show more details')
+	.action(opt => {
+		console.log(styleText('bold', `${config.sync.length} synced folder(s):`));
+		for (const sync of config.sync) {
+			const delta = computeDelta(sync.itemId, sync.localPath);
 
-		console.log(
-			sync.localPath + ':',
-			Object.entries(delta)
-				.map(([name, set]) => `${styleText('blueBright', set.size.toString())} ${name}`)
-				.join(', ')
-		);
-	}
-});
+			if (opt.verbose) {
+				console.log(styleText('underline', sync.localPath + ':'));
+				if (delta.synced.length == delta.items.length) {
+					console.log('\t' + styleText('blueBright', 'All files are synced!'));
+					continue;
+				}
+				for (const path of delta.added) console.log('\t' + styleText('green', '+ ' + path));
+				for (const { path } of delta.deleted) console.log('\t' + styleText('red', '- ' + path));
+				for (const { path } of delta.modified) console.log('\t' + styleText('yellow', '~ ' + path));
+			} else {
+				console.log(
+					sync.localPath + ':',
+					Object.entries(delta)
+						.map(([name, items]) => `${styleText('blueBright', items.length.toString())} ${name}`)
+						.join(', ')
+				);
+			}
+		}
+	});
 
 cli.command('add')
 	.description('Add a folder to be synced')

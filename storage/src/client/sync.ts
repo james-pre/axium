@@ -67,8 +67,9 @@ export interface Delta {
 	synced: LocalItem[];
 	modified: LocalItem[];
 	deleted: LocalItem[];
-	added: Set<string>;
 	items: LocalItem[];
+	/* Can't use items since they aren't tracked by Axium yet */
+	added: string[];
 }
 
 export function computeDelta(id: string, localPath: string): Delta {
@@ -86,7 +87,7 @@ export function computeDelta(id: string, localPath: string): Delta {
 		items: Array.from(items.values()),
 		synced: Array.from(synced.difference(modified)).map(p => items.get(p)!),
 		modified: Array.from(modified).map(p => items.get(p)!),
-		added: files.difference(items),
+		added: Array.from(files.difference(items)),
 		deleted: Array.from(itemsSet.difference(files)).map(p => items.get(p)!),
 	};
 }
