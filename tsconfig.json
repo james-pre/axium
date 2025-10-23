@@ -16,7 +16,8 @@
 			"@axium/server": ["./server/*"],
 			"@axium/storage": ["./storage/*"],
 			"@axium/tasks": ["./tasks/*"]
-		}
+		},
+		"skipLibCheck": true
 	},
 	"exclude": ["node_modules"],
 	"files": [],
