@@ -1,4 +1,4 @@
-import { session } from '@axium/client/cli/config';
+import { configDir, session } from '@axium/client/cli/config';
 import { formatBytes } from '@axium/core/format';
 import * as io from '@axium/core/node/io';
 import { Option, program } from 'commander';
@@ -99,6 +99,23 @@ cli.command('add')
 		});
 
 		await fetchSyncItems(remote.id);
+		saveConfig();
+	});
+
+cli.command('unsync')
+	.alias('remove-sync')
+	.alias('rm-sync')
+	.description('Stop syncing a folder')
+	.argument('<path>', 'local path to the folder to stop syncing')
+	.action((localPath: string) => {
+		localPath = resolve(localPath);
+
+		const index = config.sync.findIndex(sync => sync.localPath == localPath);
+		if (index == -1) io.exit('This local path is not being synced.');
+
+		unlinkSync(join(configDir, 'sync', config.sync[index].itemId + '.json'));
+
+		config.sync.splice(index, 1);
 		saveConfig();
 	});
 
