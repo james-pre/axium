@@ -53,7 +53,7 @@
 			onclick={async () => {
 				if (item.type != 'inode/directory') {
 					// @todo get preview
-				} else if (appMode) goto('/files/' + item.id);
+				} else if (appMode) location.href = '/files/' + item.id;
 				else items = await getDirectoryMetadata(item.id);
 			}}
 		>
