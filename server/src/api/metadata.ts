@@ -1,9 +1,8 @@
-import type { App } from '@axium/core';
-import type { Result } from '@axium/core/api';
+import type { App, Result } from '@axium/core';
+import { apps } from '@axium/core';
 import { plugins } from '@axium/core/node/plugins';
 import { requestMethods } from '@axium/core/requests';
 import pkg from '../../package.json' with { type: 'json' };
-import { apps } from '../apps.js';
 import { getSessionAndUser } from '../auth.js';
 import { config } from '../config.js';
 import { error, getToken } from '../requests.js';

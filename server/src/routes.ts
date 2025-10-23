@@ -1,8 +1,8 @@
+import { apps } from '@axium/core';
 import { output } from '@axium/core/node/io';
 import type { RequestMethod } from '@axium/core/requests';
 import type { Component } from 'svelte';
 import type z from 'zod';
-import { apps } from './apps.js';
 import config from './config.js';
 import { _unique } from './state.js';
 

@@ -1,4 +1,4 @@
-import type { RequestMethod } from '@axium/core';
+import { apps, type RequestMethod } from '@axium/core';
 import { _debugOutput, output } from '@axium/core/node/io';
 import { plugins } from '@axium/core/node/plugins';
 import '@axium/server/api/index';
@@ -12,7 +12,6 @@ import { createServer, ServerResponse } from 'node:http';
 import { createServer as createSecureServer } from 'node:https';
 import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
-import { appDisabledContent, apps } from './apps.js';
 import config from './config.js';
 import { convertFromResponse, convertToRequest } from './internal_requests.js';
 import { error, handleAPIRequest, handleResponseError, json, noCacheHeaders } from './requests.js';
@@ -35,6 +34,11 @@ function fillSvelteKitTemplate(
 			.replace(/%sveltekit\.env\.([^%]+)%/g, (_match: string, key: string) => env[key] ?? '')
 	);
 }
+
+export const appDisabledContent = {
+	head: '<title>App Disabled</title>',
+	body: '<h1>App Disabled</h1><p>This app is currently disabled.</p>',
+};
 
 async function handleRequestDefault(req: Request): Promise<Response> {
 	const url = new URL(req.url);
