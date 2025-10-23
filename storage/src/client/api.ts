@@ -1,4 +1,4 @@
-import { fetchAPI, token } from '@axium/client/requests';
+import { fetchAPI, prefix, token } from '@axium/client/requests';
 import type { StorageItemMetadata, StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.js';
 
 async function _upload(
@@ -51,11 +51,15 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 	const headers: Record<string, string> = {};
 	if (opt.parentId) headers['x-parent'] = opt.parentId;
 	if (opt.name) headers['x-name'] = opt.name;
-	return parseItem(await _upload('PUT', '/raw/storage', file, headers));
+	const url = new URL(prefix);
+	url.pathname = '/raw/storage';
+	return parseItem(await _upload('PUT', url, file, headers));
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
-	return parseItem(await _upload('POST', '/raw/storage/' + fileId, data));
+	const url = new URL(prefix);
+	url.pathname = '/raw/storage/' + fileId;
+	return parseItem(await _upload('POST', url, data));
 }
 
 export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
@@ -73,7 +77,9 @@ export async function getDirectoryMetadata(parentId: string): Promise<StorageIte
 }
 
 export async function downloadItem(fileId: string): Promise<Blob> {
-	const response = await fetch('/raw/storage/' + fileId, {
+	const url = new URL(prefix);
+	url.pathname = '/raw/storage/' + fileId;
+	const response = await fetch(url, {
 		headers: token ? { Authorization: 'Bearer ' + token } : {},
 	});
 

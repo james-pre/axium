@@ -33,17 +33,17 @@ program
 	.configureHelp({ showGlobalOptions: true })
 	.option('--debug', 'override debug mode')
 	.option('--no-debug', 'override debug mode')
-	.option('--refresh', 'Force a refresh of session and user metadata from server')
+	.option('--refresh-session', 'Force a refresh of session and user metadata from server')
 	.option('--cache-only', 'Run entirely from local cache, even if it is expired.')
 	.option('--safe', 'do not execute code from plugins');
 
 program.on('option:debug', () => io._setDebugOutput(true));
 
 program.hook('preAction', async (_, action: Command) => {
-	const opt = action.optsWithGlobals<{ refresh: boolean; cacheOnly: boolean; safe: boolean }>();
+	const opt = action.optsWithGlobals<{ refreshSession: boolean; cacheOnly: boolean; safe: boolean }>();
 
 	if (!config.token) return;
-	if (!opt.cacheOnly) await updateCache(opt.refresh);
+	if (!opt.cacheOnly) await updateCache(opt.refreshSession);
 });
 
 program

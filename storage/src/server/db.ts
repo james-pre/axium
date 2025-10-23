@@ -99,8 +99,8 @@ export async function* getRecursive(
 
 	for (const item of items) {
 		const path = this?.path ? this.path + '/' + item.name : item.name;
-		if (item.type != 'inode/directory') yield Object.assign(parseItem(item), { path });
-		else yield* getRecursive.call({ path }, item.id);
+		yield Object.assign(parseItem(item), { path });
+		if (item.type == 'inode/directory') yield* getRecursive.call({ path }, item.id);
 	}
 }
 
