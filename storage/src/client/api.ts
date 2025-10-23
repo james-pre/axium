@@ -42,6 +42,14 @@ export function parseItem(result: StorageItemMetadata): StorageItemMetadata {
 	return result;
 }
 
+function rawStorage(fileId?: string): string | URL {
+	const raw = '/raw/storage' + (fileId ? '/' + fileId : '');
+	if (prefix[0] == '/') return raw;
+	const url = new URL(prefix);
+	url.pathname = raw;
+	return url;
+}
+
 export interface UploadOptions {
 	parentId?: string;
 	name?: string;
@@ -51,15 +59,11 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 	const headers: Record<string, string> = {};
 	if (opt.parentId) headers['x-parent'] = opt.parentId;
 	if (opt.name) headers['x-name'] = opt.name;
-	const url = new URL(prefix);
-	url.pathname = '/raw/storage';
-	return parseItem(await _upload('PUT', url, file, headers));
+	return parseItem(await _upload('PUT', rawStorage(), file, headers));
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
-	const url = new URL(prefix);
-	url.pathname = '/raw/storage/' + fileId;
-	return parseItem(await _upload('POST', url, data));
+	return parseItem(await _upload('POST', rawStorage(fileId), data));
 }
 
 export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
@@ -77,9 +81,7 @@ export async function getDirectoryMetadata(parentId: string): Promise<StorageIte
 }
 
 export async function downloadItem(fileId: string): Promise<Blob> {
-	const url = new URL(prefix);
-	url.pathname = '/raw/storage/' + fileId;
-	const response = await fetch(url, {
+	const response = await fetch(rawStorage(fileId), {
 		headers: token ? { Authorization: 'Bearer ' + token } : {},
 	});
 
