@@ -25,11 +25,15 @@
 		<Icon i="trash-can-undo" /> Restore
 	</button>
 {:else if item.type == 'inode/directory'}
-	<a href="/files{item.parentId ? '/' + item.parentId : ''}">
-		<button class="icon-text">
-			<Icon i="folder-arrow-up" /> Back
-		</button>
-	</a>
+	<button
+		class="icon-text"
+		onclick={e => {
+			e.preventDefault();
+			location.href = '/files' + (item.parentId ? '/' + item.parentId : '');
+		}}
+	>
+		<Icon i="folder-arrow-up" /> Back
+	</button>
 	<StorageList appMode bind:items />
 	<StorageAdd parentId={item.id} onadd={item => items.push(item)} />
 {:else}
