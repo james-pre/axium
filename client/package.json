@@ -26,7 +26,8 @@
 		"assets",
 		"dist",
 		"lib",
-		"styles"
+		"styles",
+		"axium-client.service"
 	],
 	"exports": {
 		".": "./dist/index.js",

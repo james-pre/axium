@@ -1,0 +1,22 @@
+[Unit]
+Description=Axium Client Daemon
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%Y
+StartLimitIntervalSec=1min
+StartLimitBurst=5
+StartLimitAction=none
+FailureAction=none
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/env cd "%Y/../../.."
+ExecStart=/usr/bin/env npx --prefix "%Y/../../.." axium-client run
+ExecReload=kill -HUP $MAINPID
+SyslogIdentifier=axium-client
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=15s
+
+[Install]
+WantedBy=default.target
