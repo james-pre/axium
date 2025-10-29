@@ -3,11 +3,9 @@ import type { AuditEvent, UserInternal } from '@axium/core';
 import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
-import * as io from '@axium/core/node/io';
+import { outputDaemonStatus, io, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
-import { pluginText } from '@axium/core/node/plugins';
 import { Argument, Option, program, type Command } from 'commander';
-import { spawnSync } from 'node:child_process';
 import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
@@ -529,26 +527,7 @@ program
 			configFiles.join(', ')
 		);
 
-		process.stdout.write(styleText('whiteBright', 'Daemon: '));
-
-		const daemonIs = (sub: string) =>
-			spawnSync('systemctl', ['is-' + sub, 'axium'], {
-				stdio: 'pipe',
-				encoding: 'utf8',
-			});
-
-		const { status: dNotActive, stdout: dStatus } = daemonIs('active');
-		const { status: dNotFailed } = daemonIs('failed');
-		const { stdout: dEnabled } = daemonIs('enabled');
-
-		if (dEnabled.trim() == 'not-found') console.log(styleText('dim', 'not found'));
-		else {
-			process.stdout.write(dEnabled.trim() + ', ');
-			const status = dStatus.trim();
-			if (!dNotFailed) console.log(styleText('red', status));
-			else if (!dNotActive) console.log(styleText('green', status));
-			else console.log(styleText('yellow', status));
-		}
+		outputDaemonStatus('axium');
 
 		process.stdout.write(styleText('whiteBright', 'Database: '));
 

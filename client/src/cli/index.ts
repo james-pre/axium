@@ -1,9 +1,8 @@
 #! /usr/bin/env node
 
 import type { NewSessionResponse } from '@axium/core';
-import * as io from '@axium/core/node/io';
+import { outputDaemonStatus, io, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
-import { pluginText } from '@axium/core/node/plugins';
 import { program, type Command } from 'commander';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -148,6 +147,8 @@ program.command('status').action(() => {
 	console.log(styleText('whiteBright', 'Session ID:'), config.cache.session.id);
 	const { user } = config.cache.session;
 	console.log(styleText('whiteBright', 'User:'), user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
+
+	outputDaemonStatus('axium-client');
 });
 
 const axiumPlugin = program.command('plugin').alias('plugins').description('Manage plugins');

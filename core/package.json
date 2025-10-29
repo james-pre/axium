@@ -20,7 +20,8 @@
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": "./dist/index.js",
-		"./*": "./dist/*.js"
+		"./*": "./dist/*.js",
+		"./node": "./dist/node/index.js"
 	},
 	"files": [
 		"dist",
