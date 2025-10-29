@@ -1,6 +1,6 @@
 {
 	"name": "@axium/client",
-	"version": "0.5.0",
+	"version": "0.6.0",
 	"author": "James Prevett <jp@jamespre.dev>",
 	"funding": {
 		"type": "individual",
@@ -40,7 +40,7 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.6.0",
+		"@axium/core": ">=0.9.0",
 		"utilium": "^2.3.8",
 		"zod": "^4.0.5",
 		"svelte": "^5.36.0"

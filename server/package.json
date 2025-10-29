@@ -1,6 +1,6 @@
 {
 	"name": "@axium/server",
-	"version": "0.25.0",
+	"version": "0.26.0",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"funding": {
 		"type": "individual",
@@ -46,8 +46,8 @@
 		"clean": "rm -rf build .svelte-kit node_modules/{.vite,.vite-temp}"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.5.0",
-		"@axium/core": ">=0.8.0",
+		"@axium/client": ">=0.6.0",
+		"@axium/core": ">=0.9.0",
 		"kysely": "^0.28.0",
 		"utilium": "^2.3.8",
 		"zod": "^4.0.5"
