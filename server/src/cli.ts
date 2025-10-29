@@ -532,7 +532,7 @@ program
 		process.stdout.write(styleText('whiteBright', 'Daemon: '));
 
 		const daemonIs = (sub: string) =>
-			spawnSync('systemctl', ['is-' + sub, 'axiumd'], {
+			spawnSync('systemctl', ['is-' + sub, 'axium'], {
 				stdio: 'pipe',
 				encoding: 'utf8',
 			});
