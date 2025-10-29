@@ -25,7 +25,7 @@ export async function loadConfig(safe: boolean) {
 		if (config.token) setToken(config.token);
 		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfig, safe);
 	} catch (e: any) {
-		io.warn('Failed to load config: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : e.message));
+		io.warn('Failed to load config: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : io._debugOutput ? e.stack : e.message));
 	}
 }
 

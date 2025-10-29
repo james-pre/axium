@@ -55,7 +55,8 @@
 			"cli": "./dist/server/cli.js"
 		},
 		"client": {
-			"cli": "./dist/client/cli.js"
+			"cli": "./dist/client/cli.js",
+			"hooks": "./dist/client/hooks.js"
 		},
 		"apps": [
 			{

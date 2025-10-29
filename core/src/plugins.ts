@@ -11,6 +11,8 @@ export const Plugin = z.looseObject({
 		.object({
 			/** CLI mixin path */
 			cli: z.string().optional(),
+			/** The path to the hooks script */
+			hooks: z.string().optional(),
 		})
 		.optional(),
 	server: z
@@ -36,6 +38,8 @@ export interface PluginInternal extends Plugin {
 	readonly cli?: string;
 	/** @internal */
 	readonly _hooks?: ServerHooks;
+	/** @internal */
+	readonly _client?: ClientHooks;
 	readonly isServer: boolean;
 }
 
@@ -72,4 +76,8 @@ export interface ServerHooks {
 	remove?: (opt: { force?: boolean }) => void | Promise<void>;
 	db_wipe?: (opt: { force?: boolean }) => void | Promise<void>;
 	clean?: (opt: Partial<_InitOptions>) => void | Promise<void>;
+}
+
+export interface ClientHooks {
+	run(): void | Promise<void>;
 }

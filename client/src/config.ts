@@ -18,7 +18,9 @@ export const ClientConfig = z.looseObject({
 
 export interface ClientConfig extends z.infer<typeof ClientConfig> {}
 
-export let config: ClientConfig;
+export const config: ClientConfig = {
+	plugins: [],
+};
 
 export function resolveServerURL(server: string) {
 	if (!server.startsWith('http://') && !server.startsWith('https://')) server = 'https://' + server;

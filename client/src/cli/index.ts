@@ -19,6 +19,11 @@ const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()
 
 await loadConfig(safe);
 
+process.on('SIGHUP', () => {
+	io.info('Reloading configuration due to SIGHUP.');
+	void loadConfig(safe);
+});
+
 using rl = createInterface({
 	input: process.stdin,
 	output: process.stdout,
@@ -150,6 +155,19 @@ program.command('status').action(() => {
 
 	outputDaemonStatus('axium-client');
 });
+
+program
+	.command('run')
+	.argument('[plugin]', 'The plugin to run')
+	.action(async (name?: string) => {
+		if (name) {
+			const plugin = _findPlugin(name);
+			await plugin._client?.run();
+			return;
+		}
+
+		for (const plugin of plugins.values()) await plugin._client?.run();
+	});
 
 const axiumPlugin = program.command('plugin').alias('plugins').description('Manage plugins');
 

@@ -16,6 +16,8 @@ export function* pluginText(plugin: PluginInternal): Generator<string> {
 	if (plugin.isServer) {
 		yield `Hooks: ${plugin._hooks ? styleText(['dim', 'bold'], `(${Object.keys(plugin._hooks).length}) `) + Object.keys(plugin._hooks).join(', ') : plugin.server!.hooks || styleText('dim', '(none)')}`;
 		yield `HTTP Handler: ${plugin.server!.http_handler ?? styleText('dim', '(none)')}`;
+	} else {
+		yield `Hooks: ${plugin._client ? styleText(['dim', 'bold'], `(${Object.keys(plugin._client).length}) `) + Object.keys(plugin._client).join(', ') : plugin.client!.hooks || styleText('dim', '(none)')}`;
 	}
 }
 
@@ -58,6 +60,10 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 
 		if (!safeMode) {
 			if (plugin.cli) await import(resolve(plugin.dirname, plugin.cli));
+
+			if (mode == 'client') {
+				if (plugin.client!.hooks) Object.assign(plugin, { _client: await import(resolve(plugin.dirname, plugin.client!.hooks)) });
+			}
 
 			if (mode == 'server') {
 				if (plugin.server!.hooks) Object.assign(plugin, { _hooks: await import(resolve(plugin.dirname, plugin.server!.hooks)) });

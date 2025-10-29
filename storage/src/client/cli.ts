@@ -2,16 +2,14 @@ import { configDir, session } from '@axium/client/cli/config';
 import { formatBytes } from '@axium/core/format';
 import * as io from '@axium/core/node/io';
 import { Option, program } from 'commander';
-import mime from 'mime';
-import { mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from 'node:fs';
+import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
-import { pick } from 'utilium';
-import { deleteItem, downloadItem, getUserStorage, getUserStorageInfo, getUserStorageRoot, updateItem, uploadItem } from './api.js';
+import { getUserStorage, getUserStorageInfo, getUserStorageRoot } from './api.js';
 import { config, saveConfig } from './config.js';
 import { walkItems } from './paths.js';
-import { computeDelta, fetchSyncItems, setItems } from './sync.js';
+import { computeDelta, doSync, fetchSyncItems, type SyncOptions } from './sync.js';
 
 const cli = program.command('files').helpGroup('Plugins:').description('CLI integration for @axium/storage');
 
@@ -127,119 +125,11 @@ cli.command('sync')
 			.default('none')
 	)
 	.option('-d, --dry-run', 'Show what would be done, but do not make any changes')
-	.action(async (opt: { delete: 'local' | 'remote' | 'none'; dryRun: boolean }) => {
-		for (const sync of config.sync) {
-			await fetchSyncItems(sync.itemId, sync.name);
-			const delta = computeDelta(sync.itemId, sync.localPath);
-
-			const { _items } = delta;
-
-			if (opt.delete == 'local') delta.localOnly.reverse(); // so directories come after
-			for (const dirent of delta.localOnly) {
-				if (opt.delete == 'local') {
-					io.start('Deleting ' + dirent._path);
-					try {
-						if (opt.dryRun) process.stdout.write('(dry run) ');
-						else {
-							unlinkSync(join(sync.localPath, dirent._path));
-							_items.delete(dirent._path);
-						}
-						io.done();
-					} catch (e: any) {
-						io.error(e.message);
-					}
-					continue;
-				}
-
-				const uploadOpts = {
-					parentId: dirname(dirent._path) == '.' ? sync.itemId : _items.get(dirname(dirent._path))?.id,
-					name: dirent.name,
-				};
-				io.start('Uploading ' + dirent._path);
-				try {
-					if (opt.dryRun) process.stdout.write('(dry run) ');
-					else if (dirent.isDirectory()) {
-						const dir = await uploadItem(new Blob([], { type: 'inode/directory' }), uploadOpts);
-						_items.set(dirent._path, Object.assign(pick(dir, 'id', 'modifiedAt'), { path: dirent._path, hash: null }));
-					} else {
-						const type = mime.getType(dirent._path) || 'application/octet-stream';
-						const content = readFileSync(join(sync.localPath, dirent._path));
-						const file = await uploadItem(new Blob([content], { type }), uploadOpts);
-						_items.set(dirent._path, Object.assign(pick(file, 'id', 'modifiedAt', 'hash'), { path: dirent._path }));
-					}
-					io.done();
-				} catch (e: any) {
-					io.error(e.message);
-				}
-			}
-
-			if (opt.delete == 'remote') delta.remoteOnly.reverse();
-			for (const item of delta.remoteOnly) {
-				if (opt.delete == 'remote') {
-					io.start('Deleting ' + item.path);
-					try {
-						if (opt.dryRun) process.stdout.write('(dry run) ');
-						else {
-							await deleteItem(item.id);
-							_items.delete(item.path);
-						}
-						io.done();
-					} catch (e: any) {
-						io.error(e.message);
-					}
-					continue;
-				}
-
-				io.start('Downloading ' + item.path);
-				try {
-					const fullPath = join(sync.localPath, item.path);
-					if (opt.dryRun) process.stdout.write('(dry run) ');
-					else if (!item.hash) {
-						mkdirSync(fullPath, { recursive: true });
-					} else {
-						const blob = await downloadItem(item.id);
-						const content = await blob.bytes();
-
-						writeFileSync(fullPath, content);
-					}
-					io.done();
-				} catch (e: any) {
-					io.error(e.message);
-				}
-			}
-
-			for (const item of delta.modified) {
-				io.start('Updating ' + item.path);
-
-				try {
-					const content = readFileSync(join(sync.localPath, item.path));
-					const type = mime.getType(item.path) || 'application/octet-stream';
-
-					if (item.modifiedAt.getTime() > statSync(join(sync.localPath, item.path)).mtime.getTime()) {
-						if (opt.dryRun) process.stdout.write('(dry run) ');
-						else {
-							const blob = await downloadItem(item.id);
-							const content = await blob.bytes();
-							writeFileSync(join(sync.localPath, item.path), content);
-						}
-						console.log('server.');
-					} else {
-						if (opt.dryRun) process.stdout.write('(dry run) ');
-						else {
-							const updated = await updateItem(item.id, new Blob([content], { type }));
-							_items.set(item.path, Object.assign(pick(updated, 'id', 'modifiedAt', 'hash'), { path: item.path }));
-						}
-						console.log('local.');
-					}
-				} catch (e: any) {
-					io.error(e.message);
-				}
-			}
-
-			if (opt.dryRun) return;
-
-			setItems(sync.itemId, Array.from(_items.values()));
-			sync.lastSynced = new Date();
-			saveConfig();
-		}
+	.argument('[sync]', 'The name of the Sync to sync')
+	.action(async (name: string, opt: SyncOptions) => {
+		if (name) {
+			const sync = config.sync.find(s => s.name == name);
+			if (!sync) io.exit('Can not find a Sync with that name.');
+			await doSync(sync, opt);
+		} else for (const sync of config.sync) await doSync(sync, opt);
 	});
