@@ -77,3 +77,6 @@ export function someWarnings(...allowList: [RegExp, string?][]): (error: string 
 		throw error;
 	};
 }
+
+/** @hidden @internal for Logzen */
+export const constructor = { name: 'Console' };
