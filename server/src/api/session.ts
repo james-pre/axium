@@ -1,4 +1,4 @@
-import type { Result } from '@axium/core/api';
+import type { AsyncResult } from '@axium/core/api';
 import { omit } from 'utilium';
 import { audit } from '../audit.js';
 import { getSessionAndUser } from '../auth.js';
@@ -8,7 +8,7 @@ import { addRoute } from '../routes.js';
 
 addRoute({
 	path: '/api/session',
-	async GET(request): Result<'GET', 'session'> {
+	async GET(request): AsyncResult<'GET', 'session'> {
 		const token = getToken(request);
 		if (!token) error(401, 'Missing token');
 
@@ -19,7 +19,7 @@ addRoute({
 			user: stripUser(result.user, true),
 		};
 	},
-	async DELETE(request): Result<'DELETE', 'session'> {
+	async DELETE(request): AsyncResult<'DELETE', 'session'> {
 		const token = getToken(request);
 		if (!token) error(401, 'Missing token');
 

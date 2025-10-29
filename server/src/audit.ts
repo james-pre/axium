@@ -94,7 +94,7 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 
 	try {
 		if (cfg.extra) extra = cfg.extra.parse(extra) as EventExtra<T>;
-	} catch (e) {
+	} catch {
 		io.error('Audit event has invalid extra data: ' + eventName);
 		return;
 	}

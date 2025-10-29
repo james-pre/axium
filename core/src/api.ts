@@ -9,6 +9,16 @@ import type { RequestMethod } from './requests.js';
 import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserInternal, UserPublic, UserRegistration } from './user.js';
 import type { PluginInternal } from './plugins.js';
 
+export interface AdminSummary {
+	users: number;
+	passkeys: number;
+	sessions: number;
+	auditEvents: Record<keyof typeof Severity, number>;
+	configFiles: number;
+	plugins: number;
+	version: string;
+}
+
 /**
  * Types for all API endpoints
  * @internal
@@ -73,15 +83,7 @@ export interface $API {
 		PUT: [{ userId: string; permission: number }, AccessControl];
 	};
 	'admin/summary': {
-		GET: {
-			users: number;
-			passkeys: number;
-			sessions: number;
-			auditEvents: Record<keyof typeof Severity, number>;
-			configFiles: number;
-			plugins: number;
-			version: string;
-		};
+		GET: AdminSummary;
 	};
 	'admin/users/all': {
 		GET: UserInternal[];
@@ -121,8 +123,10 @@ export type RequestBody<Method extends RequestMethod, E extends Endpoint> = Meth
 		: any
 	: unknown;
 
-export type Result<Method extends RequestMethod, E extends Endpoint> = Promise<
-	Method extends keyof $API[E] ? ($API[E][Method] extends [unknown, infer R] ? R : $API[E][Method]) : unknown
->;
+export type Result<Method extends RequestMethod & keyof $API[E], E extends Endpoint> = $API[E][Method] extends [unknown, infer R]
+	? R
+	: $API[E][Method];
+
+export type AsyncResult<Method extends RequestMethod & keyof $API[E], E extends Endpoint> = Promise<Result<Method, E>>;
 
 export type APIParameters<S extends string> = S extends `${string}/:${infer Right}` ? [string, ...APIParameters<Right>] : [];

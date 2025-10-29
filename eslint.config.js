@@ -1,13 +1,14 @@
 import eslint from '@eslint/js';
 import globals from 'globals';
 import tseslint from 'typescript-eslint';
+import { defineConfig } from 'eslint/config';
 
-export default tseslint.config(
-	{ ignores: ['*/dist/', '*.js', '*.d.ts'] },
+export default defineConfig(
+	{ ignores: ['*/{dist,build}/', '*/.*', '*.js', '*.d.ts'] },
 	{
 		name: 'Axium',
 		extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
-		files: ['*/src/**/*.ts'],
+		files: ['./*/src/**/*.ts'],
 		languageOptions: {
 			globals: { ...globals.browser, ...globals.node },
 			ecmaVersion: 'latest',
@@ -36,7 +37,7 @@ export default tseslint.config(
 			'@typescript-eslint/no-non-null-assertion': 'off',
 			'@typescript-eslint/no-namespace': 'warn',
 			'@typescript-eslint/prefer-as-const': 'warn',
-			'@typescript-eslint/no-explicit-any': 'warn',
+			'@typescript-eslint/no-explicit-any': 'off',
 			'@typescript-eslint/consistent-type-assertions': 'warn',
 			'@typescript-eslint/consistent-type-imports': 'warn',
 			'@typescript-eslint/no-unnecessary-type-assertion': 'warn',

@@ -1,4 +1,4 @@
-import type { PluginInternal, Result, UserInternal } from '@axium/core';
+import type { PluginInternal, AsyncResult, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
 import { plugins } from '@axium/core/plugins';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -28,7 +28,7 @@ async function assertAdmin(route: RouteCommon, req: Request): Promise<UserIntern
 
 addRoute({
 	path: '/api/admin/summary',
-	async GET(req): Result<'GET', 'admin/summary'> {
+	async GET(req): AsyncResult<'GET', 'admin/summary'> {
 		await assertAdmin(this, req);
 
 		const groups = Object.groupBy(await getEvents({}).execute(), e => e.severity);
@@ -49,7 +49,7 @@ addRoute({
 
 addRoute({
 	path: '/api/admin/plugins',
-	async GET(req): Result<'GET', 'admin/plugins'> {
+	async GET(req): AsyncResult<'GET', 'admin/plugins'> {
 		await assertAdmin(this, req);
 
 		return Array.from(plugins.values()).map(p => omit(p, '_hooks') as PluginInternal);
@@ -58,7 +58,7 @@ addRoute({
 
 addRoute({
 	path: '/api/admin/users/all',
-	async GET(req): Result<'GET', 'admin/users/all'> {
+	async GET(req): AsyncResult<'GET', 'admin/users/all'> {
 		await assertAdmin(this, req);
 
 		const users: UserInternal[] = await db.selectFrom('users').selectAll().execute();
@@ -70,7 +70,7 @@ addRoute({
 addRoute({
 	path: '/api/admin/users/:userId',
 	params: { userId: z.uuid() },
-	async GET(req, params): Result<'GET', 'admin/users/:userId'> {
+	async GET(req, params): AsyncResult<'GET', 'admin/users/:userId'> {
 		await assertAdmin(this, req);
 
 		if (!params.userId) error(400, 'Missing user ID');
@@ -111,7 +111,7 @@ function _redactConfig(config: Config): Config {
 
 addRoute({
 	path: '/api/admin/config',
-	async GET(req): Result<'GET', 'admin/config'> {
+	async GET(req): AsyncResult<'GET', 'admin/config'> {
 		await assertAdmin(this, req);
 
 		return {
@@ -123,7 +123,7 @@ addRoute({
 
 addRoute({
 	path: '/api/admin/audit/events',
-	async OPTIONS(req): Result<'OPTIONS', 'admin/audit/events'> {
+	async OPTIONS(req): AsyncResult<'OPTIONS', 'admin/audit/events'> {
 		await assertAdmin(this, req);
 
 		if (config.audit.allow_raw) return false;
@@ -144,7 +144,7 @@ addRoute({
 			name: name,
 		};
 	},
-	async GET(req): Result<'GET', 'admin/audit/events'> {
+	async GET(req): AsyncResult<'GET', 'admin/audit/events'> {
 		await assertAdmin(this, req);
 
 		const filter: AuditFilter = { severity: Severity.Info };
@@ -166,7 +166,7 @@ addRoute({
 addRoute({
 	path: '/api/admin/audit/:eventId',
 	params: { eventId: z.uuid() },
-	async GET(req, params): Result<'GET', 'admin/audit/:eventId'> {
+	async GET(req, params): AsyncResult<'GET', 'admin/audit/:eventId'> {
 		await assertAdmin(this, req);
 
 		if (!params.eventId) error(400, 'Missing event ID');

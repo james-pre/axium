@@ -1,23 +1,23 @@
-import { Permission, type AccessControl, type Result } from '@axium/core';
+import { Permission, type AccessControl, type AsyncResult } from '@axium/core';
+import * as acl from '@axium/server/acl';
+import { audit } from '@axium/server/audit';
+import { getSessionAndUser } from '@axium/server/auth';
 import config from '@axium/server/config';
+import { database } from '@axium/server/database';
 import { getToken, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
-import { StorageBatchUpdate, type StorageItemMetadata } from '../common.js';
-import * as z from 'zod';
-import { getSessionAndUser } from '@axium/server/auth';
-import { getLimits } from './config.js';
-import { currentUsage, getRecursive, getRecursiveIds, parseItem } from './db.js';
-import { audit } from '@axium/server/audit';
-import * as acl from '@axium/server/acl';
-import { database } from '@axium/server/database';
 import { createHash } from 'node:crypto';
 import { unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
+import * as z from 'zod';
+import { StorageBatchUpdate, type StorageItemMetadata } from '../common.js';
+import { getLimits } from './config.js';
+import { currentUsage, getRecursiveIds, parseItem } from './db.js';
 
 addRoute({
 	path: '/api/storage/batch',
-	async POST(req): Result<'POST', 'storage/batch'> {
+	async POST(req): AsyncResult<'POST', 'storage/batch'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 		if (!config.storage.batch.enabled) error(503, 'Batch updates are disabled');
 

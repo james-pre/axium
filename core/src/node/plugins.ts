@@ -41,7 +41,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 		let imported: any;
 		try {
 			imported = JSON.parse(fs.readFileSync(path, 'utf8'));
-		} catch (e) {
+		} catch {
 			throw new Error('Invalid or missing metadata for ' + specifier);
 		}
 

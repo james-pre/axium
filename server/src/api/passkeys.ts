@@ -1,4 +1,4 @@
-import type { Result } from '@axium/core/api';
+import type { AsyncResult } from '@axium/core/api';
 import { PasskeyChangeable } from '@axium/core/passkeys';
 import { omit } from 'utilium';
 import * as z from 'zod';
@@ -12,12 +12,12 @@ addRoute({
 	params: {
 		id: z.string(),
 	},
-	async GET(request, params): Result<'GET', 'passkeys/:id'> {
+	async GET(request, params): AsyncResult<'GET', 'passkeys/:id'> {
 		const passkey = await getPasskey(params.id!);
 		await checkAuthForUser(request, passkey.userId);
 		return omit(passkey, 'counter', 'publicKey');
 	},
-	async PATCH(request, params): Result<'PATCH', 'passkeys/:id'> {
+	async PATCH(request, params): AsyncResult<'PATCH', 'passkeys/:id'> {
 		const body = await parseBody(request, PasskeyChangeable);
 		const passkey = await getPasskey(params.id!);
 		await checkAuthForUser(request, passkey.userId);
@@ -31,7 +31,7 @@ addRoute({
 
 		return omit(result, 'counter', 'publicKey');
 	},
-	async DELETE(request, params): Result<'DELETE', 'passkeys/:id'> {
+	async DELETE(request, params): AsyncResult<'DELETE', 'passkeys/:id'> {
 		const passkey = await getPasskey(params.id!);
 		await checkAuthForUser(request, passkey.userId);
 

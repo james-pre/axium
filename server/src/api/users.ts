@@ -1,6 +1,6 @@
 /** Register a new passkey for a new or existing user. */
 import { preferenceDefaults, preferenceSchemas } from '@axium/core';
-import type { Result } from '@axium/core/api';
+import type { AsyncResult } from '@axium/core/api';
 import { PasskeyAuthenticationResponse, PasskeyRegistration } from '@axium/core/passkeys';
 import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
 import * as webauthn from '@simplewebauthn/server';
@@ -36,7 +36,7 @@ const params = { id: z.uuid() };
  */
 addRoute({
 	path: '/api/user_id',
-	async POST(request): Result<'POST', 'user_id'> {
+	async POST(request): AsyncResult<'POST', 'user_id'> {
 		const { value } = await parseBody(request, z.object({ using: z.literal('email'), value: z.email() }));
 
 		const { id } = await db
@@ -52,7 +52,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id',
 	params,
-	async GET(request, params): Result<'GET', 'users/:id'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id'> {
 		const userId = params.id!;
 
 		const auth = await checkAuthForUser(request, userId).catch(() => null);
@@ -61,7 +61,7 @@ addRoute({
 
 		return stripUser(user, !!auth);
 	},
-	async PATCH(request, params): Result<'PATCH', 'users/:id'> {
+	async PATCH(request, params): AsyncResult<'PATCH', 'users/:id'> {
 		const userId = params.id!;
 		const body: UserChangeable & Pick<User, 'emailVerified'> = await parseBody(request, UserChangeable);
 
@@ -84,7 +84,7 @@ addRoute({
 
 		return stripUser(result, true);
 	},
-	async DELETE(request, params): Result<'DELETE', 'users/:id'> {
+	async DELETE(request, params): AsyncResult<'DELETE', 'users/:id'> {
 		const userId = params.id!;
 
 		await checkAuthForUser(request, userId, true);
@@ -105,7 +105,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/full',
 	params,
-	async GET(request, params): Result<'GET', 'users/:id/full'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/full'> {
 		const userId = params.id!;
 
 		const { user } = await checkAuthForUser(request, userId);
@@ -121,7 +121,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/auth',
 	params,
-	async OPTIONS(request, params): Result<'OPTIONS', 'users/:id/auth'> {
+	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/auth'> {
 		const userId = params.id!;
 		const { type } = await parseBody(request, UserAuthOptions);
 
@@ -191,7 +191,7 @@ addRoute({
 	/**
 	 * Get passkey registration options for a user.
 	 */
-	async OPTIONS(request, params): Result<'OPTIONS', 'users/:id/passkeys'> {
+	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/passkeys'> {
 		const userId = params.id!;
 
 		const existing = await getPasskeysByUserId(userId);
@@ -220,7 +220,7 @@ addRoute({
 	/**
 	 * Get passkeys for a user.
 	 */
-	async GET(request, params): Result<'GET', 'users/:id/passkeys'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/passkeys'> {
 		const userId = params.id!;
 
 		await checkAuthForUser(request, userId);
@@ -233,7 +233,7 @@ addRoute({
 	/**
 	 * Register a new passkey for an existing user.
 	 */
-	async PUT(request, params): Result<'PUT', 'users/:id/passkeys'> {
+	async PUT(request, params): AsyncResult<'PUT', 'users/:id/passkeys'> {
 		const userId = params.id!;
 		const response = await parseBody(request, PasskeyRegistration);
 
@@ -268,7 +268,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/sessions',
 	params,
-	async GET(request, params): Result<'POST', 'users/:id/sessions'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/sessions'> {
 		const userId = params.id!;
 
 		await checkAuthForUser(request, userId);
@@ -277,7 +277,7 @@ addRoute({
 			omit(s, 'token')
 		);
 	},
-	async DELETE(request, params): Result<'DELETE', 'users/:id/sessions'> {
+	async DELETE(request, params): AsyncResult<'DELETE', 'users/:id/sessions'> {
 		const userId = params.id!;
 		const body = await parseBody(request, LogoutSessions);
 
@@ -301,7 +301,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/verify_email',
 	params,
-	async OPTIONS(request, params): Result<'OPTIONS', 'users/:id/verify_email'> {
+	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/verify_email'> {
 		const userId = params.id!;
 
 		if (!config.auth.email_verification) return { enabled: false };
@@ -312,7 +312,7 @@ addRoute({
 
 		return { enabled: true };
 	},
-	async GET(request, params): Result<'GET', 'users/:id/verify_email'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/verify_email'> {
 		const userId = params.id!;
 
 		const { user } = await checkAuthForUser(request, userId);
@@ -323,7 +323,7 @@ addRoute({
 
 		return omit(verification, 'token', 'role');
 	},
-	async POST(request, params): Result<'POST', 'users/:id/verify_email'> {
+	async POST(request, params): AsyncResult<'POST', 'users/:id/verify_email'> {
 		const userId = params.id!;
 		const { token } = await parseBody(request, z.object({ token: z.string() }));
 

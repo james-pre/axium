@@ -1,4 +1,4 @@
-import { Permission, type Result } from '@axium/core';
+import { Permission, type AsyncResult } from '@axium/core';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
 import { database, expectedTypes } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
@@ -40,7 +40,7 @@ expectedTypes.notes = {
 addRoute({
 	path: '/api/users/:id/notes',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'users/:id/notes'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/notes'> {
 		const userId = params.id!;
 		await checkAuthForUser(request, userId);
 
@@ -51,7 +51,7 @@ addRoute({
 			.execute()
 			.catch(withError('Could not get notes'));
 	},
-	async PUT(request, params): Result<'PUT', 'users/:id/notes'> {
+	async PUT(request, params): AsyncResult<'PUT', 'users/:id/notes'> {
 		const init = await parseBody(request, NoteInit);
 
 		const userId = params.id!;
@@ -69,14 +69,14 @@ addRoute({
 addRoute({
 	path: '/api/notes/:id',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'notes/:id'> {
+	async GET(request, params): AsyncResult<'GET', 'notes/:id'> {
 		const id = params.id!;
 
 		const { item } = await checkAuthForItem<Note>(request, 'notes', id, Permission.Read);
 
 		return item;
 	},
-	async PATCH(request, params): Result<'PATCH', 'notes/:id'> {
+	async PATCH(request, params): AsyncResult<'PATCH', 'notes/:id'> {
 		const init = await parseBody(request, NoteInit);
 
 		const id = params.id!;
@@ -92,7 +92,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update note'));
 	},
-	async DELETE(request, params): Result<'DELETE', 'notes/:id'> {
+	async DELETE(request, params): AsyncResult<'DELETE', 'notes/:id'> {
 		const id = params.id!;
 
 		await checkAuthForItem(request, 'notes', id, Permission.Manage);

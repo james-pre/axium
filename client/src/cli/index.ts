@@ -190,7 +190,7 @@ axiumPlugin
 	.alias('rm')
 	.description('Remove a plugin')
 	.argument('<plugin>', 'the plugin to remove')
-	.action(async (search: string) => {
+	.action((search: string) => {
 		const plugin = _findPlugin(search);
 
 		config.plugins = config.plugins.filter(p => p !== plugin.specifier);

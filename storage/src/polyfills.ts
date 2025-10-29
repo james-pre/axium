@@ -29,7 +29,7 @@ declare global {
 		fromHex: (string: string) => Uint8Array;
 	}
 
-	interface Uint8Array<TArrayBuffer extends ArrayBufferLike> {
+	interface Uint8Array {
 		/**
 		 * Converts the `Uint8Array` to a base64-encoded string.
 		 * @param options If provided, sets the alphabet and padding behavior used.

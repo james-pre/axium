@@ -1,5 +1,5 @@
 /** Register a new user. */
-import type { Result } from '@axium/core/api';
+import type { AsyncResult } from '@axium/core/api';
 import { UserRegistration } from '@axium/core/user';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { randomUUID } from 'node:crypto';
@@ -14,7 +14,7 @@ import { addRoute } from '../routes.js';
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
-async function OPTIONS(request: Request): Result<'OPTIONS', 'register'> {
+async function OPTIONS(request: Request): AsyncResult<'OPTIONS', 'register'> {
 	if (!config.allow_new_users) error(409, 'New user registration is disabled');
 
 	const { name, email } = await parseBody(request, z.object({ name: z.string().optional(), email: z.email().optional() }));

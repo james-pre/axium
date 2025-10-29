@@ -1,4 +1,4 @@
-import { Permission, type Result } from '@axium/core';
+import { Permission, type AsyncResult, type Result } from '@axium/core';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
 import { config } from '@axium/server/config';
 import { database, type Schema } from '@axium/server/database';
@@ -15,7 +15,7 @@ import { currentUsage, deleteRecursive, getRecursive, parseItem, type SelectedIt
 
 addRoute({
 	path: '/api/storage',
-	async OPTIONS(): Result<'OPTIONS', 'storage'> {
+	OPTIONS(): Result<'OPTIONS', 'storage'> {
 		return {
 			...pick(config.storage, 'batch', 'chunk', 'max_chunks', 'max_transfer_size'),
 			syncProtocolVersion,
@@ -27,7 +27,7 @@ addRoute({
 addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'storage/item/:id'> {
+	async GET(request, params): AsyncResult<'GET', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = params.id!;
@@ -36,7 +36,7 @@ addRoute({
 
 		return parseItem(item);
 	},
-	async PATCH(request, params): Result<'PATCH', 'storage/item/:id'> {
+	async PATCH(request, params): AsyncResult<'PATCH', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = params.id!;
@@ -63,7 +63,7 @@ addRoute({
 				.catch(withError('Could not update item'))
 		);
 	},
-	async DELETE(request, params): Result<'DELETE', 'storage/item/:id'> {
+	async DELETE(request, params): AsyncResult<'DELETE', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = params.id!;
@@ -80,7 +80,7 @@ addRoute({
 addRoute({
 	path: '/api/storage/directory/:id',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'storage/directory/:id'> {
+	async GET(request, params): AsyncResult<'GET', 'storage/directory/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = params.id!;
@@ -103,7 +103,7 @@ addRoute({
 addRoute({
 	path: '/api/storage/directory/:id/recursive',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'storage/directory/:id/recursive'> {
+	async GET(request, params): AsyncResult<'GET', 'storage/directory/:id/recursive'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const itemId = params.id!;
@@ -120,7 +120,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage',
 	params: { id: z.uuid() },
-	async OPTIONS(request, params): Result<'OPTIONS', 'users/:id/storage'> {
+	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/storage'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = params.id!;
@@ -130,7 +130,7 @@ addRoute({
 
 		return { usage, limits };
 	},
-	async GET(request, params): Result<'GET', 'users/:id/storage'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/storage'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = params.id!;
@@ -150,7 +150,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage/root',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'users/:id/storage/root'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/storage/root'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = params.id!;
@@ -184,7 +184,7 @@ function existsInACL(column: 'id' | 'parentId', userId: string) {
 addRoute({
 	path: '/api/users/:id/storage/shared',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'users/:id/storage/shared'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/storage/shared'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = params.id!;
@@ -207,7 +207,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage/trash',
 	params: { id: z.uuid() },
-	async GET(request, params): Result<'GET', 'users/:id/storage/trash'> {
+	async GET(request, params): AsyncResult<'GET', 'users/:id/storage/trash'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
 		const userId = params.id!;

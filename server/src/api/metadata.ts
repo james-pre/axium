@@ -1,4 +1,4 @@
-import type { App, Result } from '@axium/core';
+import type { App, AsyncResult, Result } from '@axium/core';
 import { apps } from '@axium/core';
 import { plugins } from '@axium/core/plugins';
 import { requestMethods } from '@axium/core/requests';
@@ -10,7 +10,7 @@ import { addRoute, routes } from '../routes.js';
 
 addRoute({
 	path: '/api/metadata',
-	async GET(request): Result<'GET', 'metadata'> {
+	async GET(request): AsyncResult<'GET', 'metadata'> {
 		if (!config.debug) {
 			const token = getToken(request);
 			if (!token) error(401, 'Missing session token');
@@ -43,7 +43,7 @@ addRoute({
 
 addRoute({
 	path: '/api/apps',
-	async GET(): Result<'GET', 'apps'> {
+	GET(): Result<'GET', 'apps'> {
 		const result: App[] = [];
 
 		for (const app of apps.values()) {

@@ -19,7 +19,7 @@ export async function statusText(): Promise<string> {
 	return `${items} items totaling ${formatBytes(Number(size))}`;
 }
 
-export async function init() {
+export function init() {
 	mkdirSync(config.storage.data, { recursive: true });
 }
 
