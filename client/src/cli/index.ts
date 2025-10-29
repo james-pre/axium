@@ -2,17 +2,19 @@
 
 import type { NewSessionResponse } from '@axium/core';
 import * as io from '@axium/core/node/io';
-import * as z from 'zod';
+import { _findPlugin, plugins } from '@axium/core/plugins';
+import { pluginText } from '@axium/core/node/plugins';
 import { program, type Command } from 'commander';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
+import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
+import { config, resolveServerURL } from '../config.js';
 import { prefix, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession, logout } from '../user.js';
-import { config, loadConfig, resolveServerURL, saveConfig, updateCache } from './config.js';
-import { _findPlugin, plugins, pluginText } from '@axium/core/node/plugins';
+import { loadConfig, saveConfig, updateCache } from './config.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 

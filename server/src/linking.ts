@@ -1,5 +1,5 @@
 import * as io from '@axium/core/node/io';
-import { plugins } from '@axium/core/node/plugins';
+import { plugins } from '@axium/core/plugins';
 import { existsSync, symlinkSync, unlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path/posix';
 import config from './config.js';

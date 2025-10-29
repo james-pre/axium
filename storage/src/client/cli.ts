@@ -28,7 +28,7 @@ cli.command('ls')
 	.alias('list')
 	.description('List the contents of a folder')
 	.action(() => {
-		io.output.error('Not implemented yet.');
+		io.error('Not implemented yet.');
 	});
 
 cli.command('status')

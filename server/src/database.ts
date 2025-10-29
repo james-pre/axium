@@ -1,6 +1,6 @@
 import type { Permission, Preferences, Severity, UserInternal } from '@axium/core';
 import * as io from '@axium/core/node/io';
-import { plugins } from '@axium/core/node/plugins';
+import { plugins } from '@axium/core/plugins';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import type * as kysely from 'kysely';
 import { Kysely, PostgresDialect, sql } from 'kysely';
@@ -11,6 +11,7 @@ import pg from 'pg';
 import type { Entries } from 'utilium';
 import type { VerificationRole } from './auth.js';
 import config from './config.js';
+import { styleText } from 'node:util';
 
 export interface DBAccessControl {
 	itemId: string;
@@ -358,7 +359,7 @@ export async function init(opt: InitOptions): Promise<void> {
 
 	for (const plugin of plugins.values()) {
 		if (!plugin._hooks?.db_init) continue;
-		io.plugin(plugin.name);
+		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
 		await plugin._hooks?.db_init(opt);
 	}
 }
@@ -526,7 +527,7 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 
 	for (const plugin of plugins.values()) {
 		if (!plugin._hooks?.clean) continue;
-		io.plugin(plugin.name);
+		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
 		await plugin._hooks?.clean(opt);
 	}
 }
@@ -537,7 +538,7 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 export async function uninstall(opt: OpOptions): Promise<void> {
 	for (const plugin of plugins.values()) {
 		if (!plugin._hooks?.remove) continue;
-		io.plugin(plugin.name);
+		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
 		await plugin._hooks?.remove(opt);
 	}
 
@@ -566,7 +567,7 @@ export async function uninstall(opt: OpOptions): Promise<void> {
 export async function wipe(opt: OpOptions): Promise<void> {
 	for (const plugin of plugins.values()) {
 		if (!plugin._hooks?.db_wipe) continue;
-		io.plugin(plugin.name);
+		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
 		await plugin._hooks?.db_wipe(opt);
 	}
 

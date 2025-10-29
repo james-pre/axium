@@ -39,6 +39,17 @@ export interface PluginInternal extends Plugin {
 	readonly isServer: boolean;
 }
 
+export const plugins = new Map<string, PluginInternal>();
+
+/**
+ * @internal
+ */
+export function _findPlugin(search: string): PluginInternal {
+	const plugin = plugins.get(search) ?? plugins.values().find(p => p.specifier.toLowerCase() == search.toLowerCase());
+	if (!plugin) throw `Can't find a plugin matching "${search}"`;
+	return plugin;
+}
+
 const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
 
 export const PluginServerHooks = z.object({

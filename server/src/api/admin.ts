@@ -1,6 +1,6 @@
 import type { PluginInternal, Result, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
-import { plugins } from '@axium/core/node/plugins';
+import { plugins } from '@axium/core/plugins';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';

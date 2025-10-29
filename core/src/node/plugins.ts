@@ -1,13 +1,11 @@
-import { exit, output } from '@axium/core/node/io';
-import { Plugin, type PluginInternal } from '@axium/core/plugins';
+import { output } from '@axium/core/node/io';
+import { Plugin, plugins, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { fileURLToPath } from 'node:url';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import { apps } from '../apps.js';
-
-export const plugins = new Map<string, PluginInternal>();
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {
 	yield styleText('whiteBright', plugin.name);
@@ -29,15 +27,6 @@ function _locatePlugin(specifier: string, _loadedBy: string): string {
 	let packageDir = dirname(fileURLToPath(import.meta.resolve(specifier)));
 	for (; !fs.existsSync(join(packageDir, 'package.json')); packageDir = dirname(packageDir));
 	return join(packageDir, 'package.json');
-}
-
-/**
- * @internal
- */
-export function _findPlugin(search: string): PluginInternal {
-	const plugin = plugins.get(search) ?? plugins.values().find(p => p.specifier.toLowerCase() == search.toLowerCase());
-	if (!plugin) exit(`Can't find a plugin matching "${search}"`);
-	return plugin;
 }
 
 export async function loadPlugin<const T extends 'client' | 'server'>(

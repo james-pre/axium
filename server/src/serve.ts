@@ -1,6 +1,6 @@
 import { apps, type RequestMethod } from '@axium/core';
 import { _debugOutput, output } from '@axium/core/node/io';
-import { plugins } from '@axium/core/node/plugins';
+import { plugins } from '@axium/core/plugins';
 import '@axium/server/api/index';
 import { loadDefaultConfigs, reloadConfigs } from '@axium/server/config';
 import { clean, connect, database } from '@axium/server/database';
