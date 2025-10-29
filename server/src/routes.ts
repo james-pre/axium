@@ -1,5 +1,5 @@
 import { apps } from '@axium/core';
-import { output } from '@axium/core/node/io';
+import { debug } from '@axium/core/node/io';
 import type { RequestMethod } from '@axium/core/requests';
 import type { Component } from 'svelte';
 import type z from 'zod';
@@ -75,7 +75,7 @@ export function addRoute(opt: RouteOptions): void {
 	if (route.api && !route.server) throw new Error(`API routes cannot have a client page: ${route.path}`);
 
 	routes.set(route.path, route);
-	output.debug('Added route: ' + route.path);
+	debug('Added route: ' + route.path);
 }
 
 /**

@@ -1,4 +1,4 @@
-import { debug, done, output, run, start, warn } from '@axium/core/node/io';
+import * as io from '@axium/core/node/io';
 import { Logger } from 'logzen';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
@@ -23,7 +23,7 @@ export const logger = new Logger({
 	noGlobalConsole: true,
 });
 
-logger.attach(output);
+logger.attach(io);
 
 /** @internal */
 export const _portMethods = ['node-cap'] as const;
@@ -48,50 +48,52 @@ export interface PortOptions {
  * If the origin has a port, passkeys do not work correctly with some password managers.
  */
 export async function restrictedPorts(opt: PortOptions) {
-	start('Checking for root privileges');
+	io.start('Checking for root privileges');
 	if (process.getuid?.() != 0) throw 'root privileges are needed to change restricted ports.';
-	done();
+	io.done();
 
-	start('Checking ports method');
+	io.start('Checking ports method');
 	if (!_portMethods.includes(opt.method)) throw 'invalid';
-	done();
+	io.done();
 
-	start('Checking ports action');
+	io.start('Checking ports action');
 	if (!_portActions.includes(opt.action)) throw 'invalid';
-	done();
+	io.done();
 
 	switch (opt.method) {
 		case 'node-cap': {
-			const setcap = await run('Finding setcap', 'command -v setcap')
+			const setcap = await io
+				.run('Finding setcap', 'command -v setcap')
 				.then(e => e.trim())
 				.catch(() => {
-					warn('not in path.');
-					start('Checking for /usr/sbin/setcap');
+					io.warn('not in path.');
+					io.start('Checking for /usr/sbin/setcap');
 					fs.accessSync('/usr/sbin/setcap', fs.constants.X_OK);
-					done();
+					io.done();
 					return '/usr/sbin/setcap';
 				});
 
-			debug('Using setcap at ' + setcap);
+			io.debug('Using setcap at ' + setcap);
 
 			let { node } = opt;
-			node ||= await run('Finding node', 'command -v node')
+			node ||= await io
+				.run('Finding node', 'command -v node')
 				.then(e => e.trim())
 				.catch(() => {
-					warn('not in path.');
-					start('Checking for /usr/bin/node');
+					io.warn('not in path.');
+					io.start('Checking for /usr/bin/node');
 					fs.accessSync('/usr/bin/node', fs.constants.X_OK);
-					done();
+					io.done();
 					return '/usr/bin/node';
 				});
 
-			start('Resolving real path for node');
+			io.start('Resolving real path for node');
 			node = fs.realpathSync(node);
-			done();
+			io.done();
 
-			debug('Using node at ' + node);
+			io.debug('Using node at ' + node);
 
-			await run('Setting ports capability', `${setcap} cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep ${node}`);
+			await io.run('Setting ports capability', `${setcap} cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep ${node}`);
 
 			break;
 		}

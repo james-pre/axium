@@ -1,8 +1,22 @@
 import { exec } from 'node:child_process';
 import { writeFileSync } from 'node:fs';
 import { styleText } from 'node:util';
-import { _debugOutput, done, error, start, useOutput } from '../io.js';
+import { _debugOutput, done, error, start, useOutput, useProgressIO } from '../io.js';
 export * from '../io.js';
+
+useProgressIO({
+	start(message: string): void {
+		process.stdout.write(message + '... \x1b[s');
+	},
+	/** @todo implement additional messaging */
+	progress(value: number, max: number, message?: any): void {
+		process.stdout.write(`\x1b[u\x1b[K${value.toString().padStart(max.toString().length)}/${max}`);
+		if (value >= max) console.log();
+	},
+	done(): void {
+		console.log('done.');
+	},
+});
 
 useOutput({
 	error(message: string): void {

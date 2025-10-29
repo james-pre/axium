@@ -1,5 +1,5 @@
 import { apps, type RequestMethod } from '@axium/core';
-import { _debugOutput, output } from '@axium/core/node/io';
+import { _debugOutput, debug, warn, info } from '@axium/core/node/io';
 import { plugins } from '@axium/core/plugins';
 import '@axium/server/api/index';
 import { loadDefaultConfigs, reloadConfigs } from '@axium/server/config';
@@ -111,9 +111,9 @@ async function _getMultiBuildHandler(): Promise<(req: IncomingMessage, res: Serv
 		try {
 			const { handler } = await import(join(plugin.dirname, plugin.server.http_handler));
 			handlers.push(handler);
-			output.debug(`Loaded plugin handler: ${plugin.name}`);
+			debug(`Loaded plugin handler: ${plugin.name}`);
 		} catch (e: any) {
-			output.warn(
+			warn(
 				`Failed to load plugin HTTP handler for ${plugin.name} ${_debugOutput ? ': ' + (e instanceof Error ? e.message : e) : ''}`
 			);
 		}
@@ -236,7 +236,7 @@ export async function init() {
 	process.on('beforeExit', () => database.destroy());
 
 	process.on('SIGHUP', () => {
-		output.info('Reloading configuration due to SIGHUP.');
+		info('Reloading configuration due to SIGHUP.');
 		void reloadConfigs();
 	});
 }

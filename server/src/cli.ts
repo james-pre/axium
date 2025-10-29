@@ -54,7 +54,7 @@ const noAutoDB = ['init', 'serve', 'check'];
 program.hook('preAction', async function (_, action: Command) {
 	await config.loadDefaults(safe);
 	const opt = action.optsWithGlobals<OptCommon>();
-	opt.force && io.output.warn('--force: Protections disabled.');
+	opt.force && io.warn('--force: Protections disabled.');
 	if (typeof opt.debug == 'boolean') {
 		config.set({ debug: opt.debug });
 		io._setDebugOutput(opt.debug);
@@ -121,7 +121,7 @@ axiumDB
 		try {
 			console.log(await db.statText());
 		} catch {
-			io.output.error('Unavailable');
+			io.error('Unavailable');
 			process.exitCode = 1;
 		}
 	});
@@ -137,7 +137,7 @@ axiumDB
 			for (const key of ['users', 'passkeys', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				io.output.warn(`Database has existing ${key}. Use --force if you really want to drop the database.`);
+				io.warn(`Database has existing ${key}. Use --force if you really want to drop the database.`);
 				process.exit(2);
 			}
 
@@ -155,7 +155,7 @@ axiumDB
 			for (const key of ['users', 'passkeys', 'sessions'] as const) {
 				if (stats[key] == 0) continue;
 
-				io.output.warn(`Database has existing ${key}. Use --force if you really want to wipe the database.`);
+				io.warn(`Database has existing ${key}. Use --force if you really want to wipe the database.`);
 				process.exit(2);
 			}
 

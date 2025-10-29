@@ -21,13 +21,29 @@ export function _setDebugOutput(enabled: boolean) {
 
 // I/O for "progressive" actions
 
-export function start(message: string) {}
+export let start: (message: string) => void;
+export let progress: (value: number, max: number, message?: any) => void;
+export let done: () => void;
 
-export function progress(value: number) {}
+export interface ProgressIO {
+	start(message: string): void;
+	progress(value: number, max: number, message?: any): void;
+	done(): void;
+}
 
-export function done() {}
+export function useProgressIO(io: ProgressIO) {
+	start = io.start.bind(io);
+	progress = io.progress.bind(io);
+	done = io.done.bind(io);
+}
 
 // User-facing messaging
+
+export let debug: (...args: any[]) => void;
+export let log: (...args: any[]) => void;
+export let info: (...args: any[]) => void;
+export let warn: (...args: any[]) => void;
+export let error: (...args: any[]) => void;
 
 export interface ConsoleLike {
 	debug(...args: any[]): void;
@@ -37,30 +53,12 @@ export interface ConsoleLike {
 	error(...args: any[]): void;
 }
 
-export let output: ConsoleLike = console;
-
-export function useOutput(newOutput: ConsoleLike) {
-	output = newOutput;
-}
-
-export function debug(...args: any[]) {
-	output.debug(...args);
-}
-
-export function log(...args: any[]) {
-	output.log(...args);
-}
-
-export function info(...args: any[]) {
-	output.info(...args);
-}
-
-export function warn(...args: any[]) {
-	output.warn(...args);
-}
-
-export function error(...args: any[]) {
-	output.error(...args);
+export function useOutput(output: ConsoleLike) {
+	debug = output.debug.bind(output);
+	log = output.log.bind(output);
+	info = output.info.bind(output);
+	warn = output.warn.bind(output);
+	error = output.error.bind(output);
 }
 
 /**

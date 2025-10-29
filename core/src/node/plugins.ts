@@ -1,4 +1,4 @@
-import { output } from '@axium/core/node/io';
+import * as io from '@axium/core/node/io';
 import { Plugin, plugins, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
@@ -78,8 +78,8 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 		}
 
 		plugins.set(plugin.name, plugin);
-		output.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
+		io.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
 	} catch (e: any) {
-		output.warn(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
+		io.warn(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
 	}
 }

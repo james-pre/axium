@@ -1,5 +1,5 @@
 import type { Severity } from '@axium/core/audit';
-import { _setDebugOutput, output } from '@axium/core/node/io';
+import * as io from '@axium/core/node/io';
 import { loadPlugin } from '@axium/core/node/plugins';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -193,9 +193,9 @@ export function addConfigDefaults(other: Config, _target: Record<string, any> = 
  */
 export function setConfig(other: Config) {
 	deepAssign(config, other);
-	logger.detach(output);
-	if (config.log.console) logger.attach(output, { output: config.log.level });
-	_setDebugOutput(config.debug);
+	logger.detach(io);
+	if (config.log.console) logger.attach(io, { output: config.log.level });
+	io._setDebugOutput(config.debug);
 	_duplicateStateWarnings(config.show_duplicate_state);
 }
 
@@ -240,7 +240,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		json = JSON.parse(readFileSync(path, 'utf8'));
 	} catch (e: any) {
 		if (!options.optional) throw e;
-		output.debug(`Skipping config at ${path} (${e.message})`);
+		io.debug(`Skipping config at ${path} (${e.message})`);
 		return;
 	}
 
@@ -249,12 +249,12 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		file = FileSchema.parse(json);
 	} catch (e: any) {
 		if (!options.loose) throw e;
-		output.debug(`Loading invalid config from ${path} (${e.message})`);
+		io.debug(`Loading invalid config from ${path} (${e.message})`);
 		file = json;
 	}
 	configFiles.set(path, { ...file, [kWasIncluded]: !!options._markIncluded });
 	setConfig(file);
-	output.debug('Loaded config: ' + path);
+	io.debug('Loaded config: ' + path);
 	for (const include of file.include ?? [])
 		await loadConfig(resolve(dirname(path), include), { ...options, optional: true, _markIncluded: true });
 	for (const plugin of file.plugins ?? []) await loadPlugin('server', plugin, path, options.safe);
@@ -283,7 +283,7 @@ export async function reloadConfigs(safe: boolean = false) {
 	configFiles.clear();
 	setConfig(defaultConfig);
 	for (const path of paths) await loadConfig(path, { safe });
-	output.info('Reloaded configuration files');
+	io.info('Reloaded configuration files');
 }
 
 /**
@@ -301,7 +301,7 @@ export function saveConfigTo(path: string, changed: Config) {
 	const config = configFiles.get(path) ?? {};
 	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
 
-	output.debug(`Wrote config to ${path}`);
+	io.debug(`Wrote config to ${path}`);
 	writeFileSync(path, JSON.stringify(config));
 }
 
