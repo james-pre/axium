@@ -23,6 +23,7 @@ jobs:
             - name: Setup npm authentication
               uses: actions/setup-node@v6
               with:
+                  node-version: latest
                   registry-url: https://registry.npmjs.org/
 
             - name: Install dependencies
