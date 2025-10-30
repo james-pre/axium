@@ -29,7 +29,6 @@
 	},
 	"files": [
 		"assets",
-		"build",
 		"dist",
 		"routes",
 		"svelte.config.js",
