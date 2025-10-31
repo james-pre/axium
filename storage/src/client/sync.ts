@@ -235,7 +235,6 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 		delta.modified,
 		item => (opt.verbose ? 'Updating ' : '') + item.path,
 		async item => {
-			const content = fs.readFileSync(join(sync.local_path, item.path));
 			const type = mime.getType(item.path) || 'application/octet-stream';
 
 			if (item.modifiedAt.getTime() > fs.statSync(join(sync.local_path, item.path)).mtime.getTime()) {
@@ -244,6 +243,7 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 				fs.writeFileSync(join(sync.local_path, item.path), content);
 				return 'server.';
 			} else {
+				const content = fs.readFileSync(join(sync.local_path, item.path));
 				const updated = await updateItem(item.id, new Blob([content], { type }));
 				_items.set(item.path, Object.assign(pick(updated, 'id', 'modifiedAt', 'hash'), { path: item.path }));
 				return 'local.';
