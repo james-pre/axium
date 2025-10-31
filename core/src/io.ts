@@ -31,7 +31,7 @@ export interface ProgressIO {
 	done(): void;
 }
 
-export function useProgressIO(io: ProgressIO) {
+export function useProgress(io: ProgressIO) {
 	start = io.start.bind(io);
 	progress = io.progress.bind(io);
 	done = io.done.bind(io);

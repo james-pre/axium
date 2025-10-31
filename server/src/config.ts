@@ -242,7 +242,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		if (path == join(systemDir, 'config.json') && 'code' in e && e.code === 'ENOENT') {
 			try {
 				writeFileSync(path, '{}');
-			} catch {
+			} catch (e: any) {
 				io.warn('Failed to create the main configuration file (/etc/axium/config.json): ' + e.message);
 				return;
 			}

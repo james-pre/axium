@@ -35,26 +35,26 @@ cli.command('status')
 	.action(async opt => {
 		console.log(styleText('bold', `${config.sync.length} synced folder(s):`));
 		for (const sync of config.sync) {
-			if (opt.refresh) await fetchSyncItems(sync.itemId, sync.name);
-			const delta = computeDelta(sync.itemId, sync.localPath);
+			if (opt.refresh) await fetchSyncItems(sync.item, sync.name);
+			const delta = computeDelta(sync);
 
 			if (opt.verbose) {
-				console.log(styleText('underline', sync.localPath + ':'));
-				if (delta.synced.length == delta.items.length && !delta.localOnly.length) {
+				console.log(styleText('underline', sync.local_path + ':'));
+				if (delta.synced.length == delta.items.length && !delta.local_only.length) {
 					console.log('\t' + styleText('blueBright', 'All files are synced!'));
 					continue;
 				}
-				for (const { _path } of delta.localOnly) console.log('\t' + styleText('green', '+ ' + _path));
-				for (const { path } of delta.remoteOnly) console.log('\t' + styleText('red', '- ' + path));
+				for (const { _path } of delta.local_only) console.log('\t' + styleText('green', '+ ' + _path));
+				for (const { path } of delta.remote_only) console.log('\t' + styleText('red', '- ' + path));
 				for (const { path, modifiedAt } of delta.modified) {
-					const outdated = modifiedAt.getTime() > statSync(join(sync.localPath, path)).mtime.getTime();
+					const outdated = modifiedAt.getTime() > statSync(join(sync.local_path, path)).mtime.getTime();
 					console.log('\t' + styleText('yellow', '~ ' + path) + (outdated ? ' (outdated)' : ''));
 				}
 			} else {
 				console.log(
-					sync.localPath + ':',
+					sync.local_path + ':',
 					Object.entries(delta)
-						.map(([name, items]) => `${styleText('blueBright', items.length.toString())} ${name}`)
+						.map(([name, items]) => `${styleText('blueBright', items.length.toString())} ${name.replaceAll('_', '-')}`)
 						.join(', ')
 				);
 			}
@@ -69,9 +69,9 @@ cli.command('add')
 		localPath = resolve(localPath);
 
 		for (const sync of config.sync) {
-			if (sync.localPath == localPath || localPath.startsWith(sync.localPath + '/'))
+			if (sync.local_path == localPath || localPath.startsWith(sync.local_path + '/'))
 				io.exit('This local path is already being synced.');
-			if (sync.remotePath == remoteName || remoteName.startsWith(sync.remotePath + '/'))
+			if (sync.remote_path == remoteName || remoteName.startsWith(sync.remote_path + '/'))
 				io.exit('This remote path is already being synced.');
 		}
 
@@ -90,10 +90,12 @@ cli.command('add')
 
 		config.sync.push({
 			name: remote.name,
-			itemId: remote.id,
-			localPath,
-			lastSynced: new Date(),
-			remotePath: remoteName,
+			item: remote.id,
+			local_path: localPath,
+			last_synced: new Date(),
+			remote_path: remoteName,
+			include_dotfiles: false,
+			exclude: [],
 		});
 
 		await fetchSyncItems(remote.id);
@@ -108,10 +110,10 @@ cli.command('unsync')
 	.action((localPath: string) => {
 		localPath = resolve(localPath);
 
-		const index = config.sync.findIndex(sync => sync.localPath == localPath);
+		const index = config.sync.findIndex(sync => sync.local_path == localPath);
 		if (index == -1) io.exit('This local path is not being synced.');
 
-		unlinkSync(join(configDir, 'sync', config.sync[index].itemId + '.json'));
+		unlinkSync(join(configDir, 'sync', config.sync[index].item + '.json'));
 
 		config.sync.splice(index, 1);
 		saveConfig();
@@ -120,11 +122,12 @@ cli.command('unsync')
 cli.command('sync')
 	.description('Sync files')
 	.addOption(
-		new Option('--delete', 'Delete local/remote files that were deleted remotely/locally')
+		new Option('--delete <mode>', 'Delete local/remote files that were deleted remotely/locally')
 			.choices(['local', 'remote', 'none'])
 			.default('none')
 	)
 	.option('-d, --dry-run', 'Show what would be done, but do not make any changes')
+	.option('-v, --verbose', 'Show more details')
 	.argument('[sync]', 'The name of the Sync to sync')
 	.action(async (name: string, opt: SyncOptions) => {
 		if (name) {
