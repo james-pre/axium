@@ -112,7 +112,7 @@ export async function convertFromResponse(res: ServerResponse, response: Respons
 		res.off('error', cancel);
 
 		// If the reader has already been interrupted with an error earlier,
-		// then it will appear here, it is useless, but it needs to be catch.
+		// then it will appear here, it is useless, but it needs to be caught.
 		reader.cancel(error).catch(() => {});
 		if (error) res.destroy(error);
 	};
