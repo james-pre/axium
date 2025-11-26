@@ -583,7 +583,7 @@ program
 			secure: opt.ssl ? true : config.web.secure,
 			ssl_cert: opt.ssl ? join(opt.ssl, 'cert.pem') : config.web.ssl_cert,
 			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,
-			build: opt.build ? resolve(opt.build) : undefined,
+			build: opt.build ? resolve(opt.build) : config.web.build,
 		});
 
 		const port = !Number.isNaN(Number.parseInt(opt.port ?? '')) ? Number.parseInt(opt.port!) : config.web.port;

@@ -79,6 +79,7 @@ export const ConfigSchema = z
 				secure: z.boolean(),
 				ssl_key: z.string(),
 				ssl_cert: z.string(),
+				build: z.string(),
 			})
 			.partial(),
 	})
@@ -142,6 +143,7 @@ export const defaultConfig: DeepRequired<Config> = {
 		secure: true,
 		ssl_key: resolve(dirs[0], 'ssl_key.pem'),
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
+		build: '../build/handler.js',
 	},
 };
 
@@ -257,6 +259,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	let file: File;
 	try {
 		file = FileSchema.parse(json);
+		if (file.web?.build) file.web.build = resolve(dirname(path), file.web.build);
 	} catch (e: any) {
 		if (!options.loose) throw e;
 		io.debug(`Loading invalid config from ${path} (${e.message})`);
