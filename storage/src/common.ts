@@ -68,14 +68,15 @@ export interface StorageLimits {
 	user_size: number;
 }
 
-export interface StorageUsage {
-	bytes: number;
-	items: number;
+export interface StorageStats {
+	usedBytes: number;
+	itemCount: number;
+	lastModified: Date;
+	lastTrashed: Date | null;
 }
 
-export interface UserStorageInfo {
+export interface UserStorageInfo extends StorageStats {
 	limits: StorageLimits;
-	usage: StorageUsage;
 }
 
 export interface UserStorage extends UserStorageInfo {

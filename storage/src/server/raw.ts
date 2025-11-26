@@ -12,7 +12,7 @@ import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 import { defaultCASMime, getLimits } from './config.js';
-import { currentUsage, parseItem, type SelectedItem } from './db.js';
+import { getUserStats, parseItem, type SelectedItem } from './db.js';
 
 addRoute({
 	path: '/raw/storage',
@@ -24,7 +24,7 @@ addRoute({
 
 		const { userId } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
 
-		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(
+		const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
 			withError('Could not fetch usage and/or limits')
 		);
 
@@ -45,9 +45,9 @@ addRoute({
 		const size = Number(request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 
-		if (limits.user_items && usage.items >= limits.user_items) error(409, 'Too many items');
+		if (limits.user_items && usage.itemCount >= limits.user_items) error(409, 'Too many items');
 
-		if (limits.user_size && (usage.bytes + size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
+		if (limits.user_size && (usage.usedBytes + size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
 
 		if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
@@ -155,11 +155,11 @@ addRoute({
 		const size = Number(request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 
-		const [usage, limits] = await Promise.all([currentUsage(item.userId), getLimits(item.userId)]).catch(
+		const [usage, limits] = await Promise.all([getUserStats(item.userId), getLimits(item.userId)]).catch(
 			withError('Could not fetch usage and/or limits')
 		);
 
-		if (limits.user_size && (usage.bytes + size - item.size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
+		if (limits.user_size && (usage.usedBytes + size - item.size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
 
 		if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 

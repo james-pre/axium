@@ -4,8 +4,9 @@ import { withError } from '@axium/server/requests';
 import type { Generated, Selectable } from 'kysely';
 import { unlinkSync } from 'node:fs';
 import { join } from 'node:path/posix';
-import type { StorageItemMetadata, StorageUsage } from '../common.js';
+import type { StorageItemMetadata, StorageStats } from '../common.js';
 import '../polyfills.js';
+import type { Permission } from '@axium/core';
 
 declare module '@axium/server/database' {
 	export interface Schema {
@@ -21,7 +22,7 @@ declare module '@axium/server/database' {
 			trashedAt: Date | null;
 			type: string;
 			userId: string;
-			publicPermission: Generated<number>;
+			publicPermission: Generated<Permission>;
 			metadata: Generated<Record<string, unknown>>;
 		};
 	}
@@ -67,16 +68,20 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
 /**
  * Returns the current usage of the storage for a user in bytes.
  */
-export async function currentUsage(userId: string): Promise<StorageUsage> {
+export async function getUserStats(userId: string): Promise<StorageStats> {
 	const result = await database
 		.selectFrom('storage')
 		.where('userId', '=', userId)
-		.select(eb => eb.fn.countAll<number>().as('items'))
-		.select(eb => eb.fn.sum<number>('size').as('bytes'))
+		.select(eb => [
+			eb.fn.countAll<number>().as('itemCount'),
+			eb.fn.sum<number>('size').as('usedBytes'),
+			eb.fn.max('modifiedAt').as('lastModified'),
+			eb.fn.max('trashedAt').as('lastTrashed'),
+		])
 		.executeTakeFirstOrThrow();
 
-	result.bytes = Number(result.bytes || 0);
-	result.items = Number(result.items);
+	result.usedBytes = Number(result.usedBytes || 0);
+	result.itemCount = Number(result.itemCount);
 
 	return result;
 }

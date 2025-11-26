@@ -6,7 +6,7 @@ import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
-import { getUserStorage, getUserStorageInfo, getUserStorageRoot } from './api.js';
+import * as api from './api.js';
 import { config, saveConfig } from './config.js';
 import { walkItems } from './paths.js';
 import { computeDelta, doSync, fetchSyncItems, type SyncOptions } from './sync.js';
@@ -16,10 +16,10 @@ const cli = program.command('files').helpGroup('Plugins:').description('CLI inte
 cli.command('usage')
 	.description('Show your usage')
 	.action(async () => {
-		const { limits, usage } = await getUserStorageInfo(session().userId);
+		const { limits, itemCount, usedBytes } = await api.getUserStats(session().userId);
 
-		console.log(`Items: ${usage.items} ${limits.user_items ? ' / ' + limits.user_items : ''}`);
-		console.log(`Space: ${formatBytes(usage.bytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000) : ''}`);
+		console.log(`Items: ${itemCount} ${limits.user_items ? ' / ' + limits.user_items : ''}`);
+		console.log(`Space: ${formatBytes(usedBytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000) : ''}`);
 	});
 
 cli.command('ls')
@@ -83,7 +83,7 @@ cli.command('add')
 		/**
 		 * @todo Add an endpoint to fetch directories (maybe with the full paths?)
 		 */
-		const allItems = remoteName.includes('/') ? (await getUserStorage(userId)).items : await getUserStorageRoot(userId);
+		const allItems = remoteName.includes('/') ? (await api.getUserStorage(userId)).items : await api.getUserStorageRoot(userId);
 		const remote = walkItems(remoteName, allItems);
 		if (!remote) io.exit('Could not resolve remote path.');
 		if (remote.type != 'inode/directory') io.exit('Remote path is not a directory.');

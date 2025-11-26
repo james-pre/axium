@@ -13,7 +13,7 @@ import { join } from 'node:path/posix';
 import * as z from 'zod';
 import { StorageBatchUpdate, type StorageItemMetadata } from '../common.js';
 import { getLimits } from './config.js';
-import { currentUsage, getRecursiveIds, parseItem } from './db.js';
+import { getUserStats, getRecursiveIds, parseItem } from './db.js';
 
 addRoute({
 	path: '/api/storage/batch',
@@ -27,7 +27,7 @@ addRoute({
 		const { userId, user } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
 		if (user.isSuspended) error(403, 'User is suspended');
 
-		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(
+		const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
 			withError('Could not fetch usage and/or limits')
 		);
 
@@ -101,7 +101,7 @@ addRoute({
 			error(403, 'Missing permission for item: ' + item.id);
 		}
 
-		if (limits.user_size && (usage.bytes + size - items.reduce((sum, item) => sum + item.size, 0)) / 1_000_000 >= limits.user_size)
+		if (limits.user_size && (usage.usedBytes + size - items.reduce((sum, item) => sum + item.size, 0)) / 1_000_000 >= limits.user_size)
 			error(413, 'Not enough space');
 
 		const tx = await database.startTransaction().execute();

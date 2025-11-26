@@ -11,7 +11,7 @@ import type { StorageItemMetadata } from '../common.js';
 import { batchFormatVersion, StorageItemUpdate, syncProtocolVersion } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { currentUsage, deleteRecursive, getRecursive, parseItem, type SelectedItem } from './db.js';
+import { getUserStats, deleteRecursive, getRecursive, parseItem, type SelectedItem } from './db.js';
 
 addRoute({
 	path: '/api/storage',
@@ -126,9 +126,9 @@ addRoute({
 		const userId = params.id!;
 		await checkAuthForUser(request, userId);
 
-		const [usage, limits] = await Promise.all([currentUsage(userId), getLimits(userId)]).catch(withError('Could not fetch data'));
+		const [stats, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(withError('Could not fetch data'));
 
-		return { usage, limits };
+		return Object.assign(stats, { limits });
 	},
 	async GET(request, params): AsyncResult<'GET', 'users/:id/storage'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
@@ -137,13 +137,13 @@ addRoute({
 
 		await checkAuthForUser(request, userId);
 
-		const [items, usage, limits] = await Promise.all([
+		const [items, stats, limits] = await Promise.all([
 			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', 'is', null).selectAll().execute(),
-			currentUsage(userId),
+			getUserStats(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));
 
-		return { usage, limits, items: items.map(parseItem) };
+		return Object.assign(stats, { limits, items: items.map(parseItem) });
 	},
 });
 
