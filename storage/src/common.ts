@@ -1,3 +1,4 @@
+import { Permission } from '@axium/core/access';
 import * as z from 'zod';
 
 declare module '@axium/core/api' {
@@ -89,27 +90,32 @@ export const StorageItemUpdate = z
 		name: z.string(),
 		owner: z.uuid(),
 		trash: z.boolean(),
-		publicPermission: z.number().min(0).max(5),
+		publicPermission: Permission,
 	})
 	.partial();
 
 export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 
-export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> {
-	createdAt: Date;
-	dataURL: string;
+export const StorageItemMetadata = z.object({
+	createdAt: z.coerce.date(),
+	dataURL: z.string(),
 	/** The hash of the file, or null if it is a directory */
-	hash: string | null;
-	id: string;
-	immutable: boolean;
-	modifiedAt: Date;
-	name: string;
-	userId: string;
-	parentId: string | null;
-	publicPermission: number;
-	size: number;
-	trashedAt: Date | null;
-	type: string;
+	hash: z.string().nullable(),
+	id: z.uuid(),
+	immutable: z.boolean(),
+	modifiedAt: z.coerce.date(),
+	name: z.string(),
+	userId: z.uuid(),
+	parentId: z.uuid().nullable(),
+	publicPermission: Permission,
+	size: z.int().nonnegative(),
+	trashedAt: z.coerce.date().nullable(),
+	type: z.string(),
+	metadata: z.record(z.string(), z.unknown()),
+});
+
+export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>>
+	extends z.infer<typeof StorageItemMetadata> {
 	metadata: T;
 }
 

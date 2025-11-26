@@ -1,3 +1,4 @@
+import { enum as zEnum } from 'zod';
 import type { User } from './user.js';
 
 export interface AccessControl {
@@ -8,13 +9,16 @@ export interface AccessControl {
 	permission: Permission;
 }
 
-export enum Permission {
-	None = 0,
-	Read = 1,
-	Comment = 2,
-	Edit = 3,
-	Manage = 5,
-}
+const _Permission = {
+	None: 0,
+	Read: 1,
+	Comment: 2,
+	Edit: 3,
+	Manage: 5,
+} as const;
+
+export const Permission = Object.assign(_Permission, zEnum(_Permission));
+export type Permission = (typeof _Permission)[keyof typeof _Permission];
 
 export const permissionNames = {
 	[Permission.None]: 'No Permissions',
