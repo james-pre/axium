@@ -1,6 +1,5 @@
 import { configDir } from '@axium/client/cli/config';
-import { debug, writeJSON } from '@axium/core/node/io';
-import { readFileSync } from 'node:fs';
+import { debug, readJSON, writeJSON } from '@axium/core/node/io';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import { Sync } from './sync.js';
@@ -16,9 +15,9 @@ const configPath = join(configDir, 'storage.json');
 export let config: ClientStorageConfig = { sync: [] };
 
 try {
-	config = ClientStorageConfig.parse(JSON.parse(readFileSync(configPath, 'utf-8')));
+	config = readJSON(configPath, ClientStorageConfig);
 } catch (e: any) {
-	debug('Could not load @axium/storage config: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : e.message));
+	debug('Could not load @axium/storage config: ' + e);
 }
 
 export function saveConfig() {

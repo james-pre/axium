@@ -1,12 +1,12 @@
 import * as io from '@axium/core/node/io';
 import { loadPlugin } from '@axium/core/node/plugins';
-import { mkdirSync, readFileSync } from 'node:fs';
+import { mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
+import { ClientConfig, config } from '../config.js';
 import { fetchAPI, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession } from '../user.js';
-import { ClientConfig, config } from '../config.js';
 
 export const configDir = join(homedir(), '.config/axium');
 mkdirSync(configDir, { recursive: true });
@@ -20,7 +20,7 @@ export function session() {
 
 export async function loadConfig(safe: boolean) {
 	try {
-		Object.assign(config, ClientConfig.parse(JSON.parse(readFileSync(axcConfig, 'utf-8'))));
+		Object.assign(config, io.readJSON(axcConfig, ClientConfig));
 		if (config.server) setPrefix(config.server);
 		if (config.token) setToken(config.token);
 		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfig, safe);

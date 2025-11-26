@@ -1,7 +1,8 @@
 import { exec } from 'node:child_process';
-import { writeFileSync } from 'node:fs';
+import { writeFileSync, readFileSync } from 'node:fs';
 import { styleText } from 'node:util';
 import * as io from '../io.js';
+import * as z from 'zod';
 export * from '../io.js';
 
 let _currentOperation: string | null = null,
@@ -118,6 +119,19 @@ export function exit(message: string | Error, code: number = 1): never {
 export function handleError(e: number | string | Error) {
 	if (typeof e == 'number') process.exit(e);
 	else exit(e);
+}
+
+/**
+ *
+ * @param defaultValue Returned when the file can't be loaded. If omitted, loading errors will be thrown.
+ */
+export function readJSON<S extends z.ZodType>(path: string, schema: S): z.infer<S> {
+	try {
+		const data = JSON.parse(readFileSync(path, 'utf-8'));
+		return schema.parse(data);
+	} catch (e) {
+		throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e instanceof Error ? e.message : e;
+	}
 }
 
 export function writeJSON(path: string, data: any) {
