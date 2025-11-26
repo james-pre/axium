@@ -49,7 +49,7 @@ program.hook('preAction', async (_, action: Command) => {
 	const opt = action.optsWithGlobals<{ refreshSession: boolean; cacheOnly: boolean; safe: boolean }>();
 
 	if (!config.token) return;
-	if (!opt.cacheOnly) await updateCache(opt.refreshSession);
+	if (!opt.cacheOnly && action.name() != 'login') await updateCache(opt.refreshSession);
 });
 
 program
