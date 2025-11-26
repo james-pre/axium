@@ -8,12 +8,10 @@
 	const { limits } = data.info;
 
 	let items = $state(data.info.items.filter(i => i.type != 'inode/directory').sort((a, b) => Math.sign(b.size - a.size)));
-	const usage = $state(data.info.usage);
+	const usedBytes = $state(data.info.usedBytes);
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
-	let barText = $derived(
-		`Using ${formatBytes(usage?.bytes)} ${limits.user_size ? 'of ' + formatBytes(limits.user_size * 1_000_000) : ''}`
-	);
+	let barText = $derived(`Using ${formatBytes(usedBytes)} ${limits.user_size ? 'of ' + formatBytes(limits.user_size * 1_000_000) : ''}`);
 </script>
 
 <svelte:head>
@@ -28,6 +26,6 @@
 
 <h2>Storage Usage</h2>
 
-<p><NumberBar max={limits.user_size * 1_000_000} value={usage?.bytes} text={barText} /></p>
+<p><NumberBar max={limits.user_size * 1_000_000} value={usedBytes} text={barText} /></p>
 
 <StorageList bind:items emptyText="You have not uploaded any files yet." />
