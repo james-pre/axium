@@ -6,7 +6,6 @@ import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
-import type { StorageItemMetadata } from '../common.js';
 import { colorItem, formatItems } from '../node.js';
 import * as api from './api.js';
 import { config, saveConfig } from './config.js';
@@ -49,6 +48,21 @@ cli.command('ls')
 
 		console.log('total ' + items.length);
 		for (const text of formatItems({ items, users, humanReadable })) console.log(text);
+	});
+
+cli.command('mkdir')
+	.description('Create a remote folder')
+	.argument('<path>', 'remote folder path to create')
+	.action(async (path: string) => {
+		const pathParts = path.split('/');
+		const name = pathParts.pop();
+		const parentPath = pathParts.join('/');
+		const parent = !parentPath ? null : await resolveItem(parentPath).catch(io.handleError);
+		if (parent) {
+			if (!parent) io.exit('Could not resolve parent folder.');
+			if (parent.type != 'inode/directory') io.exit('Parent path is not a directory.');
+		}
+		await api.uploadItem(new Blob([], { type: 'inode/directory' }), { parentId: parent?.id, name }).catch(io.handleError);
 	});
 
 cli.command('status')
