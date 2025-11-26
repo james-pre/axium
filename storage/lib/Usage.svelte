@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatBytes } from '@axium/core/format';
 	import { NumberBar } from '@axium/client/components';
-	import { getUserStorageInfo } from '@axium/storage/client';
+	import { getUserStats } from '@axium/storage/client';
 	import type { UserStorageInfo } from '@axium/storage/common';
 
 	const { userId, info }: { userId?: string; info?: UserStorageInfo } = $props();
@@ -10,13 +10,13 @@
 {#if !info && !userId}
 	<p>Log in to see storage usage.</p>
 {:else}
-	{#await info || getUserStorageInfo(userId!) then info}
+	{#await info || getUserStats(userId!) then info}
 		<p>
 			<a href="/files/usage">
 				<NumberBar
 					max={info.limits.user_size && info.limits.user_size * 1_000_000}
-					value={info.usage.bytes}
-					text="Using {formatBytes(info.usage.bytes)} {!info.limits.user_size
+					value={info.usedBytes}
+					text="Using {formatBytes(info.usedBytes)} {!info.limits.user_size
 						? ''
 						: 'of ' + formatBytes(info.limits.user_size * 1_000_000)}"
 				/>

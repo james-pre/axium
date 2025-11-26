@@ -28,7 +28,16 @@ export interface UserInternal extends User {
 export const userPublicFields = ['id', 'image', 'name', 'registeredAt', 'roles'] as const satisfies (keyof User)[];
 
 type UserPublicField = (typeof userPublicFields)[number];
-export interface UserPublic extends Pick<User, UserPublicField> {}
+
+export const UserPublic = User.partial(
+	Object.fromEntries(
+		Object.keys(User.shape)
+			.filter((key: any) => !userPublicFields.includes(key))
+			.map(key => [key, true])
+	) as { [K in Exclude<keyof User, UserPublicField>]: true }
+);
+
+export interface UserPublic extends z.infer<typeof UserPublic> {}
 
 export const userProtectedFields = ['email', 'emailVerified', 'preferences', 'isAdmin'] as const satisfies (keyof User)[];
 

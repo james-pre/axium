@@ -1,17 +1,28 @@
 import { configDir, session } from '@axium/client/cli/config';
 import { formatBytes } from '@axium/core/format';
 import * as io from '@axium/core/node/io';
-import { Option, program } from 'commander';
+import { Option, program, type Command } from 'commander';
 import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import * as api from './api.js';
 import { config, saveConfig } from './config.js';
-import { walkItems } from './paths.js';
+import { getDirectory, resolveItem, setQuiet, syncCache } from './local.js';
 import { computeDelta, doSync, fetchSyncItems, type SyncOptions } from './sync.js';
+import { colorItem } from '../node.js';
+import type { StorageItemMetadata } from '../common.js';
+import { Permission } from '@axium/core';
 
-const cli = program.command('files').helpGroup('Plugins:').description('CLI integration for @axium/storage');
+const cli = program
+	.command('files')
+	.helpGroup('Plugins:')
+	.description('CLI integration for @axium/storage')
+	.option('-q, --quiet', 'Suppress output')
+	.hook('preAction', function (this: Command) {
+		const opts = this.optsWithGlobals();
+		if (opts.quiet) setQuiet(true);
+	});
 
 cli.command('usage')
 	.description('Show your usage')
@@ -22,11 +33,53 @@ cli.command('usage')
 		console.log(`Space: ${formatBytes(usedBytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000) : ''}`);
 	});
 
+const publicPermString = ['---', 'r--', 'r-x', 'rwx', 'rwx', 'rwx'] as const satisfies { [key in Permission & number]: string };
+
+const __formatter = new Intl.DateTimeFormat('en-US', {
+	year: 'numeric',
+	month: 'short',
+	day: '2-digit',
+	hour12: false,
+	hour: '2-digit',
+	minute: '2-digit',
+});
+const formatDate = __formatter.format.bind(__formatter);
+
 cli.command('ls')
 	.alias('list')
 	.description('List the contents of a folder')
-	.action(() => {
-		io.error('Not implemented yet.');
+	.argument('<path>', 'remote folder path')
+	.option('-l, --long', 'Show more details')
+	.option('-h, --human-readable', 'Show sizes in human readable format')
+	.action(async function (this: Command, path: string) {
+		const { users } = await syncCache();
+		const { long, humanReadable } = this.optsWithGlobals();
+		const items: (StorageItemMetadata & { __size?: string })[] = await getDirectory(path);
+		if (!long) console.log(items.map(colorItem).join('\t'));
+		else {
+			console.log('total ' + items.length);
+			let sizeWidth = 0,
+				nameWidth = 0;
+
+			for (const item of items) {
+				item.__size = item.type == 'inode/directory' ? '-' : humanReadable ? formatBytes(item.size) : item.size.toString();
+
+				sizeWidth = Math.max(sizeWidth, item.__size.length);
+				nameWidth = Math.max(nameWidth, users[item.userId].name.length);
+			}
+
+			for (const item of items) {
+				const owner = users[item.userId].name;
+
+				const type = item.type == 'inode/directory' ? 'd' : '-';
+				const ownerPerm = `r${item.immutable ? '-' : 'w'}x`;
+				const publicPerm = publicPermString[item.publicPermission];
+
+				console.log(
+					`${type}${ownerPerm}${ownerPerm}${publicPerm}. ${owner.padEnd(nameWidth)} ${item.__size!.padStart(sizeWidth)} ${formatDate(item.modifiedAt)} ${colorItem(item)}`
+				);
+			}
+		}
 	});
 
 cli.command('status')
@@ -75,16 +128,10 @@ cli.command('add')
 				io.exit('This remote path is already being synced.');
 		}
 
-		const { userId } = session();
-
 		const local = await stat(localPath).catch(e => io.exit(e.toString()));
 		if (!local.isDirectory()) io.exit('Local path is not a directory.');
 
-		/**
-		 * @todo Add an endpoint to fetch directories (maybe with the full paths?)
-		 */
-		const allItems = remoteName.includes('/') ? (await api.getUserStorage(userId)).items : await api.getUserStorageRoot(userId);
-		const remote = walkItems(remoteName, allItems);
+		const remote = await resolveItem(remoteName);
 		if (!remote) io.exit('Could not resolve remote path.');
 		if (remote.type != 'inode/directory') io.exit('Remote path is not a directory.');
 
