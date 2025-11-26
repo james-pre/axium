@@ -101,7 +101,7 @@ export const StorageItemMetadata = z.object({
 	createdAt: z.coerce.date(),
 	dataURL: z.string(),
 	/** The hash of the file, or null if it is a directory */
-	hash: z.string().nullable(),
+	hash: z.string().nullish(),
 	id: z.uuid(),
 	immutable: z.boolean(),
 	modifiedAt: z.coerce.date(),

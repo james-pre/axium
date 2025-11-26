@@ -44,11 +44,14 @@ interface StorageCache extends z.infer<typeof StorageCache> {
 	users: Record<string, UserPublic>;
 }
 
-const cachePath = join(cacheDir, 'storage.json');
+export const cachePath = join(cacheDir, 'storage.json');
 
 export let cachedData: StorageCache | null = null;
 
-export async function syncCache(): Promise<StorageCache> {
+/**
+ * @param force true => always refresh, false => never refresh, null (default) => refresh if outdated
+ */
+export async function syncCache(force: boolean | null = null): Promise<StorageCache> {
 	if (cachedData) return cachedData;
 
 	const cacheUpdated = await stat(cachePath)
@@ -60,7 +63,7 @@ export async function syncCache(): Promise<StorageCache> {
 	let { lastModified, lastTrashed } = await getUserStats(userId);
 	lastTrashed ??= new Date(0);
 
-	if (cacheUpdated < lastModified.getTime() || cacheUpdated < lastTrashed.getTime()) {
+	if ((force || cacheUpdated < lastModified.getTime() || cacheUpdated < lastTrashed.getTime()) && force !== false) {
 		if (!quiet) io.start('Updating and loading item metadata');
 		try {
 			const { items } = await getUserStorage(userId);
@@ -90,6 +93,7 @@ export async function resolveItem(path: string): Promise<StorageItemMetadata | n
 
 export async function getDirectory(path: string): Promise<StorageItemMetadata[]> {
 	const { items } = await syncCache();
+	if (path == '/' || path == '') return items.filter(item => item.parentId === null);
 	const dir = walkItems(path, items);
 	if (!dir) throw ENOENT;
 	if (dir.type != 'inode/directory') throw ENOTDIR;

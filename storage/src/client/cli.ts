@@ -6,21 +6,20 @@ import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
+import type { StorageItemMetadata } from '../common.js';
+import { colorItem, formatItems } from '../node.js';
 import * as api from './api.js';
 import { config, saveConfig } from './config.js';
-import { getDirectory, resolveItem, setQuiet, syncCache } from './local.js';
+import { cachePath, getDirectory, resolveItem, setQuiet, syncCache } from './local.js';
 import { computeDelta, doSync, fetchSyncItems, type SyncOptions } from './sync.js';
-import { colorItem } from '../node.js';
-import type { StorageItemMetadata } from '../common.js';
-import { Permission } from '@axium/core';
 
 const cli = program
 	.command('files')
 	.helpGroup('Plugins:')
 	.description('CLI integration for @axium/storage')
 	.option('-q, --quiet', 'Suppress output')
-	.hook('preAction', function (this: Command) {
-		const opts = this.optsWithGlobals();
+	.hook('preAction', (action: Command) => {
+		const opts = action.optsWithGlobals();
 		if (opts.quiet) setQuiet(true);
 	});
 
@@ -33,18 +32,6 @@ cli.command('usage')
 		console.log(`Space: ${formatBytes(usedBytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000) : ''}`);
 	});
 
-const publicPermString = ['---', 'r--', 'r-x', 'rwx', 'rwx', 'rwx'] as const satisfies { [key in Permission & number]: string };
-
-const __formatter = new Intl.DateTimeFormat('en-US', {
-	year: 'numeric',
-	month: 'short',
-	day: '2-digit',
-	hour12: false,
-	hour: '2-digit',
-	minute: '2-digit',
-});
-const formatDate = __formatter.format.bind(__formatter);
-
 cli.command('ls')
 	.alias('list')
 	.description('List the contents of a folder')
@@ -52,34 +39,16 @@ cli.command('ls')
 	.option('-l, --long', 'Show more details')
 	.option('-h, --human-readable', 'Show sizes in human readable format')
 	.action(async function (this: Command, path: string) {
-		const { users } = await syncCache();
+		const { users } = await syncCache().catch(io.handleError);
 		const { long, humanReadable } = this.optsWithGlobals();
-		const items: (StorageItemMetadata & { __size?: string })[] = await getDirectory(path);
-		if (!long) console.log(items.map(colorItem).join('\t'));
-		else {
-			console.log('total ' + items.length);
-			let sizeWidth = 0,
-				nameWidth = 0;
-
-			for (const item of items) {
-				item.__size = item.type == 'inode/directory' ? '-' : humanReadable ? formatBytes(item.size) : item.size.toString();
-
-				sizeWidth = Math.max(sizeWidth, item.__size.length);
-				nameWidth = Math.max(nameWidth, users[item.userId].name.length);
-			}
-
-			for (const item of items) {
-				const owner = users[item.userId].name;
-
-				const type = item.type == 'inode/directory' ? 'd' : '-';
-				const ownerPerm = `r${item.immutable ? '-' : 'w'}x`;
-				const publicPerm = publicPermString[item.publicPermission];
-
-				console.log(
-					`${type}${ownerPerm}${ownerPerm}${publicPerm}. ${owner.padEnd(nameWidth)} ${item.__size!.padStart(sizeWidth)} ${formatDate(item.modifiedAt)} ${colorItem(item)}`
-				);
-			}
+		const items = await getDirectory(path).catch(io.handleError);
+		if (!long) {
+			console.log(items.map(colorItem).join('\t'));
+			return;
 		}
+
+		console.log('total ' + items.length);
+		for (const text of formatItems({ items, users, humanReadable })) console.log(text);
 	});
 
 cli.command('status')
@@ -182,4 +151,45 @@ cli.command('sync')
 			if (!sync) io.exit('Can not find a Sync with that name.');
 			await doSync(sync, opt);
 		} else for (const sync of config.sync) await doSync(sync, opt);
+	});
+
+const cliCache = cli.command('cache').description('Manage the local cache');
+
+cliCache
+	.command('clear')
+	.description('Clear the local cache')
+	.action(() => unlinkSync(cachePath));
+
+cliCache
+	.command('refresh')
+	.description('Force a refresh of the local cache from the server')
+	.action(async () => {
+		await syncCache(true).catch(io.handleError);
+	});
+
+cliCache
+	.command('dump')
+	.description('Dump the local cache')
+	.option('-v, --verbose', 'Show more details')
+	.addOption(new Option('-j, --json', 'Output as JSON').conflicts(['verbose', 'quiet']))
+	.action(async function (this: Command) {
+		const opt = this.optsWithGlobals();
+
+		const data = await syncCache(false).catch(io.handleError);
+
+		if (opt.json) {
+			console.log(JSON.stringify(data));
+			return;
+		}
+
+		console.log(`Cache contains ${data.items.length} items and ${Object.keys(data.users).length} users.`);
+		if (opt.quiet || !opt.verbose) return;
+
+		console.log(styleText('bold', 'Items:'));
+		for (const text of formatItems({ ...data, humanReadable: true })) console.log(text);
+
+		console.log(styleText('bold', 'Users:'));
+		for (const user of Object.values(data.users)) {
+			console.log(user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
+		}
 	});

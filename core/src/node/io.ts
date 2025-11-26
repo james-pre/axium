@@ -116,7 +116,7 @@ export function exit(message: string | Error, code: number = 1): never {
 	process.exit(code);
 }
 
-export function handleError(e: number | string | Error) {
+export function handleError(e: number | string | Error): never {
 	if (typeof e == 'number') process.exit(e);
 	else exit(e);
 }

@@ -17,7 +17,7 @@ const _Permission = {
 	Manage: 5,
 } as const;
 
-export const Permission = Object.assign(_Permission, zEnum(_Permission));
+export const Permission = Object.assign(zEnum(_Permission), _Permission);
 export type Permission = (typeof _Permission)[keyof typeof _Permission];
 
 export const permissionNames = {
