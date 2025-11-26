@@ -586,7 +586,7 @@ program
 			build: opt.build ? resolve(opt.build) : config.web.build,
 		});
 
-		const port = !Number.isNaN(Number.parseInt(opt.port ?? '')) ? Number.parseInt(opt.port!) : config.web.port;
+		const port = !Number.isNaN(Number.parseInt(opt.port ?? 'NaN')) ? Number.parseInt(opt.port!) : config.web.port;
 
 		server.listen(port, () => {
 			console.log('Server is listening on port ' + port);
