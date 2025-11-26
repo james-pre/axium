@@ -57,11 +57,7 @@ export async function fetchSyncItems(id: string, folderName?: string): Promise<L
 }
 
 export function getItems(id: string): LocalItem[] {
-	const items = JSON.parse(fs.readFileSync(join(configDir, 'sync', id + '.json'), 'utf-8'));
-	const { error, data } = LocalItem.array().safeParse(items);
-
-	if (error) throw z.prettifyError(error);
-	return data;
+	return io.readJSON(join(configDir, 'sync', id + '.json'), LocalItem.array());
 }
 
 export function setItems(id: string, items: LocalItem[]): void {

@@ -8,9 +8,12 @@ import { ClientConfig, config } from '../config.js';
 import { fetchAPI, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession } from '../user.js';
 
-export const configDir = join(homedir(), '.config/axium');
+export const configDir = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'axium');
 mkdirSync(configDir, { recursive: true });
 const axcConfig = join(configDir, 'config.json');
+
+export const cacheDir = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'axium');
+mkdirSync(cacheDir, { recursive: true });
 
 export function session() {
 	if (!config.token) io.exit('Not logged in.', 4);
