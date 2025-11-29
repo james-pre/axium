@@ -1,4 +1,4 @@
-import type { AccessControl, Permission, UserInternal } from '@axium/core';
+import type { AccessControl, AccessMap, Permission, UserInternal } from '@axium/core';
 import * as io from '@axium/core/node/io';
 import type { AliasedRawBuilder, Expression, ExpressionBuilder, Selectable } from 'kysely';
 import { sql } from 'kysely';
@@ -108,4 +108,23 @@ export function from(
 
 export async function get(itemType: TargetName, itemId: string): Promise<Required<AccessControlInternal>[]> {
 	return await db.database.selectFrom(`acl.${itemType}`).where('itemId', '=', itemId).selectAll().select(db.userFromId).execute();
+}
+
+export async function set(itemType: TargetName, itemId: string, data: AccessMap): Promise<AccessControlInternal[]> {
+	if ('public' in data) {
+		// @ts-expect-error 2353 - TS misses the column
+		await db.database.updateTable(itemType).set({ publicPermission: data.public }).where('id', '=', itemId).execute();
+		delete data.public;
+	}
+
+	const entries = Object.entries(data).map(([userId, perm]) => ({ userId, perm }));
+	if (!entries.length) return [];
+	return await db.database
+		.updateTable(`acl.${itemType}`)
+		.from(db.values(entries, 'data'))
+		.set('permission', eb => eb.ref('data.perm'))
+		.whereRef(`acl.${itemType}.userId`, '=', 'data.userId')
+		.where('itemId', '=', itemId)
+		.returningAll()
+		.execute();
 }

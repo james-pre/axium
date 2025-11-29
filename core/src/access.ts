@@ -1,4 +1,4 @@
-import { enum as zEnum } from 'zod';
+import * as z from 'zod';
 import type { User } from './user.js';
 
 export interface AccessControl {
@@ -17,7 +17,7 @@ const _Permission = {
 	Manage: 5,
 } as const;
 
-export const Permission = Object.assign(zEnum(_Permission), _Permission);
+export const Permission = Object.assign(z.enum(_Permission), _Permission);
 export type Permission = (typeof _Permission)[keyof typeof _Permission];
 
 export const permissionNames = {
@@ -33,6 +33,10 @@ export interface AccessControllable {
 	publicPermission: Permission;
 	acl?: AccessControl[];
 }
+
+export const AccessMap = z.record(z.union([z.uuid(), z.literal('public')]), Permission);
+
+export interface AccessMap extends z.infer<typeof AccessMap> {}
 
 export function hasPermission(item: AccessControllable, userId: string | undefined, permission: Permission): boolean {
 	if (item.publicPermission >= permission) return true;

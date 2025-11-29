@@ -6,6 +6,7 @@ import * as z from 'zod';
 import { createSession } from './auth.js';
 import { config } from './config.js';
 import type { ServerRoute } from './routes.js';
+import * as io from '@axium/core/io';
 
 /**
  * @todo Add parsing for Node.js `IncomingMessage` -> standard `Request` and standard `Response` -> Node.js `ServerResponse`
@@ -121,6 +122,7 @@ export function stripUser(user: UserInternal, includeProtected: boolean = false)
 export function withError(text: string, code: number = 500) {
 	return function (e: Error | ResponseError) {
 		if (e.name == 'ResponseError') throw e;
+		if (code == 500) io.error('(in response) ' + e.stack);
 		error(code, text + (config.debug && e.message ? `: ${e.message}` : ''));
 	};
 }

@@ -1,4 +1,4 @@
-import { Permission } from '@axium/core/access';
+import { AccessMap } from '@axium/core/access';
 import type { AsyncResult } from '@axium/core/api';
 import * as z from 'zod';
 import * as acl from '../acl.js';
@@ -12,14 +12,18 @@ addRoute({
 		itemType: z.string(),
 		itemId: z.uuid(),
 	},
-	async PUT(request, params): AsyncResult<'PUT', 'acl/:itemType/:itemId'> {
+	async GET(request, params): AsyncResult<'GET', 'acl/:itemType/:itemId'> {
 		const type = params.itemType as keyof Schema;
 		const itemId = params.itemId!;
 
-		const data = await parseBody(request, z.object({ userId: z.uuid(), permission: Permission }));
+		return await acl.get(type, itemId).catch(withError('Failed to get access controls'));
+	},
+	async POST(request, params): AsyncResult<'POST', 'acl/:itemType/:itemId'> {
+		const type = params.itemType as keyof Schema;
+		const itemId = params.itemId!;
 
-		const share = await acl.createEntry(type, { ...data, itemId }).catch(withError('Failed to create access control'));
+		const data = await parseBody(request, AccessMap);
 
-		return share;
+		return await acl.set(type, itemId, data).catch(withError('Failed to set access controls'));
 	},
 });

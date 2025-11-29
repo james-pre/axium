@@ -10,6 +10,9 @@ export default {
 		warningFilter(w) {
 			if (w.code.startsWith('a11y')) return false;
 		},
+		experimental: {
+			async: true,
+		},
 	},
 	kit: {
 		adapter: node(),

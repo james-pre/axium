@@ -1,6 +1,6 @@
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
 import type z from 'zod';
-import type { AccessControl } from './access.js';
+import type { AccessControl, AccessMap } from './access.js';
 import type { App } from './apps.js';
 import type { AuditEvent, AuditFilter, Severity } from './audit.js';
 import type { NewSessionResponse, Session, Verification } from './auth.js';
@@ -80,7 +80,8 @@ export interface $API {
 		POST: [{ using: 'email' | 'handle'; value: string }, { id: string }];
 	};
 	'acl/:itemType/:itemId': {
-		PUT: [{ userId: string; permission: number }, AccessControl];
+		GET: AccessControl[];
+		POST: [AccessMap, AccessControl[]];
 	};
 	'admin/summary': {
 		GET: AdminSummary;
