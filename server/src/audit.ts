@@ -48,6 +48,7 @@ export interface $EventTypes {
 	acl_id_mismatch: { item: string };
 	admin_change: { user: string };
 	admin_api: { route: string; session: string };
+	response_error: { stack?: string };
 }
 
 export type EventName = keyof $EventTypes;
@@ -160,4 +161,11 @@ addEvent({
 	severity: Severity.Debug,
 	tags: ['auth'],
 	extra: { route: z.string(), session: z.string() },
+});
+addEvent({
+	source: '@axium/server',
+	name: 'response_error',
+	severity: Severity.Error,
+	tags: [],
+	extra: { stack: z.string().optional() },
 });

@@ -1,12 +1,13 @@
-import type { RequestMethod, User, UserInternal } from '@axium/core';
+import { type RequestMethod, type User, type UserInternal } from '@axium/core';
+import * as io from '@axium/core/io';
 import { userProtectedFields, userPublicFields } from '@axium/core/user';
 import * as cookie from 'cookie_v1';
 import { pick } from 'utilium';
 import * as z from 'zod';
+import { audit } from './audit.js';
 import { createSession } from './auth.js';
 import { config } from './config.js';
 import type { ServerRoute } from './routes.js';
-import * as io from '@axium/core/io';
 
 /**
  * @todo Add parsing for Node.js `IncomingMessage` -> standard `Request` and standard `Response` -> Node.js `ServerResponse`
@@ -122,7 +123,10 @@ export function stripUser(user: UserInternal, includeProtected: boolean = false)
 export function withError(text: string, code: number = 500) {
 	return function (e: Error | ResponseError) {
 		if (e.name == 'ResponseError') throw e;
-		if (code == 500) io.error('(in response) ' + e.stack);
+		if (code == 500) {
+			void audit('response_error', undefined, { stack: e.stack });
+			io.error('(in response) ' + e.stack);
+		}
 		error(code, text + (config.debug && e.message ? `: ${e.message}` : ''));
 	};
 }

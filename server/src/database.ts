@@ -130,6 +130,7 @@ export function userFromId<TB extends TablesMatching<{ userId: string }>>(
  * Used for `update ... set ... from`
  */
 export function values<R extends Record<string, unknown>, A extends string>(records: R[], alias: A) {
+	if (!records?.length) throw new Error('Can not create values() with empty records array');
 	// Assume there's at least one record and all records
 	// have the same keys.
 	const keys = Object.keys(records[0]);
