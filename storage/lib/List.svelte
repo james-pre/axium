@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { goto } from '$app/navigation';
-	import { FormDialog, Icon } from '@axium/client/components';
+	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
@@ -62,6 +61,7 @@
 			<span>{item.modifiedAt.toLocaleString()}</span>
 			<span>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span>
 			{@render action('rename', 'pencil', i)}
+			{@render action('share', 'user-group', i)}
 			{@render action('download', 'download', i)}
 			{@render action('trash', 'trash', i)}
 		</div>
@@ -84,6 +84,7 @@
 		<input name="name" type="text" required value={activeItem?.name} />
 	</div>
 </FormDialog>
+<AccessControlDialog bind:dialog={dialogs.share} bind:item={activeItem} itemType="storage" editable={true} />
 <FormDialog
 	bind:dialog={dialogs.trash}
 	submitText="Trash"
@@ -114,6 +115,6 @@
 
 <style>
 	.list-item {
-		grid-template-columns: 1em 4fr 15em 5em repeat(3, 1em);
+		grid-template-columns: 1em 4fr 15em 5em repeat(4, 1em);
 	}
 </style>

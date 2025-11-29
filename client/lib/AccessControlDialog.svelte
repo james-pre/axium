@@ -11,7 +11,7 @@
 		editable: boolean;
 		dialog?: HTMLDialogElement;
 		itemType: string;
-		item?: { name?: string; user?: User; id: string } & AccessControllable;
+		item?: ({ name?: string; user?: User; id: string } & AccessControllable) | null;
 		acl?: AccessControl[];
 	}
 	let { item = $bindable(), itemType, editable, dialog = $bindable(), acl = $bindable(item?.acl) }: Props = $props();
