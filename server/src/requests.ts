@@ -59,7 +59,7 @@ export function json(data: object, init?: ResponseInit): Response {
 	const response = Response.json(data, init);
 
 	if (!response.headers.has('content-length')) {
-		response.headers.set('content-length', JSON.stringify(data).length.toString());
+		response.headers.set('content-length', new TextEncoder().encode(JSON.stringify(data)).length.toString());
 	}
 
 	return response;
