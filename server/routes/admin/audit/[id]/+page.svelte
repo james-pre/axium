@@ -40,4 +40,9 @@
 
 <h4>Extra Data</h4>
 
-<pre>{JSON.stringify(event.extra, null, 4)}</pre>
+{#if event.name == 'response_error'}
+	<h5>Error Stack</h5>
+	<pre>{event.extra.stack}</pre>
+{:else}
+	<pre>{JSON.stringify(event.extra, null, 4)}</pre>
+{/if}
