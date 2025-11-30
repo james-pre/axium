@@ -120,7 +120,7 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 }
 
 export function getEvents(filter: AuditFilter): SelectQueryBuilder<Schema, 'audit_log', AuditEvent> {
-	let query = database.selectFrom('audit_log').selectAll();
+	let query = database.selectFrom('audit_log').selectAll().orderBy('timestamp', 'desc');
 
 	if ('user' in filter && !filter.user) query = query.where('userId', 'is', null);
 	else if (filter.user) query = query.where('userId', '=', filter.user);
