@@ -160,7 +160,7 @@ addRoute({
 				response,
 				credential: passkey,
 				expectedChallenge,
-				expectedOrigin: config.auth.origin,
+				expectedOrigin: config.origin,
 				expectedRPID: config.auth.rp_id,
 			})
 			.catch(withError('Verification failed', 400));
@@ -247,7 +247,7 @@ addRoute({
 			.verifyRegistrationResponse({
 				response,
 				expectedChallenge,
-				expectedOrigin: config.auth.origin,
+				expectedOrigin: config.origin,
 			})
 			.catch(withError('Verification failed', 400));
 

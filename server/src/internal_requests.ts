@@ -73,7 +73,7 @@ function get_raw_body(req: IncomingMessage): ReadableStream | null {
 
 export function convertToRequest(req: IncomingMessage): Request {
 	const headers = req.headers as Record<string, string>;
-	const request = new Request(config.auth.origin + req.url, {
+	const request = new Request(config.origin + req.url, {
 		// @ts-expect-error 2353
 		duplex: 'half',
 		method: req.method,

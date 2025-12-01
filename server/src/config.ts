@@ -36,7 +36,6 @@ export const ConfigSchema = z
 			.partial(),
 		auth: z
 			.looseObject({
-				origin: z.string(),
 				/** In minutes */
 				passkey_probation: z.number(),
 				rp_id: z.string(),
@@ -68,6 +67,7 @@ export const ConfigSchema = z
 				console: z.boolean(),
 			})
 			.partial(),
+		origin: z.string(),
 		request_size_limit: z.number().min(0).optional(),
 		show_duplicate_state: z.boolean(),
 		web: z
@@ -106,7 +106,6 @@ export const defaultConfig: DeepRequired<Config> = {
 		auto_suspend: 'critical',
 	},
 	auth: {
-		origin: 'https://test.localhost',
 		passkey_probation: 60,
 		rp_id: 'test.localhost',
 		rp_name: 'Axium',
@@ -133,6 +132,7 @@ export const defaultConfig: DeepRequired<Config> = {
 		console: true,
 		level: 'info',
 	},
+	origin: 'https://test.localhost',
 	show_duplicate_state: false,
 	request_size_limit: 0,
 	web: {

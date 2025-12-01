@@ -171,7 +171,7 @@ async function _getLinkedBuildHandler(
 	const { handler: handleFrontendRequest } = await import(buildPath);
 
 	return function handle(req: IncomingMessage, res: ServerResponse) {
-		const url = new URL(req.url!, config.auth.origin);
+		const url = new URL(req.url!, config.origin);
 		const [route, params = {}] = resolveRoute(url) ?? [];
 
 		if (!route && url.pathname === '/' && config.debug_home) {

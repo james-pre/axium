@@ -57,7 +57,7 @@ async function POST(request: Request) {
 	const { verified, registrationInfo } = await verifyRegistrationResponse({
 		response,
 		expectedChallenge,
-		expectedOrigin: config.auth.origin,
+		expectedOrigin: config.origin,
 	}).catch(() => error(400, 'Verification failed'));
 
 	if (!verified || !registrationInfo) error(401, 'Verification failed');
