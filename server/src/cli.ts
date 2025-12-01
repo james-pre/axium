@@ -567,8 +567,9 @@ program
 	.addOption(opts.host)
 	.addOption(opts.check)
 	.addOption(opts.packagesDir)
-	.action(async (opt: OptDB & { dbSkip: boolean; check: boolean; packagesDir?: string }) => {
-		await db.init({ ...opt, skip: opt.dbSkip }).catch(io.handleError);
+	.option('-s, --skip', 'Skip already initialized steps')
+	.action(async (opt: OptDB & { check: boolean; packagesDir?: string; skip: boolean }) => {
+		await db.init(opt).catch(io.handleError);
 		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
 	});
 
