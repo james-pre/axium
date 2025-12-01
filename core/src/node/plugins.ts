@@ -22,8 +22,12 @@ export function* pluginText(plugin: PluginInternal): Generator<string> {
 }
 
 function _locatePlugin(specifier: string, _loadedBy: string): string {
-	if (specifier[0] == '/' || specifier.startsWith('./') || specifier.startsWith('../')) {
-		return resolve(dirname(_loadedBy), specifier);
+	if (specifier[0] == '/' || ['.', '..'].includes(specifier.split('/')[0])) {
+		const path = resolve(dirname(_loadedBy), specifier);
+		const stats = fs.statSync(path);
+		if (stats.isFile()) return path;
+		if (!stats.isDirectory()) throw new Error('Can not resolve plugin path: ' + path);
+		return join(path, 'package.json');
 	}
 
 	let packageDir = dirname(fileURLToPath(import.meta.resolve(specifier)));
@@ -39,6 +43,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 ) {
 	try {
 		const path = _locatePlugin(specifier, _loadedBy);
+		io.debug(`Loading plugin at ${path} (from ${_loadedBy})`);
 
 		let imported: any;
 		try {
