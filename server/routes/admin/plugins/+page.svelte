@@ -15,7 +15,11 @@
 	<p><strong>Author:</strong> {plugin.author}</p>
 	<p>
 		<strong>Provided apps:</strong>
-		{#if plugin.apps?.length}{plugin.apps?.map(a => a.name).join(', ')}{:else}<i>None</i>{/if}
+		{#if plugin.apps?.length}
+			{#each plugin.apps as app, i}
+				<a href="/{app.id}">{app.name}</a>{i != plugin.apps.length - 1 ? ', ' : ''}
+			{/each}
+		{:else}<i>None</i>{/if}
 	</p>
 	<p>{plugin.description}</p>
 {:else}
