@@ -9,6 +9,8 @@ import { mkdirSync } from 'node:fs';
 import '../common.js';
 import './index.js';
 
+mkdirSync(config.storage.data, { recursive: true });
+
 export async function statusText(): Promise<string> {
 	const { storage: items } = await count('storage');
 	const { size } = await database
@@ -17,10 +19,6 @@ export async function statusText(): Promise<string> {
 		.executeTakeFirstOrThrow();
 
 	return `${items} items totaling ${formatBytes(Number(size))}`;
-}
-
-export function init() {
-	mkdirSync(config.storage.data, { recursive: true });
 }
 
 export async function db_init(opt: InitOptions) {
