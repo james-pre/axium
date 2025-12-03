@@ -152,9 +152,9 @@ async function _getMultiBuildHandler(): Promise<(req: IncomingMessage, res: Serv
 }
 
 async function _runRoute(
-	run: (request: Request, params: Partial<Record<string, string>>) => MaybePromise<object | Response>,
+	run: (request: Request, params: Partial<Record<string, unknown>>) => MaybePromise<object | Response>,
 	request: Request,
-	params: Partial<Record<string, string>>
+	params: Partial<Record<string, unknown>>
 ): Promise<Response> {
 	try {
 		const result = await run(request, params);

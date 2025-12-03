@@ -2,6 +2,7 @@ import type { App, AsyncResult, Result } from '@axium/core';
 import { apps } from '@axium/core';
 import { plugins } from '@axium/core/plugins';
 import { requestMethods } from '@axium/core/requests';
+import type { ZodType } from 'zod';
 import pkg from '../../package.json' with { type: 'json' };
 import { getSessionAndUser } from '../auth.js';
 import { config } from '../config.js';
@@ -30,7 +31,7 @@ addRoute({
 						path,
 						{
 							params: Object.fromEntries(
-								Object.entries(route.params || {}).map(([key, type]) => [key, type ? type.def.type : null])
+								Object.entries<ZodType>(route.params || {}).map(([key, type]) => [key, type ? type.def.type : null])
 							),
 							methods: requestMethods.filter(m => m in route),
 						},

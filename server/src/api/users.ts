@@ -52,17 +52,14 @@ addRoute({
 addRoute({
 	path: '/api/users/:id',
 	params,
-	async GET(request, params): AsyncResult<'GET', 'users/:id'> {
-		const userId = params.id!;
-
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id'> {
 		const auth = await checkAuthForUser(request, userId).catch(() => null);
 
 		const user = auth?.user || (await getUser(userId).catch(withError('User does not exist', 404)));
 
 		return stripUser(user, !!auth);
 	},
-	async PATCH(request, params): AsyncResult<'PATCH', 'users/:id'> {
-		const userId = params.id!;
+	async PATCH(request, { id: userId }): AsyncResult<'PATCH', 'users/:id'> {
 		const body: UserChangeable & Pick<User, 'emailVerified'> = await parseBody(request, UserChangeable);
 
 		await checkAuthForUser(request, userId);
@@ -84,9 +81,7 @@ addRoute({
 
 		return stripUser(result, true);
 	},
-	async DELETE(request, params): AsyncResult<'DELETE', 'users/:id'> {
-		const userId = params.id!;
-
+	async DELETE(request, { id: userId }): AsyncResult<'DELETE', 'users/:id'> {
 		await checkAuthForUser(request, userId, true);
 
 		const result = await db
@@ -105,9 +100,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/full',
 	params,
-	async GET(request, params): AsyncResult<'GET', 'users/:id/full'> {
-		const userId = params.id!;
-
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/full'> {
 		const { user } = await checkAuthForUser(request, userId);
 		const sessions = await getSessions(userId);
 
@@ -121,8 +114,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/auth',
 	params,
-	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/auth'> {
-		const userId = params.id!;
+	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/auth'> {
 		const { type } = await parseBody(request, UserAuthOptions);
 
 		const user = await getUser(userId).catch(withError('User does not exist', 404));
@@ -142,8 +134,7 @@ addRoute({
 
 		return options;
 	},
-	async POST(request, params) {
-		const userId = params.id!;
+	async POST(request, { id: userId }) {
 		const response = await parseBody(request, PasskeyAuthenticationResponse);
 
 		const auth = challenges.get(userId);
@@ -191,9 +182,7 @@ addRoute({
 	/**
 	 * Get passkey registration options for a user.
 	 */
-	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/passkeys'> {
-		const userId = params.id!;
-
+	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/passkeys'> {
 		const existing = await getPasskeysByUserId(userId);
 
 		const { user } = await checkAuthForUser(request, userId);
@@ -220,9 +209,7 @@ addRoute({
 	/**
 	 * Get passkeys for a user.
 	 */
-	async GET(request, params): AsyncResult<'GET', 'users/:id/passkeys'> {
-		const userId = params.id!;
-
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/passkeys'> {
 		await checkAuthForUser(request, userId);
 
 		const passkeys = await getPasskeysByUserId(userId);
@@ -233,8 +220,7 @@ addRoute({
 	/**
 	 * Register a new passkey for an existing user.
 	 */
-	async PUT(request, params): AsyncResult<'PUT', 'users/:id/passkeys'> {
-		const userId = params.id!;
+	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/passkeys'> {
 		const response = await parseBody(request, PasskeyRegistration);
 
 		await checkAuthForUser(request, userId);
@@ -268,17 +254,14 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/sessions',
 	params,
-	async GET(request, params): AsyncResult<'GET', 'users/:id/sessions'> {
-		const userId = params.id!;
-
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/sessions'> {
 		await checkAuthForUser(request, userId);
 
 		return (await getSessions(userId).catch(e => error(503, 'Failed to get sessions' + (config.debug ? ': ' + e : '')))).map(s =>
 			omit(s, 'token')
 		);
 	},
-	async DELETE(request, params): AsyncResult<'DELETE', 'users/:id/sessions'> {
-		const userId = params.id!;
+	async DELETE(request, { id: userId }): AsyncResult<'DELETE', 'users/:id/sessions'> {
 		const body = await parseBody(request, LogoutSessions);
 
 		await checkAuthForUser(request, userId, body.confirm_all);
@@ -301,9 +284,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/verify_email',
 	params,
-	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/verify_email'> {
-		const userId = params.id!;
-
+	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/verify_email'> {
 		if (!config.auth.email_verification) return { enabled: false };
 
 		await checkAuthForUser(request, userId);
@@ -312,9 +293,7 @@ addRoute({
 
 		return { enabled: true };
 	},
-	async GET(request, params): AsyncResult<'GET', 'users/:id/verify_email'> {
-		const userId = params.id!;
-
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/verify_email'> {
 		const { user } = await checkAuthForUser(request, userId);
 
 		if (user.emailVerified) error(409, 'Email already verified');
@@ -323,8 +302,7 @@ addRoute({
 
 		return omit(verification, 'token', 'role');
 	},
-	async POST(request, params): AsyncResult<'POST', 'users/:id/verify_email'> {
-		const userId = params.id!;
+	async POST(request, { id: userId }): AsyncResult<'POST', 'users/:id/verify_email'> {
 		const { token } = await parseBody(request, z.object({ token: z.string() }));
 
 		const { user } = await checkAuthForUser(request, userId);

@@ -70,10 +70,10 @@ addRoute({
 addRoute({
 	path: '/api/admin/users/:userId',
 	params: { userId: z.uuid() },
-	async GET(req, params): AsyncResult<'GET', 'admin/users/:userId'> {
+	async GET(req, { userId }): AsyncResult<'GET', 'admin/users/:userId'> {
 		await assertAdmin(this, req);
 
-		if (!params.userId) error(400, 'Missing user ID');
+		if (!userId) error(400, 'Missing user ID');
 
 		const user = await db
 			.selectFrom('users')
@@ -83,7 +83,7 @@ addRoute({
 					.$castTo<SessionInternal[]>()
 					.as('sessions')
 			)
-			.where('id', '=', params.userId)
+			.where('id', '=', userId)
 			.executeTakeFirstOrThrow()
 			.catch(withError('User not found', 404));
 
@@ -166,10 +166,10 @@ addRoute({
 addRoute({
 	path: '/api/admin/audit/:eventId',
 	params: { eventId: z.uuid() },
-	async GET(req, params): AsyncResult<'GET', 'admin/audit/:eventId'> {
+	async GET(req, { eventId }): AsyncResult<'GET', 'admin/audit/:eventId'> {
 		await assertAdmin(this, req);
 
-		if (!params.eventId) error(400, 'Missing event ID');
+		if (!eventId) error(400, 'Missing event ID');
 
 		const event = await db
 			.selectFrom('audit_log')
@@ -179,7 +179,7 @@ addRoute({
 					.$castTo<UserInternal | null | undefined>()
 					.as('user')
 			)
-			.where('id', '=', params.eventId)
+			.where('id', '=', eventId)
 			.executeTakeFirstOrThrow()
 			.catch(withError('Audit event not found', 404));
 

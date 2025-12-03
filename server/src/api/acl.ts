@@ -12,18 +12,12 @@ addRoute({
 		itemType: z.string(),
 		itemId: z.uuid(),
 	},
-	async GET(request, params): AsyncResult<'GET', 'acl/:itemType/:itemId'> {
-		const type = params.itemType as keyof Schema;
-		const itemId = params.itemId!;
-
-		return await acl.get(type, itemId).catch(withError('Failed to get access controls'));
+	async GET(request, { itemType, itemId }): AsyncResult<'GET', 'acl/:itemType/:itemId'> {
+		return await acl.get(itemType as keyof Schema, itemId).catch(withError('Failed to get access controls'));
 	},
-	async POST(request, params): AsyncResult<'POST', 'acl/:itemType/:itemId'> {
-		const type = params.itemType as keyof Schema;
-		const itemId = params.itemId!;
-
+	async POST(request, { itemType, itemId }): AsyncResult<'POST', 'acl/:itemType/:itemId'> {
 		const data = await parseBody(request, AccessMap);
 
-		return await acl.set(type, itemId, data).catch(withError('Failed to set access controls'));
+		return await acl.set(itemType as keyof Schema, itemId, data).catch(withError('Failed to set access controls'));
 	},
 });
