@@ -40,8 +40,7 @@ expectedTypes.notes = {
 addRoute({
 	path: '/api/users/:id/notes',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'users/:id/notes'> {
-		const userId = params.id!;
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/notes'> {
 		await checkAuthForUser(request, userId);
 
 		return await database
@@ -51,10 +50,9 @@ addRoute({
 			.execute()
 			.catch(withError('Could not get notes'));
 	},
-	async PUT(request, params): AsyncResult<'PUT', 'users/:id/notes'> {
+	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/notes'> {
 		const init = await parseBody(request, NoteInit);
 
-		const userId = params.id!;
 		await checkAuthForUser(request, userId);
 
 		return await database
@@ -69,17 +67,13 @@ addRoute({
 addRoute({
 	path: '/api/notes/:id',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'notes/:id'> {
-		const id = params.id!;
-
+	async GET(request, { id }): AsyncResult<'GET', 'notes/:id'> {
 		const { item } = await checkAuthForItem<Note>(request, 'notes', id, Permission.Read);
 
 		return item;
 	},
-	async PATCH(request, params): AsyncResult<'PATCH', 'notes/:id'> {
+	async PATCH(request, { id }): AsyncResult<'PATCH', 'notes/:id'> {
 		const init = await parseBody(request, NoteInit);
-
-		const id = params.id!;
 
 		await checkAuthForItem(request, 'notes', id, Permission.Edit);
 
@@ -92,9 +86,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update note'));
 	},
-	async DELETE(request, params): AsyncResult<'DELETE', 'notes/:id'> {
-		const id = params.id!;
-
+	async DELETE(request, { id }): AsyncResult<'DELETE', 'notes/:id'> {
 		await checkAuthForItem(request, 'notes', id, Permission.Manage);
 
 		return await database

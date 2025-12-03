@@ -27,19 +27,15 @@ addRoute({
 addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'storage/item/:id'> {
+	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const itemId = params.id!;
 
 		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
 
 		return parseItem(item);
 	},
-	async PATCH(request, params): AsyncResult<'PATCH', 'storage/item/:id'> {
+	async PATCH(request, { id: itemId }): AsyncResult<'PATCH', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const itemId = params.id!;
 
 		const body = await parseBody(request, StorageItemUpdate);
 
@@ -63,10 +59,8 @@ addRoute({
 				.catch(withError('Could not update item'))
 		);
 	},
-	async DELETE(request, params): AsyncResult<'DELETE', 'storage/item/:id'> {
+	async DELETE(request, { id: itemId }): AsyncResult<'DELETE', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const itemId = params.id!;
 
 		const auth = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Manage);
 		const item = parseItem(auth.item);
@@ -80,10 +74,8 @@ addRoute({
 addRoute({
 	path: '/api/storage/directory/:id',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'storage/directory/:id'> {
+	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const itemId = params.id!;
 
 		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
 
@@ -103,10 +95,8 @@ addRoute({
 addRoute({
 	path: '/api/storage/directory/:id/recursive',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'storage/directory/:id/recursive'> {
+	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id/recursive'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const itemId = params.id!;
 
 		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
 
@@ -120,20 +110,17 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage',
 	params: { id: z.uuid() },
-	async OPTIONS(request, params): AsyncResult<'OPTIONS', 'users/:id/storage'> {
+	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/storage'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const userId = params.id!;
 		await checkAuthForUser(request, userId);
 
 		const [stats, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(withError('Could not fetch data'));
 
 		return Object.assign(stats, { limits });
 	},
-	async GET(request, params): AsyncResult<'GET', 'users/:id/storage'> {
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const userId = params.id!;
 
 		await checkAuthForUser(request, userId);
 
@@ -150,10 +137,8 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage/root',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'users/:id/storage/root'> {
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/root'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const userId = params.id!;
 
 		await checkAuthForUser(request, userId);
 
@@ -184,10 +169,8 @@ function existsInACL(column: 'id' | 'parentId', userId: string) {
 addRoute({
 	path: '/api/users/:id/storage/shared',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'users/:id/storage/shared'> {
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/shared'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const userId = params.id!;
 
 		await checkAuthForUser(request, userId);
 
@@ -207,10 +190,8 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/storage/trash',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'users/:id/storage/trash'> {
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/trash'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
-
-		const userId = params.id!;
 
 		await checkAuthForUser(request, userId);
 

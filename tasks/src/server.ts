@@ -60,8 +60,7 @@ expectedTypes.task_lists = {
 addRoute({
 	path: '/api/users/:id/task_lists',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'users/:id/task_lists'> {
-		const userId = params.id!;
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/task_lists'> {
 		await checkAuthForUser(request, userId);
 
 		const lists = await database
@@ -79,10 +78,9 @@ addRoute({
 			tasks: list.tasks.map(t => ({ ...t, created: new Date(t.created), due: t.due ? new Date(t.due) : null })),
 		}));
 	},
-	async PUT(request, params): AsyncResult<'PUT', 'users/:id/task_lists'> {
+	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/task_lists'> {
 		const init = await parseBody(request, TaskListInit);
 
-		const userId = params.id!;
 		await checkAuthForUser(request, userId);
 
 		return await database
@@ -97,9 +95,7 @@ addRoute({
 addRoute({
 	path: '/api/task_lists/:id',
 	params: { id: z.uuid() },
-	async GET(request, params): AsyncResult<'GET', 'task_lists/:id'> {
-		const id = params.id!;
-
+	async GET(request, { id }): AsyncResult<'GET', 'task_lists/:id'> {
 		const { item } = await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Read);
 
 		const tasks = await database
@@ -111,8 +107,7 @@ addRoute({
 
 		return Object.assign(item, { tasks });
 	},
-	async PUT(request, params): AsyncResult<'PUT', 'task_lists/:id'> {
-		const listId = params.id!;
+	async PUT(request, { id: listId }): AsyncResult<'PUT', 'task_lists/:id'> {
 		const init = await parseBody(request, TaskInit.omit({ listId: true }));
 
 		await checkAuthForItem<TaskList>(request, 'task_lists', listId, Permission.Edit);
@@ -124,8 +119,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update task list'));
 	},
-	async PATCH(request, params): AsyncResult<'PATCH', 'task_lists/:id'> {
-		const id = params.id!;
+	async PATCH(request, { id }): AsyncResult<'PATCH', 'task_lists/:id'> {
 		await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Edit);
 
 		const init = await parseBody(request, TaskListInit);
@@ -138,10 +132,9 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update task list'));
 	},
-	async POST(request, params): AsyncResult<'POST', 'task_lists/:id'> {
+	async POST(request, { id }): AsyncResult<'POST', 'task_lists/:id'> {
 		const body = await parseBody(request, TaskListUpdate);
 
-		const id = params.id!;
 		await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Edit);
 
 		if (typeof body.all_completed == 'boolean') {
@@ -157,8 +150,7 @@ addRoute({
 
 		return {};
 	},
-	async DELETE(request, params): AsyncResult<'DELETE', 'task_lists/:id'> {
-		const id = params.id!;
+	async DELETE(request, { id }): AsyncResult<'DELETE', 'task_lists/:id'> {
 		await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Manage);
 
 		return await database
@@ -173,10 +165,8 @@ addRoute({
 addRoute({
 	path: '/api/tasks/:id',
 	params: { id: z.uuid() },
-	async PATCH(request, params): AsyncResult<'PATCH', 'tasks/:id'> {
+	async PATCH(request, { id }): AsyncResult<'PATCH', 'tasks/:id'> {
 		const init = await parseBody(request, TaskInit.omit({ listId: true }));
-
-		const id = params.id!;
 
 		const task = await database
 			.selectFrom('tasks')
@@ -195,8 +185,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update task'));
 	},
-	async DELETE(request, params): AsyncResult<'DELETE', 'tasks/:id'> {
-		const id = params.id!;
+	async DELETE(request, { id }): AsyncResult<'DELETE', 'tasks/:id'> {
 		const task = await database
 			.selectFrom('tasks')
 			.select('listId')
