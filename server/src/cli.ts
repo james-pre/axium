@@ -3,7 +3,7 @@ import type { AuditEvent, UserInternal } from '@axium/core';
 import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
-import { outputDaemonStatus, io, pluginText } from '@axium/core/node';
+import { io, outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { Argument, Option, program, type Command } from 'commander';
 import { access } from 'node:fs/promises';
@@ -16,7 +16,7 @@ import $pkg from '../package.json' with { type: 'json' };
 import { audit, getEvents, styleSeverity } from './audit.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
-import { _portActions, _portMethods, restrictedPorts, systemDir, type PortOptions } from './io.js';
+import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { serve } from './serve.js';
 
@@ -32,7 +32,7 @@ function userText(user: UserInternal, bold: boolean = false): string {
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 
-await config.load(join(systemDir, 'config.json'), { safe });
+await config.loadDefaults(safe);
 
 program
 	.version($pkg.version)
@@ -45,13 +45,12 @@ program
 	.option('-c, --config <path>', 'path to the config file');
 
 program.on('option:debug', () => config.set({ debug: true }));
-program.on('option:config', () => void config.load(program.opts<OptCommon>().config, { safe }));
 
 const noAutoDB = ['init', 'serve', 'check'];
 
 program.hook('preAction', async function (_, action: Command) {
-	await config.loadDefaults(safe);
 	const opt = action.optsWithGlobals<OptCommon>();
+	if (opt.config) await config.load(opt.config, { safe });
 	opt.force && io.warn('--force: Protections disabled.');
 	if (typeof opt.debug == 'boolean') {
 		config.set({ debug: opt.debug });

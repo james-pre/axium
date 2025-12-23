@@ -324,8 +324,6 @@ export function saveConfigTo(path: string, changed: Config) {
  */
 export function findConfigPaths(): string[] {
 	const paths = dirs.map(dir => join(dir, 'config.json'));
-	if (process.env.AXIUM_CONFIG) paths.push(process.env.AXIUM_CONFIG);
+	if (process.env.AXIUM_CONFIG && !paths.includes(process.env.AXIUM_CONFIG)) paths.push(process.env.AXIUM_CONFIG);
 	return paths;
 }
-
-if (process.env.AXIUM_CONFIG) await loadConfig(process.env.AXIUM_CONFIG);
