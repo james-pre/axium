@@ -19,16 +19,12 @@ import * as db from './database.js';
 import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { serve } from './serve.js';
+import { diffUpdate, lookupUser, userText } from './cli.js';
 
 using rl = createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
-
-function userText(user: UserInternal, bold: boolean = false): string {
-	const text = `${user.name} <${user.email}> (${user.id})`;
-	return bold ? styleText('bold', text) : text;
-}
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 
@@ -345,54 +341,6 @@ axiumApps
 		}
 	});
 
-const lookup = new Argument('<user>', 'the UUID or email of the user to operate on').argParser(
-	async (lookup: string): Promise<UserInternal> => {
-		const value = await (lookup.includes('@') ? z.email() : z.uuid())
-			.parseAsync(lookup.toLowerCase())
-			.catch(() => io.exit('Invalid user ID or email.'));
-
-		const result = await db
-			.connect()
-			.selectFrom('users')
-			.where(value.includes('@') ? 'email' : 'id', '=', value)
-			.selectAll()
-			.executeTakeFirst();
-
-		if (!result) io.exit('No user with matching ID or email.');
-
-		return result;
-	}
-);
-
-/**
- * Updates an array of strings by adding or removing items.
- * Only returns whether the array was updated and diff text for what actually changed.
- */
-function diffUpdate(
-	original: string[],
-	add?: Iterable<string>,
-	remove?: Iterable<string>
-): [updated: boolean, newValue: string[], diffText: string] {
-	const diffs: string[] = [];
-
-	// update the values
-	if (add) {
-		for (const role of add) {
-			if (original.includes(role)) continue;
-			original.push(role);
-			diffs.push(styleText('green', '+' + role));
-		}
-	}
-	if (remove)
-		original = original.filter(item => {
-			const allow = !remove.includes(item);
-			if (!allow) diffs.push(styleText('red', '-' + item));
-			return allow;
-		});
-
-	return [!!diffs.length, original, diffs.join(', ')];
-}
-
 interface OptUser extends OptCommon {
 	sessions: boolean;
 	passkeys: boolean;
@@ -405,10 +353,12 @@ interface OptUser extends OptCommon {
 	unsuspend?: boolean;
 }
 
+const argUserLookup = new Argument('<user>', 'the UUID or email of the user to operate on').argParser(lookupUser);
+
 program
 	.command('user')
 	.description('Get or change information about a user')
-	.addArgument(lookup)
+	.addArgument(argUserLookup)
 	.option('-S, --sessions', 'show user sessions')
 	.option('-P, --passkeys', 'show user passkeys')
 	.option('--add-role <role...>', 'add roles to the user')
@@ -499,7 +449,7 @@ program
 program
 	.command('toggle-admin')
 	.description('Toggle whether a user is an administrator')
-	.addArgument(lookup)
+	.addArgument(argUserLookup)
 	.action(async (_user: Promise<UserInternal>) => {
 		const user = await _user;
 

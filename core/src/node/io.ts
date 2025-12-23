@@ -52,27 +52,35 @@ io.useProgress({
 	},
 });
 
+function* maybeStyle(style: Parameters<typeof styleText>[0], parts: any[]): Generator<string> {
+	for (const part of parts) {
+		if (typeof part != 'string') yield part;
+		else if (part.startsWith('\x1b')) yield part;
+		else yield styleText(style, part);
+	}
+}
+
 io.useOutput({
-	error(message: string): void {
+	error(...message: string[]): void {
 		using _ = handleProgress();
-		console.error(message.startsWith('\x1b') ? message : styleText('red', message));
+		console.error(...maybeStyle('red', message));
 	},
-	warn(message: string): void {
+	warn(...message: string[]): void {
 		using _ = handleProgress();
-		console.warn(message.startsWith('\x1b') ? message : styleText('yellow', message));
+		console.warn(...maybeStyle('yellow', message));
 	},
-	info(message: string): void {
+	info(...message: string[]): void {
 		using _ = handleProgress();
-		console.info(message.startsWith('\x1b') ? message : styleText('blue', message));
+		console.info(...maybeStyle('blue', message));
 	},
-	log(message: string): void {
+	log(...message: string[]): void {
 		using _ = handleProgress();
-		console.log(message);
+		console.log(...message);
 	},
-	debug(message: string): void {
+	debug(...message: string[]): void {
 		if (!io._debugOutput) return;
 		using _ = handleProgress();
-		console.debug(message.startsWith('\x1b') ? message : styleText('gray', message));
+		console.debug(...maybeStyle('gray', message));
 	},
 });
 
