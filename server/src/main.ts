@@ -368,7 +368,11 @@ const lookup = new Argument('<user>', 'the UUID or email of the user to operate 
  * Updates an array of strings by adding or removing items.
  * Only returns whether the array was updated and diff text for what actually changed.
  */
-function diffUpdate(original: string[], add?: string[], remove?: string[]): [updated: boolean, newValue: string[], diffText: string] {
+function diffUpdate(
+	original: string[],
+	add?: Iterable<string>,
+	remove?: Iterable<string>
+): [updated: boolean, newValue: string[], diffText: string] {
 	const diffs: string[] = [];
 
 	// update the values

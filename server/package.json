@@ -1,6 +1,6 @@
 {
 	"name": "@axium/server",
-	"version": "0.27.0",
+	"version": "0.27.1",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"funding": {
 		"type": "individual",
@@ -38,7 +38,7 @@
 		"axium.service"
 	],
 	"bin": {
-		"axium": "dist/cli.js"
+		"axium": "dist/main.js"
 	},
 	"scripts": {
 		"build": "tsc",
