@@ -9,7 +9,7 @@ import { Argument, Option, program, type Command } from 'commander';
 import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
-import { styleText } from 'node:util';
+import { styleText, parseArgs } from 'node:util';
 import { getByString, isJSON, setByString, type Entries } from 'utilium';
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
@@ -26,9 +26,19 @@ using rl = createInterface({
 	output: process.stdout,
 });
 
-const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
+// Need these before Command is set up (e.g. for CLI integrations)
+const { safe, config: configFromCLI } = parseArgs({
+	options: {
+		safe: { type: 'boolean', default: z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) },
+		config: { type: 'string', short: 'c' },
+	},
+	allowPositionals: true,
+	strict: false,
+}).values as { safe: boolean; config?: string };
 
 await config.loadDefaults(safe);
+
+if (configFromCLI) await config.load(configFromCLI, { safe });
 
 program
 	.version($pkg.version)
@@ -44,9 +54,8 @@ program.on('option:debug', () => config.set({ debug: true }));
 
 const noAutoDB = ['init', 'serve', 'check'];
 
-program.hook('preAction', async function (_, action: Command) {
+program.hook('preAction', (_, action: Command) => {
 	const opt = action.optsWithGlobals<OptCommon>();
-	if (opt.config) await config.load(opt.config, { safe });
 	opt.force && io.warn('--force: Protections disabled.');
 	if (typeof opt.debug == 'boolean') {
 		config.set({ debug: opt.debug });
