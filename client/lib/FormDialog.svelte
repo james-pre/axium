@@ -1,5 +1,6 @@
 <script lang="ts">
 	import Dialog from './Dialog.svelte';
+	import type { HTMLDialogAttributes } from 'svelte/elements';
 
 	let {
 		children,
@@ -26,7 +27,7 @@
 		submitDanger?: boolean;
 		header?(): any;
 		footer?(): any;
-	} = $props();
+	} & HTMLDialogAttributes = $props();
 
 	let error = $state<string>();
 
@@ -34,7 +35,7 @@
 		if (pageMode) dialog!.showModal();
 	});
 
-	function onclose(e: MouseEvent) {
+	function onclose(e: Event) {
 		e.preventDefault();
 		cancel();
 	}

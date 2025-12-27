@@ -1,5 +1,7 @@
-<script>
-	let { children, dialog = $bindable(), ...rest } = $props();
+<script lang="ts">
+	import type { HTMLDialogAttributes } from 'svelte/elements';
+
+	let { children, dialog = $bindable(), ...rest }: { children(): any; dialog?: HTMLDialogElement } & HTMLDialogAttributes = $props();
 </script>
 
 <dialog bind:this={dialog} {...rest}>
