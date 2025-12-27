@@ -7,8 +7,6 @@
 	import Logout from './Logout.svelte';
 
 	const { user }: { user: Partial<User> } = $props();
-
-	let logout = $state<HTMLDialogElement>()!;
 </script>
 
 <Popover>
@@ -52,13 +50,15 @@
 		<i>Couldn't load apps.</i>
 	{/await}
 
-	<span class="menu-item logout" onclick={() => logout.showModal()}>
-		<Icon i="right-from-bracket" --size="1.5em" --fill="hsl(0 33 var(--fg-light))" />
-		<span>Logout</span>
-	</span>
+	<button style:display="contents" command="show-modal" commandfor="logout">
+		<span class="menu-item logout">
+			<Icon i="right-from-bracket" --size="1.5em" --fill="hsl(0 33 var(--fg-light))" />
+			<span>Logout</span>
+		</span>
+	</button>
 </Popover>
 
-<Logout bind:dialog={logout} />
+<Logout />
 
 <style>
 	img {
