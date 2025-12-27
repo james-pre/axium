@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { loginByEmail } from '@axium/client/user';
 	import FormDialog from './FormDialog.svelte';
-	import redirectAfter from './auth_redirect.js';
+	import authRedirect from './auth_redirect.js';
 
 	let { dialog = $bindable(), fullPage = false }: { dialog?: HTMLDialogElement; fullPage?: boolean } = $props();
 
@@ -11,6 +11,7 @@
 		}
 
 		await loginByEmail(data.email);
+		const redirectAfter = await authRedirect();
 		if (fullPage && redirectAfter) location.href = redirectAfter;
 	}
 </script>
