@@ -2,21 +2,22 @@
 	import { logoutCurrentSession } from '@axium/client/user';
 	import FormDialog from './FormDialog.svelte';
 
-	let { dialog = $bindable(), fullPage = false }: { dialog?: HTMLDialogElement; fullPage?: boolean } = $props();
+	let { fullPage = false }: { fullPage?: boolean } = $props();
 </script>
 
 <FormDialog
 	pageMode={fullPage}
-	bind:dialog
+	id="logout"
 	submitText="Log Out"
 	submit={() => logoutCurrentSession().then(() => (window.location.href = '/'))}
 >
 	<p>Are you sure you want to log out?</p>
 	{#if fullPage}
 		<button
+			command="close"
+			commandfor="logout"
 			onclick={e => {
 				e.preventDefault();
-				dialog!.close();
 				history.back();
 			}}>Take me back</button
 		>

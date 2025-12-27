@@ -8,8 +8,6 @@
 	const { data }: PageProps = $props();
 	const { canVerify } = data;
 
-	const dialogs = $state<Record<string, HTMLDialogElement>>({});
-
 	let verificationSent = $state(false);
 	let currentSession = $state(data.currentSession);
 	let user = $state(data.user);
@@ -27,7 +25,7 @@
 </svelte:head>
 
 {#snippet action(name: string, i: string = 'pen')}
-	<button style:display="contents" onclick={() => dialogs[name].showModal()}>
+	<button style:display="contents" commandfor={name} command="show-modal">
 		<Icon {i} --size="16px" />
 	</button>
 {/snippet}
@@ -45,7 +43,7 @@
 			<p>{user.name}</p>
 			{@render action('edit_name')}
 		</div>
-		<FormDialog bind:dialog={dialogs.edit_name} submit={_editUser} submitText="Change">
+		<FormDialog id="edit_name" submit={_editUser} submitText="Change">
 			<div>
 				<label for="name">What do you want to be called?</label>
 				<input name="name" type="text" value={user.name || ''} required />
@@ -67,7 +65,7 @@
 			</p>
 			{@render action('edit_email')}
 		</div>
-		<FormDialog bind:dialog={dialogs.edit_email} submit={_editUser} submitText="Change">
+		<FormDialog id="edit_email" submit={_editUser} submitText="Change">
 			<div>
 				<label for="email">Email Address</label>
 				<input name="email" type="email" value={user.email || ''} required />
@@ -80,11 +78,11 @@
 			<ClipboardCopy value={user.id} --size="16px" />
 		</div>
 		<span>
-			<button class="signout" onclick={() => dialogs.logout.showModal()}>Sign Out</button>
-			<button style:cursor="pointer" onclick={() => dialogs.delete.showModal()} class="danger">Delete Account</button>
-			<Logout bind:dialog={dialogs.logout} />
+			<button class="signout" command="show-modal" commandfor="logout">Sign Out</button>
+			<button style:cursor="pointer" command="show-modal" commandfor="delete" class="danger">Delete Account</button>
+			<Logout />
 			<FormDialog
-				bind:dialog={dialogs.delete}
+				id="delete"
 				submit={() => deleteUser(user.id).then(() => (window.location.href = '/'))}
 				submitText="Delete Account"
 				submitDanger
@@ -110,9 +108,9 @@
 					<p class="subtle"><i>Unnamed</i></p>
 				{/if}
 				<p>Created {passkey.createdAt.toLocaleString()}</p>
-				{@render action('edit_passkey#' + passkey.id)}
+				{@render action('edit_passkey:' + passkey.id)}
 				{#if passkeys.length > 1}
-					{@render action('delete_passkey#' + passkey.id, 'trash')}
+					{@render action('delete_passkey:' + passkey.id, 'trash')}
 				{:else}
 					<dfn title="You must have at least one passkey" class="disabled">
 						<Icon i="trash-slash" --fill="#888" --size="16px" />
@@ -120,7 +118,7 @@
 				{/if}
 			</div>
 			<FormDialog
-				bind:dialog={dialogs['edit_passkey#' + passkey.id]}
+				id={'edit_passkey:' + passkey.id}
 				submit={data => {
 					if (typeof data.name != 'string') throw 'Passkey name must be a string';
 					passkey.name = data.name;
@@ -134,7 +132,7 @@
 				</div>
 			</FormDialog>
 			<FormDialog
-				bind:dialog={dialogs['delete_passkey#' + passkey.id]}
+				id={'delete_passkey:' + passkey.id}
 				submit={() => deletePasskey(passkey.id).then(() => passkeys.splice(passkeys.indexOf(passkey), 1))}
 				submitText="Delete"
 				submitDanger={true}

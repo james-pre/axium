@@ -10,8 +10,6 @@
 		user,
 		redirectAfterLogoutAll = false,
 	}: { sessions: Session[]; currentSession?: Session; user: User; redirectAfterLogoutAll?: boolean } = $props();
-
-	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
 
 {#each sessions as session}
@@ -27,15 +25,14 @@
 		</p>
 		<p>Created {session.created.toLocaleString()}</p>
 		<p>Expires {session.expires.toLocaleString()}</p>
-		<button style:display="contents" onclick={() => dialogs['logout#' + session.id].showModal()}>
+		<button style:display="contents" command="show-modal" commandfor={'logout-session:' + session.id}>
 			<Icon i="right-from-bracket" --size="16px" />
 		</button>
 	</div>
 	<FormDialog
-		bind:dialog={dialogs['logout#' + session.id]}
+		id={'logout-session:' + session.id}
 		submit={async () => {
 			await logout(user.id, session.id);
-			dialogs['logout#' + session.id].remove();
 			sessions.splice(sessions.indexOf(session), 1);
 			if (session.id == currentSession?.id) window.location.href = '/';
 		}}
@@ -45,10 +42,10 @@
 	</FormDialog>
 {/each}
 <span>
-	<button onclick={() => dialogs.logout_all.showModal()} class="danger">Logout All</button>
+	<button command="show-modal" commandfor="logout-all" class="danger">Logout All</button>
 </span>
 <FormDialog
-	bind:dialog={dialogs.logout_all}
+	id="logout-all"
 	submit={() => logoutAll(user.id).then(() => (redirectAfterLogoutAll ? (window.location.href = '/') : null))}
 	submitText="Logout All Sessions"
 	submitDanger
