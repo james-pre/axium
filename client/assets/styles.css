@@ -151,7 +151,6 @@ pre {
 	background-color: hsl(from var(--bg-menu) h s l / 95%);
 	border-radius: 0.5em;
 	padding: 0.25em;
-	inset: unset;
 	display: flex;
 	flex-direction: column;
 	gap: 0.1em;

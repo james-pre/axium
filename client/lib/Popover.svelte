@@ -6,7 +6,8 @@
 
 	function onclick(e: MouseEvent) {
 		e.stopPropagation();
-		popover?.togglePopover();
+		// @ts-expect-error 2345
+		popover?.togglePopover({ source: e.currentTarget });
 	}
 </script>
 
@@ -29,6 +30,11 @@
 <style>
 	.popover-toggle:hover {
 		cursor: pointer;
+	}
+
+	[popover] {
+		position-area: bottom right;
+		position-try: most-width flip-inline;
 	}
 
 	[popover] :global(.menu-item) {
