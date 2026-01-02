@@ -43,11 +43,13 @@ io.useProgress({
 		);
 		if (value >= max) {
 			_currentOperation = null;
+			_progress = null;
 			console.log();
 		}
 	},
 	done(): void {
 		_currentOperation = null;
+		_progress = null;
 		console.log('done.');
 	},
 });
