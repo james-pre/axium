@@ -19,7 +19,7 @@
 	},
 	"main": "dist/index.js",
 	"bin": {
-		"axium": "server/dist/cli.js"
+		"axium": "server/dist/main.js"
 	},
 	"scripts": {
 		"format": "prettier --write .",
