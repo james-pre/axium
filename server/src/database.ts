@@ -721,15 +721,16 @@ export async function checkTableTypes<TB extends keyof Schema & string>(tableNam
 	const columns = Object.fromEntries(table.columns.map(c => [c.name, c]));
 	const _types = Object.entries(types) as Entries<typeof types>;
 
-	for (const [i, [key, { type, required = false, default: _default = false }]] of _types.entries()) {
+	for (const [i, [key, { type, required = false, default: _default }]] of _types.entries()) {
 		io.progress(i, _types.length, key);
 		const col = columns[key];
 		const actualType = type in schemaToIntrospected ? schemaToIntrospected[type as keyof typeof schemaToIntrospected] : type;
+		const hasDefault = _default !== undefined;
 		try {
 			if (!col) throw 'missing.';
 			if (col.dataType != actualType) throw `incorrect type "${col.dataType}", expected ${actualType} (${type})`;
 			if (col.isNullable != !required) throw required ? 'nullable' : 'not nullable';
-			if (col.hasDefaultValue != _default) throw _default ? 'missing default' : 'has default';
+			if (col.hasDefaultValue != hasDefault) throw hasDefault ? 'missing default' : 'has default';
 		} catch (e: any) {
 			if (opt.strict) throw `${tableName}.${key}: ${e}`;
 			io.warn(`${tableName}.${key}: ${e}`);
