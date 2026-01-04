@@ -46,13 +46,8 @@ jobs:
             - name: Build server (Vite)
               run: (cd server && npx vite build)
 
-            - name: Upload JSON schema to release assets [server]
-              if: steps.resolve.outputs.path == 'server'
-              run: |
-                  npx axium config schema -j > schema.json
-                  gh release upload ${{ github.event.release.tag_name }} schema.json
-              env:
-                  GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - name: Export schemas
+              run: (cd server && npm run build:schemas)
 
             - name: Publish
               run: npm publish --access=public --provenance

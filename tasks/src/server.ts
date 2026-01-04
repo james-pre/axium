@@ -1,7 +1,7 @@
 import { Permission } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
-import { database, expectedTypes } from '@axium/server/database';
+import { database } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import type { Generated, GeneratedAlways } from 'kysely';
@@ -30,32 +30,7 @@ declare module '@axium/server/database' {
 			description?: string | null;
 		};
 	}
-
-	export interface ExpectedSchema {
-		tasks: ColumnTypes<Schema['tasks']>;
-		task_lists: ColumnTypes<Schema['task_lists']>;
-	}
 }
-
-expectedTypes.tasks = {
-	id: { type: 'uuid', required: true, hasDefault: true },
-	created: { type: 'timestamptz', required: true, hasDefault: true },
-	summary: { type: 'text', required: true },
-	description: { type: 'text' },
-	listId: { type: 'uuid', required: true },
-	parentId: { type: 'uuid' },
-	completed: { type: 'bool', required: true, hasDefault: true },
-	due: { type: 'timestamptz' },
-};
-
-expectedTypes.task_lists = {
-	id: { type: 'uuid', required: true, hasDefault: true },
-	userId: { type: 'uuid', required: true },
-	created: { type: 'timestamptz', required: true, hasDefault: true },
-	publicPermission: { type: 'int4', required: true, hasDefault: true },
-	name: { type: 'text', required: true },
-	description: { type: 'text' },
-};
 
 addRoute({
 	path: '/api/users/:id/task_lists',

@@ -32,7 +32,8 @@
 		"dist",
 		"lib",
 		"build",
-		"routes"
+		"routes",
+		"db.json"
 	],
 	"scripts": {
 		"build": "tsc"
@@ -52,7 +53,8 @@
 			"http_handler": "./build/handler.js",
 			"hooks": "./dist/server/hooks.js",
 			"routes": "./routes",
-			"cli": "./dist/server/cli.js"
+			"cli": "./dist/server/cli.js",
+			"db": "./db.json"
 		},
 		"client": {
 			"cli": "./dist/client/cli.js",

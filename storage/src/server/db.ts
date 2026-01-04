@@ -1,12 +1,12 @@
+import type { Permission } from '@axium/core';
 import { config } from '@axium/server/config';
-import { database, expectedTypes, type Schema } from '@axium/server/database';
+import { database, type Schema } from '@axium/server/database';
 import { withError } from '@axium/server/requests';
 import type { Generated, Selectable } from 'kysely';
 import { unlinkSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import type { StorageItemMetadata, StorageStats } from '../common.js';
 import '../polyfills.js';
-import type { Permission } from '@axium/core';
 
 declare module '@axium/server/database' {
 	export interface Schema {
@@ -26,32 +26,12 @@ declare module '@axium/server/database' {
 			metadata: Generated<Record<string, unknown>>;
 		};
 	}
-
-	export interface ExpectedSchema {
-		storage: ColumnTypes<Schema['storage']>;
-	}
 }
 
 /**
  * @internal A storage item selected from the database.
  */
 export interface SelectedItem extends Selectable<Schema['storage']> {}
-
-expectedTypes.storage = {
-	createdAt: { type: 'timestamptz', required: true, hasDefault: true },
-	hash: { type: 'bytea' },
-	id: { type: 'uuid', required: true, hasDefault: true },
-	immutable: { type: 'bool', required: true },
-	modifiedAt: { type: 'timestamptz', required: true, hasDefault: true },
-	name: { type: 'text' },
-	parentId: { type: 'uuid' },
-	size: { type: 'int4', required: true },
-	trashedAt: { type: 'timestamptz' },
-	type: { type: 'text', required: true },
-	userId: { type: 'uuid', required: true },
-	publicPermission: { type: 'int4', required: true, hasDefault: true },
-	metadata: { type: 'jsonb', required: true, hasDefault: true },
-};
 
 export interface StorageItem extends StorageItemMetadata {
 	data: Uint8Array<ArrayBufferLike>;

@@ -1,10 +1,8 @@
 import { formatBytes } from '@axium/core/format';
 import { done, start } from '@axium/core/node/io';
-import * as acl from '@axium/server/acl';
 import config from '@axium/server/config';
-import type { InitOptions, OpOptions } from '@axium/server/database';
-import { count, createIndex, database, warnExists } from '@axium/server/database';
-import { sql } from 'kysely';
+import type { OpOptions } from '@axium/server/database';
+import { count, database } from '@axium/server/database';
 import { mkdirSync } from 'node:fs';
 import '../common.js';
 import './index.js';
@@ -19,45 +17,6 @@ export async function statusText(): Promise<string> {
 		.executeTakeFirstOrThrow();
 
 	return `${items} items totaling ${formatBytes(Number(size))}`;
-}
-
-export async function db_init(opt: InitOptions) {
-	start('Creating table storage');
-	await database.schema
-		.createTable('storage')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade'))
-		.addColumn('parentId', 'uuid', col => col.references('storage.id').onDelete('cascade').defaultTo(null))
-		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('modifiedAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('size', 'integer', col => col.notNull())
-		.addColumn('trashedAt', 'timestamptz', col => col.defaultTo(null))
-		.addColumn('hash', 'bytea', col => col)
-		.addColumn('name', 'text', col => col.defaultTo(null))
-		.addColumn('type', 'text', col => col.notNull())
-		.addColumn('immutable', 'boolean', col => col.notNull())
-		.addColumn('publicPermission', 'integer', col => col.notNull().defaultTo(0))
-		.addColumn('metadata', 'jsonb', col => col.notNull().defaultTo('{}'))
-		.execute()
-		.then(done)
-		.catch(warnExists);
-
-	await createIndex('storage', 'userId');
-	await createIndex('storage', 'parentId');
-	await acl.createTable('storage');
-}
-
-export async function db_wipe(opt: OpOptions) {
-	start('Removing data from user storage');
-	await database.deleteFrom('storage').execute().then(done);
-	await acl.wipeTable('storage');
-}
-
-export async function remove(opt: OpOptions) {
-	start('Dropping table storage');
-	await database.schema.dropTable('storage').execute();
-	await acl.dropTable('storage');
-	done();
 }
 
 export async function clean(opt: OpOptions) {

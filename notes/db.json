@@ -1,0 +1,29 @@
+{
+	"$schema": "../server/schemas/db.json",
+	"format": 0,
+	"versions": [
+		{
+			"delta": false,
+			"tables": {
+				"notes": {
+					"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+					"created": { "type": "timestamptz", "required": true, "default": "now()" },
+					"modified": { "type": "timestamptz", "required": true, "default": "now()" },
+					"publicPermission": { "type": "integer", "required": true, "default": 0 },
+					"title": { "type": "text", "required": true },
+					"content": { "type": "text" },
+					"labels": { "type": "text[]", "required": true, "default": "'{}'::text[]" }
+				},
+				"acl.notes": {
+					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+					"itemId": { "type": "uuid", "required": true, "references": "notes.id", "onDelete": "cascade" },
+					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+					"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+				}
+			},
+			"indexes": ["notes:userId", "acl.notes:userId", "acl.notes:itemId"]
+		}
+	],
+	"wipe": ["notes", "acl.notes"]
+}

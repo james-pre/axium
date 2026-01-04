@@ -1,6 +1,6 @@
 import { Permission, type AsyncResult } from '@axium/core';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
-import { database, expectedTypes } from '@axium/server/database';
+import { database } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import type { Generated, GeneratedAlways } from 'kysely';
@@ -20,22 +20,7 @@ declare module '@axium/server/database' {
 			labels: Generated<string[]>;
 		};
 	}
-
-	export interface ExpectedSchema {
-		notes: ColumnTypes<Schema['notes']>;
-	}
 }
-
-expectedTypes.notes = {
-	id: { type: 'uuid', required: true, hasDefault: true },
-	userId: { type: 'uuid', required: true },
-	created: { type: 'timestamptz', required: true, hasDefault: true },
-	modified: { type: 'timestamptz', required: true, hasDefault: true },
-	title: { type: 'text', required: true },
-	content: { type: 'text' },
-	publicPermission: { type: 'int4', required: true, hasDefault: true },
-	labels: { type: '_text', required: true, hasDefault: true },
-};
 
 addRoute({
 	path: '/api/users/:id/notes',

@@ -40,7 +40,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 	specifier: string,
 	_loadedBy: string,
 	safeMode: boolean = false
-) {
+): Promise<PluginInternal | void> {
 	try {
 		const path = _locatePlugin(specifier, _loadedBy);
 		io.debug(`Loading plugin at ${path} (from ${_loadedBy})`);
@@ -71,7 +71,13 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 			}
 
 			if (mode == 'server') {
-				if (plugin.server!.hooks) Object.assign(plugin, { _hooks: await import(resolve(plugin.dirname, plugin.server!.hooks)) });
+				const cfg = plugin.server!;
+
+				if (cfg.hooks) Object.assign(plugin, { _hooks: await import(resolve(plugin.dirname, cfg.hooks)) });
+				if (cfg.db) {
+					const dbSchema = await import(resolve(plugin.dirname, cfg.db), { with: { type: 'json' } });
+					Object.assign(plugin, { _db: dbSchema.default });
+				}
 			}
 		}
 
@@ -90,6 +96,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 
 		plugins.set(plugin.name, plugin);
 		io.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
+		return plugin;
 	} catch (e: any) {
 		io.warn(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
 	}

@@ -6,12 +6,16 @@ import type * as kysely from 'kysely';
 import { Kysely, PostgresDialect, sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { randomBytes } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path/posix';
+import { styleText } from 'node:util';
 import pg from 'pg';
 import type { Entries } from 'utilium';
+import * as z from 'zod';
 import type { VerificationRole } from './auth.js';
 import config from './config.js';
-import { styleText } from 'node:util';
+import rawSchema from './db.json' with { type: 'json' };
+import { dirs, systemDir } from './io.js';
 
 export interface DBAccessControl {
 	itemId: string;
@@ -221,30 +225,17 @@ export async function getHBA(opt: OpOptions): Promise<[content: string, writeBac
 	return [content, writeBack];
 }
 
-const pgHba = `
+/** @internal @hidden */
+export const _pgHba = `
 local axium axium md5
 host  axium axium 127.0.0.1/32 md5
 host  axium axium ::1/128 md5
 `;
 
-const _sql = (command: string, message: string) => io.run(message, `sudo -u postgres psql -c "${command}"`);
+/** @internal @hidden */
+export const _sql = (command: string, message: string) => io.run(message, `sudo -u postgres psql -c "${command}"`);
 /** Shortcut to output a warning if an error is thrown because relation already exists */
 export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'already exists.']);
-const throwUnlessRows = (text: string) => {
-	if (text.includes('(0 rows)')) throw 'missing.';
-	return text;
-};
-
-export async function createIndex(
-	table: string,
-	column: string,
-	mod?: (ib: kysely.CreateIndexBuilder<string>) => kysely.CreateIndexBuilder<string>
-): Promise<void> {
-	io.start(`Creating index for ${table}.${column}`);
-	let query = database.schema.createIndex(`${table}_${column}_index`).on(table).column(column);
-	if (mod) query = mod(query);
-	await query.execute().then(io.done).catch(warnExists);
-}
 
 export async function init(opt: InitOptions): Promise<void> {
 	if (!config.db.password) {
@@ -280,11 +271,11 @@ export async function init(opt: InitOptions): Promise<void> {
 	await getHBA(opt)
 		.then(([content, writeBack]) => {
 			io.start('Checking for Axium HBA configuration');
-			if (content.includes(pgHba)) throw 'already exists.';
+			if (content.includes(_pgHba)) throw 'already exists.';
 			io.done();
 
 			io.start('Adding Axium HBA configuration');
-			const newContent = content.replace(/^local\s+all\s+all.*$/m, `$&\n${pgHba}`);
+			const newContent = content.replace(/^local\s+all\s+all.*$/m, `$&\n${_pgHba}`);
 			io.done();
 
 			writeBack(newContent);
@@ -297,163 +288,410 @@ export async function init(opt: InitOptions): Promise<void> {
 	await using _ = connect();
 	io.done();
 
-	function maybeCheck(table: keyof ExpectedSchema) {
-		return (e: Error | string) => {
-			warnExists(e);
-			if (opt.check) return checkTableTypes(table, expectedTypes[table], opt);
-		};
-	}
-
-	io.start('Creating table users');
-	await database.schema
-		.createTable('users')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('name', 'text')
-		.addColumn('email', 'text', col => col.unique().notNull())
-		.addColumn('emailVerified', 'timestamptz')
-		.addColumn('image', 'text')
-		.addColumn('isAdmin', 'boolean', col => col.notNull().defaultTo(false))
-		.addColumn('roles', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
-		.addColumn('tags', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
-		.addColumn('preferences', 'jsonb', col => col.notNull().defaultTo('{}'))
-		.addColumn('registeredAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('isSuspended', 'boolean', col => col.notNull().defaultTo(false))
-		.execute()
-		.then(io.done)
-		.catch(maybeCheck('users'));
-
-	io.start('Creating table sessions');
-	await database.schema
-		.createTable('sessions')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
-		.addColumn('token', 'text', col => col.notNull().unique())
-		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('expires', 'timestamptz', col => col.notNull())
-		.addColumn('elevated', 'boolean', col => col.notNull())
-		.execute()
-		.then(io.done)
-		.catch(maybeCheck('sessions'));
-
-	await createIndex('sessions', 'id');
-
-	io.start('Creating table verifications');
-	await database.schema
-		.createTable('verifications')
-		.addColumn('userId', 'uuid', col => col.references('users.id').onDelete('cascade').notNull())
-		.addColumn('token', 'text', col => col.notNull().unique())
-		.addColumn('expires', 'timestamptz', col => col.notNull())
-		.addColumn('role', 'text', col => col.notNull())
-		.execute()
-		.then(io.done)
-		.catch(maybeCheck('verifications'));
-
-	io.start('Creating table passkeys');
-	await database.schema
-		.createTable('passkeys')
-		.addColumn('id', 'text', col => col.primaryKey().notNull())
-		.addColumn('name', 'text')
-		.addColumn('createdAt', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade').notNull())
-		.addColumn('publicKey', 'bytea', col => col.notNull())
-		.addColumn('counter', 'integer', col => col.notNull())
-		.addColumn('deviceType', 'text', col => col.notNull())
-		.addColumn('backedUp', 'boolean', col => col.notNull())
-		.addColumn('transports', sql`text[]`)
-		.execute()
-		.then(io.done)
-		.catch(maybeCheck('passkeys'));
-
-	await createIndex('passkeys', 'userId');
-
-	io.start('Creating table audit_log');
-	await database.schema
-		.createTable('audit_log')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('timestamp', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('userId', 'uuid')
-		.addColumn('severity', 'integer', col => col.notNull())
-		.addColumn('name', 'text', col => col.notNull())
-		.addColumn('source', 'text', col => col.notNull())
-		.addColumn('tags', sql`text[]`, col => col.notNull().defaultTo(sql`'{}'::text[]`))
-		.addColumn('extra', 'jsonb', col => col.notNull().defaultTo('{}'))
-		.execute()
-		.then(io.done)
-		.catch(maybeCheck('audit_log'));
-
 	io.start('Creating schema acl');
 	await database.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
+}
 
-	for (const plugin of plugins.values()) {
-		if (!plugin._hooks?.db_init) continue;
-		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
-		await plugin._hooks?.db_init(opt);
+export const Column = z.strictObject({
+	type: z.string(),
+	required: z.boolean().default(false),
+	unique: z.boolean().default(false),
+	primary: z.boolean().default(false),
+	references: z.string().optional(),
+	onDelete: z.enum(['cascade', 'restrict', 'no action', 'set null', 'set default']).optional(),
+	default: z.any().optional(),
+	check: z.string().optional(),
+});
+
+export interface Column extends z.infer<typeof Column> {}
+
+export const Table = z.record(z.string(), Column);
+
+export interface Table extends z.infer<typeof Table> {}
+
+export const IndexString = z.templateLiteral([z.string(), ':', z.string()]);
+
+export type IndexString = z.infer<typeof IndexString>;
+
+export function parseIndex(value: IndexString): { table: string; column: string } {
+	const [table, column] = value.split(':');
+	return { table, column };
+}
+
+export const SchemaDecl = z.strictObject({
+	tables: z.record(z.string(), Table),
+	indexes: IndexString.array().optional().default([]),
+});
+
+export interface SchemaDecl extends z.infer<typeof SchemaDecl> {}
+
+export const TableDelta = z.strictObject({
+	add_columns: z.record(z.string(), Column).optional().default({}),
+	drop_columns: z.string().array().optional().default([]),
+});
+
+export interface TableDelta extends z.infer<typeof TableDelta> {}
+
+export const VersionDelta = z.strictObject({
+	delta: z.literal(true),
+	add_tables: z.record(z.string(), Table).optional().default({}),
+	drop_tables: z.string().array().optional().default([]),
+	modify_tables: z.record(z.string(), TableDelta).optional().default({}),
+	add_indexes: IndexString.array().optional().default([]),
+	drop_indexes: IndexString.array().optional().default([]),
+});
+
+export interface VersionDelta extends z.infer<typeof VersionDelta> {}
+
+export const SchemaFile = z.object({
+	format: z.literal(0),
+	versions: z.discriminatedUnion('delta', [SchemaDecl.extend({ delta: z.literal(false) }), VersionDelta]).array(),
+	/** List of tables to wipe */
+	wipe: z.string().array().optional().default([]),
+	/** Set the latest version, defaults to the last one */
+	latest: z.number().nonnegative().optional(),
+});
+
+export interface SchemaFile extends z.infer<typeof SchemaFile> {}
+
+const schema = SchemaFile.parse(rawSchema);
+
+export function* getSchemaFiles(): Generator<[string, SchemaFile]> {
+	yield ['@axium/server', schema];
+
+	for (const [name, plugin] of plugins) {
+		if (!plugin._db) continue;
+		try {
+			yield [name, SchemaFile.parse(plugin._db)];
+		} catch (e) {
+			const text = e instanceof z.core.$ZodError ? z.prettifyError(e) : e instanceof Error ? e.message : String(e);
+			throw `Invalid database configuration for plugin "${name}":\n${text}`;
+		}
 	}
 }
 
 /**
- * Expected column types for a table in the database.
+ * Get the active schema
  */
-export type ColumnTypes<TableSchema extends object> = {
-	[K in keyof TableSchema & string]: { type: string; required?: boolean; hasDefault?: boolean };
+export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl {
+	const fullSchema: SchemaDecl = { tables: {}, indexes: [] };
+
+	for (const [pluginName, file] of getSchemaFiles()) {
+		if (opt.exclude?.includes(pluginName)) continue;
+
+		let currentSchema: SchemaDecl = { tables: {}, indexes: [] };
+
+		for (const version of file.versions) {
+			if (version.delta) applyDeltaToSchema(currentSchema, version);
+			else currentSchema = version;
+		}
+
+		for (const name of Object.keys(currentSchema.tables)) {
+			if (name in fullSchema.tables) throw 'Duplicate table name in database schema: ' + name;
+			fullSchema.tables[name] = currentSchema.tables[name];
+		}
+
+		for (const index of currentSchema.indexes) {
+			if (fullSchema.indexes.includes(index)) throw 'Duplicate index in database schema: ' + index;
+			fullSchema.indexes.push(index);
+		}
+	}
+
+	return fullSchema;
+}
+
+const schemaToIntrospected = {
+	boolean: 'bool',
+	integer: 'int4',
+	'text[]': '_text',
 };
 
-type _Expected = {
-	[K in keyof Schema & string]: ColumnTypes<Schema[K]>;
-};
+const VersionMap = z.record(z.string(), z.int().nonnegative());
 
-export interface ExpectedSchema extends _Expected {}
+export const UpgradesInfo = z.object({
+	current: VersionMap.default({}),
+	upgrades: z.object({ timestamp: z.coerce.date(), from: VersionMap, to: VersionMap }).array().default([]),
+});
 
-export const expectedTypes: ExpectedSchema = {
-	users: {
-		email: { type: 'text', required: true },
-		emailVerified: { type: 'timestamptz' },
-		id: { type: 'uuid', required: true, hasDefault: true },
-		image: { type: 'text' },
-		isAdmin: { type: 'bool', required: true, hasDefault: true },
-		name: { type: 'text' },
-		preferences: { type: 'jsonb', required: true, hasDefault: true },
-		registeredAt: { type: 'timestamptz', required: true, hasDefault: true },
-		roles: { type: '_text', required: true, hasDefault: true },
-		tags: { type: '_text', required: true, hasDefault: true },
-		isSuspended: { type: 'bool', required: true, hasDefault: true },
-	},
-	verifications: {
-		userId: { type: 'uuid', required: true },
-		token: { type: 'text', required: true },
-		expires: { type: 'timestamptz', required: true },
-		role: { type: 'text', required: true },
-	},
-	passkeys: {
-		id: { type: 'text', required: true },
-		name: { type: 'text' },
-		createdAt: { type: 'timestamptz', required: true, hasDefault: true },
-		userId: { type: 'uuid', required: true },
-		publicKey: { type: 'bytea', required: true },
-		counter: { type: 'int4', required: true },
-		deviceType: { type: 'text', required: true },
-		backedUp: { type: 'bool', required: true },
-		transports: { type: '_text' },
-	},
-	sessions: {
-		id: { type: 'uuid', required: true, hasDefault: true },
-		userId: { type: 'uuid', required: true },
-		created: { type: 'timestamptz', required: true, hasDefault: true },
-		token: { type: 'text', required: true },
-		expires: { type: 'timestamptz', required: true },
-		elevated: { type: 'bool', required: true },
-	},
-	audit_log: {
-		userId: { type: 'uuid' },
-		timestamp: { type: 'timestamptz', required: true, hasDefault: true },
-		id: { type: 'uuid', required: true, hasDefault: true },
-		severity: { type: 'int4', required: true },
-		name: { type: 'text', required: true },
-		source: { type: 'text', required: true },
-		tags: { type: '_text', required: true, hasDefault: true },
-		extra: { type: 'jsonb', required: true, hasDefault: true },
-	},
-};
+export interface UpgradesInfo extends z.infer<typeof UpgradesInfo> {}
+
+const upgradesFilePath = process.getuid?.() == 0 ? join(systemDir, 'db_upgrades.json') : join(dirs.at(-1)!, 'db_upgrades.json');
+
+export function getUpgradeInfo(): UpgradesInfo {
+	if (!existsSync(upgradesFilePath)) io.writeJSON(upgradesFilePath, { current: {}, upgrades: [] });
+	return io.readJSON(upgradesFilePath, UpgradesInfo);
+}
+
+export function setUpgradeInfo(info: UpgradesInfo): void {
+	io.writeJSON(upgradesFilePath, info);
+}
+
+export function applyTableDeltaToSchema(table: Table, delta: TableDelta): void {
+	for (const column of delta.drop_columns) {
+		if (column in table) delete table[column];
+		else throw `Can't drop column ${column} because it does not exist`;
+	}
+
+	for (const [name, column] of Object.entries(delta.add_columns)) {
+		if (name in table) throw `Can't add column ${name} because it already exists`;
+		table[name] = column;
+	}
+}
+
+export function applyDeltaToSchema(schema: SchemaDecl, delta: VersionDelta): void {
+	for (const tableName of delta.drop_tables) {
+		if (tableName in schema.tables) delete schema.tables[tableName];
+		else throw `Can't drop table ${tableName} because it does not exist`;
+	}
+
+	for (const [tableName, table] of Object.entries(delta.add_tables)) {
+		if (tableName in schema.tables) throw `Can't add table ${tableName} because it already exists`;
+		else schema.tables[tableName] = table;
+	}
+
+	for (const [tableName, tableDelta] of Object.entries(delta.modify_tables)) {
+		if (tableName in schema.tables) applyTableDeltaToSchema(schema.tables[tableName], tableDelta);
+		else throw `Can't modify table ${tableName} because it does not exist`;
+	}
+}
+
+export function validateDelta(delta: VersionDelta): void {
+	const tableNames = [...Object.keys(delta.add_tables), ...Object.keys(delta.modify_tables), delta.drop_tables];
+	const uniqueTables = new Set(tableNames);
+	for (const table of uniqueTables) {
+		tableNames.splice(tableNames.indexOf(table), 1);
+	}
+
+	if (tableNames.length) {
+		throw `Duplicate table name(s): ${tableNames.join(', ')}`;
+	}
+
+	for (const [tableName, table] of Object.entries(delta.modify_tables)) {
+		const columnNames = [...Object.keys(table.add_columns), ...table.drop_columns];
+		const uniqueColumns = new Set(columnNames);
+
+		for (const column of uniqueColumns) {
+			columnNames.splice(columnNames.indexOf(column), 1);
+		}
+
+		if (columnNames.length) {
+			throw `Duplicate column name(s) in table ${tableName}: ${columnNames.join(', ')}`;
+		}
+	}
+}
+
+export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
+	const fromTables = new Set(Object.keys(from.tables));
+	const toTables = new Set(Object.keys(to.tables));
+	const fromIndexes = new Set(from.indexes);
+	const toIndexes = new Set(to.indexes);
+
+	const add_tables = Object.fromEntries(
+		toTables
+			.difference(fromTables)
+			.keys()
+			.map(name => [name, to.tables[name]])
+	);
+
+	const modify_tables: Record<string, TableDelta> = {};
+
+	for (const name of fromTables.intersection(toTables)) {
+		const fromTable = from.tables[name],
+			toTable = to.tables[name];
+
+		const fromColumns = new Set(Object.keys(fromTable));
+		const toColumns = new Set(Object.keys(toTable));
+
+		const drop_columns = fromColumns.difference(toColumns);
+		const add_columns = Object.fromEntries(
+			toColumns
+				.difference(fromColumns)
+				.keys()
+				.map(colName => [colName, toTable[colName]])
+		);
+
+		const modify_columns = fromColumns.intersection(toColumns);
+		if (modify_columns.size) throw 'No support for modifying columns yet: ' + [...modify_columns].map(c => `${name}.${c}`).join(', ');
+
+		modify_tables[name] = { add_columns, drop_columns: Array.from(drop_columns) };
+	}
+
+	return {
+		delta: true,
+		add_tables,
+		drop_tables: Array.from(fromTables.difference(toTables)),
+		modify_tables,
+		drop_indexes: Array.from(fromIndexes.difference(toIndexes)),
+		add_indexes: Array.from(toIndexes.difference(fromIndexes)),
+	};
+}
+
+export function collapseDeltas(deltas: VersionDelta[]): VersionDelta {
+	const add_tables: Record<string, Table> = {},
+		drop_tables: string[] = [],
+		modify_tables: Record<string, TableDelta> = {},
+		add_indexes: IndexString[] = [],
+		drop_indexes: IndexString[] = [];
+
+	for (const delta of deltas) {
+		validateDelta(delta);
+
+		for (const [name, table] of Object.entries(delta.modify_tables)) {
+			if (name in add_tables) {
+				applyTableDeltaToSchema(add_tables[name], table);
+			} else if (name in modify_tables) {
+				const existing = modify_tables[name];
+
+				for (const [colName, column] of Object.entries(table.add_columns)) {
+					existing.add_columns[colName] = column;
+				}
+
+				for (const colName of table.drop_columns) {
+					if (colName in existing.add_columns) delete existing.add_columns[colName];
+					else existing.drop_columns.push(colName);
+				}
+			} else modify_tables[name] = table;
+		}
+
+		for (const table of delta.drop_tables) {
+			if (table in add_tables) delete add_tables[table];
+			else drop_tables.push(table);
+		}
+
+		for (const [name, table] of Object.entries(delta.add_tables)) {
+			if (drop_tables.includes(name)) throw `Can't add and drop table "${name}" in the same change`;
+			if (name in modify_tables) throw `Can't add and modify table "${name}" in the same change`;
+			add_tables[name] = table;
+		}
+
+		for (const index of delta.add_indexes) {
+			if (drop_indexes.includes(index)) throw `Can't add and drop index "${index}" in the same change`;
+			add_indexes.push(index);
+		}
+
+		for (const index of delta.drop_indexes) {
+			if (add_indexes.includes(index)) throw `Can't add and drop index "${index}" in the same change`;
+			drop_indexes.push(index);
+		}
+	}
+
+	return { delta: true, add_tables, drop_tables, modify_tables, add_indexes, drop_indexes };
+}
+
+export function deltaIsEmpty(delta: VersionDelta): boolean {
+	return (
+		!Object.keys(delta.add_tables).length &&
+		!delta.drop_tables.length &&
+		!Object.keys(delta.modify_tables).length &&
+		!delta.add_indexes.length &&
+		!delta.drop_indexes.length
+	);
+}
+
+const deltaColors = {
+	'+': 'green',
+	'-': 'red',
+	'*': 'white',
+} as const;
+
+export function* displayDelta(delta: VersionDelta): Generator<string> {
+	const tables = [
+		...Object.keys(delta.add_tables).map(name => ({ op: '+' as const, name })),
+		...Object.entries(delta.modify_tables).map(([name, changes]) => ({ op: '*' as const, name, changes })),
+		...delta.drop_tables.map(name => ({ op: '-' as const, name })),
+	];
+
+	tables.sort((a, b) => a.name.localeCompare(b.name));
+
+	for (const table of tables) {
+		yield styleText(deltaColors[table.op], `${table.op} table ${table.name}`);
+
+		if (table.op != '*') continue;
+
+		const changes = [
+			...Object.keys(table.changes.add_columns).map(name => ({ op: '+' as const, name })),
+			...table.changes.drop_columns.map(name => ({ op: '-' as const, name })),
+		];
+
+		changes.sort((a, b) => a.name.localeCompare(b.name));
+
+		for (const change of changes) {
+			yield '\t' + styleText(deltaColors[change.op], `${change.op} ${change.name}`);
+		}
+	}
+
+	const indexes = [
+		...delta.add_indexes.map(raw => ({ op: '+' as const, ...parseIndex(raw) })),
+		...delta.drop_indexes.map(raw => ({ op: '-' as const, ...parseIndex(raw) })),
+	];
+
+	indexes.sort((a, b) => a.table.localeCompare(b.table) || a.column.localeCompare(b.column));
+
+	for (const index of indexes) {
+		yield styleText(deltaColors[index.op], `${index.op} index on ${index.table}.${index.column}`);
+	}
+}
+
+function columnFromSchema(column: Column, allowPK: boolean) {
+	return function _addColumn(col: kysely.ColumnDefinitionBuilder) {
+		if (column.primary && allowPK) col = col.primaryKey();
+		if (column.unique) col = col.unique();
+		if (column.required) col = col.notNull();
+		if (column.references) col = col.references(column.references);
+		if (column.onDelete) col = col.onDelete(column.onDelete);
+		if ('default' in column) col = col.defaultTo(sql`${column.default}`);
+		if (column.check) col = col.check(sql`${column.check}`);
+		return col;
+	};
+}
+
+export async function applyDelta(delta: VersionDelta): Promise<void> {
+	await using tx = await database.startTransaction().execute();
+
+	try {
+		for (const [tableName, table] of Object.entries(delta.add_tables)) {
+			io.start('Adding table ' + tableName);
+			const create = tx.schema.createTable(tableName);
+			const columns = Object.entries(table);
+			const pkColumns = columns.filter(([, column]) => column.primary).map(([name]) => name);
+			const needsPKConstraint = pkColumns.length > 1;
+			for (const [colName, column] of columns) {
+				create.addColumn(colName, sql`${column.type}`, columnFromSchema(column, !needsPKConstraint));
+			}
+			if (needsPKConstraint) create.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns as any);
+			await create.execute();
+			io.done();
+		}
+
+		for (const tableName of delta.drop_tables) {
+			io.start('Dropping table ' + tableName);
+			await tx.schema.dropTable(tableName).execute();
+			io.done();
+		}
+
+		for (const [tableName, tableDelta] of Object.entries(delta.modify_tables)) {
+			io.start(`Modifying table ${tableName}`);
+			const query = tx.schema.alterTable(tableName) as any as kysely.AlterTableColumnAlteringBuilder;
+			for (const colName of tableDelta.drop_columns) {
+				query.dropColumn(colName);
+			}
+
+			for (const [colName, column] of Object.entries(tableDelta.add_columns)) {
+				query.addColumn(colName, sql`${column.type}`, columnFromSchema(column, false));
+			}
+
+			await query.execute();
+			io.done();
+		}
+
+		io.start('Committing');
+		await tx.commit().execute();
+		io.done();
+	} catch (e) {
+		await tx.rollback().execute();
+		throw e;
+	}
+}
 
 export interface CheckOptions extends OpOptions {
 	/** Whether to throw an error instead of emitting a warning on most column issues */
@@ -474,31 +712,27 @@ export interface CheckOptions extends OpOptions {
 /**
  * Checks that a table has the expected column types, nullability, and default values.
  */
-export async function checkTableTypes<TB extends keyof Schema & string>(
-	tableName: TB,
-	types: ColumnTypes<Schema[TB]>,
-	opt: CheckOptions
-): Promise<void> {
-	io.start(`Checking for table ${tableName}`);
+export async function checkTableTypes<TB extends keyof Schema & string>(tableName: TB, types: Table, opt: CheckOptions): Promise<void> {
+	io.start(`Checking table ${tableName}`);
 	const dbTables = opt._metadata || (await database.introspection.getTables());
 	const table = dbTables.find(t => (t.schema == 'public' ? t.name : `${t.schema}.${t.name}`) === tableName);
 	if (!table) throw 'missing.';
-	io.done();
 
 	const columns = Object.fromEntries(table.columns.map(c => [c.name, c]));
+	const _types = Object.entries(types) as Entries<typeof types>;
 
-	for (const [key, { type, required = false, hasDefault = false }] of Object.entries(types) as Entries<typeof types>) {
-		io.start(`Checking column ${tableName}.${key}`);
+	for (const [i, [key, { type, required = false, default: _default = false }]] of _types.entries()) {
+		io.progress(i, _types.length, key);
 		const col = columns[key];
-		if (!col) throw 'missing.';
+		const actualType = type in schemaToIntrospected ? schemaToIntrospected[type as keyof typeof schemaToIntrospected] : type;
 		try {
-			if (col.dataType != type) throw `incorrect type "${col.dataType}", expected ${type}`;
+			if (!col) throw 'missing.';
+			if (col.dataType != actualType) throw `incorrect type "${col.dataType}", expected ${actualType} (${type})`;
 			if (col.isNullable != !required) throw required ? 'nullable' : 'not nullable';
-			if (col.hasDefaultValue != hasDefault) throw hasDefault ? 'missing default' : 'has default';
-			io.done();
+			if (col.hasDefaultValue != _default) throw _default ? 'missing default' : 'has default';
 		} catch (e: any) {
-			if (opt.strict) throw e;
-			io.warn(e);
+			if (opt.strict) throw `${tableName}.${key}: ${e}`;
+			io.warn(`${tableName}.${key}: ${e}`);
 		}
 		delete columns[key];
 	}
@@ -509,35 +743,6 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 	const unchecked = Object.keys(columns)
 		.map(c => `${tableName}.${c}`)
 		.join(', ');
-	if (!unchecked.length) io.done();
-	else if (opt.strict) throw unchecked;
-	else io.warn(unchecked);
-}
-
-export async function check(opt: CheckOptions): Promise<void> {
-	await io.run('Checking for sudo', 'which sudo');
-	await io.run('Checking for psql', 'which psql');
-
-	await _sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database').then(throwUnlessRows);
-
-	await _sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
-
-	io.start('Connecting to database');
-	await using _ = connect();
-	io.done();
-
-	io.start('Getting table metadata');
-	opt._metadata = await database.introspection.getTables();
-	const tables = Object.fromEntries(opt._metadata.map(t => [t.name, t]));
-	io.done();
-
-	for (const table of Object.keys(expectedTypes) as (keyof typeof expectedTypes)[]) {
-		await checkTableTypes(table, expectedTypes[table], opt);
-		delete tables[table];
-	}
-
-	io.start('Checking for extra tables');
-	const unchecked = Object.keys(tables).join(', ');
 	if (!unchecked.length) io.done();
 	else if (opt.strict) throw unchecked;
 	else io.warn(unchecked);
@@ -556,59 +761,6 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 		if (!plugin._hooks?.clean) continue;
 		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
 		await plugin._hooks?.clean(opt);
-	}
-}
-
-/**
- * Completely remove Axium from the database.
- */
-export async function uninstall(opt: OpOptions): Promise<void> {
-	for (const plugin of plugins.values()) {
-		if (!plugin._hooks?.remove) continue;
-		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
-		await plugin._hooks?.remove(opt);
-	}
-
-	await _sql('DROP DATABASE axium', 'Dropping database');
-	await _sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
-	await _sql('DROP USER axium', 'Dropping user');
-
-	await getHBA(opt)
-		.then(([content, writeBack]) => {
-			io.start('Checking for Axium HBA configuration');
-			if (!content.includes(pgHba)) throw 'missing.';
-			io.done();
-
-			io.start('Removing Axium HBA configuration');
-			const newContent = content.replace(pgHba, '');
-			io.done();
-
-			writeBack(newContent);
-		})
-		.catch(io.warn);
-}
-
-/**
- * Removes all data from tables.
- */
-export async function wipe(opt: OpOptions): Promise<void> {
-	for (const plugin of plugins.values()) {
-		if (!plugin._hooks?.db_wipe) continue;
-		io.log(styleText('whiteBright', 'Running plugin: '), plugin.name);
-		await plugin._hooks?.db_wipe(opt);
-	}
-
-	for (const table of ['users', 'passkeys', 'sessions', 'verifications'] as const) {
-		io.start(`Wiping ${table}`);
-		await database.deleteFrom(table).execute();
-		io.done();
-	}
-
-	for (const table of await database.introspection.getTables()) {
-		if (!table.name.startsWith('acl.')) continue;
-		const name = table.name as `acl.${string}`;
-		io.debug(`Wiping ${name}`);
-		await database.deleteFrom(name).execute();
 	}
 }
 

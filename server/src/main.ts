@@ -26,6 +26,14 @@ using rl = createInterface({
 	output: process.stdout,
 });
 
+async function rlConfirm(question: string = 'Is this ok'): Promise<void> {
+	const { data, error } = z
+		.stringbool()
+		.default(false)
+		.safeParse(await rl.question(question + ' [y/N]: ').catch(() => io.exit('Aborted.')));
+	if (error || !data) io.exit('Aborted.');
+}
+
 // Need these before Command is set up (e.g. for CLI integrations)
 const { safe, config: configFromCLI } = parseArgs({
 	options: {
@@ -104,6 +112,15 @@ interface OptDB extends OptCommon {
 	force: boolean;
 }
 
+async function dbInitTables() {
+	const schema = db.getFullSchema({ exclude: Object.keys(db.getUpgradeInfo().current) });
+	const delta = db.computeDelta({ tables: {}, indexes: [] }, schema);
+	if (db.deltaIsEmpty(delta)) return;
+	for (const text of db.displayDelta(delta)) console.log(text);
+	await rlConfirm();
+	await db.applyDelta(delta);
+}
+
 axiumDB
 	.command('init')
 	.description('Initialize the database')
@@ -113,6 +130,7 @@ axiumDB
 	.action(async (_localOpts, _: Command) => {
 		const opt = _.optsWithGlobals<OptDB & { skip: boolean; check: boolean }>();
 		await db.init(opt).catch(io.handleError);
+		await dbInitTables().catch(io.handleError);
 	});
 
 axiumDB
@@ -143,7 +161,24 @@ axiumDB
 				process.exit(2);
 			}
 
-		await db.uninstall(opt).catch(io.exit);
+		await db._sql('DROP DATABASE axium', 'Dropping database').catch(io.handleError);
+		await db._sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges').catch(io.handleError);
+		await db._sql('DROP USER axium', 'Dropping user').catch(io.handleError);
+
+		await db
+			.getHBA(opt)
+			.then(([content, writeBack]) => {
+				io.start('Checking for Axium HBA configuration');
+				if (!content.includes(db._pgHba)) throw 'missing.';
+				io.done();
+
+				io.start('Removing Axium HBA configuration');
+				const newContent = content.replace(db._pgHba, '');
+				io.done();
+
+				writeBack(newContent);
+			})
+			.catch(io.warn);
 	});
 
 axiumDB
@@ -151,25 +186,90 @@ axiumDB
 	.description('Wipe the database')
 	.addOption(opts.force)
 	.action(async (opt: OptDB) => {
-		const stats = await db.count('users', 'passkeys', 'sessions').catch(io.exit);
+		const tables = new Map<keyof db.Schema, string>();
 
-		if (!opt.force)
-			for (const key of ['users', 'passkeys', 'sessions'] as const) {
-				if (stats[key] == 0) continue;
-
-				io.warn(`Database has existing ${key}. Use --force if you really want to wipe the database.`);
-				process.exit(2);
+		for (const [plugin, schema] of db.getSchemaFiles()) {
+			for (const table of schema.wipe as (keyof db.Schema)[]) {
+				const maybePlugin = tables.get(table);
+				tables.set(table, maybePlugin ? `${maybePlugin}, ${plugin}` : plugin);
 			}
+		}
 
-		await db.wipe(opt).catch(io.exit);
+		if (!opt.force) {
+			const stats = await db.count(...tables.keys()).catch(io.exit);
+			const nonEmpty = Object.entries(stats)
+				.filter(([, v]) => v)
+				.map(([k]) => k);
+			if (nonEmpty.length) {
+				io.exit(`Some tables are not empty, use --force if you really want to wipe them: ${nonEmpty.join(', ')}`, 2);
+			}
+		}
+
+		const maxTableName = Math.max(5, ...Array.from(tables.keys()).map(t => t.length));
+
+		console.log('Table' + ' '.repeat(maxTableName - 5), '|', 'Plugin(s)');
+		console.log('-'.repeat(maxTableName), '|', '-'.repeat(20));
+		for (const [table, plugins] of [...tables].sort((a, b) => a[0].localeCompare(b[0]))) {
+			console.log(table + ' '.repeat(maxTableName - table.length), '|', plugins);
+		}
+
+		await rlConfirm('Are you sure you want to wipe these tables and any dependents');
+
+		await db.database.deleteFrom(Array.from(tables.keys())).execute().catch(io.handleError);
 	});
 
 axiumDB
 	.command('check')
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
-	.action(async (opt: OptDB & { strict: boolean }) => {
-		await db.check(opt).catch(io.exit);
+	.action(async (opt: db.CheckOptions) => {
+		const schema = db.getFullSchema();
+		await io.run('Checking for sudo', 'which sudo').catch(io.handleError);
+		await io.run('Checking for psql', 'which psql').catch(io.handleError);
+
+		const throwUnlessRows = (text: string) => {
+			if (text.includes('(0 rows)')) throw 'missing.';
+			return text;
+		};
+
+		await db
+			._sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database')
+			.then(throwUnlessRows)
+			.catch(io.handleError);
+
+		await db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows).catch(io.handleError);
+
+		io.start('Connecting to database');
+		await using _ = db.connect();
+		io.done();
+
+		io.start('Getting schema metadata');
+		const schemas = await db.database.introspection.getSchemas().catch(io.handleError);
+		io.done();
+
+		io.start('Checking for acl schema');
+		if (!schemas.find(s => s.name == 'acl')) io.exit('missing.');
+		io.done();
+
+		io.start('Getting table metadata');
+		const tablePromises = await Promise.all([
+			db.database.introspection.getTables(),
+			db.database.withSchema('acl').introspection.getTables(),
+		]).catch(io.handleError);
+		opt._metadata = tablePromises.flat();
+		const tables = Object.fromEntries(opt._metadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
+		io.done();
+
+		for (const [name, table] of Object.entries(schema.tables)) {
+			await db.checkTableTypes(name as keyof db.Schema, table, opt);
+			delete tables[name];
+		}
+
+		io.start('Checking for extra tables');
+		const unchecked = Object.keys(tables).join(', ');
+		if (!unchecked.length) io.done();
+		else if (opt.strict) io.exit(unchecked);
+		else io.warn(unchecked);
 	});
 
 axiumDB
@@ -184,6 +284,87 @@ axiumDB
 	.command('rotate-password')
 	.description('Generate a new password for the database user and update the config')
 	.action(db.rotatePassword);
+
+axiumDB
+	.command('schema')
+	.description('Get the JSON schema for the database configuration file')
+	.option('-j, --json', 'values are JSON encoded')
+	.action((opt: { json: boolean }) => {
+		const schema = z.toJSONSchema(db.SchemaFile, { io: 'input' });
+		console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
+	});
+
+axiumDB
+	.command('upgrade')
+	.alias('update')
+	.alias('up')
+	.description('Upgrade the database to the latest version')
+	.action(async (opt: OptDB) => {
+		const deltas: db.VersionDelta[] = [];
+
+		const { current } = db.getUpgradeInfo();
+
+		let empty = true;
+
+		for (const [name, schema] of db.getSchemaFiles()) {
+			if (!(name in current)) io.exit('Plugin is not initialized: ' + name);
+
+			const currentVersion = current[name];
+			const target = schema.latest ?? schema.versions.length - 1;
+
+			if (currentVersion >= target) continue;
+
+			let versions = schema.versions.slice(currentVersion + 1);
+
+			const v0 = schema.versions[0];
+			if (v0.delta) throw 'Initial version can not be a delta';
+
+			for (const [i, v] of versions.toReversed().entries()) {
+				if (v.delta || v == v0) continue;
+				versions = [db.computeDelta(v0, v), ...versions.slice(-i)];
+				break;
+			}
+
+			const delta = db.collapseDeltas(versions as db.VersionDelta[]);
+
+			deltas.push(delta);
+
+			console.log(
+				'Upgrading',
+				name,
+				styleText('dim', currentVersion.toString() + '->') + styleText('blueBright', target.toString()) + ':'
+			);
+			if (!db.deltaIsEmpty(delta)) empty = false;
+			for (const text of db.displayDelta(delta)) console.log(text);
+		}
+
+		if (empty) {
+			console.log('Already up to date.');
+			return;
+		}
+
+		await rlConfirm();
+
+		io.start('Computing delta');
+		let delta: db.VersionDelta;
+		try {
+			delta = db.collapseDeltas(deltas);
+			io.done();
+		} catch (e: any) {
+			io.exit(e);
+		}
+
+		io.start('Validating delta');
+		try {
+			db.validateDelta(delta);
+			io.done();
+		} catch (e: any) {
+			io.exit(e);
+		}
+
+		console.log('Applying delta.');
+		await db.applyDelta(delta).catch(io.handleError);
+	});
 
 interface OptConfig extends OptCommon {
 	global: boolean;
@@ -322,7 +503,6 @@ axiumPlugin
 		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 
 		await using _ = db.connect();
-		await plugin._hooks?.db_init?.({ force: false, ...opt, skip: true });
 	});
 
 const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);
@@ -532,6 +712,7 @@ program
 	.option('-s, --skip', 'Skip already initialized steps')
 	.action(async (opt: OptDB & { check: boolean; packagesDir?: string; skip: boolean }) => {
 		await db.init(opt).catch(io.handleError);
+		await dbInitTables().catch(io.handleError);
 		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
 	});
 

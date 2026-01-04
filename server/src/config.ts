@@ -270,7 +270,10 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	io.debug('Loaded config: ' + path);
 	for (const include of file.include ?? [])
 		await loadConfig(resolve(dirname(path), include), { ...options, optional: true, _markIncluded: true });
-	for (const plugin of file.plugins ?? []) await loadPlugin('server', plugin, path, options.safe);
+	for (const pluginPath of file.plugins ?? []) {
+		const plugin = await loadPlugin('server', pluginPath, path, options.safe);
+		if (!plugin) continue;
+	}
 }
 
 export async function loadDefaultConfigs(safe: boolean = false) {

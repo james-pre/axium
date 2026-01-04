@@ -8,7 +8,7 @@ logs
 .tmp.*
 _tmp.*
 *.tsbuildinfo
-server/schema.json
+server/schemas
 .*
 !.gitignore
 !.prettierignore

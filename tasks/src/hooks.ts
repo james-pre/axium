@@ -1,7 +1,4 @@
-import { done, start } from '@axium/core/node/io';
-import * as acl from '@axium/server/acl';
-import { count, createIndex, database, warnExists } from '@axium/server/database';
-import { sql } from 'kysely';
+import { count } from '@axium/server/database';
 import './common.js';
 import './server.js';
 
@@ -9,59 +6,4 @@ export async function statusText(): Promise<string> {
 	const { tasks, task_lists } = await count('tasks', 'task_lists');
 
 	return `${tasks} tasks, ${task_lists} lists`;
-}
-
-export async function db_init(): Promise<void> {
-	start('Creating table task_lists');
-	await database.schema
-		.createTable('task_lists')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('userId', 'uuid', col => col.notNull().references('users.id').onDelete('cascade'))
-		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('publicPermission', 'integer', col => col.notNull().defaultTo(0))
-		.addColumn('name', 'text', col => col.notNull())
-		.addColumn('description', 'text')
-		.execute()
-		.then(done)
-		.catch(warnExists);
-
-	await createIndex('task_lists', 'userId');
-	await acl.createTable('task_lists');
-
-	start('Creating table tasks');
-	await database.schema
-		.createTable('tasks')
-		.addColumn('id', 'uuid', col => col.primaryKey().defaultTo(sql`gen_random_uuid()`))
-		.addColumn('created', 'timestamptz', col => col.notNull().defaultTo(sql`now()`))
-		.addColumn('listId', 'uuid', col => col.notNull().references('task_lists.id').onDelete('cascade'))
-		.addColumn('summary', 'text', col => col.notNull())
-		.addColumn('description', 'text')
-		.addColumn('parentId', 'uuid', col => col.references('tasks.id').onDelete('cascade'))
-		.addColumn('completed', 'boolean', col => col.notNull().defaultTo(false))
-		.addColumn('due', 'timestamptz')
-		.execute()
-		.then(done)
-		.catch(warnExists);
-
-	await createIndex('tasks', 'listId');
-	await createIndex('tasks', 'parentId');
-}
-
-export async function db_wipe(): Promise<void> {
-	start('Wiping data from tasks');
-	await database.deleteFrom('tasks').execute().then(done);
-
-	start('Wiping data from task_lists');
-	await database.deleteFrom('task_lists').execute().then(done);
-
-	await acl.wipeTable('task_lists');
-}
-
-export async function remove() {
-	start('Dropping table tasks');
-	await database.schema.dropTable('tasks').execute().then(done);
-
-	start('Dropping table task_lists');
-	await database.schema.dropTable('task_lists').execute().then(done);
-	await acl.dropTable('task_lists');
 }

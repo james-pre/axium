@@ -1,0 +1,50 @@
+{
+	"$schema": "../server/schemas/db.json",
+	"format": 0,
+	"versions": [
+		{
+			"delta": false,
+			"tables": {
+				"storage": {
+					"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+					"hash": { "type": "bytea" },
+					"immutable": { "type": "bool", "required": true },
+					"modifiedAt": { "type": "timestamptz", "required": true, "default": "now()" },
+					"name": { "type": "text" },
+					"parentId": { "type": "uuid", "references": "storage.id", "onDelete": "cascade", "default": null },
+					"size": { "type": "integer", "required": true },
+					"trashedAt": { "type": "timestamptz" },
+					"type": { "type": "text", "required": true },
+					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+					"publicPermission": { "type": "integer", "required": true, "default": 0 },
+					"metadata": { "type": "jsonb", "required": true, "default": "{}" }
+				},
+				"acl.storage": {
+					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+					"itemId": { "type": "uuid", "required": true, "references": "storage.id", "onDelete": "cascade" },
+					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+					"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+				}
+			},
+			"indexes": ["storage:userId", "storage:parentId", "acl.storage:userId", "acl.storage:itemId"]
+		},
+		{
+			"delta": true,
+			"modify_tables": {
+				"acl.storage": {
+					"drop_columns": ["permission"],
+					"add_columns": {
+						"download": { "type": "boolean", "required": true, "default": false },
+						"read": { "type": "boolean", "required": true, "default": false },
+						"comment": { "type": "boolean", "required": true, "default": false },
+						"write": { "type": "boolean", "required": true, "default": false },
+						"manage": { "type": "boolean", "required": true, "default": false }
+					}
+				}
+			}
+		}
+	],
+	"wipe": ["storage", "acl.storage"],
+	"latest": 0
+}

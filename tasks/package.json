@@ -28,7 +28,8 @@
 	"files": [
 		"dist",
 		"lib",
-		"routes"
+		"routes",
+		"db.json"
 	],
 	"scripts": {
 		"build": "tsc"
@@ -46,7 +47,8 @@
 	"axium": {
 		"server": {
 			"routes": "routes",
-			"hooks": "./dist/hooks.js"
+			"hooks": "./dist/hooks.js",
+			"db": "./db.json"
 		},
 		"apps": [
 			{

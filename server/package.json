@@ -31,6 +31,7 @@
 		"assets",
 		"dist",
 		"routes",
+		"schemas",
 		"svelte.config.js",
 		"web.tsconfig.json",
 		"template.html",
@@ -42,6 +43,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
+		"build:schemas": "mkdir -p schemas && axium config schema -j > schemas/config.json && axium db schema -j > schemas/db.json",
 		"clean": "rm -rf build .svelte-kit node_modules/{.vite,.vite-temp}"
 	},
 	"peerDependencies": {

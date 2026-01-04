@@ -24,6 +24,7 @@ export const Plugin = z.looseObject({
 			routes: z.string().optional(),
 			/** CLI mixin path */
 			cli: z.string().optional(),
+			db: z.string().optional(),
 		})
 		.optional(),
 });
@@ -41,6 +42,7 @@ export interface PluginInternal extends Plugin {
 	/** @internal */
 	readonly _client?: ClientHooks;
 	readonly isServer: boolean;
+	readonly _db?: any;
 }
 
 export const plugins = new Map<string, PluginInternal>();
@@ -58,9 +60,7 @@ const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function')
 
 export const PluginServerHooks = z.object({
 	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })).optional(),
-	db_init: fn.optional(),
 	remove: fn.optional(),
-	db_wipe: fn.optional(),
 	clean: fn.optional(),
 });
 
@@ -72,9 +72,7 @@ interface _InitOptions {
 
 export interface ServerHooks {
 	statusText?(): string | Promise<string>;
-	db_init?: (opt: _InitOptions) => void | Promise<void>;
 	remove?: (opt: { force?: boolean }) => void | Promise<void>;
-	db_wipe?: (opt: { force?: boolean }) => void | Promise<void>;
 	clean?: (opt: Partial<_InitOptions>) => void | Promise<void>;
 }
 
