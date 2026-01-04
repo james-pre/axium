@@ -1,4 +1,3 @@
-import type { Permission } from '@axium/core/access';
 import { formatBytes } from '@axium/core/format';
 import { styleText } from 'node:util';
 import type { StorageItemMetadata } from './common.js';
@@ -26,8 +25,6 @@ export function colorItem(item: StorageItemMetadata): string {
 	if (archives.includes(type)) return styleText('red', name);
 	return name;
 }
-
-const publicPermString = ['---', 'r--', 'r-x', 'rwx', 'rwx', 'rwx'] as const satisfies { [key in Permission & number]: string };
 
 const __formatter = new Intl.DateTimeFormat('en-US', {
 	year: 'numeric',
@@ -61,8 +58,7 @@ export function* formatItems({ items, users, humanReadable }: FormatItemsConfig)
 
 		const type = item.type == 'inode/directory' ? 'd' : '-';
 		const ownerPerm = `r${item.immutable ? '-' : 'w'}x`;
-		const publicPerm = publicPermString[item.publicPermission];
 
-		yield `${type}${ownerPerm}${ownerPerm}${publicPerm}. ${owner.padEnd(nameWidth)} ${item.__size!.padStart(sizeWidth)} ${formatDate(item.modifiedAt)} ${colorItem(item)}`;
+		yield `${type}${ownerPerm}${ownerPerm}. ${owner.padEnd(nameWidth)} ${item.__size!.padStart(sizeWidth)} ${formatDate(item.modifiedAt)} ${colorItem(item)}`;
 	}
 }

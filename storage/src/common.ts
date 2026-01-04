@@ -1,4 +1,3 @@
-import { Permission } from '@axium/core/access';
 import * as z from 'zod';
 
 declare module '@axium/core/api' {
@@ -91,7 +90,6 @@ export const StorageItemUpdate = z
 		name: z.string(),
 		owner: z.uuid(),
 		trash: z.boolean(),
-		publicPermission: Permission,
 	})
 	.partial();
 
@@ -108,7 +106,6 @@ export const StorageItemMetadata = z.object({
 	name: z.string(),
 	userId: z.uuid(),
 	parentId: z.uuid().nullable(),
-	publicPermission: Permission,
 	size: z.int().nonnegative(),
 	trashedAt: z.coerce.date().nullable(),
 	type: z.string(),

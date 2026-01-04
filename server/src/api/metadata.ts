@@ -4,21 +4,17 @@ import { plugins } from '@axium/core/plugins';
 import { requestMethods } from '@axium/core/requests';
 import type { ZodType } from 'zod';
 import pkg from '../../package.json' with { type: 'json' };
-import { getSessionAndUser } from '../auth.js';
+import { requireSession } from '../auth.js';
 import { config } from '../config.js';
-import { error, getToken } from '../requests.js';
+import { error } from '../requests.js';
 import { addRoute, routes } from '../routes.js';
 
 addRoute({
 	path: '/api/metadata',
 	async GET(request): AsyncResult<'GET', 'metadata'> {
 		if (!config.debug) {
-			const token = getToken(request);
-			if (!token) error(401, 'Missing session token');
-			const session = await getSessionAndUser(token);
-			if (!session) error(401, 'Invalid session');
-			if (!session.user.isAdmin) error(403, 'User is not an administrator');
-			if (session.user.isSuspended) error(403, 'User is suspended');
+			const { user } = await requireSession(request);
+			if (!user.isAdmin) error(403, 'User is not an administrator');
 		}
 
 		return {

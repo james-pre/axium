@@ -1,4 +1,4 @@
-import type { PluginInternal, AsyncResult, UserInternal } from '@axium/core';
+import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
 import { plugins } from '@axium/core/plugins';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -6,17 +6,15 @@ import { omit } from 'utilium';
 import * as z from 'zod';
 import pkg from '../../package.json' with { type: 'json' };
 import { audit, events, getEvents } from '../audit.js';
-import { getSessionAndUser, type SessionInternal } from '../auth.js';
+import { requireSession, type SessionInternal } from '../auth.js';
 import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
-import { error, getToken, withError } from '../requests.js';
+import { error, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 
 async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
-	const token = getToken(req);
-	if (!token) error(401, 'Missing token');
+	const admin = await requireSession(req);
 
-	const admin = await getSessionAndUser(token).catch(withError('Invalid session', 400));
 	if (!admin.user.isAdmin) error(403, 'Not an administrator');
 
 	if (!config.admin_api) error(503, 'Admin API is disabled');

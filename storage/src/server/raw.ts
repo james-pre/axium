@@ -1,9 +1,8 @@
-import { Permission } from '@axium/core';
 import { audit } from '@axium/server/audit';
-import { checkAuthForItem, getSessionAndUser } from '@axium/server/auth';
+import { checkAuthForItem, requireSession } from '@axium/server/auth';
 import { config } from '@axium/server/config';
 import { database } from '@axium/server/database';
-import { error, getToken, withError } from '@axium/server/requests';
+import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
 import { linkSync, readFileSync, writeFileSync } from 'node:fs';
@@ -19,10 +18,7 @@ addRoute({
 	async PUT(request): Promise<StorageItemMetadata> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const token = getToken(request);
-		if (!token) error(401, 'Missing session token');
-
-		const { userId } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
+		const { userId } = await requireSession(request);
 
 		const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
 			withError('Could not fetch usage and/or limits')
@@ -40,7 +36,7 @@ addRoute({
 					.catch(() => error(400, 'Invalid parent ID'))
 			: null;
 
-		if (parentId) await checkAuthForItem(request, 'storage', parentId, Permission.Edit);
+		if (parentId) await checkAuthForItem(request, 'storage', parentId, { write: true });
 
 		const size = Number(request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
@@ -116,12 +112,10 @@ addRoute({
 addRoute({
 	path: '/raw/storage/:id',
 	params: { id: z.uuid() },
-	async GET(request, params) {
+	async GET(request, { id: itemId }) {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = params.id!;
-
-		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -134,12 +128,10 @@ addRoute({
 			},
 		});
 	},
-	async POST(request, params) {
+	async POST(request, { id: itemId }) {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const itemId = params.id!;
-
-		const { item, session } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Edit);
+		const { item, session } = await checkAuthForItem(request, 'storage', itemId, { write: true });
 
 		if (item.immutable) error(405, 'Item is immutable');
 		if (item.type == 'inode/directory') error(409, 'Directories do not have content');

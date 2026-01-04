@@ -3,48 +3,20 @@ import type { User } from './user.js';
 
 export interface AccessControl {
 	itemId: string;
-	userId: string;
+	userId?: string | null;
+	role?: string | null;
 	user?: User;
 	createdAt: Date;
-	permission: Permission;
 }
-
-const _Permission = {
-	None: 0,
-	Read: 1,
-	Comment: 2,
-	Edit: 3,
-	Manage: 5,
-} as const;
-
-export const Permission = Object.assign(z.enum(_Permission), _Permission);
-export type Permission = (typeof _Permission)[keyof typeof _Permission];
-
-export const permissionNames = {
-	[Permission.None]: 'No Permissions',
-	[Permission.Read]: 'Reader',
-	[Permission.Comment]: 'Commenter',
-	[Permission.Edit]: 'Editor',
-	[Permission.Manage]: 'Manager',
-} satisfies Record<Permission, string>;
 
 export interface AccessControllable {
 	userId: string;
-	publicPermission: Permission;
 	acl?: AccessControl[];
 }
 
-export const AccessMap = z.record(z.union([z.uuid(), z.literal('public')]), Permission);
+export const AccessMap = z.record(
+	z.union([z.uuid(), z.templateLiteral(['@', z.string()]), z.templateLiteral(['#', z.string()]), z.literal('public')]),
+	z.any()
+);
 
 export interface AccessMap extends z.infer<typeof AccessMap> {}
-
-export function hasPermission(item: AccessControllable, userId: string | undefined, permission: Permission): boolean {
-	if (item.publicPermission >= permission) return true;
-	if (!userId) return false;
-	if (item.userId == userId) return true;
-
-	const entry = item.acl?.find(entry => entry.userId == userId);
-	if (!entry) return false;
-
-	return entry.permission >= permission;
-}

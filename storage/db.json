@@ -12,7 +12,7 @@
 					"immutable": { "type": "bool", "required": true },
 					"modifiedAt": { "type": "timestamptz", "required": true, "default": "now()" },
 					"name": { "type": "text" },
-					"parentId": { "type": "uuid", "references": "storage.id", "onDelete": "cascade", "default": null },
+					"parentId": { "type": "uuid", "references": "storage.id", "onDelete": "cascade" },
 					"size": { "type": "integer", "required": true },
 					"trashedAt": { "type": "timestamptz" },
 					"type": { "type": "text", "required": true },
@@ -21,8 +21,8 @@
 					"metadata": { "type": "jsonb", "required": true, "default": "{}" }
 				},
 				"acl.storage": {
-					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-					"itemId": { "type": "uuid", "required": true, "references": "storage.id", "onDelete": "cascade" },
+					"userId": { "type": "uuid", "required": true, "primary": true, "references": "users.id", "onDelete": "cascade" },
+					"itemId": { "type": "uuid", "required": true, "primary": true, "references": "storage.id", "onDelete": "cascade" },
 					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
 					"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
 				}
@@ -31,20 +31,29 @@
 		},
 		{
 			"delta": true,
-			"modify_tables": {
+			"alter_tables": {
+				"storage": {
+					"drop_columns": ["publicPermission"]
+				},
 				"acl.storage": {
 					"drop_columns": ["permission"],
 					"add_columns": {
+						"role": { "type": "string", "primary": true },
 						"download": { "type": "boolean", "required": true, "default": false },
 						"read": { "type": "boolean", "required": true, "default": false },
 						"comment": { "type": "boolean", "required": true, "default": false },
 						"write": { "type": "boolean", "required": true, "default": false },
 						"manage": { "type": "boolean", "required": true, "default": false }
+					},
+					"alter_columns": {
+						"userId": { "ops": ["drop_required"] }
 					}
 				}
 			}
 		}
 	],
 	"wipe": ["storage", "acl.storage"],
-	"latest": 0
+	"acl_tables": {
+		"storage": "acl.storage"
+	}
 }

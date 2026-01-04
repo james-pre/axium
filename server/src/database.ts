@@ -1,4 +1,4 @@
-import type { Permission, Preferences, Severity, UserInternal } from '@axium/core';
+import type { Preferences, Severity, UserInternal } from '@axium/core';
 import * as io from '@axium/core/node/io';
 import { plugins } from '@axium/core/plugins';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
@@ -10,7 +10,7 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import pg from 'pg';
-import type { Entries } from 'utilium';
+import type { Entries, WithRequired } from 'utilium';
 import * as z from 'zod';
 import type { VerificationRole } from './auth.js';
 import config from './config.js';
@@ -19,10 +19,13 @@ import { dirs, systemDir } from './io.js';
 
 export interface DBAccessControl {
 	itemId: string;
-	userId: string;
+	userId?: string | null;
+	role?: string | null;
+	tag?: string | null;
 	createdAt: kysely.GeneratedAlways<Date>;
-	permission: Permission;
 }
+
+export type DBBool<K extends string> = { [key in K]?: boolean | null };
 
 export interface Schema {
 	users: {
@@ -73,7 +76,7 @@ export interface Schema {
 		source: string;
 		extra: kysely.Generated<Record<string, unknown>>;
 	};
-	[key: `acl.${string}`]: DBAccessControl;
+	[key: `acl.${string}`]: DBAccessControl & Record<string, unknown>;
 }
 
 export type Database = Kysely<Schema> & AsyncDisposable;
@@ -325,9 +328,18 @@ export const SchemaDecl = z.strictObject({
 
 export interface SchemaDecl extends z.infer<typeof SchemaDecl> {}
 
+export const ColumnDelta = z.strictObject({
+	type: z.string().optional(),
+	default: z.string().optional(),
+	ops: z.literal(['drop_default', 'set_required', 'drop_required']).array().optional(),
+});
+
+export interface ColumnDelta extends z.infer<typeof ColumnDelta> {}
+
 export const TableDelta = z.strictObject({
 	add_columns: z.record(z.string(), Column).optional().default({}),
 	drop_columns: z.string().array().optional().default([]),
+	alter_columns: z.record(z.string(), ColumnDelta).optional().default({}),
 });
 
 export interface TableDelta extends z.infer<typeof TableDelta> {}
@@ -336,7 +348,7 @@ export const VersionDelta = z.strictObject({
 	delta: z.literal(true),
 	add_tables: z.record(z.string(), Table).optional().default({}),
 	drop_tables: z.string().array().optional().default([]),
-	modify_tables: z.record(z.string(), TableDelta).optional().default({}),
+	alter_tables: z.record(z.string(), TableDelta).optional().default({}),
 	add_indexes: IndexString.array().optional().default([]),
 	drop_indexes: IndexString.array().optional().default([]),
 });
@@ -350,6 +362,8 @@ export const SchemaFile = z.object({
 	wipe: z.string().array().optional().default([]),
 	/** Set the latest version, defaults to the last one */
 	latest: z.number().nonnegative().optional(),
+	/** Maps tables to their ACL tables, e.g. `"storage": "acl.storage"` */
+	acl_tables: z.record(z.string(), z.string()).optional().default({}),
 });
 
 export interface SchemaFile extends z.infer<typeof SchemaFile> {}
@@ -451,14 +465,14 @@ export function applyDeltaToSchema(schema: SchemaDecl, delta: VersionDelta): voi
 		else schema.tables[tableName] = table;
 	}
 
-	for (const [tableName, tableDelta] of Object.entries(delta.modify_tables)) {
+	for (const [tableName, tableDelta] of Object.entries(delta.alter_tables)) {
 		if (tableName in schema.tables) applyTableDeltaToSchema(schema.tables[tableName], tableDelta);
 		else throw `Can't modify table ${tableName} because it does not exist`;
 	}
 }
 
 export function validateDelta(delta: VersionDelta): void {
-	const tableNames = [...Object.keys(delta.add_tables), ...Object.keys(delta.modify_tables), delta.drop_tables];
+	const tableNames = [...Object.keys(delta.add_tables), ...Object.keys(delta.alter_tables), delta.drop_tables];
 	const uniqueTables = new Set(tableNames);
 	for (const table of uniqueTables) {
 		tableNames.splice(tableNames.indexOf(table), 1);
@@ -468,7 +482,7 @@ export function validateDelta(delta: VersionDelta): void {
 		throw `Duplicate table name(s): ${tableNames.join(', ')}`;
 	}
 
-	for (const [tableName, table] of Object.entries(delta.modify_tables)) {
+	for (const [tableName, table] of Object.entries(delta.alter_tables)) {
 		const columnNames = [...Object.keys(table.add_columns), ...table.drop_columns];
 		const uniqueColumns = new Set(columnNames);
 
@@ -495,7 +509,7 @@ export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 			.map(name => [name, to.tables[name]])
 	);
 
-	const modify_tables: Record<string, TableDelta> = {};
+	const alter_tables: Record<string, TableDelta> = {};
 
 	for (const name of fromTables.intersection(toTables)) {
 		const fromTable = from.tables[name],
@@ -512,17 +526,32 @@ export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 				.map(colName => [colName, toTable[colName]])
 		);
 
-		const modify_columns = fromColumns.intersection(toColumns);
-		if (modify_columns.size) throw 'No support for modifying columns yet: ' + [...modify_columns].map(c => `${name}.${c}`).join(', ');
+		const alter_columns = Object.fromEntries(
+			toColumns
+				.intersection(fromColumns)
+				.keys()
+				.map(name => {
+					const fromCol = fromTable[name],
+						toCol = toTable[name];
+					const alter: WithRequired<ColumnDelta, 'ops'> = { ops: [] };
 
-		modify_tables[name] = { add_columns, drop_columns: Array.from(drop_columns) };
+					if ('default' in fromCol && !('default' in toCol)) alter.ops.push('drop_default');
+					else if (fromCol.default !== toCol.default) alter.default = toCol.default;
+					if (fromCol.type != toCol.type) alter.type = toCol.type;
+					if (fromCol.required != toCol.required) alter.ops.push(toCol.required ? 'set_required' : 'drop_required');
+
+					return [name, alter];
+				})
+		);
+
+		alter_tables[name] = { add_columns, drop_columns: Array.from(drop_columns), alter_columns };
 	}
 
 	return {
 		delta: true,
 		add_tables,
 		drop_tables: Array.from(fromTables.difference(toTables)),
-		modify_tables,
+		alter_tables,
 		drop_indexes: Array.from(fromIndexes.difference(toIndexes)),
 		add_indexes: Array.from(toIndexes.difference(fromIndexes)),
 	};
@@ -531,18 +560,18 @@ export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 export function collapseDeltas(deltas: VersionDelta[]): VersionDelta {
 	const add_tables: Record<string, Table> = {},
 		drop_tables: string[] = [],
-		modify_tables: Record<string, TableDelta> = {},
+		alter_tables: Record<string, TableDelta> = {},
 		add_indexes: IndexString[] = [],
 		drop_indexes: IndexString[] = [];
 
 	for (const delta of deltas) {
 		validateDelta(delta);
 
-		for (const [name, table] of Object.entries(delta.modify_tables)) {
+		for (const [name, table] of Object.entries(delta.alter_tables)) {
 			if (name in add_tables) {
 				applyTableDeltaToSchema(add_tables[name], table);
-			} else if (name in modify_tables) {
-				const existing = modify_tables[name];
+			} else if (name in alter_tables) {
+				const existing = alter_tables[name];
 
 				for (const [colName, column] of Object.entries(table.add_columns)) {
 					existing.add_columns[colName] = column;
@@ -552,7 +581,7 @@ export function collapseDeltas(deltas: VersionDelta[]): VersionDelta {
 					if (colName in existing.add_columns) delete existing.add_columns[colName];
 					else existing.drop_columns.push(colName);
 				}
-			} else modify_tables[name] = table;
+			} else alter_tables[name] = table;
 		}
 
 		for (const table of delta.drop_tables) {
@@ -562,7 +591,7 @@ export function collapseDeltas(deltas: VersionDelta[]): VersionDelta {
 
 		for (const [name, table] of Object.entries(delta.add_tables)) {
 			if (drop_tables.includes(name)) throw `Can't add and drop table "${name}" in the same change`;
-			if (name in modify_tables) throw `Can't add and modify table "${name}" in the same change`;
+			if (name in alter_tables) throw `Can't add and modify table "${name}" in the same change`;
 			add_tables[name] = table;
 		}
 
@@ -577,14 +606,14 @@ export function collapseDeltas(deltas: VersionDelta[]): VersionDelta {
 		}
 	}
 
-	return { delta: true, add_tables, drop_tables, modify_tables, add_indexes, drop_indexes };
+	return { delta: true, add_tables, drop_tables, alter_tables, add_indexes, drop_indexes };
 }
 
 export function deltaIsEmpty(delta: VersionDelta): boolean {
 	return (
 		!Object.keys(delta.add_tables).length &&
 		!delta.drop_tables.length &&
-		!Object.keys(delta.modify_tables).length &&
+		!Object.keys(delta.alter_tables).length &&
 		!delta.add_indexes.length &&
 		!delta.drop_indexes.length
 	);
@@ -599,7 +628,7 @@ const deltaColors = {
 export function* displayDelta(delta: VersionDelta): Generator<string> {
 	const tables = [
 		...Object.keys(delta.add_tables).map(name => ({ op: '+' as const, name })),
-		...Object.entries(delta.modify_tables).map(([name, changes]) => ({ op: '*' as const, name, changes })),
+		...Object.entries(delta.alter_tables).map(([name, changes]) => ({ op: '*' as const, name, changes })),
 		...delta.drop_tables.map(name => ({ op: '-' as const, name })),
 	];
 
@@ -610,15 +639,23 @@ export function* displayDelta(delta: VersionDelta): Generator<string> {
 
 		if (table.op != '*') continue;
 
-		const changes = [
+		const columns = [
 			...Object.keys(table.changes.add_columns).map(name => ({ op: '+' as const, name })),
 			...table.changes.drop_columns.map(name => ({ op: '-' as const, name })),
+			...Object.entries(table.changes.alter_columns).map(([name, changes]) => ({ op: '*' as const, name, ...changes })),
 		];
 
-		changes.sort((a, b) => a.name.localeCompare(b.name));
+		columns.sort((a, b) => a.name.localeCompare(b.name));
 
-		for (const change of changes) {
-			yield '\t' + styleText(deltaColors[change.op], `${change.op} ${change.name}`);
+		for (const column of columns) {
+			const columnChanges =
+				column.op == '*'
+					? [...(column.ops ?? []), 'default' in column && 'set_default', 'type' in column && 'set_type']
+							.filter((e): e is string => !!e)
+							.map(e => e.replaceAll('_', ' '))
+							.join(', ')
+					: null;
+			yield '\t' + styleText(deltaColors[column.op], `${column.op} ${column.name}${column.op != '*' ? '' : ': ' + columnChanges}`);
 		}
 	}
 
@@ -653,15 +690,15 @@ export async function applyDelta(delta: VersionDelta): Promise<void> {
 	try {
 		for (const [tableName, table] of Object.entries(delta.add_tables)) {
 			io.start('Adding table ' + tableName);
-			const create = tx.schema.createTable(tableName);
+			let query = tx.schema.createTable(tableName);
 			const columns = Object.entries(table);
 			const pkColumns = columns.filter(([, column]) => column.primary).map(([name]) => name);
 			const needsPKConstraint = pkColumns.length > 1;
 			for (const [colName, column] of columns) {
-				create.addColumn(colName, sql`${column.type}`, columnFromSchema(column, !needsPKConstraint));
+				query = query.addColumn(colName, sql`${column.type}`, columnFromSchema(column, !needsPKConstraint));
 			}
-			if (needsPKConstraint) create.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns as any);
-			await create.execute();
+			if (needsPKConstraint) query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns as any);
+			await query.execute();
 			io.done();
 		}
 
@@ -671,15 +708,34 @@ export async function applyDelta(delta: VersionDelta): Promise<void> {
 			io.done();
 		}
 
-		for (const [tableName, tableDelta] of Object.entries(delta.modify_tables)) {
+		for (const [tableName, tableDelta] of Object.entries(delta.alter_tables)) {
 			io.start(`Modifying table ${tableName}`);
-			const query = tx.schema.alterTable(tableName) as any as kysely.AlterTableColumnAlteringBuilder;
+			let query = tx.schema.alterTable(tableName) as any as kysely.AlterTableColumnAlteringBuilder;
 			for (const colName of tableDelta.drop_columns) {
-				query.dropColumn(colName);
+				query = query.dropColumn(colName);
 			}
 
 			for (const [colName, column] of Object.entries(tableDelta.add_columns)) {
-				query.addColumn(colName, sql`${column.type}`, columnFromSchema(column, false));
+				query = query.addColumn(colName, sql`${column.type}`, columnFromSchema(column, false));
+			}
+
+			for (const [colName, column] of Object.entries(tableDelta.alter_columns)) {
+				if ('default' in column) query = query.alterColumn(colName, col => col.setDefault(sql`${column.default}`));
+				if (column.type) query = query.alterColumn(colName, col => col.setDataType(sql`${column.type}`));
+				for (const op of column.ops ?? []) {
+					switch (op) {
+						case 'drop_default':
+							if ('default' in column) throw 'Cannot set and drop default at the same time';
+							query = query.alterColumn(colName, col => col.dropDefault());
+							break;
+						case 'set_required':
+							query = query.alterColumn(colName, col => col.setNotNull());
+							break;
+						case 'drop_required':
+							query = query.alterColumn(colName, col => col.dropNotNull());
+							break;
+					}
+				}
 			}
 
 			await query.execute();

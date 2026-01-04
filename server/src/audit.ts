@@ -45,7 +45,6 @@ export interface $EventTypes {
 	user_deleted: never;
 	new_session: { id: string };
 	logout: { sessions: string[] };
-	acl_id_mismatch: { item: string };
 	admin_change: { user: string };
 	admin_api: { route: string; session: string };
 	response_error: { stack?: string };
@@ -146,14 +145,6 @@ addEvent({
 	severity: Severity.Notice,
 	tags: ['cli'],
 	extra: { user: z.string() },
-});
-addEvent({
-	source: '@axium/server',
-	name: 'acl_id_mismatch',
-	severity: Severity.Critical,
-	tags: ['acl', 'auth'],
-	extra: { item: z.string() },
-	noAutoSuspend: true,
 });
 addEvent({
 	source: '@axium/server',

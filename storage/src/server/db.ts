@@ -1,4 +1,3 @@
-import type { Permission } from '@axium/core';
 import { config } from '@axium/server/config';
 import { database, type Schema } from '@axium/server/database';
 import { withError } from '@axium/server/requests';
@@ -22,9 +21,10 @@ declare module '@axium/server/database' {
 			trashedAt: Date | null;
 			type: string;
 			userId: string;
-			publicPermission: Generated<Permission>;
 			metadata: Generated<Record<string, unknown>>;
 		};
+
+		'acl.storage': DBAccessControl & DBBool<'read' | 'write' | 'manage' | 'download'>;
 	}
 }
 

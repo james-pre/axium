@@ -1,4 +1,4 @@
-import { Permission, type AsyncResult, type Result } from '@axium/core';
+import type { AsyncResult, Result, UserInternal } from '@axium/core';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
 import { config } from '@axium/server/config';
 import { database, type Schema } from '@axium/server/database';
@@ -11,7 +11,7 @@ import type { StorageItemMetadata } from '../common.js';
 import { batchFormatVersion, StorageItemUpdate, syncProtocolVersion } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { getUserStats, deleteRecursive, getRecursive, parseItem, type SelectedItem } from './db.js';
+import { deleteRecursive, getRecursive, getUserStats, parseItem } from './db.js';
 
 addRoute({
 	path: '/api/storage',
@@ -30,7 +30,7 @@ addRoute({
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
 		return parseItem(item);
 	},
@@ -39,10 +39,9 @@ addRoute({
 
 		const body = await parseBody(request, StorageItemUpdate);
 
-		await checkAuthForItem(request, 'storage', itemId, Permission.Manage);
+		await checkAuthForItem(request, 'storage', itemId, { manage: true });
 
-		const values: Partial<Pick<StorageItemMetadata, 'publicPermission' | 'trashedAt' | 'userId' | 'name'>> = {};
-		if ('publicPermission' in body) values.publicPermission = body.publicPermission;
+		const values: Partial<Pick<StorageItemMetadata, 'trashedAt' | 'userId' | 'name'>> = {};
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
 		if ('owner' in body) values.userId = body.owner;
 		if ('name' in body) values.name = body.name;
@@ -62,7 +61,7 @@ addRoute({
 	async DELETE(request, { id: itemId }): AsyncResult<'DELETE', 'storage/item/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const auth = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Manage);
+		const auth = await checkAuthForItem(request, 'storage', itemId, { manage: true });
 		const item = parseItem(auth.item);
 
 		await deleteRecursive(item.type != 'inode/directory', itemId);
@@ -77,7 +76,7 @@ addRoute({
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -98,7 +97,7 @@ addRoute({
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id/recursive'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		const { item } = await checkAuthForItem<SelectedItem>(request, 'storage', itemId, Permission.Read);
+		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -155,14 +154,14 @@ addRoute({
 	},
 });
 
-function existsInACL(column: 'id' | 'parentId', userId: string) {
+function existsInACL(column: 'id' | 'parentId', user: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
 	return (eb: ExpressionBuilder<Schema & { item: Schema['storage'] }, 'item'>) =>
 		eb.exists(
 			eb
 				.selectFrom('acl.storage')
 				.whereRef('itemId', '=', `item.${column}`)
-				.where('userId', '=', userId)
-				.where('permission', '!=', Permission.None)
+				.where('userId', '=', user.id)
+				.where(eb => eb.or([eb('userId', '=', user.id), eb('role', 'in', user.roles), eb('tag', 'in', user.tags)]))
 		);
 }
 
@@ -172,14 +171,14 @@ addRoute({
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/shared'> {
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 
-		await checkAuthForUser(request, userId);
+		const { user } = await checkAuthForUser(request, userId);
 
 		const items = await database
 			.selectFrom('storage as item')
 			.selectAll('item')
 			.where('trashedAt', 'is', null)
-			.where(existsInACL('id', userId))
-			.where(eb => eb.not(existsInACL('parentId', userId)))
+			.where(existsInACL('id', user))
+			.where(eb => eb.not(existsInACL('parentId', user)))
 			.execute()
 			.catch(withError('Could not get storage items'));
 

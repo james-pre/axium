@@ -1,10 +1,10 @@
-import { Permission, type AccessControl, type AsyncResult } from '@axium/core';
+import type { AccessControl, AsyncResult } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { audit } from '@axium/server/audit';
-import { getSessionAndUser } from '@axium/server/auth';
+import { requireSession } from '@axium/server/auth';
 import config from '@axium/server/config';
 import { database } from '@axium/server/database';
-import { getToken, withError } from '@axium/server/requests';
+import { withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import { createHash } from 'node:crypto';
@@ -13,7 +13,7 @@ import { join } from 'node:path/posix';
 import * as z from 'zod';
 import { StorageBatchUpdate, type StorageItemMetadata } from '../common.js';
 import { getLimits } from './config.js';
-import { getUserStats, getRecursiveIds, parseItem } from './db.js';
+import { getRecursiveIds, getUserStats, parseItem } from './db.js';
 
 addRoute({
 	path: '/api/storage/batch',
@@ -21,11 +21,7 @@ addRoute({
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 		if (!config.storage.batch.enabled) error(503, 'Batch updates are disabled');
 
-		const token = getToken(req);
-		if (!token) error(401, 'Missing session token');
-
-		const { userId, user } = await getSessionAndUser(token).catch(withError('Invalid session token', 401));
-		if (user.isSuspended) error(403, 'User is suspended');
+		const { userId } = await requireSession(req);
 
 		const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
 			withError('Could not fetch usage and/or limits')
@@ -67,14 +63,12 @@ addRoute({
 			.selectFrom('storage')
 			.selectAll()
 			.where('id', 'in', [...deletedIds, ...Object.keys(header.metadata), ...changedIds])
-			.select(acl.from('storage', { onlyId: userId }))
-			.$castTo<StorageItemMetadata & { acl?: AccessControl[] }>()
+			.select(acl.from('acl.storage', { userId }))
+			.$castTo<acl.WithACL<'storage'>>()
 			.execute()
 			.catch(withError('Item(s) not found', 404));
 
 		for (const item of items) {
-			const permission = !changedIds.has(item.id) ? Permission.Manage : Permission.Edit;
-
 			if (changedIds.has(item.id)) {
 				// Extra checks for content changes
 
@@ -85,18 +79,11 @@ addRoute({
 				if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'Item size exceeds maximum size: ' + item.id);
 			}
 
-			if (item.publicPermission >= permission) continue;
 			if (userId == item.userId) continue;
 
 			if (!item.acl || !item.acl.length) error(403, 'Missing permission for item: ' + item.id);
 
-			const [control] = item.acl;
-			if (control.userId !== userId) {
-				await audit('acl_id_mismatch', userId, { item: item.id });
-				error(500, 'Access control entry does not match expected user ID');
-			}
-
-			if (control.permission >= permission) continue;
+			acl.check(item.acl, changedIds.has(item.id) ? { write: true } : { manage: true });
 
 			error(403, 'Missing permission for item: ' + item.id);
 		}
@@ -135,8 +122,7 @@ addRoute({
 			for (const item of deleted) results.set(item.id, parseItem(item));
 
 			for (const [itemId, update] of Object.entries(header.metadata)) {
-				const values: Partial<Pick<StorageItemMetadata, 'publicPermission' | 'trashedAt' | 'userId' | 'name'>> = {};
-				if ('publicPermission' in update) values.publicPermission = update.publicPermission;
+				const values: Partial<Pick<StorageItemMetadata, 'trashedAt' | 'userId' | 'name'>> = {};
 				if ('trash' in update) values.trashedAt = update.trash ? new Date() : null;
 				if ('owner' in update) values.userId = update.owner;
 				if ('name' in update) values.name = update.name;

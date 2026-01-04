@@ -31,7 +31,30 @@
 				}
 			},
 			"indexes": ["task_lists:userId", "acl.task_lists:userId", "acl.task_lists:itemId", "tasks:listId", "tasks:parentId"]
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"task_lists": {
+					"drop_columns": ["publicPermission"]
+				},
+				"acl.task_lists": {
+					"drop_columns": ["permission"],
+					"add_columns": {
+						"role": { "type": "string", "primary": true },
+						"read": { "type": "boolean", "required": true, "default": false },
+						"edit": { "type": "boolean", "required": true, "default": false },
+						"manage": { "type": "boolean", "required": true, "default": false }
+					},
+					"alter_columns": {
+						"userId": { "ops": ["drop_required"] }
+					}
+				}
+			}
 		}
 	],
-	"wipe": ["task_lists", "tasks", "acl.task_lists"]
+	"wipe": ["task_lists", "tasks", "acl.task_lists"],
+	"acl_tables": {
+		"task_lists": "acl.task_lists"
+	}
 }

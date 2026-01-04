@@ -1,13 +1,12 @@
-import { Permission } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import type { Generated, GeneratedAlways } from 'kysely';
-import * as z from 'zod';
-import { TaskInit, TaskListInit, TaskListUpdate, type Task, type TaskList } from './common.js';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
+import * as z from 'zod';
+import { TaskInit, TaskListInit, TaskListUpdate, type Task } from './common.js';
 
 declare module '@axium/server/database' {
 	export interface Schema {
@@ -25,10 +24,10 @@ declare module '@axium/server/database' {
 			id: GeneratedAlways<string>;
 			userId: string;
 			created: GeneratedAlways<Date>;
-			publicPermission: Generated<Permission>;
 			name: string;
 			description?: string | null;
 		};
+		'acl.task_lists': DBAccessControl & DBBool<'read' | 'edit' | 'manage'>;
 	}
 }
 
@@ -71,7 +70,7 @@ addRoute({
 	path: '/api/task_lists/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id }): AsyncResult<'GET', 'task_lists/:id'> {
-		const { item } = await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Read);
+		const { item } = await checkAuthForItem(request, 'task_lists', id, { read: true });
 
 		const tasks = await database
 			.selectFrom('tasks')
@@ -85,7 +84,7 @@ addRoute({
 	async PUT(request, { id: listId }): AsyncResult<'PUT', 'task_lists/:id'> {
 		const init = await parseBody(request, TaskInit.omit({ listId: true }));
 
-		await checkAuthForItem<TaskList>(request, 'task_lists', listId, Permission.Edit);
+		await checkAuthForItem(request, 'task_lists', listId, { edit: true });
 
 		return await database
 			.insertInto('tasks')
@@ -95,7 +94,7 @@ addRoute({
 			.catch(withError('Could not update task list'));
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'task_lists/:id'> {
-		await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Edit);
+		await checkAuthForItem(request, 'task_lists', id, { edit: true });
 
 		const init = await parseBody(request, TaskListInit);
 
@@ -110,7 +109,7 @@ addRoute({
 	async POST(request, { id }): AsyncResult<'POST', 'task_lists/:id'> {
 		const body = await parseBody(request, TaskListUpdate);
 
-		await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Edit);
+		await checkAuthForItem(request, 'task_lists', id, { edit: true });
 
 		if (typeof body.all_completed == 'boolean') {
 			await database
@@ -126,7 +125,7 @@ addRoute({
 		return {};
 	},
 	async DELETE(request, { id }): AsyncResult<'DELETE', 'task_lists/:id'> {
-		await checkAuthForItem<TaskList>(request, 'task_lists', id, Permission.Manage);
+		await checkAuthForItem(request, 'task_lists', id, { manage: true });
 
 		return await database
 			.deleteFrom('task_lists')
@@ -150,7 +149,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not get task'));
 
-		await checkAuthForItem(request, 'task_lists', task.listId, Permission.Edit);
+		await checkAuthForItem(request, 'task_lists', task.listId, { edit: true });
 
 		return await database
 			.updateTable('tasks')
@@ -168,7 +167,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not fetch task'));
 
-		await checkAuthForItem(request, 'task_lists', task.listId, Permission.Manage);
+		await checkAuthForItem(request, 'task_lists', task.listId, { manage: true });
 
 		return await database
 			.deleteFrom('tasks')

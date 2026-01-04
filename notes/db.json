@@ -23,7 +23,30 @@
 				}
 			},
 			"indexes": ["notes:userId", "acl.notes:userId", "acl.notes:itemId"]
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"notes": {
+					"drop_columns": ["publicPermission"]
+				},
+				"acl.notes": {
+					"drop_columns": ["permission"],
+					"add_columns": {
+						"role": { "type": "string", "primary": true },
+						"read": { "type": "boolean", "required": true, "default": false },
+						"edit": { "type": "boolean", "required": true, "default": false },
+						"manage": { "type": "boolean", "required": true, "default": false }
+					},
+					"alter_columns": {
+						"userId": { "ops": ["drop_required"] }
+					}
+				}
+			}
 		}
 	],
-	"wipe": ["notes", "acl.notes"]
+	"wipe": ["notes", "acl.notes"],
+	"acl_tables": {
+		"notes": "acl.notes"
+	}
 }

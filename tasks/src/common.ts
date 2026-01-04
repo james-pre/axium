@@ -1,4 +1,3 @@
-import type { Permission } from '@axium/core';
 import type { WithRequired } from 'utilium';
 import * as z from 'zod';
 
@@ -32,7 +31,6 @@ export interface TaskList extends TaskListInit {
 	id: string;
 	userId: string;
 	created: Date;
-	publicPermission: Permission;
 	tasks?: Task[];
 }
 

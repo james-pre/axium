@@ -423,7 +423,7 @@ axiumDB
 				...(['name', 'current', 'latest', 'available'] as const).map(key =>
 					styleText(
 						i === 0 ? ['whiteBright', 'underline'] : entry[key] === undefined ? 'none' : [],
-						entry[key].padEnd(lengths[key])
+						entry[key].padStart(lengths[key])
 					)
 				)
 			);

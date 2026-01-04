@@ -1,5 +1,5 @@
-import type { AccessControl, Passkey, Permission, Session, UserInternal, Verification } from '@axium/core';
-import type { Insertable } from 'kysely';
+import type { Passkey, Session, UserInternal, Verification } from '@axium/core';
+import type { Insertable, Selectable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit } from 'utilium';
 import * as acl from './acl.js';
@@ -61,6 +61,18 @@ export async function getSession(sessionId: string): Promise<SessionInternal> {
 		.where('id', '=', sessionId)
 		.where('sessions.expires', '>', new Date())
 		.executeTakeFirstOrThrow();
+}
+
+export async function requireSession(request: Request, sensitive: boolean = false): Promise<SessionAndUser> {
+	const token = getToken(request, sensitive);
+
+	if (!token) error(401, 'Missing session token');
+
+	const session = await getSessionAndUser(token).catch(withError('Invalid or expired session token', 401));
+
+	if (session.user.isSuspended) error(403, 'User is suspended');
+
+	return session;
 }
 
 export async function getSessions(userId: string): Promise<SessionInternal[]> {
@@ -128,13 +140,7 @@ export interface UserAuthResult extends SessionAndUser {
 }
 
 export async function checkAuthForUser(request: Request, userId: string, sensitive: boolean = false): Promise<UserAuthResult> {
-	const token = getToken(request, sensitive);
-
-	if (!token) throw error(401, 'Missing token');
-
-	const session = await getSessionAndUser(token).catch(withError('Invalid or expired session', 401));
-
-	if (session.user.isSuspended) error(403, 'User is suspended');
+	const session = await requireSession(request);
 
 	if (session.userId !== userId) {
 		if (!session.user?.isAdmin) error(403, 'User ID mismatch');
@@ -151,58 +157,51 @@ export async function checkAuthForUser(request: Request, userId: string, sensiti
 	return Object.assign(session, { accessor: session.user });
 }
 
-export interface ItemAuthResult<T extends acl.Target> {
+export interface ItemAuthResult<TB extends acl.TargetName> {
 	fromACL: boolean;
-	item: T;
+	item: Selectable<Schema[TB]>;
 	user?: UserInternal;
 	session?: SessionInternal;
 }
 
-export async function checkAuthForItem<const V extends acl.Target>(
+export async function checkAuthForItem<const TB extends acl.TargetName>(
 	request: Request,
-	itemType: acl.TargetName,
+	itemType: TB,
 	itemId: string,
-	permission: Permission
-) {
+	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>
+): Promise<ItemAuthResult<TB>> {
 	const token = getToken(request, false);
 	if (!token) error(401, 'Missing token');
 
 	const session = await getSessionAndUser(token).catch(() => null);
+	const { userId, user } = session ?? {};
 
-	const item: V & { acl?: AccessControl[] } = await db
-		.selectFrom(itemType)
+	const item: acl.WithACL<TB> = await db
+		.selectFrom(itemType as any)
 		.selectAll()
 		.where('id', '=', itemId)
-		.$if(!!session, eb => eb.select(acl.from(itemType, { onlyId: session!.userId })))
-		.$castTo<V & { acl?: AccessControl[] }>()
+		.$if(!!userId, eb => eb.select(acl.from(`acl.${itemType}`, { userId })))
+		.$castTo<acl.WithACL<TB>>()
 		.executeTakeFirstOrThrow()
 		.catch(withError('Item not found', 404));
 
-	const result: ItemAuthResult<V> = {
+	const result: ItemAuthResult<TB> = {
 		session: session ? omit(session, 'user') : undefined,
-		item: omit(item, 'acl') as any as V,
-		user: session?.user,
+		item: omit(item, 'acl') as Selectable<Schema[TB]>,
+		user,
 		fromACL: false,
 	};
 
-	if (item.publicPermission >= permission) return result;
+	if (!session || !user) error(403, 'Access denied');
+	if (user.isSuspended) error(403, 'User is suspended');
 
-	if (!session) error(403, 'Access denied');
-	if (session.user.isSuspended) error(403, 'User is suspended');
-
-	if (session.userId == item.userId) return result;
+	if (userId == item.userId) return result;
 
 	result.fromACL = true;
 
 	if (!item.acl || !item.acl.length) error(403, 'Access denied');
 
-	const [control] = item.acl;
-	if (control.userId !== session.userId) {
-		await audit('acl_id_mismatch', session.userId, { item: itemId });
-		error(500, 'Access control entry does not match session user');
-	}
+	if (acl.check(item.acl, permissions).size) error(403, 'Access denied');
 
-	if (control.permission >= permission) return result;
-
-	error(403, 'Access denied');
+	return result;
 }
