@@ -7,10 +7,10 @@
 	import { copy } from '@axium/client/clipboard';
 	import { download } from 'utilium/dom.js';
 
-	let { note = $bindable(), notes = $bindable() }: { note: Note; notes?: Note[] } = $props();
+	let { note = $bindable(), notes = $bindable(), pageMode = false }: { note: Note; notes?: Note[]; pageMode?: boolean } = $props();
 </script>
 
-<div class="note">
+<div class={['note', pageMode && 'full-page']}>
 	<div class="note-header">
 		<input
 			type="text"
@@ -77,6 +77,20 @@
 		padding: 1em;
 		border: 1px solid var(--bg-accent);
 		background-color: var(--bg-alt);
+		height: fit-content;
+		max-height: 40em;
+		anchor-name: --note;
+
+		textarea {
+			resize: none;
+			field-sizing: content;
+			height: max-content;
+		}
+	}
+
+	.note.full-page {
+		max-height: unset;
+		height: 100%;
 	}
 
 	.note-header {

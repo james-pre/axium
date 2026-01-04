@@ -32,7 +32,7 @@
 		</div>
 	{/if}
 
-	<Note note={data.note} />
+	<Note note={data.note} pageMode />
 </div>
 
 <style>
