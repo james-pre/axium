@@ -302,17 +302,23 @@ axiumDB
 	.action(async (opt: OptDB) => {
 		const deltas: db.VersionDelta[] = [];
 
-		const { current } = db.getUpgradeInfo();
+		const info = db.getUpgradeInfo();
 
 		let empty = true;
 
-		for (const [name, schema] of db.getSchemaFiles()) {
-			if (!(name in current)) io.exit('Plugin is not initialized: ' + name);
+		const from: Record<string, number> = {},
+			to: Record<string, number> = {};
 
-			const currentVersion = current[name];
+		for (const [name, schema] of db.getSchemaFiles()) {
+			if (!(name in info.current)) io.exit('Plugin is not initialized: ' + name);
+
+			const currentVersion = info.current[name];
 			const target = schema.latest ?? schema.versions.length - 1;
 
 			if (currentVersion >= target) continue;
+
+			from[name] = currentVersion;
+			to[name] = target;
 
 			let versions = schema.versions.slice(currentVersion + 1);
 
@@ -364,6 +370,64 @@ axiumDB
 
 		console.log('Applying delta.');
 		await db.applyDelta(delta).catch(io.handleError);
+
+		info.upgrades.push({ timestamp: new Date(), from, to });
+		db.setUpgradeInfo(info);
+	});
+
+axiumDB
+	.command('upgrade-history')
+	.alias('update-history')
+	.description('Show the history of database upgrades')
+	.action(() => {
+		const info = db.getUpgradeInfo();
+
+		if (!info.upgrades.length) {
+			console.log('No upgrade history.');
+			return;
+		}
+
+		for (const up of info.upgrades) {
+			console.log(styleText(['whiteBright', 'underline'], up.timestamp.toString()) + ':');
+
+			for (const [name, from] of Object.entries(up.from)) {
+				console.log(name, styleText('dim', from.toString() + '->') + styleText('blueBright', up.to[name].toString()) + ':');
+			}
+		}
+	});
+
+axiumDB
+	.command('versions')
+	.description('Show information about database versions')
+	.action(() => {
+		const { current: currentVersions } = db.getUpgradeInfo();
+
+		const lengths = { name: 4, current: 7, latest: 6, available: 9 };
+		const entries: { name: string; current: string; latest: string; available: string }[] = [
+			{ name: 'Name', current: 'Current', latest: 'Latest', available: 'Available' },
+		];
+
+		for (const [name, file] of db.getSchemaFiles()) {
+			const available = (file.versions.length - 1).toString();
+			const latest = (file.latest ?? available).toString();
+			const current = currentVersions[name]?.toString();
+			entries.push({ name, latest, available, current });
+			lengths.name = Math.max(lengths.name || 0, name.length);
+			lengths.current = Math.max(lengths.current || 0, current.length);
+			lengths.latest = Math.max(lengths.latest || 0, latest.length);
+			lengths.available = Math.max(lengths.available || 0, available.length);
+		}
+
+		for (const [i, entry] of entries.entries()) {
+			console.log(
+				...(['name', 'current', 'latest', 'available'] as const).map(key =>
+					styleText(
+						i === 0 ? ['whiteBright', 'underline'] : entry[key] === undefined ? 'none' : [],
+						entry[key].padEnd(lengths[key])
+					)
+				)
+			);
+		}
 	});
 
 interface OptConfig extends OptCommon {
