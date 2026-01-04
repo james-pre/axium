@@ -381,9 +381,11 @@ export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl {
 
 		let currentSchema: SchemaDecl = { tables: {}, indexes: [] };
 
-		for (const version of file.versions) {
-			if (version.delta) applyDeltaToSchema(currentSchema, version);
-			else currentSchema = version;
+		for (const [version, schema] of file.versions.entries()) {
+			if (schema.delta) applyDeltaToSchema(currentSchema, schema);
+			else currentSchema = schema;
+
+			if (version === file.latest) break;
 		}
 
 		for (const name of Object.keys(currentSchema.tables)) {

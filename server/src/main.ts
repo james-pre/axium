@@ -223,7 +223,6 @@ axiumDB
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
 	.action(async (opt: db.CheckOptions) => {
-		const schema = db.getFullSchema();
 		await io.run('Checking for sudo', 'which sudo').catch(io.handleError);
 		await io.run('Checking for psql', 'which psql').catch(io.handleError);
 
@@ -260,6 +259,7 @@ axiumDB
 		const tables = Object.fromEntries(opt._metadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
 		io.done();
 
+		const schema = db.getFullSchema();
 		for (const [name, table] of Object.entries(schema.tables)) {
 			await db.checkTableTypes(name as keyof db.Schema, table, opt);
 			delete tables[name];
