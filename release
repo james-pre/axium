@@ -1,0 +1,44 @@
+#!/bin/bash
+
+set -euo pipefail
+
+script_dir="$(dirname "${BASH_SOURCE[0]}")"
+root="$(realpath "$script_dir")"
+
+packages=("client" "core" "notes" "server" "storage" "tasks")
+
+sub="${1:-help}"
+
+case "$sub" in
+	"list" | "ls")
+		{ for pkg in "${packages[@]}"; do
+			echo "$pkg" $(jq ".version" "$root/$pkg/package.json" | tr -d '\"')
+		done
+		} | column -t
+		;;
+	"tag-releases")
+		for pkg in "${packages[@]}"; do
+			v="$(jq -r ".version" "$root/$pkg/package.json")"
+			tag="$pkg@$v"
+			if git -C "$root" rev-parse "$tag" >/dev/null 2>&1; then
+				echo "$tag: already exists, skipping"
+			else
+				git -C "$root" tag "$tag" -m "$tag"
+				echo "Created tag $tag"
+			fi
+		done
+		;;
+	"help" | *)
+		cat << EOF
+Usage: $0 <command>
+
+Commands:
+    list, ls       List current versions in package.json files
+    tag-releases   Create git tags for current versions if they don't exist
+    help           Show this help message
+EOF
+		if [ "$sub" != "help" ]; then
+			exit 1
+		fi
+		;;
+esac 

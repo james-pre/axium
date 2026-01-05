@@ -1,6 +1,6 @@
 {
 	"name": "@axium/notes",
-	"version": "0.1.12",
+	"version": "0.2.0",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Notes for Axium",
 	"funding": {
@@ -35,9 +35,9 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.6.0",
-		"@axium/core": ">=0.10.0",
-		"@axium/server": ">=0.27.0",
+		"@axium/client": ">=0.9.0",
+		"@axium/core": ">=0.12.0",
+		"@axium/server": ">=0.28.0",
 		"@sveltejs/kit": "^2.27.3",
 		"utilium": "^2.4.0"
 	},
