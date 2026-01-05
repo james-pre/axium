@@ -43,7 +43,7 @@
 	},
 	"scripts": {
 		"build": "tsc",
-		"build:schemas": "mkdir -p schemas && ./dist/main.js config schema -j > schemas/config.json && ./dist/main.js db schema -j > schemas/db.json",
+		"build:schemas": "mkdir -p schemas && npx axium config schema -j > schemas/config.json && npx axium db schema -j > schemas/db.json",
 		"clean": "rm -rf build .svelte-kit node_modules/{.vite,.vite-temp}"
 	},
 	"peerDependencies": {
