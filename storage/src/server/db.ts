@@ -24,7 +24,7 @@ declare module '@axium/server/database' {
 			metadata: Generated<Record<string, unknown>>;
 		};
 
-		'acl.storage': DBAccessControl & DBBool<'read' | 'write' | 'manage' | 'download'>;
+		'acl.storage': DBAccessControl & DBBool<'read' | 'write' | 'manage' | 'download' | 'comment'>;
 	}
 }
 

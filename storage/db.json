@@ -45,10 +45,10 @@
 					"add_columns": {
 						"role": { "type": "text" },
 						"tag": { "type": "text" },
-						"download": { "type": "boolean", "required": true, "default": false },
 						"read": { "type": "boolean", "required": true, "default": false },
-						"comment": { "type": "boolean", "required": true, "default": false },
+						"download": { "type": "boolean", "required": true, "default": false },
 						"write": { "type": "boolean", "required": true, "default": false },
+						"comment": { "type": "boolean", "required": true, "default": false },
 						"manage": { "type": "boolean", "required": true, "default": false }
 					},
 					"alter_columns": {
