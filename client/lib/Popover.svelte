@@ -32,7 +32,7 @@
 		cursor: pointer;
 	}
 
-	[popover] {
+	.popover-toggle + [popover] {
 		position-area: bottom right;
 		position-try: most-width flip-inline;
 	}
