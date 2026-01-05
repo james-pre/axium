@@ -6,52 +6,62 @@
 			"delta": false,
 			"tables": {
 				"users": {
-					"email": { "type": "text", "required": true, "unique": true },
-					"emailVerified": { "type": "timestamptz" },
-					"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
-					"image": { "type": "text" },
-					"isAdmin": { "type": "boolean", "required": true, "default": false },
-					"name": { "type": "text" },
-					"preferences": { "type": "jsonb", "required": true, "default": "{}" },
-					"registeredAt": { "type": "timestamptz", "required": true, "default": "now()" },
-					"roles": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
-					"tags": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
-					"isSuspended": { "type": "boolean", "required": true, "default": false }
+					"columns": {
+						"email": { "type": "text", "required": true, "unique": true },
+						"emailVerified": { "type": "timestamptz" },
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"image": { "type": "text" },
+						"isAdmin": { "type": "boolean", "required": true, "default": false },
+						"name": { "type": "text" },
+						"preferences": { "type": "jsonb", "required": true, "default": "{}" },
+						"registeredAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"roles": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
+						"tags": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
+						"isSuspended": { "type": "boolean", "required": true, "default": false }
+					}
 				},
 				"verifications": {
-					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-					"token": { "type": "text", "required": true },
-					"expires": { "type": "timestamptz", "required": true },
-					"role": { "type": "text", "required": true }
+					"columns": {
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"token": { "type": "text", "required": true },
+						"expires": { "type": "timestamptz", "required": true },
+						"role": { "type": "text", "required": true }
+					}
 				},
 				"passkeys": {
-					"id": { "type": "text", "required": true, "primary": true },
-					"name": { "type": "text" },
-					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
-					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-					"publicKey": { "type": "bytea", "required": true },
-					"counter": { "type": "integer", "required": true },
-					"deviceType": { "type": "text", "required": true },
-					"backedUp": { "type": "boolean", "required": true },
-					"transports": { "type": "text[]" }
+					"columns": {
+						"id": { "type": "text", "required": true, "primary": true },
+						"name": { "type": "text" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"publicKey": { "type": "bytea", "required": true },
+						"counter": { "type": "integer", "required": true },
+						"deviceType": { "type": "text", "required": true },
+						"backedUp": { "type": "boolean", "required": true },
+						"transports": { "type": "text[]" }
+					}
 				},
 				"sessions": {
-					"id": { "type": "uuid", "required": true, "default": "gen_random_uuid()", "primary": true },
-					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-					"created": { "type": "timestamptz", "required": true, "default": "now()" },
-					"token": { "type": "text", "required": true },
-					"expires": { "type": "timestamptz", "required": true },
-					"elevated": { "type": "boolean", "required": true }
+					"columns": {
+						"id": { "type": "uuid", "required": true, "default": "gen_random_uuid()", "primary": true },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"token": { "type": "text", "required": true },
+						"expires": { "type": "timestamptz", "required": true },
+						"elevated": { "type": "boolean", "required": true }
+					}
 				},
 				"audit_log": {
-					"id": { "type": "uuid", "required": true, "default": "gen_random_uuid()", "primary": true },
-					"userId": { "type": "uuid" },
-					"timestamp": { "type": "timestamptz", "required": true, "default": "now()" },
-					"severity": { "type": "integer", "required": true },
-					"name": { "type": "text", "required": true },
-					"source": { "type": "text", "required": true },
-					"tags": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
-					"extra": { "type": "jsonb", "required": true, "default": "{}" }
+					"columns": {
+						"id": { "type": "uuid", "required": true, "default": "gen_random_uuid()", "primary": true },
+						"userId": { "type": "uuid" },
+						"timestamp": { "type": "timestamptz", "required": true, "default": "now()" },
+						"severity": { "type": "integer", "required": true },
+						"name": { "type": "text", "required": true },
+						"source": { "type": "text", "required": true },
+						"tags": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
+						"extra": { "type": "jsonb", "required": true, "default": "{}" }
+					}
 				}
 			},
 			"indexes": ["sessions:id", "passkeys:userId"]

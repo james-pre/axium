@@ -6,25 +6,29 @@
 			"delta": false,
 			"tables": {
 				"storage": {
-					"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
-					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
-					"hash": { "type": "bytea" },
-					"immutable": { "type": "bool", "required": true },
-					"modifiedAt": { "type": "timestamptz", "required": true, "default": "now()" },
-					"name": { "type": "text" },
-					"parentId": { "type": "uuid", "references": "storage.id", "onDelete": "cascade" },
-					"size": { "type": "integer", "required": true },
-					"trashedAt": { "type": "timestamptz" },
-					"type": { "type": "text", "required": true },
-					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-					"publicPermission": { "type": "integer", "required": true, "default": 0 },
-					"metadata": { "type": "jsonb", "required": true, "default": "{}" }
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"hash": { "type": "bytea" },
+						"immutable": { "type": "bool", "required": true },
+						"modifiedAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"name": { "type": "text" },
+						"parentId": { "type": "uuid", "references": "storage.id", "onDelete": "cascade" },
+						"size": { "type": "integer", "required": true },
+						"trashedAt": { "type": "timestamptz" },
+						"type": { "type": "text", "required": true },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"publicPermission": { "type": "integer", "required": true, "default": 0 },
+						"metadata": { "type": "jsonb", "required": true, "default": "{}" }
+					}
 				},
 				"acl.storage": {
-					"userId": { "type": "uuid", "required": true, "primary": true, "references": "users.id", "onDelete": "cascade" },
-					"itemId": { "type": "uuid", "required": true, "primary": true, "references": "storage.id", "onDelete": "cascade" },
-					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
-					"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+					"columns": {
+						"userId": { "type": "uuid", "required": true, "primary": true, "references": "users.id", "onDelete": "cascade" },
+						"itemId": { "type": "uuid", "required": true, "primary": true, "references": "storage.id", "onDelete": "cascade" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+					}
 				}
 			},
 			"indexes": ["storage:userId", "storage:parentId", "acl.storage:userId", "acl.storage:itemId"]
@@ -36,9 +40,11 @@
 					"drop_columns": ["publicPermission"]
 				},
 				"acl.storage": {
+					"drop_constraints": ["PK_acl_storage"],
 					"drop_columns": ["permission"],
 					"add_columns": {
-						"role": { "type": "string", "primary": true },
+						"role": { "type": "text" },
+						"tag": { "type": "text" },
 						"download": { "type": "boolean", "required": true, "default": false },
 						"read": { "type": "boolean", "required": true, "default": false },
 						"comment": { "type": "boolean", "required": true, "default": false },
@@ -47,6 +53,9 @@
 					},
 					"alter_columns": {
 						"userId": { "ops": ["drop_required"] }
+					},
+					"add_constraints": {
+						"unique_storage": { "type": "unique", "on": ["itemId", "userId", "role", "tag"], "nulls_not_distinct": true }
 					}
 				}
 			}

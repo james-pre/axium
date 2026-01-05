@@ -290,8 +290,12 @@ axiumDB
 	.description('Get the JSON schema for the database configuration file')
 	.option('-j, --json', 'values are JSON encoded')
 	.action((opt: { json: boolean }) => {
-		const schema = z.toJSONSchema(db.SchemaFile, { io: 'input' });
-		console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
+		try {
+			const schema = z.toJSONSchema(db.SchemaFile, { io: 'input' });
+			console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
+		} catch (e: any) {
+			io.handleError(e instanceof z.core.$ZodError ? z.prettifyError(e) : e);
+		}
 	});
 
 axiumDB
@@ -299,7 +303,8 @@ axiumDB
 	.alias('update')
 	.alias('up')
 	.description('Upgrade the database to the latest version')
-	.action(async (opt: OptDB) => {
+	.option('--abort', 'Rollback changes instead of committing them')
+	.action(async (opt: OptDB & { abort?: boolean }) => {
 		const deltas: db.VersionDelta[] = [];
 
 		const info = db.getUpgradeInfo();
@@ -349,6 +354,10 @@ axiumDB
 			return;
 		}
 
+		if (opt.abort) {
+			io.warn('--abort: Changes will be rolled back instead of being committed.');
+		}
+
 		await rlConfirm();
 
 		io.start('Computing delta');
@@ -369,7 +378,7 @@ axiumDB
 		}
 
 		console.log('Applying delta.');
-		await db.applyDelta(delta).catch(io.handleError);
+		await db.applyDelta(delta, opt.abort).catch(io.handleError);
 
 		info.upgrades.push({ timestamp: new Date(), from, to });
 		db.setUpgradeInfo(info);
@@ -495,8 +504,12 @@ axiumConfig
 	.description('Get the JSON schema for the configuration file')
 	.action(() => {
 		const opt = axiumConfig.optsWithGlobals<OptConfig>();
-		const schema = z.toJSONSchema(FileSchema, { io: 'input' });
-		console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
+		try {
+			const schema = z.toJSONSchema(FileSchema, { io: 'input' });
+			console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
+		} catch (e: any) {
+			io.handleError(e instanceof z.core.$ZodError ? z.prettifyError(e) : e);
+		}
 	});
 
 const axiumPlugin = program.command('plugin').alias('plugins').description('Manage plugins').addOption(opts.global);

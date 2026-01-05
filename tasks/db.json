@@ -6,28 +6,34 @@
 			"delta": false,
 			"tables": {
 				"task_lists": {
-					"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
-					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-					"created": { "type": "timestamptz", "required": true, "default": "now()" },
-					"publicPermission": { "type": "integer", "required": true, "default": 0 },
-					"name": { "type": "text", "required": true },
-					"description": { "type": "text" }
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"publicPermission": { "type": "integer", "required": true, "default": 0 },
+						"name": { "type": "text", "required": true },
+						"description": { "type": "text" }
+					}
 				},
 				"tasks": {
-					"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
-					"created": { "type": "timestamptz", "required": true, "default": "now()" },
-					"listId": { "type": "uuid", "required": true, "references": "task_lists.id", "onDelete": "cascade" },
-					"summary": { "type": "text", "required": true },
-					"description": { "type": "text" },
-					"parentId": { "type": "uuid", "references": "tasks.id", "onDelete": "cascade" },
-					"completed": { "type": "boolean", "required": true, "default": false },
-					"due": { "type": "timestamptz" }
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"listId": { "type": "uuid", "required": true, "references": "task_lists.id", "onDelete": "cascade" },
+						"summary": { "type": "text", "required": true },
+						"description": { "type": "text" },
+						"parentId": { "type": "uuid", "references": "tasks.id", "onDelete": "cascade" },
+						"completed": { "type": "boolean", "required": true, "default": false },
+						"due": { "type": "timestamptz" }
+					}
 				},
 				"acl.task_lists": {
-					"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-					"itemId": { "type": "uuid", "required": true, "references": "task_lists.id", "onDelete": "cascade" },
-					"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
-					"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+					"columns": {
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"itemId": { "type": "uuid", "required": true, "references": "task_lists.id", "onDelete": "cascade" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+					}
 				}
 			},
 			"indexes": ["task_lists:userId", "acl.task_lists:userId", "acl.task_lists:itemId", "tasks:listId", "tasks:parentId"]
@@ -39,15 +45,20 @@
 					"drop_columns": ["publicPermission"]
 				},
 				"acl.task_lists": {
+					"drop_constraints": ["PK_acl_task_lists"],
 					"drop_columns": ["permission"],
 					"add_columns": {
-						"role": { "type": "string", "primary": true },
+						"role": { "type": "text" },
+						"tag": { "type": "text" },
 						"read": { "type": "boolean", "required": true, "default": false },
 						"edit": { "type": "boolean", "required": true, "default": false },
 						"manage": { "type": "boolean", "required": true, "default": false }
 					},
 					"alter_columns": {
 						"userId": { "ops": ["drop_required"] }
+					},
+					"add_constraints": {
+						"unique_task_lists": { "type": "unique", "on": ["itemId", "userId", "role", "tag"], "nulls_not_distinct": true }
 					}
 				}
 			}

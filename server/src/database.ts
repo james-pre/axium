@@ -305,15 +305,39 @@ export const Column = z.strictObject({
 	default: z.any().optional(),
 	check: z.string().optional(),
 });
-
 export interface Column extends z.infer<typeof Column> {}
 
-export const Table = z.record(z.string(), Column);
+export const Constraint = z.discriminatedUnion('type', [
+	z.strictObject({
+		type: z.literal('primary_key'),
+		on: z.string().array(),
+	}),
+	z.strictObject({
+		type: z.literal('foreign_key'),
+		on: z.string().array(),
+		target: z.string(),
+		references: z.string().array(),
+	}),
+	z.strictObject({
+		type: z.literal('unique'),
+		on: z.string().array(),
+		nulls_not_distinct: z.boolean().optional(),
+	}),
+	z.strictObject({
+		type: z.literal('check'),
+		check: z.string(),
+	}),
+]);
 
+export type Constraint = z.infer<typeof Constraint>;
+
+export const Table = z.strictObject({
+	columns: z.record(z.string(), Column),
+	constraints: z.record(z.string(), Constraint).optional().default({}),
+});
 export interface Table extends z.infer<typeof Table> {}
 
 export const IndexString = z.templateLiteral([z.string(), ':', z.string()]);
-
 export type IndexString = z.infer<typeof IndexString>;
 
 export function parseIndex(value: IndexString): { table: string; column: string } {
@@ -325,7 +349,6 @@ export const SchemaDecl = z.strictObject({
 	tables: z.record(z.string(), Table),
 	indexes: IndexString.array().optional().default([]),
 });
-
 export interface SchemaDecl extends z.infer<typeof SchemaDecl> {}
 
 export const ColumnDelta = z.strictObject({
@@ -333,15 +356,15 @@ export const ColumnDelta = z.strictObject({
 	default: z.string().optional(),
 	ops: z.literal(['drop_default', 'set_required', 'drop_required']).array().optional(),
 });
-
 export interface ColumnDelta extends z.infer<typeof ColumnDelta> {}
 
 export const TableDelta = z.strictObject({
 	add_columns: z.record(z.string(), Column).optional().default({}),
 	drop_columns: z.string().array().optional().default([]),
 	alter_columns: z.record(z.string(), ColumnDelta).optional().default({}),
+	add_constraints: z.record(z.string(), Constraint).optional().default({}),
+	drop_constraints: z.string().array().optional().default([]),
 });
-
 export interface TableDelta extends z.infer<typeof TableDelta> {}
 
 export const VersionDelta = z.strictObject({
@@ -352,7 +375,6 @@ export const VersionDelta = z.strictObject({
 	add_indexes: IndexString.array().optional().default([]),
 	drop_indexes: IndexString.array().optional().default([]),
 });
-
 export interface VersionDelta extends z.infer<typeof VersionDelta> {}
 
 export const SchemaFile = z.object({
@@ -365,10 +387,11 @@ export const SchemaFile = z.object({
 	/** Maps tables to their ACL tables, e.g. `"storage": "acl.storage"` */
 	acl_tables: z.record(z.string(), z.string()).optional().default({}),
 });
-
 export interface SchemaFile extends z.infer<typeof SchemaFile> {}
 
-const schema = SchemaFile.parse(rawSchema);
+const { data, error } = SchemaFile.safeParse(rawSchema);
+if (error) io.error('Invalid base database schema:\n' + z.prettifyError(error));
+const schema = data!;
 
 export function* getSchemaFiles(): Generator<[string, SchemaFile]> {
 	yield ['@axium/server', schema];
@@ -444,13 +467,43 @@ export function setUpgradeInfo(info: UpgradesInfo): void {
 
 export function applyTableDeltaToSchema(table: Table, delta: TableDelta): void {
 	for (const column of delta.drop_columns) {
-		if (column in table) delete table[column];
+		if (column in table) delete table.columns[column];
 		else throw `Can't drop column ${column} because it does not exist`;
 	}
 
 	for (const [name, column] of Object.entries(delta.add_columns)) {
 		if (name in table) throw `Can't add column ${name} because it already exists`;
-		table[name] = column;
+		table.columns[name] = column;
+	}
+
+	for (const [name, columnDelta] of Object.entries(delta.alter_columns)) {
+		const column = table.columns[name];
+		if (!column) throw `Can't modify column ${name} because it does not exist`;
+		if (columnDelta.type) column.type = columnDelta.type!;
+		if (columnDelta.default) column.default = columnDelta.default!;
+		for (const op of columnDelta.ops || []) {
+			switch (op) {
+				case 'drop_default':
+					delete column.default;
+					break;
+				case 'set_required':
+					column.required = true;
+					break;
+				case 'drop_required':
+					column.required = false;
+					break;
+			}
+		}
+	}
+
+	for (const name of delta.drop_constraints) {
+		if (table.constraints[name]) delete table.constraints[name];
+		else throw `Can't drop constraint ${name} because it does not exist`;
+	}
+
+	for (const [name, constraint] of Object.entries(delta.add_constraints)) {
+		if (table.constraints[name]) throw `Can't add constraint ${name} because it already exists`;
+		table.constraints[name] = constraint;
 	}
 }
 
@@ -523,7 +576,7 @@ export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 			toColumns
 				.difference(fromColumns)
 				.keys()
-				.map(colName => [colName, toTable[colName]])
+				.map(colName => [colName, toTable.columns[colName]])
 		);
 
 		const alter_columns = Object.fromEntries(
@@ -531,8 +584,8 @@ export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 				.intersection(fromColumns)
 				.keys()
 				.map(name => {
-					const fromCol = fromTable[name],
-						toCol = toTable[name];
+					const fromCol = fromTable.columns[name],
+						toCol = toTable.columns[name];
 					const alter: WithRequired<ColumnDelta, 'ops'> = { ops: [] };
 
 					if ('default' in fromCol && !('default' in toCol)) alter.ops.push('drop_default');
@@ -544,7 +597,24 @@ export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 				})
 		);
 
-		alter_tables[name] = { add_columns, drop_columns: Array.from(drop_columns), alter_columns };
+		const fromConstraints = new Set(Object.keys(fromTable.constraints || {}));
+		const toConstraints = new Set(Object.keys(toTable.constraints || {}));
+
+		const drop_constraints = fromConstraints.difference(toConstraints);
+		const add_constraints = Object.fromEntries(
+			toConstraints
+				.difference(fromConstraints)
+				.keys()
+				.map(constName => [constName, toTable.constraints[constName]])
+		);
+
+		alter_tables[name] = {
+			add_columns,
+			drop_columns: Array.from(drop_columns),
+			alter_columns,
+			add_constraints,
+			drop_constraints: Array.from(drop_constraints),
+		};
 	}
 
 	return {
@@ -655,7 +725,17 @@ export function* displayDelta(delta: VersionDelta): Generator<string> {
 							.map(e => e.replaceAll('_', ' '))
 							.join(', ')
 					: null;
-			yield '\t' + styleText(deltaColors[column.op], `${column.op} ${column.name}${column.op != '*' ? '' : ': ' + columnChanges}`);
+			yield '\t' +
+				styleText(deltaColors[column.op], `${column.op} column ${column.name}${column.op != '*' ? '' : ': ' + columnChanges}`);
+		}
+
+		const constraints = [
+			...Object.keys(table.changes.add_constraints).map(name => ({ op: '+' as const, name })),
+			...table.changes.drop_constraints.map(name => ({ op: '-' as const, name })),
+		];
+
+		for (const con of constraints) {
+			yield '\t' + styleText(deltaColors[con.op], `${con.op} constraint ${con.name}`);
 		}
 	}
 
@@ -676,28 +756,31 @@ function columnFromSchema(column: Column, allowPK: boolean) {
 		if (column.primary && allowPK) col = col.primaryKey();
 		if (column.unique) col = col.unique();
 		if (column.required) col = col.notNull();
+		else if (column.unique) col = col.nullsNotDistinct();
 		if (column.references) col = col.references(column.references);
 		if (column.onDelete) col = col.onDelete(column.onDelete);
-		if ('default' in column) col = col.defaultTo(sql`${column.default}`);
-		if (column.check) col = col.check(sql`${column.check}`);
+		if ('default' in column) col = col.defaultTo(sql.raw(column.default));
+		if (column.check) col = col.check(sql.raw(column.check));
 		return col;
 	};
 }
 
-export async function applyDelta(delta: VersionDelta): Promise<void> {
-	await using tx = await database.startTransaction().execute();
+export async function applyDelta(delta: VersionDelta, forceAbort: boolean = false): Promise<void> {
+	const tx = await database.startTransaction().execute();
 
 	try {
 		for (const [tableName, table] of Object.entries(delta.add_tables)) {
 			io.start('Adding table ' + tableName);
 			let query = tx.schema.createTable(tableName);
-			const columns = Object.entries(table);
-			const pkColumns = columns.filter(([, column]) => column.primary).map(([name]) => name);
-			const needsPKConstraint = pkColumns.length > 1;
+			const columns = Object.entries(table.columns);
+			const pkColumns = columns.filter(([, column]) => column.primary).map(([name, column]) => ({ name, ...column }));
+			const needsSpecialConstraint = pkColumns.length > 1 || pkColumns.some(col => !col.required);
 			for (const [colName, column] of columns) {
-				query = query.addColumn(colName, sql`${column.type}`, columnFromSchema(column, !needsPKConstraint));
+				query = query.addColumn(colName, sql.raw(column.type), columnFromSchema(column, !needsSpecialConstraint));
 			}
-			if (needsPKConstraint) query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns as any);
+			if (needsSpecialConstraint) {
+				query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns.map(col => col.name) as any);
+			}
 			await query.execute();
 			io.done();
 		}
@@ -710,43 +793,67 @@ export async function applyDelta(delta: VersionDelta): Promise<void> {
 
 		for (const [tableName, tableDelta] of Object.entries(delta.alter_tables)) {
 			io.start(`Modifying table ${tableName}`);
-			let query = tx.schema.alterTable(tableName) as any as kysely.AlterTableColumnAlteringBuilder;
+			const query = tx.schema.alterTable(tableName);
+
+			for (const constraint of tableDelta.drop_constraints) {
+				await query.dropConstraint(constraint).execute();
+			}
+
 			for (const colName of tableDelta.drop_columns) {
-				query = query.dropColumn(colName);
+				await query.dropColumn(colName).execute();
 			}
 
 			for (const [colName, column] of Object.entries(tableDelta.add_columns)) {
-				query = query.addColumn(colName, sql`${column.type}`, columnFromSchema(column, false));
+				await query.addColumn(colName, sql.raw(column.type), columnFromSchema(column, false)).execute();
 			}
 
 			for (const [colName, column] of Object.entries(tableDelta.alter_columns)) {
-				if ('default' in column) query = query.alterColumn(colName, col => col.setDefault(sql`${column.default}`));
-				if (column.type) query = query.alterColumn(colName, col => col.setDataType(sql`${column.type}`));
+				if (column.default) await query.alterColumn(colName, col => col.setDefault(sql.raw(column.default!))).execute();
+				if (column.type) await query.alterColumn(colName, col => col.setDataType(sql.raw(column.type!))).execute();
 				for (const op of column.ops ?? []) {
 					switch (op) {
 						case 'drop_default':
-							if ('default' in column) throw 'Cannot set and drop default at the same time';
-							query = query.alterColumn(colName, col => col.dropDefault());
+							if (column.default) throw 'Cannot set and drop default at the same time';
+							await query.alterColumn(colName, col => col.dropDefault()).execute();
 							break;
 						case 'set_required':
-							query = query.alterColumn(colName, col => col.setNotNull());
+							await query.alterColumn(colName, col => col.setNotNull()).execute();
 							break;
 						case 'drop_required':
-							query = query.alterColumn(colName, col => col.dropNotNull());
+							await query.alterColumn(colName, col => col.dropNotNull()).execute();
 							break;
 					}
 				}
 			}
 
-			await query.execute();
+			for (const [name, con] of Object.entries(tableDelta.add_constraints)) {
+				switch (con.type) {
+					case 'unique':
+						await query.addUniqueConstraint(name, con.on, b => (con.nulls_not_distinct ? b.nullsNotDistinct() : b)).execute();
+						break;
+					case 'check':
+						await query.addCheckConstraint(name, sql.raw(con.check)).execute();
+						break;
+					case 'foreign_key':
+						await query.addForeignKeyConstraint(name, con.on, con.target, con.references, b => b).execute();
+						break;
+					case 'primary_key':
+						await query.addPrimaryKeyConstraint(name, con.on).execute();
+						break;
+				}
+			}
+
 			io.done();
 		}
+
+		if (forceAbort) throw 'Rolling back due to --abort';
 
 		io.start('Committing');
 		await tx.commit().execute();
 		io.done();
 	} catch (e) {
 		await tx.rollback().execute();
+		if (e instanceof SuppressedError) io.error(e.suppressed);
 		throw e;
 	}
 }
@@ -777,7 +884,7 @@ export async function checkTableTypes<TB extends keyof Schema & string>(tableNam
 	if (!table) throw 'missing.';
 
 	const columns = Object.fromEntries(table.columns.map(c => [c.name, c]));
-	const _types = Object.entries(types) as Entries<typeof types>;
+	const _types = Object.entries(types.columns) as Entries<typeof types.columns>;
 
 	for (const [i, [key, { type, required = false, default: _default }]] of _types.entries()) {
 		io.progress(i, _types.length, key);
