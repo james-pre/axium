@@ -164,6 +164,10 @@ export interface ItemAuthResult<TB extends acl.TargetName> {
 	session?: SessionInternal;
 }
 
+/**
+ * Authenticate a request against an "item" which has an ACL table.
+ * This will fetch the item, ACLs, users, and the authenticating session.
+ */
 export async function checkAuthForItem<const TB extends acl.TargetName>(
 	request: Request,
 	itemType: TB,
@@ -180,10 +184,13 @@ export async function checkAuthForItem<const TB extends acl.TargetName>(
 		.selectFrom(itemType as any)
 		.selectAll()
 		.where('id', '=', itemId)
-		.$if(!!userId, eb => eb.select(acl.from(`acl.${itemType}`, { userId })))
+		.$if(!!userId, eb => eb.select(acl.from(itemType, { user })))
 		.$castTo<acl.WithACL<TB>>()
 		.executeTakeFirstOrThrow()
-		.catch(withError('Item not found', 404));
+		.catch(e => {
+			if (e.message.includes('no rows')) error(404, itemType + ' not found');
+			throw e;
+		});
 
 	const result: ItemAuthResult<TB> = {
 		session: session ? omit(session, 'user') : undefined,

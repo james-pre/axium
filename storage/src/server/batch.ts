@@ -1,4 +1,4 @@
-import type { AccessControl, AsyncResult } from '@axium/core';
+import type { AsyncResult } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { audit } from '@axium/server/audit';
 import { requireSession } from '@axium/server/auth';
@@ -21,7 +21,7 @@ addRoute({
 		if (!config.storage.enabled) error(503, 'User storage is disabled');
 		if (!config.storage.batch.enabled) error(503, 'Batch updates are disabled');
 
-		const { userId } = await requireSession(req);
+		const { userId, user } = await requireSession(req);
 
 		const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
 			withError('Could not fetch usage and/or limits')
@@ -63,7 +63,7 @@ addRoute({
 			.selectFrom('storage')
 			.selectAll()
 			.where('id', 'in', [...deletedIds, ...Object.keys(header.metadata), ...changedIds])
-			.select(acl.from('acl.storage', { userId }))
+			.select(acl.from('storage', { user }))
 			.$castTo<acl.WithACL<'storage'>>()
 			.execute()
 			.catch(withError('Item(s) not found', 404));

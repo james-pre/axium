@@ -20,7 +20,6 @@ export type TableName = _TableNames extends never ? keyof db.Schema : _TableName
 export type TargetName = _TargetNames extends never ? keyof db.Schema : _TargetNames;
 
 export interface AccessControlInternal extends AccessControl {
-	user?: UserInternal;
 	tag?: string | null;
 }
 
@@ -35,7 +34,7 @@ export type WithACL<TB extends TargetName> = kysely.Selectable<db.Schema[TB]> & 
 
 export interface ACLSelectionOptions {
 	/** If specified, files by user UUID */
-	userId?: string | kysely.Expression<any>;
+	user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>;
 
 	/** Instead of using the `id` from `table`, use the `id` from this instead */
 	alias?: string;
@@ -43,29 +42,33 @@ export interface ACLSelectionOptions {
 
 /**
  * Helper to select all access controls for a given table, including the user information.
+ * Optionally filter for the entries applicable to a specific user.
+ * This includes entries matching the user's ID, roles, or tags along with the "public" entry where all three "target" columns are null.
  */
-export function from<const TB extends TableName>(
+export function from<const TB extends TargetName>(
 	table: TB,
 	opt: ACLSelectionOptions = {}
-): (eb: kysely.ExpressionBuilder<db.Schema, any>) => kysely.AliasedRawBuilder<Result<TB>[], 'acl'> {
+): (eb: kysely.ExpressionBuilder<db.Schema, any>) => kysely.AliasedRawBuilder<Result<`acl.${TB}`>[], 'acl'> {
 	return (eb: kysely.ExpressionBuilder<db.Schema, any>) =>
 		jsonArrayFrom(
 			eb
-				.selectFrom(`${table} as _acl`)
+				.selectFrom(`acl.${table} as _acl`)
 				.selectAll()
-				.select(db.userFromId)
 				.whereRef(`_acl.itemId`, '=', `${opt.alias || table}.id` as any)
-				.$if(!!opt.userId, qb =>
-					qb.where(eb =>
-						eb.or([
-							eb('userId', '=', opt.userId!),
-							eb('role', 'in', eb.ref('user.roles')),
-							eb('tag', 'in', eb.ref('user.tags')),
-						])
-					)
-				)
+				.where(eb => {
+					const allNull = eb.and([eb('userId', 'is', null), eb('role', 'is', null), eb('tag', 'is', null)]);
+
+					if (!opt.user) return allNull;
+
+					const ors = [allNull, eb('userId', '=', opt.user.id)];
+
+					if (opt.user.roles.length) ors.push(eb('role', 'in', opt.user.roles));
+					if (opt.user.tags.length) ors.push(eb('tag', 'in', opt.user.tags));
+
+					return eb.or(ors);
+				})
 		)
-			.$castTo<Result<TB>[]>()
+			.$castTo<Result<`acl.${TB}`>[]>()
 			.as('acl');
 }
 
