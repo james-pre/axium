@@ -1,11 +1,11 @@
 <script lang="ts">
+	import { getACL, setACL } from '@axium/client/access';
+	import { userInfo } from '@axium/client/user';
 	import type { AccessMap, User } from '@axium/core';
-	import { permissionNames, type AccessControllable, type AccessControl } from '@axium/core/access';
-	import type { Entries } from 'utilium';
+	import { pickPermissions, type AccessControl, type AccessControllable } from '@axium/core/access';
 	import FormDialog from './FormDialog.svelte';
 	import UserCard from './UserCard.svelte';
-	import { userInfo } from '@axium/client/user';
-	import { getACL, setACL } from '@axium/client/access';
+	import Icon from './Icon.svelte';
 
 	interface Props {
 		editable: boolean;
@@ -17,10 +17,6 @@
 	let { item = $bindable(), itemType, editable, dialog = $bindable(), acl = $bindable(item?.acl) }: Props = $props();
 
 	if (!acl && item) getACL(itemType, item.id).then(fetched => (acl = item.acl = fetched));
-
-	const permEntries = Object.entries(permissionNames) as any as Entries<typeof permissionNames>;
-
-	const publicPerm = $derived(permissionNames[item?.publicPermission || 0]);
 </script>
 
 <FormDialog
@@ -49,34 +45,33 @@
 
 	{#each acl ?? [] as control}
 		<div class="AccessControl">
-			{#if !control.user}<i>Unknown</i>
-			{:else}
+			{#if control.user}
 				<UserCard user={control.user} />
-				{#if editable}
-					<select name={control.userId}>
-						{#each permEntries as [key, name]}
-							<option value={key} selected={key == control.permission}>{name}</option>
-						{/each}
-					</select>
-				{:else}
-					<span>{permEntries[control.permission]}</span>
-				{/if}
+			{:else if control.role}
+				<span class="icon-text">
+					<Icon i="at" />
+					<span>{control.role}</span>
+				</span>
+				<!-- {:else if control.tag} -->
+			{:else}
+				<i>Unknown</i>
+			{/if}
+			{#if editable}
+				<select name={control.userId ?? (control.role ? '@' + control.role : 'public')} multiple>
+					{#each Object.entries(pickPermissions(control)) as [key, value]}
+						<option value={key} selected={!!value}>{key}</option>
+					{/each}
+				</select>
+			{:else}
+				<span
+					>{Object.entries(pickPermissions(control))
+						.filter(([, value]) => value)
+						.map(([key]) => key)
+						.join(', ')}</span
+				>
 			{/if}
 		</div>
 	{/each}
-
-	<div class="AccessControl public">
-		<strong>Public Access</strong>
-		{#if editable && item}
-			<select name="public">
-				{#each permEntries as [key, name]}
-					<option value={key} selected={key == item.publicPermission}>{name}</option>
-				{/each}
-			</select>
-		{:else}
-			<span>{publicPerm}</span>
-		{/if}
-	</div>
 </FormDialog>
 
 <style>

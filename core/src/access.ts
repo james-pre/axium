@@ -1,5 +1,6 @@
 import * as z from 'zod';
 import type { User } from './user.js';
+import { omit } from 'utilium';
 
 export interface AccessControl {
 	itemId: string;
@@ -7,6 +8,10 @@ export interface AccessControl {
 	role?: string | null;
 	user?: User;
 	createdAt: Date;
+}
+
+export function pickPermissions<T extends AccessControl & object>(ac: T): Omit<T, 'itemId' | 'userId' | 'role' | 'user' | 'createdAt'> {
+	return omit(ac, ['itemId', 'userId', 'role', 'user', 'createdAt']);
 }
 
 export interface AccessControllable {
