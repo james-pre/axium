@@ -402,7 +402,7 @@ axiumDB
 			console.log(styleText(['whiteBright', 'underline'], up.timestamp.toString()) + ':');
 
 			for (const [name, from] of Object.entries(up.from)) {
-				console.log(name, styleText('dim', from.toString() + '->') + styleText('blueBright', up.to[name].toString()) + ':');
+				console.log(name, styleText('dim', from.toString() + '->') + styleText('blueBright', up.to[name].toString()));
 			}
 		}
 	});
