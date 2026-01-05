@@ -10,12 +10,12 @@
 
 <pre>{JSON.stringify(data.config, null, 4)}</pre>
 
-<h2>Loaded Files</h2>
+<h2 id="files">Loaded Files</h2>
 
 {#each Object.entries(data.files) as [path, config]}
 	<details>
 		<summary>{path}</summary>
-		<pre>{JSON.stringify(config, null, 4)}</pre>
+		<pre id={path}>{JSON.stringify(config, null, 4)}</pre>
 	</details>
 {/each}
 
