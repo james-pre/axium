@@ -20,9 +20,7 @@ case "$sub" in
 		for pkg in "${packages[@]}"; do
 			v="$(jq -r ".version" "$root/$pkg/package.json")"
 			tag="$pkg@$v"
-			if git -C "$root" rev-parse "$tag" >/dev/null 2>&1; then
-				echo "$tag: already exists, skipping"
-			else
+			if ! git -C "$root" rev-parse "$tag" >/dev/null 2>&1; then
 				git -C "$root" tag "$tag" -m "$tag"
 				echo "Created tag $tag"
 			fi
