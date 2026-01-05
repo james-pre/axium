@@ -161,7 +161,14 @@ function existsInACL(column: 'id' | 'parentId', user: Pick<UserInternal, 'id' | 
 				.selectFrom('acl.storage')
 				.whereRef('itemId', '=', `item.${column}`)
 				.where('userId', '=', user.id)
-				.where(eb => eb.or([eb('userId', '=', user.id), eb('role', 'in', user.roles), eb('tag', 'in', user.tags)]))
+				.where(eb => {
+					const ors = [eb('userId', '=', user.id)];
+
+					if (user.roles.length) ors.push(eb('role', 'in', user.roles));
+					if (user.tags.length) ors.push(eb('tag', 'in', user.tags));
+
+					return eb.or(ors);
+				})
 		);
 }
 
