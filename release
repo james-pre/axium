@@ -41,6 +41,10 @@ case "$sub" in
 		fi
 		git diff "$tag..main" -- "$pkg"
 		;;
+	"history")
+		pkg="${2:?Package name required}"
+		git tag --list "$pkg@*" | sed "s/^$pkg@//" | sort -V
+		;;
 	"help" | *)
 		cat << EOF
 Usage: $0 <command>
@@ -49,6 +53,7 @@ Commands:
     list, ls               List current versions in package.json files
     tag-releases           Create git tags for current versions if they don't exist
     diff <pkg> [version]   Show diff between the the specified or last tagged version and main for the given package
+    history <pkg>          List releases for the given package
     help                   Show this help message
 EOF
 		if [ "$sub" != "help" ]; then
