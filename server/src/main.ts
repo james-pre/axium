@@ -325,6 +325,8 @@ axiumDB
 			from[name] = currentVersion;
 			to[name] = target;
 
+			info.current[name] = target;
+
 			let versions = schema.versions.slice(currentVersion + 1);
 
 			const v0 = schema.versions[0];
