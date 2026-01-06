@@ -10,7 +10,7 @@
 
 <h2>Administration</h2>
 
-<p>Axium Server version {data.version}</p>
+<p>Axium Server <span class="version">{data.version}</span></p>
 
 <h3><a href="/admin/users">Users</a></h3>
 

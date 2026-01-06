@@ -30,7 +30,10 @@
 		display: inline-flex;
 		flex-direction: column;
 		gap: 0.5em;
-		padding-left: 1em;
+		background-color: var(--bg-alt);
+		padding: 1em;
+		padding-left: 0;
+		border-radius: 0 1em 1em 0;
 	}
 
 	.item {
@@ -39,12 +42,12 @@
 	}
 
 	.item:hover {
-		background-color: var(--bg-accent);
+		background-color: var(--bg-strong);
 		cursor: pointer;
 	}
 
 	.item.active {
-		background-color: var(--bg-accent);
+		background-color: var(--bg-strong);
 	}
 
 	#admin-content {

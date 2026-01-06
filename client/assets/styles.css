@@ -167,3 +167,15 @@ pre {
 a:has(button, div) {
 	display: contents;
 }
+
+.version {
+	font-family: monospace;
+	font-size: 0.9em;
+	color: #aaa;
+	margin-left: 1em;
+}
+
+.version::before {
+	content: 'v';
+	color: #888;
+}
