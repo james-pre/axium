@@ -172,7 +172,17 @@ a:has(button, div) {
 	font-family: monospace;
 	font-size: 0.9em;
 	color: #aaa;
-	margin-left: 1em;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+	.version {
+		margin-left: 1em;
+	}
 }
 
 .version::before {
