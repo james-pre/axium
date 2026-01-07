@@ -4,7 +4,7 @@ import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
 import { io, outputDaemonStatus, pluginText } from '@axium/core/node';
-import { _findPlugin, plugins } from '@axium/core/plugins';
+import { _findPlugin, plugins, runIntegrations } from '@axium/core/plugins';
 import { Argument, Option, program, type Command } from 'commander';
 import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
@@ -47,6 +47,8 @@ const { safe, config: configFromCLI } = parseArgs({
 await config.loadDefaults(safe);
 
 if (configFromCLI) await config.load(configFromCLI, { safe });
+
+await runIntegrations();
 
 program
 	.version($pkg.version)
