@@ -165,7 +165,9 @@ export async function createPasskey(userId: string): Promise<Passkey> {
 
 	const response = await startRegistration({ optionsJSON: options });
 
-	return await fetchAPI('PUT', 'users/:id/passkeys', response, userId);
+	const passkey = await fetchAPI('PUT', 'users/:id/passkeys', response, userId);
+	passkey.createdAt = new Date(passkey.createdAt);
+	return passkey;
 }
 
 export async function updatePasskey(passkeyId: string, data: z.input<typeof PasskeyChangeable>): Promise<Passkey> {
