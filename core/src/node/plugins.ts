@@ -64,7 +64,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 		if (!plugin[mode]) throw `Plugin does not support running ${mode}-side`;
 
 		if (!safeMode) {
-			if (plugin.cli) await import(resolve(plugin.dirname, plugin.cli));
+			if (plugin[mode].cli) await import(resolve(plugin.dirname, plugin[mode].cli));
 
 			if (mode == 'client') {
 				if (plugin.client!.hooks) Object.assign(plugin, { _client: await import(resolve(plugin.dirname, plugin.client!.hooks)) });
