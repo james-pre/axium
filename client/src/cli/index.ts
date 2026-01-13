@@ -16,6 +16,9 @@ import { getCurrentSession, logout } from '../user.js';
 import { loadConfig, saveConfig, updateCache } from './config.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
+const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) || process.argv.includes('--debug');
+
+if (debug) io._setDebugOutput(true);
 
 await loadConfig(safe);
 
