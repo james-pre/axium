@@ -25,6 +25,7 @@
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
 		"lint": "eslint",
+		"build:schemas": "(cd server && npm run build:schemas)",
 		"build": "tsc -b && (cd server && vite build)",
 		"watch": "tsc -b -w",
 		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build"

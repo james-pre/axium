@@ -1,6 +1,6 @@
 import * as io from '@axium/core/node/io';
 import { loadPlugin } from '@axium/core/node/plugins';
-import { mkdirSync } from 'node:fs';
+import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
@@ -11,6 +11,7 @@ import { getCurrentSession } from '../user.js';
 export const configDir = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'axium');
 mkdirSync(configDir, { recursive: true });
 const axcConfig = join(configDir, 'config.json');
+if (!existsSync(axcConfig)) writeFileSync(axcConfig, '{}');
 
 export const cacheDir = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'axium');
 mkdirSync(cacheDir, { recursive: true });
@@ -28,7 +29,16 @@ export async function loadConfig(safe: boolean) {
 		if (config.token) setToken(config.token);
 		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfig, safe);
 	} catch (e: any) {
-		io.warn('Failed to load config: ' + (e instanceof z.core.$ZodError ? z.prettifyError(e) : io._debugOutput ? e.stack : e.message));
+		io.warn(
+			'Failed to load config: ' +
+				(e instanceof z.core.$ZodError
+					? z.prettifyError(e)
+					: e instanceof Error
+						? io._debugOutput
+							? e.stack
+							: e.message
+						: String(e))
+		);
 	}
 }
 
