@@ -6,9 +6,10 @@
 </script>
 
 <div id="admin-container">
-	<div class="sidebar">
+	<div id="admin-sidebar">
 		{#each data.tabs as { href, name, icon: i, active }}
-			<a {href} class={['item', 'icon-text', active && 'active']}><Icon {i} /> {capitalize(name)}</a>
+			<a {href} class={['item', 'icon-text', active && 'active']}><Icon {i} /> <span class="sidebar-text">{capitalize(name)}</span></a
+			>
 		{/each}
 	</div>
 
@@ -24,7 +25,7 @@
 		height: 100%;
 	}
 
-	.sidebar {
+	#admin-sidebar {
 		grid-column: 1;
 		width: 100%;
 		display: inline-flex;
@@ -55,5 +56,34 @@
 		padding: 1em;
 		overflow-x: hidden;
 		overflow-y: scroll;
+	}
+
+	@media (width < 600px) {
+		#admin-container {
+			grid-template-columns: 1fr;
+		}
+
+		#admin-content {
+			padding-bottom: 4em;
+		}
+
+		#admin-sidebar {
+			position: fixed;
+			grid-column: unset;
+			inset: auto 0 0;
+			border-radius: 1em;
+			display: flex;
+			flex-direction: row;
+			justify-content: space-around;
+		}
+
+		.sidebar-text {
+			display: none;
+		}
+
+		.item {
+			border-radius: 1em;
+			padding: 1em;
+		}
 	}
 </style>
