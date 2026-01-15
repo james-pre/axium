@@ -77,6 +77,7 @@
 			justify-content: space-around;
 			gap: 1em;
 			padding: 0.5em;
+			z-index: 6;
 		}
 
 		.sidebar-text {
