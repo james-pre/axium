@@ -91,8 +91,8 @@ case "$sub" in
 			exit 1
 		fi
 		tag=$(cd "$root/$pkg" && npm version "$sub" --tag-version-prefix="$pkg@" --message "$pkg@%s" 2>/dev/null | sed -n 2p)
-		if [ -z "$tag" ]; then
-			echo "Failed to create new version for '$pkg'"
+		if [[ "$tag" != "$pkg@"* ]]; then
+			echo "Got invalid tag name from 'npm version': $tag"
 			exit 1
 		fi
 		last_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
