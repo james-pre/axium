@@ -83,7 +83,7 @@ case "$sub" in
 			done
 		fi
 		;;
-	"patch|minor|major")
+	"patch"|"minor"|"major")
 		pkg="${2:?Package name required}"
 		(
 			cd "$root/$pkg"
