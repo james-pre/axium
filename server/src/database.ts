@@ -410,14 +410,17 @@ export function* getSchemaFiles(): Generator<[string, SchemaFile]> {
 /**
  * Get the active schema
  */
-export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl {
-	const fullSchema: SchemaDecl = { tables: {}, indexes: [] };
+export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl & { versions: Record<string, number> } {
+	const fullSchema: SchemaDecl & { versions: Record<string, number> } = { tables: {}, indexes: [], versions: {} };
 
 	for (const [pluginName, file] of getSchemaFiles()) {
 		if (opt.exclude?.includes(pluginName)) continue;
 
+		file.latest ??= file.versions.length - 1;
+
 		let currentSchema: SchemaDecl = { tables: {}, indexes: [] };
 
+		fullSchema.versions[pluginName] = file.latest;
 		for (const [version, schema] of file.versions.entries()) {
 			if (schema.delta) applyDeltaToSchema(currentSchema, schema);
 			else currentSchema = schema;

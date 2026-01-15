@@ -115,12 +115,15 @@ interface OptDB extends OptCommon {
 }
 
 async function dbInitTables() {
-	const schema = db.getFullSchema({ exclude: Object.keys(db.getUpgradeInfo().current) });
+	const info = db.getUpgradeInfo();
+	const schema = db.getFullSchema({ exclude: Object.keys(info.current) });
 	const delta = db.computeDelta({ tables: {}, indexes: [] }, schema);
 	if (db.deltaIsEmpty(delta)) return;
 	for (const text of db.displayDelta(delta)) console.log(text);
 	await rlConfirm();
 	await db.applyDelta(delta);
+	Object.assign(info.current, schema.versions);
+	db.setUpgradeInfo(info);
 }
 
 axiumDB
