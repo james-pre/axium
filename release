@@ -85,9 +85,17 @@ case "$sub" in
 		;;
 	"patch"|"minor"|"major")
 		pkg="${2:?Package name required}"
+
+		if [ -n "$(git -C "$root" status --porcelain)" ]; then
+			echo "Working directory is not clean."
+			exit 1
+		fi
 		(
 			cd "$root/$pkg"
-			npm version "$sub" --tag-version-prefix="$pkg@" --message "$pkg@%s"
+			tag=$(npm version "$sub" --tag-version-prefix="$pkg@" --message "$pkg@%s")
+			git -C "$root" add "$pkg/package.json" "$pkg/package-lock.json"
+			git -C "$root" commit -m "$tag"
+			git -C "$root" tag "$tag" -m "$tag"
 		)
 		;;
 	"history")
