@@ -58,7 +58,7 @@
 		overflow-y: scroll;
 	}
 
-	@media (width < 600px) {
+	@media (width < 700px) {
 		#admin-container {
 			grid-template-columns: 1fr;
 		}
@@ -75,6 +75,8 @@
 			display: flex;
 			flex-direction: row;
 			justify-content: space-around;
+			gap: 1em;
+			padding: 0.5em;
 		}
 
 		.sidebar-text {
@@ -82,8 +84,10 @@
 		}
 
 		.item {
+			flex: 1 1 0;
 			border-radius: 1em;
 			padding: 1em;
+			justify-content: center;
 		}
 	}
 </style>
