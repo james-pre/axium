@@ -45,6 +45,44 @@ case "$sub" in
 		fi
 		git diff "$tag..main" -- "$pkg"
 		;;
+	"changed")
+		for pkg in "${packages[@]}"; do
+			latest_tag="$(git tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
+			if [ -z "$latest_tag" ]; then
+				echo "$pkg (no releases)"
+				continue
+			fi
+			if ! git diff --quiet "$latest_tag..main" -- "$pkg"; then
+				echo "$pkg"
+			fi
+		done
+		;;
+	"log")
+		if [ -n "${2:-}" ]; then
+			pkg="${2}"
+			latest_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
+			if [ -z "$latest_tag" ]; then
+				echo "No tags found for '$pkg'"
+				exit 1
+			fi
+			git -C "$root" log "$latest_tag..main" --format=%B -- "$pkg" | sed '/^$/d'
+		else
+			for pkg in "${packages[@]}"; do
+				latest_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
+				if [ -z "$latest_tag" ]; then
+					echo "No tags found for '$pkg'"
+					continue
+				fi
+				output="$(git -C "$root" log "$latest_tag..main" --format=%B -- "$pkg" | sed '/^$/d')"
+				if [ -z "$output" ]; then
+					continue
+				fi
+
+				echo "--- $pkg ---"
+				echo "$output"
+			done
+		fi
+		;;
 	"history")
 		pkg="${2:?Package name required}"
 		git tag --list "$pkg@*" | sed "s/^$pkg@//" | sort -V
@@ -58,6 +96,8 @@ Commands:
     create-tags            Create git tags for current versions if they don't exist
     force-update <pkg>     Force update release tag for the current version of the given package
     diff <pkg> [version]   Show diff between the the specified or last tagged version and main for the given package
+    changed                List packages that have changed since their last release
+    log [pkg]              List commits since the last release for the given package, or all packages if none specified
     history <pkg>          List releases for the given package
     help                   Show this help message
 EOF
