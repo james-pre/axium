@@ -83,6 +83,13 @@ case "$sub" in
 			done
 		fi
 		;;
+	"patch|minor|major")
+		pkg="${2:?Package name required}"
+		(
+			cd "$root/$pkg"
+			npm version "$sub" --tag-version-prefix="$pkg@" --message "$pkg@%s"
+		)
+		;;
 	"history")
 		pkg="${2:?Package name required}"
 		git tag --list "$pkg@*" | sed "s/^$pkg@//" | sort -V
@@ -92,14 +99,15 @@ case "$sub" in
 Usage: $0 <command>
 
 Commands:
-    list, ls               List current versions in package.json files
-    create-tags            Create git tags for current versions if they don't exist
-    force-update <pkg>     Force update release tag for the current version of the given package
-    diff <pkg> [version]   Show diff between the the specified or last tagged version and main for the given package
-    changed                List packages that have changed since their last release
-    log [pkg]              List commits since the last release for the given package, or all packages if none specified
-    history <pkg>          List releases for the given package
-    help                   Show this help message
+    list, ls                  List current versions in package.json files
+    create-tags               Create git tags for current versions if they don't exist
+    force-update <pkg>        Force update release tag for the current version of the given package
+    diff <pkg> [version]      Show diff between the the specified or last tagged version and main for the given package
+    changed                   List packages that have changed since their last release
+    log [pkg]                 List commits since the last release for the given package, or all packages if none specified
+    history <pkg>             List releases for the given package
+    patch|minor|major <pkg>   Create a new release for the given package
+    help                      Show this help message
 EOF
 		if [ "$sub" != "help" ]; then
 			exit 1
