@@ -99,7 +99,7 @@ case "$sub" in
 		git -C "$root" add "$pkg/package.json" "package-lock.json"
 		git -C "$root" commit -m "$tag"
 		git -C "$root" tag "$tag" -m "$tag"
-		echo -n "+"
+		echo -n "+ "
 		git -C "$root" log ${last_tag:+"$last_tag..main"} --format=%B -- "$pkg" | sed '/^$/d'
 		;;
 	"history")
