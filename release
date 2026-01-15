@@ -96,7 +96,7 @@ case "$sub" in
 			exit 1
 		fi
 		last_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
-		git -C "$root" add "$pkg/package.json" "$pkg/package-lock.json"
+		git -C "$root" add "$pkg/package.json" "package-lock.json"
 		git -C "$root" commit -m "$tag"
 		git -C "$root" tag "$tag" -m "$tag"
 		echo "+ $tag"
