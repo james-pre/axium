@@ -23,10 +23,11 @@
 				<span class="elevated">Elevated</span>
 			{/if}
 		</p>
-		<p>Created {session.created.toLocaleString()}</p>
-		<p>Expires {session.expires.toLocaleString()}</p>
-		<button style:display="contents" command="show-modal" commandfor={'logout-session:' + session.id}>
+		<p class="timestamp">Created {session.created.toLocaleString()}</p>
+		<p class="timestamp">Expires {session.expires.toLocaleString()}</p>
+		<button command="show-modal" commandfor={'logout-session:' + session.id} class="logout icon-text">
 			<Icon i="right-from-bracket" --size="16px" />
+			<span class="mobile-only">Logout</span>
 		</button>
 	</div>
 	<FormDialog
@@ -41,9 +42,7 @@
 		<p>Are you sure you want to log out this session?</p>
 	</FormDialog>
 {/each}
-<span>
-	<button command="show-modal" commandfor="logout-all" class="danger">Logout All</button>
-</span>
+<button command="show-modal" commandfor="logout-all" class="danger section-button">Logout All</button>
 <FormDialog
 	id="logout-all"
 	submit={() => logoutAll(user.id).then(() => (redirectAfterLogoutAll ? (window.location.href = '/') : null))}

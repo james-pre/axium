@@ -189,3 +189,9 @@ h6 {
 	content: 'v';
 	color: #888;
 }
+
+@media (width >= 700px) {
+	.mobile-only {
+		display: none;
+	}
+}

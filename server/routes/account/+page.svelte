@@ -77,9 +77,9 @@
 			<p>{user.id}</p>
 			<ClipboardCopy value={user.id} --size="16px" />
 		</div>
-		<span>
-			<button class="signout" command="show-modal" commandfor="logout">Sign Out</button>
-			<button style:cursor="pointer" command="show-modal" commandfor="delete" class="danger">Delete Account</button>
+		<div class="section-button-container">
+			<button command="show-modal" commandfor="logout" class="section-button signout">Sign Out</button>
+			<button command="show-modal" commandfor="delete" class="section-button danger">Delete Account</button>
 			<Logout />
 			<FormDialog
 				id="delete"
@@ -89,7 +89,7 @@
 			>
 				<p>Are you sure you want to delete your account?<br />This action can't be undone.</p>
 			</FormDialog>
-		</span>
+		</div>
 	</div>
 
 	<div class="section main">
@@ -140,11 +140,10 @@
 				<p>Are you sure you want to delete this passkey?<br />This action can't be undone.</p>
 			</FormDialog>
 		{/each}
-		<span>
-			<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))} class="icon-text">
-				<Icon i="plus" /> Create
-			</button>
-		</span>
+
+		<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))} class="section-button icon-text">
+			<Icon i="plus" /> Create
+		</button>
 	</div>
 
 	<div class="section main">
@@ -180,9 +179,5 @@
 
 	.greeting {
 		font-size: 2em;
-	}
-
-	.signout {
-		margin-top: 2em;
 	}
 </style>
