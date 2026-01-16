@@ -17,11 +17,11 @@
 
 <div class="tasks-main">
 	<h1>Tasks</h1>
-	<span>
-		<button class="icon-text" onclick={() => dialog!.showModal()}>
-			<Icon i="plus" /> New List
-		</button>
-	</span>
+
+	<button id="create-task-list" class="icon-text mobile-float-right" onclick={() => dialog!.showModal()}>
+		<Icon i="plus" /> New List
+	</button>
+
 	<div class="lists-container">
 		{#each lists as list}
 			<TaskList {list} bind:lists />
@@ -56,6 +56,10 @@
 		display: flex;
 		flex-direction: column;
 		gap: 1em;
+	}
+
+	#create-task-list {
+		width: fit-content;
 	}
 
 	.lists-container {

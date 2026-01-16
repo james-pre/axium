@@ -15,18 +15,17 @@
 
 <div class="notes-main">
 	<h1>Notes</h1>
-	<span>
-		<button
-			class="icon-text"
-			onclick={async () => {
-				const result = await fetchAPI('PUT', 'users/:id/notes', { title: '' }, data.session.userId);
-				parseNote(result);
-				notes.push(result);
-			}}
-		>
-			<Icon i="plus" /> New Note
-		</button>
-	</span>
+	<button
+		id="create-note"
+		class="icon-text mobile-float-right"
+		onclick={async () => {
+			const result = await fetchAPI('PUT', 'users/:id/notes', { title: '' }, data.session.userId);
+			parseNote(result);
+			notes.push(result);
+		}}
+	>
+		<Icon i="plus" /> New Note
+	</button>
 	<div class="lists-container">
 		{#each notes as note}
 			<Note {note} bind:notes />
@@ -47,5 +46,9 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
 		gap: 1em;
+	}
+
+	#create-note {
+		width: fit-content;
 	}
 </style>
