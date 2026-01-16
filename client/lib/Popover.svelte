@@ -33,8 +33,10 @@
 	}
 
 	.popover-toggle + [popover] {
-		position-area: bottom right;
 		position-try: flip-inline;
+		position-visibility: always;
+		left: anchor(left);
+		top: anchor(bottom);
 	}
 
 	[popover] :global(.menu-item) {
