@@ -32,7 +32,7 @@ export interface PluginInfo {
 	path: string;
 	dirname: string;
 	specifier: string;
-	_loadedBy: string;
+	loadedBy: string;
 	cli?: string;
 	/** @internal */
 	_hooks?: ServerHooks;

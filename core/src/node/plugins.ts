@@ -21,9 +21,9 @@ export function* pluginText(plugin: PluginInternal): Generator<string> {
 	}
 }
 
-function _locatePlugin(specifier: string, _loadedBy: string): string {
+function _locatePlugin(specifier: string, loadedBy: string): string {
 	if (specifier[0] == '/' || ['.', '..'].includes(specifier.split('/')[0])) {
-		const path = resolve(dirname(_loadedBy), specifier);
+		const path = resolve(dirname(loadedBy), specifier);
 		const stats = fs.statSync(path);
 		if (stats.isFile()) return path;
 		if (!stats.isDirectory()) throw new Error('Can not resolve plugin path: ' + path);
@@ -38,12 +38,12 @@ function _locatePlugin(specifier: string, _loadedBy: string): string {
 export async function loadPlugin<const T extends 'client' | 'server'>(
 	mode: T,
 	specifier: string,
-	_loadedBy: string,
+	loadedBy: string,
 	safeMode: boolean = false
 ): Promise<PluginInternal | void> {
 	try {
-		const path = _locatePlugin(specifier, _loadedBy);
-		io.debug(`Loading plugin at ${path} (from ${_loadedBy})`);
+		const path = _locatePlugin(specifier, loadedBy);
+		io.debug(`Loading plugin at ${path} (from ${loadedBy})`);
 
 		let imported: any;
 		try {
@@ -58,13 +58,13 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 			await Plugin.parseAsync(imported).catch(e => {
 				throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
 			}),
-			{ path, specifier, _loadedBy, dirname: dirname(path), cli: imported[mode]?.cli, isServer: mode === 'server' }
+			{ path, specifier, loadedBy, dirname: dirname(path), cli: imported[mode]?.cli, isServer: mode === 'server' }
 		);
 
 		if (!plugin[mode]) throw `Plugin does not support running ${mode}-side`;
 
 		if (!safeMode) {
-			if (plugin[mode].cli) await import(resolve(plugin.dirname, plugin[mode].cli));
+			if (plugin.cli) await import(resolve(plugin.dirname, plugin.cli));
 
 			if (mode == 'client') {
 				if (plugin.client!.hooks) Object.assign(plugin, { _client: await import(resolve(plugin.dirname, plugin.client!.hooks)) });

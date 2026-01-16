@@ -18,9 +18,9 @@
 			{:else}
 				<span class="path">{plugin.path}</span>
 			{/if}
-			{#if plugin._loadedBy}
+			{#if plugin.loadedBy}
 				by
-				<a class="path" href="/admin/config#{plugin._loadedBy}">{plugin._loadedBy}</a>
+				<a class="path" href="/admin/config#{plugin.loadedBy}">{plugin.loadedBy}</a>
 			{/if}
 		</p>
 		<p><strong>Author:</strong> {plugin.author}</p>
