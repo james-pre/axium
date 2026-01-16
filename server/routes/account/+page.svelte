@@ -96,23 +96,31 @@
 		<h3>Passkeys</h3>
 		{#each passkeys as passkey}
 			<div class="item passkey">
-				<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
-					<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} --size="16px" />
-				</dfn>
-				<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
-					<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} --size="16px" />
-				</dfn>
-				{#if passkey.name}
-					<p>{passkey.name}</p>
-				{:else}
-					<p class="subtle"><i>Unnamed</i></p>
-				{/if}
+				<p>
+					<dfn title={passkey.deviceType == 'multiDevice' ? 'Multiple devices' : 'Single device'}>
+						<Icon i={passkey.deviceType == 'multiDevice' ? 'laptop-mobile' : 'mobile'} --size="16px" />
+					</dfn>
+					<dfn title="This passkey is {passkey.backedUp ? '' : 'not '}backed up">
+						<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} --size="16px" />
+					</dfn>
+					{#if passkey.name}
+						<p>{passkey.name}</p>
+					{:else}
+						<p class="subtle"><i>Unnamed</i></p>
+					{/if}
+				</p>
 				<p>Created {passkey.createdAt.toLocaleString()}</p>
-				{@render action('edit_passkey:' + passkey.id)}
+				<button commandfor="edit_passkey:{passkey.id}" command="show-modal" class="icon-text">
+					<Icon i="pen" --size="16px" />
+					<span class="mobile-only">Rename</span>
+				</button>
 				{#if passkeys.length > 1}
-					{@render action('delete_passkey:' + passkey.id, 'trash')}
+					<button commandfor="delete_passkey:{passkey.id}" command="show-modal" class="icon-text">
+						<Icon i="trash" --size="16px" />
+						<span class="mobile-only">Delete</span>
+					</button>
 				{:else}
-					<dfn title="You must have at least one passkey" class="disabled">
+					<dfn title="You must have at least one passkey" class="disabled icon-text mobile-hide">
 						<Icon i="trash-slash" --fill="#888" --size="16px" />
 					</dfn>
 				{/if}

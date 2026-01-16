@@ -1,5 +1,6 @@
 .section {
 	width: 50%;
+	min-width: fit-content;
 	padding-top: 2em;
 
 	/* This is causing duplicate separators when removing sessions/passkeys
@@ -37,15 +38,28 @@
 }
 
 .passkey {
-	grid-template-columns: 1em 1em 1fr 1fr 1em 1em;
+	grid-template-columns: 1fr 1fr 1em 1em;
+
+	p:first-child {
+		display: grid;
+		grid-template-columns: 1em 1em 1fr;
+		align-items: center;
+		width: 100%;
+		gap: 1em;
+		text-wrap: nowrap;
+	}
 
 	dfn:not(.disabled) {
 		cursor: help;
 	}
+
+	> button {
+		display: contents;
+	}
 }
 
 .session {
-	grid-template-columns: 1fr 1fr 1fr 1em;
+	grid-template-columns: 10em 1fr 1fr 1em;
 
 	.current {
 		border-radius: 2em;
@@ -71,17 +85,25 @@
 
 	.section {
 		width: calc(100% - 2em);
+		min-width: unset;
 	}
 
-	.session.item {
-		grid-template-columns: 1fr 2fr;
-		gap: 1em 2em;
+	.item:is(.passkey, .session) {
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
 		padding-top: 1em;
 
 		p {
 			margin: 0;
 		}
 
+		> button {
+			display: flex;
+		}
+	}
+
+	.item.session {
 		.timestamp {
 			grid-column: 2;
 			text-align: right;
@@ -89,7 +111,6 @@
 
 		.logout {
 			margin-top: 0;
-			display: flex;
 			grid-row: 2;
 			grid-column: 1;
 		}
