@@ -50,7 +50,7 @@
 				fetchAPI('PATCH', 'tasks/:id', { summary: task.summary }, task.id);
 			}}
 		/>
-		<Popover>
+		<Popover showToggle="hover">
 			<div
 				class="menu-item"
 				onclick={() =>
@@ -185,14 +185,6 @@
 		.task {
 			padding-left: 1em;
 		}
-	}
-
-	.task :global(.popover-toggle) {
-		visibility: hidden;
-	}
-
-	.task:hover :global(.popover-toggle) {
-		visibility: visible;
 	}
 
 	.task-list {
