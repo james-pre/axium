@@ -22,7 +22,7 @@
 				fetchAPI('PATCH', 'notes/:id', note, note.id);
 			}}
 		/>
-		<Popover>
+		<Popover showToggle="hover">
 			<div
 				class="menu-item"
 				onclick={() =>
@@ -103,13 +103,5 @@
 			font-weight: bold;
 			padding: 0;
 		}
-	}
-
-	.note :global(.popover-toggle) {
-		visibility: hidden;
-	}
-
-	.note:hover :global(.popover-toggle) {
-		visibility: visible;
 	}
 </style>
