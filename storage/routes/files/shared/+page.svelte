@@ -33,6 +33,6 @@
 
 <style>
 	.list-item {
-		grid-template-columns: 1em 4fr 15em 5em !important;
+		grid-template-columns: 1em 4fr 15em 5em;
 	}
 </style>

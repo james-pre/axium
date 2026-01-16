@@ -208,6 +208,22 @@ h6 {
 }
 
 @media (width < 700px) {
+	.mobile-hide {
+		display: none !important;
+	}
+
+	.mobile-button {
+		border-radius: 0.5em;
+		border: 1px solid var(--border-accent);
+		background-color: var(--bg-normal);
+		padding: 0.5em 1em;
+		cursor: pointer;
+	}
+
+	.mobile-button:hover {
+		background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
+	}
+
 	.inline-button {
 		width: 80%;
 		align-self: center;

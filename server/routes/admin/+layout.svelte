@@ -65,6 +65,7 @@
 
 		#admin-content {
 			padding-bottom: 4em;
+			grid-column: 1;
 		}
 
 		#admin-sidebar {

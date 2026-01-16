@@ -26,7 +26,7 @@
 		<div class="user list-item" onclick={e => e.currentTarget === e.target && (location.href = '/admin/users/' + user.id)}>
 			<span>{user.name}</span>
 			<span>{user.email}</span>
-			<span>
+			<span class="mobile-hide">
 				{#if user.isAdmin}
 					{@render attr('crown', 'Admin', '#710')}
 				{/if}
@@ -37,8 +37,14 @@
 					{@render attr('at', role)}
 				{/each}
 			</span>
-			<a href="/admin/audit?user={user.id}"><Icon i="file-shield" /></a>
-			<a href="/admin/users/{user.id}"><Icon i="chevron-right" /></a>
+			<a class="icon-text mobile-button" href="/admin/audit?user={user.id}">
+				<Icon i="file-shield" />
+				<span class="mobile-only">Audit</span>
+			</a>
+			<a class="icon-text mobile-button" href="/admin/users/{user.id}">
+				<Icon i="chevron-right" />
+				<span class="mobile-only">Manage</span>
+			</a>
 		</div>
 	{:else}
 		<div class="error">No users!</div>
@@ -46,15 +52,21 @@
 </div>
 
 <style>
-	.list-item {
-		grid-template-columns: 1fr 1fr 3fr repeat(2, 2em);
-	}
-
 	.attribute {
 		border-radius: 1em;
 		padding: 0.25em 0.75em;
 		display: inline-flex;
 		align-items: center;
 		gap: 0.25em;
+	}
+
+	.list-item {
+		grid-template-columns: 1fr 1fr 3fr repeat(2, 2em);
+	}
+
+	@media (width < 700px) {
+		.list-item {
+			grid-template-columns: 1fr 1fr;
+		}
 	}
 </style>

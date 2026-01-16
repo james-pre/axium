@@ -27,7 +27,6 @@
 
 .list-item {
 	display: grid;
-	grid-template-columns: 1em 4fr 15em 5em repeat(3, 1em);
 	align-items: center;
 	gap: 1em;
 	padding: 0.5em;
@@ -58,4 +57,10 @@ p.list-empty {
 .list-item:hover .action {
 	visibility: visible;
 	cursor: pointer;
+}
+
+@media (width < 700px) {
+	.list-header {
+		display: none;
+	}
 }

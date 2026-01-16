@@ -51,3 +51,10 @@
 >
 	<p>Are you sure you want to log out all sessions?</p>
 </FormDialog>
+
+<style>
+	button.logout {
+		width: fit-content;
+		text-align: center;
+	}
+</style>
