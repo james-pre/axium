@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
-	const { children, toggle }: { children(): any; toggle?(): any } = $props();
+	const { children, toggle, showToggle }: { children(): any; toggle?(): any; showToggle?: 'hover' | 'always' } = $props();
 
 	let popover = $state<HTMLDivElement>();
 
@@ -17,7 +17,7 @@
 	{#if toggle}
 		{@render toggle()}
 	{:else}
-		<span class="popover-toggle">
+		<span class={['popover-toggle', showToggle == 'hover' && 'toggle-hover']}>
 			<Icon i="ellipsis" />
 		</span>
 	{/if}
@@ -30,6 +30,16 @@
 <style>
 	.popover-toggle:hover {
 		cursor: pointer;
+	}
+
+	@media (width > 700px) {
+		.toggle-hover {
+			visibility: hidden;
+		}
+
+		:global(:hover) > div > .toggle-hover {
+			visibility: visible;
+		}
 	}
 
 	.popover-toggle + [popover] {
