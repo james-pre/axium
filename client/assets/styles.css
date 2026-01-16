@@ -224,6 +224,22 @@ h6 {
 		background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
 	}
 
+	.mobile-float-left {
+		position: fixed;
+		bottom: 1em;
+		left: 1em;
+		z-index: 4;
+		font-size: 1.25em;
+	}
+
+	.mobile-float-right {
+		position: fixed;
+		bottom: 1em;
+		right: 1em;
+		z-index: 4;
+		font-size: 1.25em;
+	}
+
 	.inline-button {
 		width: 80%;
 		align-self: center;
