@@ -190,8 +190,33 @@ h6 {
 	color: #888;
 }
 
+.inline-button {
+	display: inline-flex;
+	width: fit-content;
+}
+
+.inline-button-container {
+	margin-top: 2em;
+	display: flex;
+	gap: 1em;
+}
+
 @media (width >= 700px) {
 	.mobile-only {
 		display: none;
+	}
+}
+
+@media (width < 700px) {
+	.inline-button {
+		width: 80%;
+		align-self: center;
+		display: flex;
+		justify-content: center;
+	}
+
+	.inline-button-container {
+		flex-direction: column;
+		align-items: center;
 	}
 }

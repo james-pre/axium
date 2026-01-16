@@ -77,9 +77,9 @@
 			<p>{user.id}</p>
 			<ClipboardCopy value={user.id} --size="16px" />
 		</div>
-		<div class="section-button-container">
-			<button command="show-modal" commandfor="logout" class="section-button signout">Sign Out</button>
-			<button command="show-modal" commandfor="delete" class="section-button danger">Delete Account</button>
+		<div class="inline-button-container">
+			<button command="show-modal" commandfor="logout" class="inline-button signout">Sign Out</button>
+			<button command="show-modal" commandfor="delete" class="inline-button danger">Delete Account</button>
 			<Logout />
 			<FormDialog
 				id="delete"
@@ -141,7 +141,7 @@
 			</FormDialog>
 		{/each}
 
-		<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))} class="section-button icon-text">
+		<button onclick={() => createPasskey(user.id).then(passkeys.push.bind(passkeys))} class="inline-button icon-text">
 			<Icon i="plus" /> Create
 		</button>
 	</div>

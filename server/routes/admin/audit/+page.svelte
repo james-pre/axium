@@ -25,82 +25,103 @@
 
 <form id="filter" method="dialog">
 	<h4>Filters</h4>
-	<span>Minimum Severity:</span>
-	<select name="severity" value={data.filter.severity}>
-		{#each severityNames as value}
-			<option {value} selected={value == 'info'}>{capitalize(value)}</option>
-		{/each}
-	</select>
-	<span>Since:</span>
-	<input type="date" name="since" value={data.filter.since} />
 
-	<span>Until:</span>
-	<input type="date" name="until" value={data.filter.until} />
-
-	<span>Tags:</span>
-	<input type="text" name="tags" value={data.filter.tags} />
-
-	<span>Event Name:</span>
-	{#if data.configured}
-		<select name="event">
-			<option value="">Any</option>
-			{#each data.configured.name as name}
-				<option value={name} selected={data.filter.event == name}>{name}</option>
+	<div class="filter-field">
+		<span>Minimum Severity:</span>
+		<select name="severity" value={data.filter.severity}>
+			{#each severityNames as value}
+				<option {value} selected={value == 'info'}>{capitalize(value)}</option>
 			{/each}
 		</select>
-	{:else}
-		<input type="text" name="event" value={data.filter.event} />
-	{/if}
+	</div>
 
-	<span>Source:</span>
-	{#if data.configured}
-		<select name="source">
-			<option value="">Any</option>
-			{#each data.configured.source as source}
-				<option value={source} selected={data.filter.source == source}>{source}</option>
-			{/each}
-		</select>
-	{:else}
-		<input type="text" name="source" value={data.filter.source} />
-	{/if}
+	<div class="filter-field">
+		<span>Since:</span>
+		<input type="date" name="since" value={data.filter.since} />
+	</div>
 
-	<span>User UUID:</span>
-	<input type="text" name="user" size="36" value={data.filter.user} />
-	<button
-		onclick={e => {
-			e.preventDefault();
-			const fd = new FormData(e.currentTarget.form!);
-			const params = new URLSearchParams();
-			for (let [key, value] of fd.entries()) {
-				if (!value) continue;
-				switch (key) {
-					case 'severity':
-						if (value != 'info') params.set(key, value as string);
-						break;
-					case 'since':
-					case 'until':
-						params.set(key, new Date(value as string).toISOString());
-						break;
-					case 'tags':
-						for (const tag of value
-							.toString()
-							.split(',')
-							.map(t => t.trim()))
-							params.append(key, tag);
-						break;
-					default:
-						params.set(key, value as string);
+	<div class="filter-field">
+		<span>Until:</span>
+		<input type="date" name="until" value={data.filter.until} />
+	</div>
+
+	<div class="filter-field">
+		<span>Tags:</span>
+		<input type="text" name="tags" value={data.filter.tags} />
+	</div>
+
+	<div class="filter-field">
+		<span>Event Name:</span>
+		{#if data.configured}
+			<select name="event">
+				<option value="">Any</option>
+				{#each data.configured.name as name}
+					<option value={name} selected={data.filter.event == name}>{name}</option>
+				{/each}
+			</select>
+		{:else}
+			<input type="text" name="event" value={data.filter.event} />
+		{/if}
+	</div>
+
+	<div class="filter-field">
+		<span>Source:</span>
+		{#if data.configured}
+			<select name="source">
+				<option value="">Any</option>
+				{#each data.configured.source as source}
+					<option value={source} selected={data.filter.source == source}>{source}</option>
+				{/each}
+			</select>
+		{:else}
+			<input type="text" name="source" value={data.filter.source} />
+		{/if}
+	</div>
+
+	<div class="filter-field">
+		<span>User UUID:</span>
+		<input type="text" name="user" size="36" value={data.filter.user} />
+	</div>
+
+	<div class="inline-button-container">
+		<button
+			class="inline-button"
+			onclick={e => {
+				e.preventDefault();
+				const fd = new FormData(e.currentTarget.form!);
+				const params = new URLSearchParams();
+				for (let [key, value] of fd.entries()) {
+					if (!value) continue;
+					switch (key) {
+						case 'severity':
+							if (value != 'info') params.set(key, value as string);
+							break;
+						case 'since':
+						case 'until':
+							params.set(key, new Date(value as string).toISOString());
+							break;
+						case 'tags':
+							for (const tag of value
+								.toString()
+								.split(',')
+								.map(t => t.trim()))
+								params.append(key, tag);
+							break;
+						default:
+							params.set(key, value as string);
+					}
 				}
-			}
-			location.search = params ? '?' + params.toString() : '';
-		}}>Apply</button
-	>
-	<button
-		onclick={e => {
-			e.preventDefault();
-			location.search = '';
-		}}>Reset</button
-	>
+				location.search = params ? '?' + params.toString() : '';
+			}}>Apply</button
+		>
+		<button
+			class="inline-button"
+			onclick={e => {
+				e.preventDefault();
+				location.search = '';
+			}}>Reset</button
+		>
+	</div>
 </form>
 
 <div class="list-container">
@@ -146,13 +167,22 @@
 		background-color: var(--bg-menu);
 		padding: 1em;
 		border-radius: 0.5em;
-		display: grid;
-		grid-template-columns: repeat(2, 1fr);
+		display: flex;
+		flex-wrap: wrap;
+		flex-direction: column;
 		gap: 0.25em;
 		width: fit-content;
+	}
 
-		h4 {
-			grid-column: 1 / span 2;
+	.filter-field {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 0.25em;
+	}
+
+	@media (width < 700px) {
+		#filter {
+			width: calc(100%);
 		}
 	}
 </style>

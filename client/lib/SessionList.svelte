@@ -42,7 +42,7 @@
 		<p>Are you sure you want to log out this session?</p>
 	</FormDialog>
 {/each}
-<button command="show-modal" commandfor="logout-all" class="danger section-button">Logout All</button>
+<button command="show-modal" commandfor="logout-all" class="danger inline-button">Logout All</button>
 <FormDialog
 	id="logout-all"
 	submit={() => logoutAll(user.id).then(() => (redirectAfterLogoutAll ? (window.location.href = '/') : null))}

@@ -1,6 +1,6 @@
 .section {
 	width: 50%;
-	padding-top: 4em;
+	padding-top: 2em;
 
 	/* This is causing duplicate separators when removing sessions/passkeys
 	> div:has(+ div) {
@@ -11,17 +11,6 @@
 
 .section:last-child {
 	margin-bottom: 2em;
-}
-
-.section-button {
-	display: inline-flex;
-	width: fit-content;
-}
-
-.section-button-container {
-	margin-top: 2em;
-	display: flex;
-	gap: 1em;
 }
 
 .section .item {
@@ -76,20 +65,12 @@
 }
 
 @media (width < 700px) {
+	.inline-button-container {
+		margin-top: 0;
+	}
+
 	.section {
 		width: calc(100% - 2em);
-	}
-
-	.section-button {
-		width: 80%;
-		align-self: center;
-		display: flex;
-		justify-content: center;
-	}
-
-	.section-button-container {
-		flex-direction: column;
-		align-items: center;
 	}
 
 	.session.item {
