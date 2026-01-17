@@ -1,32 +1,41 @@
 import { Severity } from '@axium/core';
 import { addEvent } from '@axium/server/audit';
-import { addConfigDefaults, config } from '@axium/server/config';
-import type { StorageLimits, StoragePublicConfig } from '../common.js';
+import { addConfig, addConfigDefaults, config } from '@axium/server/config';
+import { StorageLimits, StoragePublicConfig } from '../common.js';
 import '../polyfills.js';
+import * as z from 'zod';
+
+const StorageConfig = StoragePublicConfig.safeExtend({
+	/** Whether the files app is enabled. Requires `enabled` */
+	app_enabled: z.boolean(),
+	/** Content Addressable Storage (CAS) configuration */
+	cas: z
+		.object({
+			/** Whether to use CAS */
+			enabled: z.boolean(),
+			/** Mime types to include when determining if CAS should be used */
+			include: z.string().array(),
+			/** Mime types to exclude when determining if CAS should be used */
+			exclude: z.string().array(),
+		})
+		.optional(),
+	/** Path to data directory */
+	data: z.string(),
+	/** Whether the storage API endpoints are enabled */
+	enabled: z.boolean(),
+	/** Default limits */
+	limits: StorageLimits,
+	/** How many days files are kept in the trash */
+	trash_duration: z.number(),
+});
+
+addConfig({
+	storage: StorageConfig.optional(),
+});
 
 declare module '@axium/server/config' {
 	export interface Config {
-		storage: StoragePublicConfig & {
-			/** Whether the files app is enabled. Requires `enabled` */
-			app_enabled: boolean;
-			/** Content Addressable Storage (CAS) configuration */
-			cas: {
-				/** Whether to use CAS */
-				enabled: boolean;
-				/** Mime types to include when determining if CAS should be used */
-				include: string[];
-				/** Mime types to exclude when determining if CAS should be used */
-				exclude: string[];
-			};
-			/** Path to data directory */
-			data: string;
-			/** Whether the storage API endpoints are enabled */
-			enabled: boolean;
-			/** Default limits */
-			limits: StorageLimits;
-			/** How many days files are kept in the trash */
-			trash_duration: number;
-		};
+		storage: z.infer<typeof StorageConfig>;
 	}
 }
 

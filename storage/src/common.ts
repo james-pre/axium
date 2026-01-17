@@ -38,34 +38,38 @@ declare module '@axium/core/api' {
 	}
 }
 
-export interface StoragePublicConfig {
+export const StoragePublicConfig = z.object({
 	/** Configuration for batch updates */
-	batch: {
+	batch: z.object({
 		/** Whether to enable sending multiple files per request */
-		enabled: boolean;
+		enabled: z.boolean(),
 		/** Maximum number of items that can be included in a single batch update */
-		max_items: number;
+		max_items: z.number(),
 		/** Maximum size in KiB per item */
-		max_item_size: number;
-	};
+		max_item_size: z.number(),
+	}),
 	/** Whether to split files larger than `max_transfer_size` into multiple chunks */
-	chunk: boolean;
+	chunk: z.boolean(),
 	/** Maximum size in MiB per transfer/request */
-	max_transfer_size: number;
+	max_transfer_size: z.number(),
 	/** Maximum number of chunks */
-	max_chunks: number;
-}
+	max_chunks: z.number(),
+});
+
+export interface StoragePublicConfig extends z.infer<typeof StoragePublicConfig> {}
 
 export const syncProtocolVersion = 0;
 
-export interface StorageLimits {
+export const StorageLimits = z.object({
 	/** The maximum size per item in MB */
-	item_size: number;
+	item_size: z.number(),
 	/** Maximum number of items per user */
-	user_items: number;
+	user_items: z.number(),
 	/** The maximum storage size per user in MB */
-	user_size: number;
-}
+	user_size: z.number(),
+});
+
+export interface StorageLimits extends z.infer<typeof StorageLimits> {}
 
 export interface StorageStats {
 	usedBytes: number;
