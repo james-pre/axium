@@ -1,10 +1,10 @@
 import type { AsyncResult, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
-import { getVersionInfo, plugins } from '@axium/core/plugins';
+import { getVersionInfo } from '@axium/core/packages';
+import { plugins } from '@axium/core/plugins';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
-import pkg from '../../package.json' with { type: 'json' };
 import { audit, events, getEvents } from '../audit.js';
 import { requireSession, type SessionInternal } from '../auth.js';
 import { config, type Config } from '../config.js';
@@ -40,7 +40,11 @@ addRoute({
 			auditEvents,
 			configFiles: config.files.size,
 			plugins: plugins.size,
-			version: pkg.version,
+			versions: {
+				server: await getVersionInfo('@axium/server'),
+				core: await getVersionInfo('@axium/core'),
+				client: await getVersionInfo('@axium/client'),
+			},
 		};
 	},
 });
@@ -50,7 +54,16 @@ addRoute({
 	async GET(req): AsyncResult<'GET', 'admin/plugins'> {
 		await assertAdmin(this, req);
 
-		return await Array.fromAsync(plugins.values().map(async p => Object.assign(omit(p, '_hooks', '_client'), await getVersionInfo(p))));
+		return await Array.fromAsync(
+			plugins
+				.values()
+				.map(async p =>
+					Object.assign(
+						omit(p, '_hooks', '_client'),
+						p.update_checks ? await getVersionInfo(p.specifier, p.loadedBy) : { latest: null }
+					)
+				)
+		);
 	},
 });
 

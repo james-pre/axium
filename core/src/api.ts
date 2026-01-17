@@ -5,8 +5,9 @@ import type { AccessControl, AccessMap } from './access.js';
 import type { App } from './apps.js';
 import type { AuditEvent, AuditFilter, Severity } from './audit.js';
 import type { NewSessionResponse, Session, Verification } from './auth.js';
+import type { PackageVersionInfo } from './packages.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
-import type { PluginInternal, PluginVersionInfo } from './plugins.js';
+import type { PluginInternal } from './plugins.js';
 import type { RequestMethod } from './requests.js';
 import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserInternal, UserPublic, UserRegistration } from './user.js';
 
@@ -17,7 +18,7 @@ export interface AdminSummary {
 	auditEvents: Record<keyof typeof Severity, number>;
 	configFiles: number;
 	plugins: number;
-	version: string;
+	versions: Record<'core' | 'server' | 'client', PackageVersionInfo>;
 }
 
 /**
@@ -27,9 +28,8 @@ export interface AdminSummary {
 export interface $API {
 	metadata: {
 		GET: {
-			version: string;
+			versions: PackageVersionInfo[];
 			routes: Record<string, { params: Record<string, string | null>; methods: string[] }>;
-			plugins: Record<string, string>;
 		};
 	};
 	apps: {
@@ -100,7 +100,7 @@ export interface $API {
 		};
 	};
 	'admin/plugins': {
-		GET: (Omit<PluginInternal, '_hooks' | '_client'> & PluginVersionInfo)[];
+		GET: (Omit<PluginInternal, '_hooks' | '_client'> & PackageVersionInfo)[];
 	};
 	'admin/audit/events': {
 		OPTIONS: { name: string[]; source: string[]; tags: string[] } | false;

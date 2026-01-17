@@ -1,6 +1,7 @@
 <script>
 	import { Version } from '@axium/client/components';
 	import { Severity } from '@axium/core';
+	import { capitalize } from 'utilium';
 
 	const { data } = $props();
 </script>
@@ -11,7 +12,10 @@
 
 <h2>Administration</h2>
 
-<p>Axium Server <Version v={data.version} latest={data.latest} /></p>
+{#each ['server', 'core', 'client'] as name}
+	{@const info = data.versions[name]}
+	<p>Axium {capitalize(name)} <Version v={info.version} latest={info.latest} /></p>
+{/each}
 
 <h3><a href="/admin/users">Users</a></h3>
 

@@ -1,4 +1,6 @@
 import * as io from '@axium/core/node/io';
+import { getVersionInfo, type PackageVersionInfo } from '@axium/core/packages';
+import { plugins } from '@axium/core/plugins';
 import { Logger } from 'logzen';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
@@ -98,4 +100,13 @@ export async function restrictedPorts(opt: PortOptions) {
 			break;
 		}
 	}
+}
+
+export async function getAllVersions(): Promise<PackageVersionInfo[]> {
+	return await Array.fromAsync([
+		...plugins.values().map(p => getVersionInfo(p.specifier, p.loadedBy)),
+		getVersionInfo('@axium/server'),
+		getVersionInfo('@axium/core'),
+		getVersionInfo('@axium/client'),
+	]);
 }

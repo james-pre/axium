@@ -1,11 +1,10 @@
 import type { App, AsyncResult, Result } from '@axium/core';
 import { apps } from '@axium/core';
-import { plugins } from '@axium/core/plugins';
 import { requestMethods } from '@axium/core/requests';
 import type { ZodType } from 'zod';
-import pkg from '../../package.json' with { type: 'json' };
 import { requireSession } from '../auth.js';
 import { config } from '../config.js';
+import { getAllVersions } from '../io.js';
 import { error } from '../requests.js';
 import { addRoute, routes } from '../routes.js';
 
@@ -18,7 +17,7 @@ addRoute({
 		}
 
 		return {
-			version: pkg.version,
+			versions: await getAllVersions(),
 			routes: Object.fromEntries(
 				routes
 					.entries()
@@ -33,7 +32,6 @@ addRoute({
 						},
 					])
 			),
-			plugins: Object.fromEntries(plugins.values().map(plugin => [plugin.name, plugin.version])),
 		};
 	},
 });

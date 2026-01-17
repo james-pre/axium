@@ -1,11 +1,11 @@
 import * as io from '@axium/core/node/io';
 import { Plugin, plugins, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
-import { dirname, join, resolve } from 'node:path/posix';
-import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import { apps } from '../apps.js';
+import { locatePackage } from '../packages.js';
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {
 	yield styleText('whiteBright', plugin.name);
@@ -21,20 +21,6 @@ export function* pluginText(plugin: PluginInternal): Generator<string> {
 	}
 }
 
-function _locatePlugin(specifier: string, loadedBy: string): string {
-	if (specifier[0] == '/' || ['.', '..'].includes(specifier.split('/')[0])) {
-		const path = resolve(dirname(loadedBy), specifier);
-		const stats = fs.statSync(path);
-		if (stats.isFile()) return path;
-		if (!stats.isDirectory()) throw new Error('Can not resolve plugin path: ' + path);
-		return join(path, 'package.json');
-	}
-
-	let packageDir = dirname(fileURLToPath(import.meta.resolve(specifier)));
-	for (; !fs.existsSync(join(packageDir, 'package.json')); packageDir = dirname(packageDir));
-	return join(packageDir, 'package.json');
-}
-
 export async function loadPlugin<const T extends 'client' | 'server'>(
 	mode: T,
 	specifier: string,
@@ -42,7 +28,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 	safeMode: boolean = false
 ): Promise<PluginInternal | void> {
 	try {
-		const path = _locatePlugin(specifier, loadedBy);
+		const path = locatePackage(specifier, loadedBy);
 		io.debug(`Loading plugin at ${path} (from ${loadedBy})`);
 
 		let imported: any;
