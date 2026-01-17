@@ -15,7 +15,7 @@ const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warni
 
 const z_audit_severity = z.literal([...audit_severity_levels, ...audit_severity_levels.map(capitalize)]);
 
-export const ConfigSchema = z
+export let ConfigSchema = z
 	.looseObject({
 		/** Whether /api/admin is enabled */
 		admin_api: z.boolean(),
@@ -84,6 +84,10 @@ export const ConfigSchema = z
 			.partial(),
 	})
 	.partial();
+
+export function addConfig<T extends z.core.$ZodLooseShape>(shape: T) {
+	ConfigSchema = z.looseObject({ ...ConfigSchema.shape, ...shape });
+}
 
 export interface Config extends z.infer<typeof ConfigSchema> {}
 
