@@ -73,8 +73,20 @@ declare module '@axium/server/audit' {
 	}
 }
 
-addEvent({ source: '@axium/storage', name: 'storage_type_mismatch', severity: Severity.Warning, tags: ['mimetype'] });
-addEvent({ source: '@axium/storage', name: 'storage_size_mismatch', severity: Severity.Warning, tags: [] });
+addEvent({
+	source: '@axium/storage',
+	name: 'storage_type_mismatch',
+	severity: Severity.Warning,
+	tags: ['mimetype'],
+	extra: { item: z.string() },
+});
+addEvent({
+	source: '@axium/storage',
+	name: 'storage_size_mismatch',
+	severity: Severity.Warning,
+	tags: [],
+	extra: { item: z.string().nullable() },
+});
 
 export type ExternalLimitHandler = (userId?: string) => StorageLimits | Promise<StorageLimits>;
 
