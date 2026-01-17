@@ -17,7 +17,7 @@
 <style>
 	.latest {
 		font-size: 0.9em;
-		background-color: var(--bg-success);
+		background-color: var(--bg-strong);
 		padding: 0.25em 0.75em;
 		border-radius: 1em;
 	}
@@ -25,6 +25,10 @@
 	:global(h1 h2, h3, h4, h5, h6) {
 		.latest {
 			margin-left: 1em;
+
+			.version {
+				margin-left: unset;
+			}
 		}
 	}
 </style>
