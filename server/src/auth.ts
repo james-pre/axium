@@ -180,8 +180,9 @@ export async function checkAuthForItem<const TB extends acl.TargetName>(
 	const session = await getSessionAndUser(token).catch(() => null);
 	const { userId, user } = session ?? {};
 
-	const item: acl.WithACL<TB> = await db
-		.selectFrom(itemType as any)
+	// Note: we need to do casting because of TS limitations with generics
+	const item = await db
+		.selectFrom(itemType as acl.TableName)
 		.selectAll()
 		.where('id', '=', itemId)
 		.$if(!!userId, eb => eb.select(acl.from(itemType, { user })))
@@ -194,7 +195,7 @@ export async function checkAuthForItem<const TB extends acl.TargetName>(
 
 	const result: ItemAuthResult<TB> = {
 		session: session ? omit(session, 'user') : undefined,
-		item: omit(item, 'acl') as Selectable<Schema[TB]>,
+		item: omit(item, 'acl') as any,
 		user,
 		fromACL: false,
 	};

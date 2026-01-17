@@ -1,13 +1,14 @@
 import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
+import type { Omit } from 'utilium';
 import type z from 'zod';
 import type { AccessControl, AccessMap } from './access.js';
 import type { App } from './apps.js';
 import type { AuditEvent, AuditFilter, Severity } from './audit.js';
 import type { NewSessionResponse, Session, Verification } from './auth.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
+import type { PluginInternal, PluginVersionInfo } from './plugins.js';
 import type { RequestMethod } from './requests.js';
 import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserInternal, UserPublic, UserRegistration } from './user.js';
-import type { PluginInternal } from './plugins.js';
 
 export interface AdminSummary {
 	users: number;
@@ -99,7 +100,7 @@ export interface $API {
 		};
 	};
 	'admin/plugins': {
-		GET: PluginInternal[];
+		GET: (Omit<PluginInternal, '_hooks' | '_client'> & PluginVersionInfo)[];
 	};
 	'admin/audit/events': {
 		OPTIONS: { name: string[]; source: string[]; tags: string[] } | false;

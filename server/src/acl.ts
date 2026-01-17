@@ -27,10 +27,7 @@ export type PermissionsFor<TB extends TableName> = Omit<kysely.Selectable<db.Sch
 
 export type Result<TB extends TableName> = AccessControlInternal & PermissionsFor<TB>;
 
-export type WithACL<TB extends TargetName> = kysely.Selectable<db.Schema[TB]> & { userId: string; acl: Result<`acl.${TB}`>[] } & Record<
-		string,
-		any
-	>;
+export type WithACL<TB extends TargetName> = kysely.Selectable<db.Schema[TB]> & { userId: string; acl: Result<`acl.${TB}`>[] };
 
 export interface ACLSelectionOptions {
 	/** If specified, files by user UUID */

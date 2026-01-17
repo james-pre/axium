@@ -1,6 +1,6 @@
-import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
+import type { AsyncResult, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
-import { plugins } from '@axium/core/plugins';
+import { getVersionInfo, plugins } from '@axium/core/plugins';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
@@ -50,7 +50,7 @@ addRoute({
 	async GET(req): AsyncResult<'GET', 'admin/plugins'> {
 		await assertAdmin(this, req);
 
-		return Array.from(plugins.values()).map(p => omit(p, '_hooks') as PluginInternal);
+		return await Array.fromAsync(plugins.values().map(async p => Object.assign(omit(p, '_hooks', '_client'), await getVersionInfo(p))));
 	},
 });
 

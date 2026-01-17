@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { zAsyncFunction } from './schemas.js';
 import { App } from './apps.js';
 import { debug, warn } from './io.js';
+import { lt as ltVersion } from 'semver';
 
 const PluginCommon = z.object({
 	/** CLI mixin path */
@@ -24,6 +25,8 @@ export const Plugin = z.looseObject({
 		routes: z.string().optional(),
 		db: z.string().optional(),
 	}).optional(),
+	/** If set Axium can check the npm registry for updates */
+	update_checks: z.boolean().nullable(),
 });
 
 export type Plugin = z.infer<typeof Plugin>;
@@ -91,5 +94,35 @@ export async function runIntegrations() {
 				warn(`Failed to load ${pluginName} integration with ${name}:\n\t${text}`);
 			});
 		}
+	}
+}
+
+export interface PluginVersionInfo {
+	latest: string | null;
+}
+
+interface NpmPackageVersion {
+	name: string;
+	version: string;
+}
+
+interface NpmPackage {
+	name: string;
+	'dist-tags': Record<string, string>;
+	versions: Record<string, NpmPackageVersion>;
+}
+
+export async function getVersionInfo(plugin: PluginInternal): Promise<PluginVersionInfo> {
+	if (!plugin.update_checks) return { latest: null };
+
+	try {
+		const res = await fetch('https://registry.npmjs.org/' + plugin.name);
+		const pkg: NpmPackage = await res.json();
+
+		const latest = pkg['dist-tags']?.latest || Object.keys(pkg.versions).sort((a, b) => (ltVersion(a, b) ? 1 : -1))[0];
+		return { latest };
+	} catch (e) {
+		warn(`Failed to fetch version info for plugin ${plugin.name}: ${e instanceof Error ? e.message : String(e)}`);
+		return { latest: null };
 	}
 }

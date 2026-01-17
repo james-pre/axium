@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import type { User } from './user.js';
-import { omit } from 'utilium';
+import { omit, type Omit } from 'utilium';
 
 export interface AccessControl {
 	itemId: string;
