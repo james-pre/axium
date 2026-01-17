@@ -1,4 +1,6 @@
 <script lang="ts">
+	import { Version } from '@axium/client/components';
+
 	const { data } = $props();
 </script>
 
@@ -10,7 +12,7 @@
 
 {#each data.plugins as plugin}
 	<div class="plugin">
-		<h3>{plugin.name}<span class="version">{plugin.version}</span></h3>
+		<h3>{plugin.name}<Version v={plugin.version} latest={plugin.latest} /></h3>
 		<p>
 			<strong>Loaded from</strong>
 			{#if plugin.path.endsWith('/package.json')}

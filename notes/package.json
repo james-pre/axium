@@ -56,6 +56,7 @@
 				"name": "Notes",
 				"icon": "notes"
 			}
-		]
+		],
+		"update_checks": true
 	}
 }

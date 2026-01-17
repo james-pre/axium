@@ -16,4 +16,5 @@ export { default as Toast } from './Toast.svelte';
 export { default as Upload } from './Upload.svelte';
 export { default as UserCard } from './UserCard.svelte';
 export { default as UserMenu } from './UserMenu.svelte';
+export { default as Version } from './Version.svelte';
 export { default as WithContextMenu } from './WithContextMenu.svelte';

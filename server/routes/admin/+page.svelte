@@ -1,4 +1,5 @@
 <script>
+	import { Version } from '@axium/client/components';
 	import { Severity } from '@axium/core';
 
 	const { data } = $props();
@@ -10,7 +11,7 @@
 
 <h2>Administration</h2>
 
-<p>Axium Server <span class="version">{data.version}</span></p>
+<p>Axium Server <Version v={data.version} latest={data.latest} /></p>
 
 <h3><a href="/admin/users">Users</a></h3>
 

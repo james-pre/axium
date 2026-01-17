@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { zAsyncFunction } from './schemas.js';
 import { App } from './apps.js';
-import { debug, warn } from './io.js';
+import { debug, info, warn } from './io.js';
 import { lt as ltVersion } from 'semver';
 
 const PluginCommon = z.object({
@@ -26,7 +26,7 @@ export const Plugin = z.looseObject({
 		db: z.string().optional(),
 	}).optional(),
 	/** If set Axium can check the npm registry for updates */
-	update_checks: z.boolean().nullable(),
+	update_checks: z.boolean().nullish(),
 });
 
 export type Plugin = z.infer<typeof Plugin>;
