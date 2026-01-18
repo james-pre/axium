@@ -4,7 +4,7 @@ import type { AsyncResult } from '@axium/core/api';
 import { PasskeyAuthenticationResponse, PasskeyRegistration } from '@axium/core/passkeys';
 import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
 import * as webauthn from '@simplewebauthn/server';
-import { omit, pick } from 'utilium';
+import { encodeUUID, omit, pick, type UUID } from 'utilium';
 import * as z from 'zod';
 import { audit } from '../audit.js';
 import {
@@ -190,6 +190,7 @@ addRoute({
 		const options = await webauthn.generateRegistrationOptions({
 			rpName: config.auth.rp_name,
 			rpID: config.auth.rp_id,
+			userID: encodeUUID(userId as UUID),
 			userName: userId,
 			userDisplayName: user.email,
 			attestationType: 'none',
