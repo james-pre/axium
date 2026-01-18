@@ -484,7 +484,8 @@ type _Range<T extends __RangeContent> = `${'(' | '['}${T},${T}${')' | ']'}`;
 type _MultiRange = `{${string}}`;
 
 interface ColumnValueMap
-	extends Record<(typeof numberTypes)[number], number>,
+	extends
+		Record<(typeof numberTypes)[number], number>,
 		Record<(typeof bigintTypes)[number], bigint>,
 		Record<(typeof booleanTypes)[number], boolean>,
 		Record<(typeof stringTypes)[number], string>,

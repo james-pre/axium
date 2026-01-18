@@ -19,8 +19,10 @@ export type EndpointHandlers<Params, This = unknown> = Partial<
 /**
  * A route with server-side handlers for different HTTP methods.
  */
-export interface ServerRouteInit<Params extends RouteParams = RouteParams>
-	extends EndpointHandlers<ParamValues<Params>, RouteCommon<Params>> {
+export interface ServerRouteInit<Params extends RouteParams = RouteParams> extends EndpointHandlers<
+	ParamValues<Params>,
+	RouteCommon<Params>
+> {
 	path: string;
 	params?: Params;
 	api?: boolean;

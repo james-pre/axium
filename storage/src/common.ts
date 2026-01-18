@@ -116,8 +116,9 @@ export const StorageItemMetadata = z.object({
 	metadata: z.record(z.string(), z.unknown()),
 });
 
-export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>>
-	extends z.infer<typeof StorageItemMetadata> {
+export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> extends z.infer<
+	typeof StorageItemMetadata
+> {
 	metadata: T;
 }
 
