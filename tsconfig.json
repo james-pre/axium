@@ -9,6 +9,7 @@
 		"target": "ES2023",
 		"strict": true,
 		"resolveJsonModule": true,
+		"importJsonAsConst": true,
 		"declaration": true,
 		"paths": {
 			"@axium/core": ["./core/*"],

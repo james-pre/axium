@@ -28,7 +28,8 @@
 		"build:schemas": "(cd server && npm run build:schemas)",
 		"build": "tsc -b && (cd server && vite build)",
 		"watch": "tsc -b -w",
-		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build"
+		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build",
+		"postinstall": "patch-package"
 	},
 	"workspaces": [
 		"client",
@@ -46,10 +47,11 @@
 		"prettier-plugin-svelte": "^3.3.3",
 		"tsx": "^4.19.3",
 		"typedoc": "^0.28.5",
-		"typescript": "^5.8.3",
+		"typescript": "^5.9.3",
 		"typescript-eslint": "^8.34.0"
 	},
 	"dependencies": {
+		"patch-package": "^8.0.1",
 		"utilium": "^2.5.3"
 	}
 }

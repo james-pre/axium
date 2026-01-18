@@ -1,4 +1,5 @@
 {
 	"editor.formatOnSave": true,
-	"cSpell.words": ["axium", "kysely", "webauthn"]
+	"cSpell.words": ["axium", "kysely", "webauthn"],
+	"typescript.tsdk": "node_modules/typescript/lib"
 }
