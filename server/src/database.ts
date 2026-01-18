@@ -1,4 +1,4 @@
-import type { Preferences, Severity, UserInternal } from '@axium/core';
+import type { Preferences, UserInternal } from '@axium/core';
 import * as io from '@axium/core/node/io';
 import { plugins } from '@axium/core/plugins';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
@@ -10,74 +10,24 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import pg from 'pg';
-import type { Entries, WithRequired } from 'utilium';
+import type { Entries, Expand, Filter, MutableRecursive, ReadonlyRecursive, Tuple, WithRequired } from 'utilium';
 import * as z from 'zod';
 import type { VerificationRole } from './auth.js';
 import config from './config.js';
 import rawSchema from './db.json' with { type: 'json' };
 import { dirs, systemDir } from './io.js';
 
+pg.types.setTypeParser(pg.types.builtins.INT8, BigInt);
+
 export interface DBAccessControl {
 	itemId: string;
 	userId?: string | null;
 	role?: string | null;
 	tag?: string | null;
-	createdAt: kysely.GeneratedAlways<Date>;
+	createdAt: kysely.Generated<Date>;
 }
 
 export type DBBool<K extends string> = { [key in K]?: boolean | null };
-
-export interface Schema {
-	users: {
-		id: string;
-		email: string;
-		name: string;
-		image?: string | null;
-		emailVerified?: Date | null;
-		preferences: Preferences;
-		isAdmin: boolean;
-		roles: string[];
-		tags: string[];
-		registeredAt: kysely.GeneratedAlways<Date>;
-		isSuspended: boolean;
-	};
-	sessions: {
-		id: kysely.GeneratedAlways<string>;
-		created: kysely.GeneratedAlways<Date>;
-		userId: string;
-		token: string;
-		expires: Date;
-		elevated: boolean;
-	};
-	verifications: {
-		userId: string;
-		token: string;
-		expires: Date;
-		role: VerificationRole;
-	};
-	passkeys: {
-		id: string;
-		name: string | null;
-		createdAt: kysely.GeneratedAlways<Date>;
-		userId: string;
-		publicKey: Uint8Array<ArrayBuffer>;
-		counter: number;
-		deviceType: CredentialDeviceType;
-		backedUp: boolean;
-		transports: AuthenticatorTransportFuture[];
-	};
-	audit_log: {
-		id: kysely.GeneratedAlways<string>;
-		userId: string | null;
-		timestamp: kysely.GeneratedAlways<Date>;
-		severity: Severity;
-		name: string;
-		tags: kysely.Generated<string[]>;
-		source: string;
-		extra: kysely.Generated<Record<string, unknown>>;
-	};
-	[key: `acl.${string}`]: DBAccessControl & Record<string, unknown>;
-}
 
 export type Database = Kysely<Schema> & AsyncDisposable;
 
@@ -295,8 +245,61 @@ export async function init(opt: InitOptions): Promise<void> {
 	await database.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
 }
 
+const numberTypes = [
+	'integer',
+	'int2',
+	'int4',
+	'int8',
+	'smallint',
+	'real',
+	'double precision',
+	'float4',
+	'float8',
+	'decimal',
+	'numeric',
+	'serial',
+] as const;
+const bigintTypes = ['bigint', 'bigserial'] as const;
+const booleanTypes = ['boolean', 'bool'] as const;
+const stringTypes = ['varchar', 'char', 'text'] as const;
+const dateTypes = ['date', 'datetime', 'time', 'timetz', 'timestamp', 'timestamptz'] as const;
+const binaryTypes = ['binary', 'bytea', 'varbinary', 'blob'] as const;
+const numericRangeTypes = ['int4range', 'numrange'] as const;
+const stringRangeTypes = ['tsrange', 'tstzrange', 'daterange'] as const;
+const multirangeTypes = ['int4multirange', 'int8multirange', 'nummultirange', 'tsmultirange', 'tstzmultirange', 'datemultirange'] as const;
+
+const _primitive = z.literal([
+	...numberTypes,
+	...bigintTypes,
+	...booleanTypes,
+	...stringTypes,
+	...dateTypes,
+	...binaryTypes,
+	...numericRangeTypes,
+	...stringRangeTypes,
+	...multirangeTypes,
+	'uuid',
+	'json',
+	'jsonb',
+]);
+
+const _ColumnType = z.union([
+	_primitive,
+	z.templateLiteral([
+		z.literal(['char', 'varchar', 'binary', 'varbinary', 'datetime', 'time', 'timetz', 'timestamp', 'timestamptz']),
+		'(',
+		z.int().nonnegative(),
+		')',
+	]),
+	z.templateLiteral([z.literal(['decimal', 'numeric']), '(', z.int().nonnegative(), z.literal([',', ', ']), z.int().nonnegative(), ')']),
+]);
+
+const ColumnType = z.union([_ColumnType, z.templateLiteral([_ColumnType, '[', z.int().nonnegative().optional(), ']'])]);
+
+export type ColumnType = z.infer<typeof ColumnType>;
+
 export const Column = z.strictObject({
-	type: z.string(),
+	type: ColumnType,
 	required: z.boolean().default(false),
 	unique: z.boolean().default(false),
 	primary: z.boolean().default(false),
@@ -352,7 +355,7 @@ export const SchemaDecl = z.strictObject({
 export interface SchemaDecl extends z.infer<typeof SchemaDecl> {}
 
 export const ColumnDelta = z.strictObject({
-	type: z.string().optional(),
+	type: ColumnType.optional(),
 	default: z.string().optional(),
 	ops: z.literal(['drop_default', 'set_required', 'drop_required']).array().optional(),
 });
@@ -405,6 +408,156 @@ export function* getSchemaFiles(): Generator<[string, SchemaFile]> {
 			throw `Invalid database configuration for plugin "${name}":\n${text}`;
 		}
 	}
+}
+
+export type ApplyColumnDelta<C extends z.input<typeof Column>, D extends z.input<typeof ColumnDelta>> = Omit<
+	C,
+	'type' | 'default' | 'required'
+> & {
+	type: D extends { type: infer T } ? T : C['type'];
+	default: D extends { ops: readonly any[] }
+		? 'drop_default' extends D['ops'][number]
+			? undefined
+			: D extends { default: infer Def }
+				? Def
+				: C['default']
+		: D extends { default: infer Def }
+			? Def
+			: C['default'];
+	required: D extends { ops: readonly any[] }
+		? 'set_required' extends D['ops'][number]
+			? true
+			: 'drop_required' extends D['ops'][number]
+				? false
+				: C['required']
+		: C['required'];
+};
+
+export type ApplyTableDelta<T extends z.input<typeof Table>, D extends z.input<typeof TableDelta>> = {
+	columns: {
+		[K in keyof T['columns'] as K extends (D extends { drop_columns: any[] } ? D['drop_columns'][number] : never)
+			? never
+			: K]: K extends keyof (D extends { alter_columns: any } ? D['alter_columns'] : {})
+			? ApplyColumnDelta<T['columns'][K], (D['alter_columns'] & {})[K & keyof D['alter_columns']]>
+			: T['columns'][K];
+	} & (D extends { add_columns: infer A } ? A : {});
+	constraints: {
+		[K in keyof T['constraints'] as K extends (D extends { drop_constraints: any[] } ? D['drop_constraints'][number] : never)
+			? never
+			: K]: T['constraints'][K];
+	} & (D extends { add_constraints: infer A } ? A : {});
+};
+
+export type ApplyDeltaToSchema<S extends z.input<typeof SchemaDecl>, D extends z.input<typeof VersionDelta>> = {
+	tables: {
+		[K in keyof S['tables'] as K extends (D extends { drop_tables: any[] } ? D['drop_tables'][number] : never)
+			? never
+			: K]: K extends keyof (D extends { alter_tables: any } ? D['alter_tables'] : {})
+			? ApplyTableDelta<S['tables'][K], (D['alter_tables'] & {})[K & keyof D['alter_tables']]>
+			: S['tables'][K];
+	} & (D extends { add_tables: infer A } ? A : {});
+	indexes: D extends { add_indexes: infer Add; drop_indexes: infer Drop }
+		? [...Filter<Drop extends readonly any[] ? Drop[number] : never, S['indexes'] & {}>, ...(Add extends readonly any[] ? Add : [])]
+		: S['indexes'];
+};
+
+type ResolveVersions<
+	V extends readonly any[],
+	Current extends z.input<typeof SchemaDecl> = { tables: {}; indexes: [] },
+> = V extends readonly [
+	infer Head extends z.input<typeof VersionDelta> | (z.input<typeof SchemaDecl> & { delta: false }),
+	...infer Tail extends (z.input<typeof VersionDelta> | (z.input<typeof SchemaDecl> & { delta: false }))[],
+]
+	? Head extends z.input<typeof VersionDelta>
+		? ResolveVersions<Tail, ApplyDeltaToSchema<Current, Head>>
+		: Head extends z.input<typeof SchemaDecl>
+			? ResolveVersions<Tail, Head>
+			: never
+	: Current;
+
+export type FullSchema<S extends z.input<typeof SchemaFile>> = ResolveVersions<S['versions']>;
+
+type __RangeContent = string | number | bigint | boolean | null | undefined;
+
+type _Range<T extends __RangeContent> = `${'(' | '['}${T},${T}${')' | ']'}`;
+
+type _MultiRange = `{${string}}`;
+
+interface ColumnValueMap
+	extends Record<(typeof numberTypes)[number], number>,
+		Record<(typeof bigintTypes)[number], bigint>,
+		Record<(typeof booleanTypes)[number], boolean>,
+		Record<(typeof stringTypes)[number], string>,
+		Record<(typeof dateTypes)[number], Date>,
+		Record<(typeof binaryTypes)[number], Uint8Array<ArrayBuffer>>,
+		Record<(typeof numericRangeTypes)[number], _Range<number>>,
+		Record<(typeof stringRangeTypes)[number], _Range<string>>,
+		Record<(typeof multirangeTypes)[number], _MultiRange> {
+	int8range: _Range<bigint>;
+	uuid: string;
+	json: any;
+	jsonb: any;
+}
+
+type ColumnTypeToValue<T extends ColumnType> = T extends `${infer CT extends z.infer<typeof _ColumnType>}[${infer N extends '' | number}]`
+	? N extends number
+		? Tuple<ColumnTypeToValue<CT>, N>
+		: ColumnTypeToValue<CT>[]
+	: T extends `${infer Base extends z.infer<typeof _primitive>}(${string})`
+		? ColumnTypeToValue<Base>
+		: T extends keyof ColumnValueMap
+			? ColumnValueMap[T]
+			: never;
+
+/**
+ * Convert a column definition into the Kysely database schema type
+ */
+export type ColumnSchema<T extends z.input<typeof Column>> = T['default'] extends {}
+	? kysely.Generated<ColumnTypeToValue<T['type']>>
+	: T['required'] extends true
+		? ColumnTypeToValue<T['type']>
+		: ColumnTypeToValue<T['type']> | null;
+
+/**
+ * Convert a table definition into the Kysely database schema type
+ */
+export type TableSchema<T extends z.input<typeof Table>> = {
+	[K in keyof T['columns']]: ColumnSchema<T['columns'][K]>;
+};
+
+type _DBFromSchema<TBs extends Record<string, z.input<typeof Table>>> = {
+	[K in keyof TBs]: Expand<TableSchema<TBs[K]>>;
+};
+
+/**
+ * Convert an entire schema definition file info the Kysely database schema type
+ */
+export type DatabaseFromSchemaFile<S extends ReadonlyRecursive<z.input<typeof SchemaFile>>> = _DBFromSchema<
+	FullSchema<MutableRecursive<S>>['tables']
+>;
+
+type RawDB = DatabaseFromSchemaFile<typeof rawSchema>;
+
+export interface Schema extends Omit<RawDB, 'users' | 'verifications' | 'passkeys'> {
+	users: Expand<
+		RawDB['users'] & {
+			preferences: kysely.Generated<Preferences>;
+		}
+	>;
+
+	verifications: Expand<
+		RawDB['verifications'] & {
+			role: VerificationRole;
+		}
+	>;
+
+	passkeys: Expand<
+		Omit<RawDB['passkeys'], 'transports'> & {
+			deviceType: CredentialDeviceType;
+			transports: AuthenticatorTransportFuture[];
+		}
+	>;
+	[key: `acl.${string}`]: DBAccessControl & Record<string, unknown>;
 }
 
 /**

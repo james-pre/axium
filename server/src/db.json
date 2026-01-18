@@ -65,6 +65,16 @@
 				}
 			},
 			"indexes": ["sessions:id", "passkeys:userId"]
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"users": {
+					"alter_columns": {
+						"name": { "ops": ["set_required"] }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]

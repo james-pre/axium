@@ -3,11 +3,12 @@ import type { AsyncResult } from '@axium/core/api';
 import { UserRegistration } from '@axium/core/user';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { randomUUID } from 'node:crypto';
+import { encodeUUID } from 'utilium';
 import * as z from 'zod';
 import { audit } from '../audit.js';
 import { createPasskey, getUser } from '../auth.js';
 import config from '../config.js';
-import { database as db, type Schema } from '../database.js';
+import { database as db } from '../database.js';
 import { createSessionData, error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
@@ -26,6 +27,7 @@ async function OPTIONS(request: Request): AsyncResult<'OPTIONS', 'register'> {
 	const options = await generateRegistrationOptions({
 		rpName: config.auth.rp_name,
 		rpID: config.auth.rp_id,
+		userID: encodeUUID(userId),
 		userName: email ?? userId,
 		userDisplayName: name,
 		attestationType: 'none',
@@ -64,7 +66,7 @@ async function POST(request: Request) {
 
 	await db
 		.insertInto('users')
-		.values({ id: userId, name, email: email.toLowerCase() } as Schema['users'])
+		.values({ id: userId, name, email: email.toLowerCase() })
 		.executeTakeFirstOrThrow()
 		.catch(withError('Failed to create user'));
 

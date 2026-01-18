@@ -1,7 +1,7 @@
 import type { Passkey, Session, UserInternal, Verification } from '@axium/core';
 import type { Insertable, Selectable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { omit } from 'utilium';
+import { omit, type WithRequired } from 'utilium';
 import * as acl from './acl.js';
 import { audit } from './audit.js';
 import { database as db, userFromId, type Schema } from './database.js';
@@ -11,7 +11,7 @@ export async function getUser(id: string): Promise<UserInternal> {
 	return await db.selectFrom('users').selectAll().where('id', '=', id).executeTakeFirstOrThrow();
 }
 
-export async function updateUser({ id, ...user }: Insertable<Schema['users']>): Promise<UserInternal> {
+export async function updateUser({ id, ...user }: WithRequired<Insertable<Schema['users']>, 'id'>): Promise<UserInternal> {
 	const query = db.updateTable('users').set(user).where('id', '=', id);
 	return await query.returningAll().executeTakeFirstOrThrow();
 }
