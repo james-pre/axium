@@ -1,8 +1,8 @@
 import { exec } from 'node:child_process';
-import { writeFileSync, readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { styleText } from 'node:util';
+import type * as z from 'zod';
 import * as io from '../io.js';
-import * as z from 'zod';
 export * from '../io.js';
 
 let _currentOperation: string | null = null,
@@ -120,15 +120,14 @@ export async function run(message: string, command: string): Promise<string> {
 }
 
 /** Yet another convenience function */
-export function exit(message: string | Error, code: number = 1): never {
+export function exit(message: unknown, code: number = 1): never {
+	if (typeof message == 'number') {
+		code = message;
+		message = 'Unknown error!';
+	}
 	if (message instanceof Error) message = message.message;
 	io.error(message);
 	process.exit(code);
-}
-
-export function handleError(e: number | string | Error): never {
-	if (typeof e == 'number') process.exit(e);
-	else exit(e);
 }
 
 /**
@@ -140,7 +139,7 @@ export function readJSON<S extends z.ZodType>(path: string, schema: S): z.infer<
 		const data = JSON.parse(readFileSync(path, 'utf-8'));
 		return schema.parse(data);
 	} catch (e) {
-		throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e instanceof Error ? e.message : e;
+		throw io.errorText(e);
 	}
 }
 

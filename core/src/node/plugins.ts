@@ -3,7 +3,7 @@ import { Plugin, plugins, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
 import { dirname, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
-import * as z from 'zod';
+import { _throw } from 'utilium';
 import { apps } from '../apps.js';
 import { locatePackage } from '../packages.js';
 
@@ -40,12 +40,14 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 
 		if ('axium' in imported) Object.assign(imported, imported.axium); // support axium field in package.json
 
-		const plugin: PluginInternal = Object.assign(
-			await Plugin.parseAsync(imported).catch(e => {
-				throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
-			}),
-			{ path, specifier, loadedBy, dirname: dirname(path), cli: imported[mode]?.cli, isServer: mode === 'server' }
-		);
+		const plugin: PluginInternal = Object.assign(await Plugin.parseAsync(imported).catch(e => _throw(io.errorText(e))), {
+			path,
+			specifier,
+			loadedBy,
+			dirname: dirname(path),
+			cli: imported[mode]?.cli,
+			isServer: mode === 'server',
+		});
 
 		if (!plugin[mode]) throw `Plugin does not support running ${mode}-side`;
 

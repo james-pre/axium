@@ -1,3 +1,5 @@
+import { $ZodError, prettifyError } from 'zod/v4/core';
+
 const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 // Shortcut to convert to 2-digit. Mostly used to make the line shorter.
@@ -76,6 +78,12 @@ export function someWarnings(...allowList: [RegExp, string?][]): (error: string 
 		}
 		throw error;
 	};
+}
+
+export function errorText(error: unknown): string {
+	if (error instanceof $ZodError) return prettifyError(error);
+	if (error instanceof Error) return error.message;
+	return String(error);
 }
 
 /** @hidden @internal for Logzen */
