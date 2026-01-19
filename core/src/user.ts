@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import type { Preferences } from './preferences.js';
+import { Preferences } from './preferences.js';
 import { PasskeyRegistration } from './passkeys.js';
 import { colorHash } from './color.js';
 
@@ -9,15 +9,13 @@ export const User = z.object({
 	email: z.email(),
 	emailVerified: z.date().nullish(),
 	image: z.url().nullish(),
-	preferences: z.record(z.string(), z.any()),
+	preferences: Preferences,
 	roles: z.array(z.string()),
 	registeredAt: z.coerce.date(),
 	isAdmin: z.boolean(),
 });
 
-export interface User extends z.infer<typeof User> {
-	preferences: Preferences;
-}
+export interface User extends z.infer<typeof User> {}
 
 export interface UserInternal extends User {
 	isSuspended: boolean;
@@ -48,9 +46,7 @@ export const UserChangeable = User.pick({
 	preferences: true,
 }).partial();
 
-export interface UserChangeable extends z.infer<typeof UserChangeable> {
-	preferences?: Preferences;
-}
+export interface UserChangeable extends z.infer<typeof UserChangeable> {}
 
 export function getUserImage(user: Partial<User>): string {
 	if (user.image) return user.image;

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { preferenceLabels, preferenceSchemas, type PreferenceName, type Preferences } from '@axium/core';
+	import { preferenceLabels, Preferences } from '@axium/core';
 	import Preference from './Preference.svelte';
 
 	interface Props {
@@ -11,10 +11,10 @@
 	const id = $props.id();
 </script>
 
-{#each Object.keys(preferenceSchemas) as PreferenceName[] as path}
+{#each Object.keys(Preferences.shape) as (keyof Preferences)[] as path}
 	<div class="pref">
 		<label for={id}>{preferenceLabels[path]}</label>
-		<Preference {userId} bind:preferences {path} schema={preferenceSchemas[path]} />
+		<Preference {userId} bind:preferences {path} schema={Preferences.shape[path]} />
 	</div>
 {/each}
 
