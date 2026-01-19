@@ -32,6 +32,10 @@
 		cursor: pointer;
 	}
 
+	.popover-toggle {
+		user-select: none;
+	}
+
 	@media (width > 700px) {
 		.toggle-hover {
 			visibility: hidden;
