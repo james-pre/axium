@@ -19,6 +19,11 @@ import { dirs, systemDir } from './io.js';
 
 pg.types.setTypeParser(pg.types.builtins.INT8, BigInt);
 
+// @ts-expect-error 2339
+BigInt.prototype.toJSON = function (this: bigint) {
+	return Number(this);
+};
+
 export interface DBAccessControl {
 	itemId: string;
 	userId?: string | null;
