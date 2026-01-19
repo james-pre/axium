@@ -67,19 +67,27 @@ export function json(data: object, init?: ResponseInit): Response {
 	return response;
 }
 
-export async function parseBody<const Schema extends z.ZodType, const Result extends z.infer<Schema> = z.infer<Schema>>(
-	request: Request,
-	schema: Schema
-): Promise<Result> {
+export async function parseBody<const Schema extends z.ZodType>(request: Request, schema: Schema): Promise<z.infer<Schema>> {
 	const contentType = request.headers.get('content-type');
 	if (!contentType || !contentType.includes('application/json')) error(415, 'Invalid content type');
 
 	const body: unknown = await request.json().catch(() => error(415, 'Invalid JSON'));
 
 	try {
-		return schema.parse(body) as Result;
+		return schema.parse(body);
 	} catch (e: any) {
 		error(400, e instanceof z.core.$ZodError ? z.prettifyError(e) : 'invalid body');
+	}
+}
+
+export function parseSearch<const Schema extends z.ZodType>(request: Request, schema: Schema): z.infer<Schema> {
+	const url = new URL(request.url);
+	const searchParams = Object.fromEntries(url.searchParams.entries());
+
+	try {
+		return schema.parse(searchParams);
+	} catch (e: any) {
+		error(400, e instanceof z.core.$ZodError ? z.prettifyError(e) : 'invalid query parameters');
 	}
 }
 

@@ -9,7 +9,7 @@ import { audit, events, getEvents } from '../audit.js';
 import { requireSession, type SessionInternal } from '../auth.js';
 import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
-import { error, withError } from '../requests.js';
+import { error, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 
 async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
@@ -159,12 +159,7 @@ addRoute({
 		await assertAdmin(this, req);
 
 		const filter: AuditFilter = { severity: Severity.Info };
-		try {
-			const search = Object.fromEntries(new URL(req.url).searchParams);
-			Object.assign(filter, AuditFilter.parse(search));
-		} catch (e: any) {
-			error(400, e instanceof z.core.$ZodError ? z.prettifyError(e) : 'invalid body');
-		}
+		Object.assign(filter, parseSearch(req, AuditFilter));
 
 		return await getEvents(filter)
 			.select(eb =>
