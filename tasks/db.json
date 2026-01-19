@@ -33,6 +33,9 @@
 						"itemId": { "type": "uuid", "required": true, "references": "task_lists.id", "onDelete": "cascade" },
 						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
 						"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+					},
+					"constraints": {
+						"PK_acl_task_lists": { "type": "primary_key", "on": ["userId", "itemId"] }
 					}
 				}
 			},

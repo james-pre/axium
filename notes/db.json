@@ -23,6 +23,9 @@
 						"itemId": { "type": "uuid", "required": true, "references": "notes.id", "onDelete": "cascade" },
 						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
 						"permission": { "type": "integer", "required": true, "check": "permission >= 0 AND permission <= 5" }
+					},
+					"constraints": {
+						"PK_acl_notes": { "type": "primary_key", "on": ["userId", "itemId"] }
 					}
 				}
 			},
