@@ -57,7 +57,7 @@ export function linkRoutes(options: LinkOptions = {}) {
 			try {
 				unlinkSync(from);
 			} catch (e: any) {
-				io.exit(e && e instanceof Error ? e.message : e.toString());
+				io.exit(e);
 			}
 			io.done();
 
@@ -68,7 +68,7 @@ export function linkRoutes(options: LinkOptions = {}) {
 			symlinkSync(to, from, 'dir');
 			io.done();
 		} catch (e: any) {
-			io.exit(e && e instanceof Error ? e.message : e.toString());
+			io.exit(e);
 		}
 	}
 }
@@ -82,7 +82,7 @@ export function unlinkRoutes(options: LinkOptions = {}) {
 			unlinkSync(from);
 			io.done();
 		} catch (e: any) {
-			io.exit(e && e instanceof Error ? e.message : e.toString());
+			io.exit(e);
 		}
 	}
 }

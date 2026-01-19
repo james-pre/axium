@@ -81,7 +81,7 @@ cli.command('query')
 			query = query.where('size', '=', opt.size);
 		}
 
-		const rawItems = await query.execute().catch(io.handleError);
+		const rawItems = await query.execute().catch(io.exit);
 		const items = rawItems.map(parseItem);
 
 		if (!items.length) {

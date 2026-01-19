@@ -9,17 +9,17 @@ import { Argument, Option, program, type Command } from 'commander';
 import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
-import { styleText, parseArgs } from 'node:util';
+import { parseArgs, styleText } from 'node:util';
 import { getByString, isJSON, setByString, type Entries } from 'utilium';
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { audit, getEvents, styleSeverity } from './audit.js';
+import { diffUpdate, lookupUser, userText } from './cli.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
 import { serve } from './serve.js';
-import { diffUpdate, lookupUser, userText } from './cli.js';
 
 using rl = createInterface({
 	input: process.stdin,
@@ -134,8 +134,8 @@ axiumDB
 	.addOption(opts.check)
 	.action(async (_localOpts, _: Command) => {
 		const opt = _.optsWithGlobals<OptDB & { skip: boolean; check: boolean }>();
-		await db.init(opt).catch(io.handleError);
-		await dbInitTables().catch(io.handleError);
+		await db.init(opt).catch(io.exit);
+		await dbInitTables().catch(io.exit);
 	});
 
 axiumDB
@@ -166,9 +166,9 @@ axiumDB
 				process.exit(2);
 			}
 
-		await db._sql('DROP DATABASE axium', 'Dropping database').catch(io.handleError);
-		await db._sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges').catch(io.handleError);
-		await db._sql('DROP USER axium', 'Dropping user').catch(io.handleError);
+		await db._sql('DROP DATABASE axium', 'Dropping database').catch(io.exit);
+		await db._sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges').catch(io.exit);
+		await db._sql('DROP USER axium', 'Dropping user').catch(io.exit);
 
 		await db
 			.getHBA(opt)
@@ -220,7 +220,7 @@ axiumDB
 
 		await rlConfirm('Are you sure you want to wipe these tables and any dependents');
 
-		await db.database.deleteFrom(Array.from(tables.keys())).execute().catch(io.handleError);
+		await db.database.deleteFrom(Array.from(tables.keys())).execute().catch(io.exit);
 	});
 
 axiumDB
@@ -228,27 +228,24 @@ axiumDB
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
 	.action(async (opt: db.CheckOptions) => {
-		await io.run('Checking for sudo', 'which sudo').catch(io.handleError);
-		await io.run('Checking for psql', 'which psql').catch(io.handleError);
+		await io.run('Checking for sudo', 'which sudo').catch(io.exit);
+		await io.run('Checking for psql', 'which psql').catch(io.exit);
 
 		const throwUnlessRows = (text: string) => {
 			if (text.includes('(0 rows)')) throw 'missing.';
 			return text;
 		};
 
-		await db
-			._sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database')
-			.then(throwUnlessRows)
-			.catch(io.handleError);
+		await db._sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database').then(throwUnlessRows).catch(io.exit);
 
-		await db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows).catch(io.handleError);
+		await db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows).catch(io.exit);
 
 		io.start('Connecting to database');
 		await using _ = db.connect();
 		io.done();
 
 		io.start('Getting schema metadata');
-		const schemas = await db.database.introspection.getSchemas().catch(io.handleError);
+		const schemas = await db.database.introspection.getSchemas().catch(io.exit);
 		io.done();
 
 		io.start('Checking for acl schema');
@@ -259,12 +256,20 @@ axiumDB
 		const tablePromises = await Promise.all([
 			db.database.introspection.getTables(),
 			db.database.withSchema('acl').introspection.getTables(),
-		]).catch(io.handleError);
+		]).catch(io.exit);
 		opt._metadata = tablePromises.flat();
 		const tables = Object.fromEntries(opt._metadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
 		io.done();
 
-		const schema = db.getFullSchema();
+		io.start('Resolving database schemas');
+		let schema;
+		try {
+			schema = db.getFullSchema();
+			io.done();
+		} catch (e: any) {
+			io.exit(e);
+		}
+
 		for (const [name, table] of Object.entries(schema.tables)) {
 			await db.checkTableTypes(name as keyof db.Schema, table, opt);
 			delete tables[name];
@@ -299,7 +304,7 @@ axiumDB
 			const schema = z.toJSONSchema(db.SchemaFile, { io: 'input' });
 			console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
 		} catch (e: any) {
-			io.handleError(e instanceof z.core.$ZodError ? z.prettifyError(e) : e);
+			io.exit(e);
 		}
 	});
 
@@ -385,7 +390,7 @@ axiumDB
 		}
 
 		console.log('Applying delta.');
-		await db.applyDelta(delta, opt.abort).catch(io.handleError);
+		await db.applyDelta(delta, opt.abort).catch(io.exit);
 
 		info.upgrades.push({ timestamp: new Date(), from, to });
 		db.setUpgradeInfo(info);
@@ -515,7 +520,7 @@ axiumConfig
 			const schema = z.toJSONSchema(FileSchema, { io: 'input' });
 			console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
 		} catch (e: any) {
-			io.handleError(e instanceof z.core.$ZodError ? z.prettifyError(e) : e);
+			io.exit(e);
 		}
 	});
 
@@ -783,7 +788,7 @@ program
 	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
 	.option('-N, --node <path>', 'the path to the node binary')
 	.action(async (action: PortOptions['action'], opt: OptCommon & Omit<PortOptions, 'action'>) => {
-		await restrictedPorts({ ...opt, action }).catch(io.handleError);
+		await restrictedPorts({ ...opt, action }).catch(io.exit);
 	});
 
 program
@@ -795,9 +800,9 @@ program
 	.addOption(opts.packagesDir)
 	.option('-s, --skip', 'Skip already initialized steps')
 	.action(async (opt: OptDB & { check: boolean; packagesDir?: string; skip: boolean }) => {
-		await db.init(opt).catch(io.handleError);
-		await dbInitTables().catch(io.handleError);
-		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.handleError);
+		await db.init(opt).catch(io.exit);
+		await dbInitTables().catch(io.exit);
+		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.exit);
 	});
 
 program

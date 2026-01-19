@@ -75,9 +75,8 @@ export async function syncCache(force: boolean | null = null): Promise<StorageCa
 			io.writeJSON(cachePath, cachedData);
 			if (!quiet) io.done();
 		} catch (e) {
-			const message = e instanceof Error ? e.message : String(e);
-			if (quiet) io.exit('Failed to update item metadata: ' + message);
-			else io.exit(message);
+			if (quiet) io.exit('Failed to update item metadata: ' + io.errorText(e));
+			else io.exit(e);
 		}
 	} else {
 		cachedData = io.readJSON(cachePath, StorageCache);

@@ -52,7 +52,7 @@ export async function fetchSyncItems(id: string, folderName?: string): Promise<L
 		io.done();
 		return localItems;
 	} catch (e: any) {
-		io.exit(e.message);
+		io.exit(e);
 	}
 }
 

@@ -38,9 +38,9 @@ cli.command('ls')
 	.option('-l, --long', 'Show more details')
 	.option('-h, --human-readable', 'Show sizes in human readable format')
 	.action(async function (this: Command, path: string) {
-		const { users } = await syncCache().catch(io.handleError);
+		const { users } = await syncCache().catch(io.exit);
 		const { long, humanReadable } = this.optsWithGlobals();
-		const items = await getDirectory(path).catch(io.handleError);
+		const items = await getDirectory(path).catch(io.exit);
 		if (!long) {
 			console.log(items.map(colorItem).join('\t'));
 			return;
@@ -57,12 +57,12 @@ cli.command('mkdir')
 		const pathParts = path.split('/');
 		const name = pathParts.pop();
 		const parentPath = pathParts.join('/');
-		const parent = !parentPath ? null : await resolveItem(parentPath).catch(io.handleError);
+		const parent = !parentPath ? null : await resolveItem(parentPath).catch(io.exit);
 		if (parent) {
 			if (!parent) io.exit('Could not resolve parent folder.');
 			if (parent.type != 'inode/directory') io.exit('Parent path is not a directory.');
 		}
-		await api.uploadItem(new Blob([], { type: 'inode/directory' }), { parentId: parent?.id, name }).catch(io.handleError);
+		await api.uploadItem(new Blob([], { type: 'inode/directory' }), { parentId: parent?.id, name }).catch(io.exit);
 	});
 
 cli.command('status')
@@ -178,7 +178,7 @@ cliCache
 	.command('refresh')
 	.description('Force a refresh of the local cache from the server')
 	.action(async () => {
-		await syncCache(true).catch(io.handleError);
+		await syncCache(true).catch(io.exit);
 	});
 
 cliCache
@@ -189,7 +189,7 @@ cliCache
 	.action(async function (this: Command) {
 		const opt = this.optsWithGlobals();
 
-		const data = await syncCache(false).catch(io.handleError);
+		const data = await syncCache(false).catch(io.exit);
 
 		if (opt.json) {
 			console.log(JSON.stringify(data));

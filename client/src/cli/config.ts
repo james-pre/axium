@@ -3,7 +3,6 @@ import { loadPlugin } from '@axium/core/node/plugins';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
-import * as z from 'zod';
 import { ClientConfig, config } from '../config.js';
 import { fetchAPI, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession } from '../user.js';
@@ -29,16 +28,7 @@ export async function loadConfig(safe: boolean) {
 		if (config.token) setToken(config.token);
 		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfig, safe);
 	} catch (e: any) {
-		io.warn(
-			'Failed to load config: ' +
-				(e instanceof z.core.$ZodError
-					? z.prettifyError(e)
-					: e instanceof Error
-						? io._debugOutput
-							? e.stack
-							: e.message
-						: String(e))
-		);
+		io.warn('Failed to load config: ' + io.errorText(e));
 	}
 }
 
@@ -53,7 +43,7 @@ export async function updateCache(force: boolean) {
 	if (!force && config.cache && config.cache.fetched + _dayMs > Date.now()) return;
 	io.start('Fetching metadata');
 
-	const [session, apps] = await Promise.all([getCurrentSession(), fetchAPI('GET', 'apps')]).catch(err => io.exit(err.message));
+	const [session, apps] = await Promise.all([getCurrentSession(), fetchAPI('GET', 'apps')]).catch(io.exit);
 
 	try {
 		config.cache = { fetched: Date.now(), session, apps };

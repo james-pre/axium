@@ -404,8 +404,7 @@ export function* getSchemaFiles(): Generator<[string, SchemaFile]> {
 		try {
 			yield [name, SchemaFile.parse(plugin._db)];
 		} catch (e) {
-			const text = e instanceof z.core.$ZodError ? z.prettifyError(e) : e instanceof Error ? e.message : String(e);
-			throw `Invalid database configuration for plugin "${name}":\n${text}`;
+			throw `Invalid database configuration for plugin "${name}":\n${io.errorText(e)}`;
 		}
 	}
 }
@@ -576,8 +575,14 @@ export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl & { 
 
 		fullSchema.versions[pluginName] = file.latest;
 		for (const [version, schema] of file.versions.entries()) {
-			if (schema.delta) applyDeltaToSchema(currentSchema, schema);
-			else currentSchema = schema;
+			if (!schema.delta) currentSchema = schema;
+			else {
+				try {
+					applyDeltaToSchema(currentSchema, schema);
+				} catch (e: unknown) {
+					throw `Failed to apply version ${version - 1}->${version} delta to ${pluginName}: ${io.errorText(e)}`;
+				}
+			}
 
 			if (version === file.latest) break;
 		}
@@ -624,18 +629,18 @@ export function setUpgradeInfo(info: UpgradesInfo): void {
 
 export function applyTableDeltaToSchema(table: Table, delta: TableDelta): void {
 	for (const column of delta.drop_columns) {
-		if (column in table) delete table.columns[column];
-		else throw `Can't drop column ${column} because it does not exist`;
+		if (column in table.columns) delete table.columns[column];
+		else throw `can't drop column ${column} because it does not exist`;
 	}
 
 	for (const [name, column] of Object.entries(delta.add_columns)) {
-		if (name in table) throw `Can't add column ${name} because it already exists`;
+		if (name in table.columns) throw `can't add column ${name} because it already exists`;
 		table.columns[name] = column;
 	}
 
 	for (const [name, columnDelta] of Object.entries(delta.alter_columns)) {
 		const column = table.columns[name];
-		if (!column) throw `Can't modify column ${name} because it does not exist`;
+		if (!column) throw `can't modify column ${name} because it does not exist`;
 		if (columnDelta.type) column.type = columnDelta.type!;
 		if (columnDelta.default) column.default = columnDelta.default!;
 		for (const op of columnDelta.ops || []) {
@@ -655,11 +660,11 @@ export function applyTableDeltaToSchema(table: Table, delta: TableDelta): void {
 
 	for (const name of delta.drop_constraints) {
 		if (table.constraints[name]) delete table.constraints[name];
-		else throw `Can't drop constraint ${name} because it does not exist`;
+		else throw `can't drop constraint ${name} because it does not exist`;
 	}
 
 	for (const [name, constraint] of Object.entries(delta.add_constraints)) {
-		if (table.constraints[name]) throw `Can't add constraint ${name} because it already exists`;
+		if (table.constraints[name]) throw `can't add constraint ${name} because it already exists`;
 		table.constraints[name] = constraint;
 	}
 }
@@ -667,17 +672,17 @@ export function applyTableDeltaToSchema(table: Table, delta: TableDelta): void {
 export function applyDeltaToSchema(schema: SchemaDecl, delta: VersionDelta): void {
 	for (const tableName of delta.drop_tables) {
 		if (tableName in schema.tables) delete schema.tables[tableName];
-		else throw `Can't drop table ${tableName} because it does not exist`;
+		else throw `can't drop table ${tableName} because it does not exist`;
 	}
 
 	for (const [tableName, table] of Object.entries(delta.add_tables)) {
-		if (tableName in schema.tables) throw `Can't add table ${tableName} because it already exists`;
+		if (tableName in schema.tables) throw `can't add table ${tableName} because it already exists`;
 		else schema.tables[tableName] = table;
 	}
 
 	for (const [tableName, tableDelta] of Object.entries(delta.alter_tables)) {
 		if (tableName in schema.tables) applyTableDeltaToSchema(schema.tables[tableName], tableDelta);
-		else throw `Can't modify table ${tableName} because it does not exist`;
+		else throw `can't modify table ${tableName} because it does not exist`;
 	}
 }
 
