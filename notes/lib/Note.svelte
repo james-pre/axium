@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { fetchAPI } from '@axium/client/requests';
-	import { Icon, Popover } from '@axium/client/components';
+	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import type { Note } from '@axium/notes/common';
 	import { page } from '$app/state';
 	import { copy } from '@axium/client/clipboard';
 	import { download } from 'utilium/dom.js';
 
 	let { note = $bindable(), notes = $bindable(), pageMode = false }: { note: Note; notes?: Note[]; pageMode?: boolean } = $props();
+
+	let acl = $state<HTMLDialogElement>();
 </script>
 
 <div class={['note', pageMode && 'full-page']}>
@@ -36,6 +38,15 @@
 			<div class="menu-item" onclick={() => download(note.title + '.txt', note.content ?? '')}>
 				<Icon i="download" /> Download
 			</div>
+			<div
+				class="menu-item"
+				onclick={() => {
+					acl!.showModal();
+					acl!.click();
+				}}
+			>
+				<Icon i="user-group" /> Share
+			</div>
 			<div class="menu-item" onclick={() => copy('text/plain', `${location.origin}/notes/${note.id}`)}>
 				<Icon i="link-horizontal" /> Copy Link
 			</div>
@@ -51,6 +62,7 @@
 				</div>
 			{/if}
 		</Popover>
+		<AccessControlDialog bind:dialog={acl} bind:item={note} itemType="notes" editable />
 	</div>
 	<textarea
 		name="content"

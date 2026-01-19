@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { copy } from '@axium/client/clipboard';
-	import { Icon, Popover } from '@axium/client/components';
+	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
@@ -22,6 +22,8 @@
 
 		return `[${task.completed ? 'x' : ' '}] ${task.summary}` + children;
 	}
+
+	let acl = $state<HTMLDialogElement>();
 </script>
 
 {#snippet task_tree(task: Task)}
@@ -108,6 +110,15 @@
 			>
 				<Icon i="regular/file-export" /> Export
 			</div>
+			<div
+				class="menu-item"
+				onclick={() => {
+					acl!.showModal();
+					acl!.click();
+				}}
+			>
+				<Icon i="user-group" /> Share
+			</div>
 			{#if tasks.some(t => !t.completed)}
 				<div
 					class="menu-item"
@@ -144,6 +155,7 @@
 				</div>
 			{/if}
 		</Popover>
+		<AccessControlDialog bind:dialog={acl} bind:item={list} itemType="task_lists" editable />
 	</div>
 	<div>
 		<button
