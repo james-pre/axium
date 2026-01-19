@@ -40,7 +40,7 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.12.0",
+		"@axium/core": ">=0.15.0",
 		"utilium": "^2.3.8",
 		"zod": "^4.0.5",
 		"svelte": "^5.36.0"

@@ -48,7 +48,7 @@
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.9.5",
-		"@axium/core": ">=0.14.0",
+		"@axium/core": ">=0.15.0",
 		"kysely": "^0.28.0",
 		"utilium": "^2.6.0",
 		"zod": "^4.0.5"
