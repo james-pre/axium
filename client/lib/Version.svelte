@@ -1,15 +1,16 @@
 <script lang="ts">
 	const { v, latest }: { v: string; latest?: string | null } = $props();
+	import { lt as ltVersion } from 'semver';
 </script>
 
 <span class="version">{v}</span>
 
 {#if latest}
 	<span class="latest">
-		{#if v == latest}
-			Latest
-		{:else}
+		{#if ltVersion(v, latest)}
 			<span class="version">{latest}</span> available
+		{:else}
+			Latest
 		{/if}
 	</span>
 {/if}
