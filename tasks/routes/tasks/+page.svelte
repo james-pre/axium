@@ -15,7 +15,7 @@
 	<title>Tasks</title>
 </svelte:head>
 
-<div class="tasks-main">
+<div id="tasks-main">
 	<h1>Tasks</h1>
 
 	<button id="create-task-list" class="icon-text mobile-float-right" onclick={() => dialog!.showModal()}>
@@ -50,7 +50,7 @@
 </FormDialog>
 
 <style>
-	.tasks-main {
+	#tasks-main {
 		padding: 2em;
 		inset: 0;
 		display: flex;
@@ -66,5 +66,19 @@
 		display: grid;
 		grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
 		gap: 1em;
+	}
+
+	@media (width < 700px) {
+		#tasks-main {
+			padding: 1em;
+			align-content: center;
+		}
+
+		.lists-container {
+			display: flex;
+			flex-direction: column;
+			gap: 1em;
+			align-content: center;
+		}
 	}
 </style>

@@ -13,7 +13,7 @@
 	<title>Notes</title>
 </svelte:head>
 
-<div class="notes-main">
+<div id="notes-main">
 	<h1>Notes</h1>
 	<button
 		id="create-note"
@@ -34,7 +34,7 @@
 </div>
 
 <style>
-	.notes-main {
+	#notes-main {
 		padding: 2em;
 		inset: 0;
 		display: flex;
@@ -50,5 +50,19 @@
 
 	#create-note {
 		width: fit-content;
+	}
+
+	@media (width < 700px) {
+		#notes-main {
+			padding: 1em;
+			align-content: center;
+		}
+
+		.lists-container {
+			display: flex;
+			flex-direction: column;
+			gap: 1em;
+			align-content: center;
+		}
 	}
 </style>
