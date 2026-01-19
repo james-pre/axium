@@ -6,15 +6,16 @@
 	import FormDialog from './FormDialog.svelte';
 	import UserCard from './UserCard.svelte';
 	import Icon from './Icon.svelte';
+	import type { HTMLDialogAttributes } from 'svelte/elements';
 
-	interface Props {
+	interface Props extends HTMLDialogAttributes {
 		editable: boolean;
 		dialog?: HTMLDialogElement;
 		itemType: string;
 		item?: ({ name?: string; user?: User; id: string } & AccessControllable) | null;
 		acl?: AccessControl[];
 	}
-	let { item = $bindable(), itemType, editable, dialog = $bindable(), acl = $bindable(item?.acl) }: Props = $props();
+	let { item = $bindable(), itemType, editable, dialog = $bindable(), acl = $bindable(item?.acl), ...rest }: Props = $props();
 
 	if (!acl && item) getACL(itemType, item.id).then(fetched => (acl = item.acl = fetched));
 </script>
@@ -25,6 +26,7 @@
 	submit={async data => {
 		if (item) await setACL(itemType, item.id, data as any as AccessMap);
 	}}
+	{...rest}
 >
 	{#snippet header()}
 		{#if item?.name}
