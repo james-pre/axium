@@ -68,7 +68,7 @@ addRoute({
 		if ('preferences' in body)
 			body.preferences = Object.assign(
 				structuredClone(preferenceDefaults),
-				await z.object(Preferences).partial().parseAsync(body.preferences).catch(withError('Invalid preferences', 400))
+				await Preferences.partial().parseAsync(body.preferences).catch(withError('Invalid preferences', 400))
 			);
 
 		const result = await db
