@@ -1039,10 +1039,15 @@ export interface CheckOptions extends OpOptions {
 /**
  * Checks that a table has the expected column types, nullability, and default values.
  */
-export async function checkTableTypes<TB extends keyof Schema & string>(tableName: TB, types: Table, opt: CheckOptions): Promise<void> {
+export async function checkTableTypes<TB extends keyof Schema & string>(
+	tableName: TB,
+	types: Table,
+	opt: CheckOptions,
+	tableMetadata?: kysely.TableMetadata[]
+): Promise<void> {
 	io.start(`Checking table ${tableName}`);
-	const dbTables = opt._metadata || (await database.introspection.getTables());
-	const table = dbTables.find(t => (t.schema == 'public' ? t.name : `${t.schema}.${t.name}`) === tableName);
+	tableMetadata ||= await database.introspection.getTables();
+	const table = tableMetadata.find(t => (t.schema == 'public' ? t.name : `${t.schema}.${t.name}`) === tableName);
 	if (!table) throw 'missing.';
 
 	const columns = Object.fromEntries(table.columns.map(c => [c.name, c]));

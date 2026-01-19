@@ -1,4 +1,4 @@
-import { formatBytes, parseByteSize, type UserInternal } from '@axium/core';
+import { formatBytes, parseByteSize } from '@axium/core';
 import { io } from '@axium/core/node';
 import { lookupUser } from '@axium/server/cli';
 import { count, database } from '@axium/server/database';
@@ -21,18 +21,6 @@ cli.command('usage')
 		console.log(`${items} items totaling ${formatBytes(Number(size))}`);
 	});
 
-interface QueryOptions {
-	name?: string;
-	type?: string;
-	user?: Promise<UserInternal>;
-	minSize?: number;
-	maxSize?: number;
-	size?: number;
-	limit: number;
-	json: boolean;
-	format: string;
-}
-
 const _byteSize = (msg: string) => (v: string) => parseByteSize(v) ?? io.exit(msg);
 
 cli.command('query')
@@ -44,13 +32,13 @@ cli.command('query')
 	.addOption(new Option('-u, --user <user>', 'Filter by user UUID or email').argParser(lookupUser))
 	.option('-m, --min-size <size>', 'Filter by minimum size', _byteSize('Invalid minimum size.'))
 	.option('-M, --max-size <size>', 'Filter by maximum size', _byteSize('Invalid maximum size.'))
-	.addOption(new Option('--size', 'Filter by exact size').conflicts(['minSize', 'maxSize']).argParser(_byteSize('Invalid size.')))
+	.addOption(new Option('--size <size>', 'Filter by exact size').conflicts(['minSize', 'maxSize']).argParser(_byteSize('Invalid size.')))
 	.option('-l, --limit <n>', 'Limit the number of results', (v: string) => z.coerce.number().int().min(1).max(1000).parse(v), 100)
 	.option('-j, --json', 'Output results as JSON', false)
 	.addOption(
 		new Option('-f, --format <format>', 'How to format output lines').conflicts('json').default('{id} {type} {size} {userId} {name}')
 	)
-	.action(async (opt: QueryOptions) => {
+	.action(async opt => {
 		let query = database
 			.selectFrom('storage')
 			.selectAll()

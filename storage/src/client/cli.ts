@@ -10,14 +10,14 @@ import { colorItem, formatItems } from '../node.js';
 import * as api from './api.js';
 import { config, saveConfig } from './config.js';
 import { cachePath, getDirectory, resolveItem, setQuiet, syncCache } from './local.js';
-import { computeDelta, doSync, fetchSyncItems, type SyncOptions } from './sync.js';
+import { computeDelta, doSync, fetchSyncItems } from './sync.js';
 
 const cli = program
 	.command('files')
 	.helpGroup('Plugins:')
 	.description('CLI integration for @axium/storage')
 	.option('-q, --quiet', 'Suppress output')
-	.hook('preAction', (action: Command) => {
+	.hook('preAction', action => {
 		const opts = action.optsWithGlobals();
 		if (opts.quiet) setQuiet(true);
 	});
@@ -36,8 +36,8 @@ cli.command('ls')
 	.description('List the contents of a folder')
 	.argument('<path>', 'remote folder path')
 	.option('-l, --long', 'Show more details')
-	.option('-h, --human-readable', 'Show sizes in human readable format')
-	.action(async function (this: Command, path: string) {
+	.option('-h, --human-readable', 'Show sizes in human readable format', false)
+	.action(async function axium_files_ls(this, path) {
 		const { users } = await syncCache().catch(io.exit);
 		const { long, humanReadable } = this.optsWithGlobals();
 		const items = await getDirectory(path).catch(io.exit);
@@ -156,10 +156,10 @@ cli.command('sync')
 			.choices(['local', 'remote', 'none'])
 			.default('none')
 	)
-	.option('-d, --dry-run', 'Show what would be done, but do not make any changes')
-	.option('-v, --verbose', 'Show more details')
+	.option('-d, --dry-run', 'Show what would be done, but do not make any changes', false)
+	.option('-v, --verbose', 'Show more details', false)
 	.argument('[sync]', 'The name of the Sync to sync')
-	.action(async (name: string, opt: SyncOptions) => {
+	.action(async (name, opt) => {
 		if (name) {
 			const sync = config.sync.find(s => s.name == name);
 			if (!sync) io.exit('Can not find a Sync with that name.');
@@ -186,7 +186,7 @@ cliCache
 	.description('Dump the local cache')
 	.option('-v, --verbose', 'Show more details')
 	.addOption(new Option('-j, --json', 'Output as JSON').conflicts(['verbose', 'quiet']))
-	.action(async function (this: Command) {
+	.action(async function axium_files_cache_dump(this) {
 		const opt = this.optsWithGlobals();
 
 		const data = await syncCache(false).catch(io.exit);

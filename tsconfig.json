@@ -11,6 +11,8 @@
 		"resolveJsonModule": true,
 		"importJsonAsConst": true,
 		"declaration": true,
+		"typeRoots": ["./node_modules/@types", "./types"],
+		"types": ["node", "commander"],
 		"paths": {
 			"@axium/core": ["./core/*"],
 			"@axium/client": ["./client/*"],

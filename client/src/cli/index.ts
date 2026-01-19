@@ -1,9 +1,9 @@
 #! /usr/bin/env node
 
 import type { NewSessionResponse } from '@axium/core';
-import { outputDaemonStatus, io, pluginText } from '@axium/core/node';
+import { io, outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
-import { program, type Command } from 'commander';
+import { program } from 'commander';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { createInterface } from 'node:readline/promises';
@@ -42,18 +42,17 @@ program
 	.configureHelp({ showGlobalOptions: true })
 	.option('--debug', 'override debug mode')
 	.option('--no-debug', 'override debug mode')
-	.option('--refresh-session', 'Force a refresh of session and user metadata from server')
-	.option('--cache-only', 'Run entirely from local cache, even if it is expired.')
-	.option('--safe', 'do not execute code from plugins');
+	.option('--refresh-session', 'Force a refresh of session and user metadata from server', false)
+	.option('--cache-only', 'Run entirely from local cache, even if it is expired.', false)
+	.option('--safe', 'do not execute code from plugins', false)
+	.hook('preAction', async (axc, action) => {
+		const opt = axc.optsWithGlobals();
+
+		if (!config.token) return;
+		if (!opt.cacheOnly && action.name() != 'login') await updateCache(opt.refreshSession);
+	});
 
 program.on('option:debug', () => io._setDebugOutput(true));
-
-program.hook('preAction', async (_, action: Command) => {
-	const opt = action.optsWithGlobals<{ refreshSession: boolean; cacheOnly: boolean; safe: boolean }>();
-
-	if (!config.token) return;
-	if (!opt.cacheOnly && action.name() != 'login') await updateCache(opt.refreshSession);
-});
 
 program
 	.command('login')
@@ -180,7 +179,7 @@ axiumPlugin
 	.description('List loaded plugins')
 	.option('-l, --long', 'use the long listing format')
 	.option('--no-versions', 'do not show plugin versions')
-	.action((opt: { long: boolean; versions: boolean }) => {
+	.action(opt => {
 		if (!plugins.size) {
 			console.log('No plugins loaded.');
 			return;

@@ -5,7 +5,7 @@ import { AuditFilter, severityNames } from '@axium/core/audit';
 import { formatDateRange } from '@axium/core/format';
 import { io, outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins, runIntegrations } from '@axium/core/plugins';
-import { Argument, Option, program, type Command } from 'commander';
+import { Argument, Option, program } from 'commander';
 import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
@@ -18,7 +18,7 @@ import { diffUpdate, lookupUser, userText } from './cli.js';
 import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
-import { linkRoutes, listRouteLinks, unlinkRoutes, type LinkOptions } from './linking.js';
+import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
 import { serve } from './serve.js';
 
 using rl = createInterface({
@@ -55,45 +55,36 @@ program
 	.name('axium')
 	.description('Axium server CLI')
 	.configureHelp({ showGlobalOptions: true })
-	.option('--safe', 'do not execute code from plugins')
+	.option('--safe', 'do not execute code from plugins', false)
 	.option('--debug', 'override debug mode')
 	.option('--no-debug', 'override debug mode')
-	.option('-c, --config <path>', 'path to the config file');
-
-program.on('option:debug', () => config.set({ debug: true }));
+	.option('-c, --config <path>', 'path to the config file')
+	.hook('preAction', (_, action) => {
+		const opt = action.optsWithGlobals();
+		opt.force && io.warn('--force: Protections disabled.');
+		if (typeof opt.debug == 'boolean') {
+			config.set({ debug: opt.debug });
+			io._setDebugOutput(opt.debug);
+		}
+		try {
+			db.connect();
+		} catch (e) {
+			if (!noAutoDB.includes(action.name())) throw e;
+		}
+	})
+	.hook('postAction', async (_, action) => {
+		if (!noAutoDB.includes(action.name())) await db.database.destroy();
+	})
+	.on('option:debug', () => config.set({ debug: true }));
 
 const noAutoDB = ['init', 'serve', 'check'];
 
-program.hook('preAction', (_, action: Command) => {
-	const opt = action.optsWithGlobals<OptCommon>();
-	opt.force && io.warn('--force: Protections disabled.');
-	if (typeof opt.debug == 'boolean') {
-		config.set({ debug: opt.debug });
-		io._setDebugOutput(opt.debug);
-	}
-	try {
-		db.connect();
-	} catch (e) {
-		if (!noAutoDB.includes(action.name())) throw e;
-	}
-});
-
-program.hook('postAction', async (_, action: Command) => {
-	if (!noAutoDB.includes(action.name())) await db.database.destroy();
-});
-
 // Options shared by multiple (sub)commands
 const opts = {
-	// database specific
-	host: new Option('-H, --host <host>', 'the host of the database.').argParser(value => {
-		const [hostname, port] = value?.split(':') ?? [];
-		config.db.host = hostname || config.db.host;
-		config.db.port = port && Number.isSafeInteger(parseInt(port)) ? parseInt(port) : config.db.port;
-	}),
 	check: new Option('--check', 'check the database schema after initialization').default(false),
 	force: new Option('-f, --force', 'force the operation').default(false),
 	global: new Option('-g, --global', 'apply the operation globally').default(false),
-	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default('1000').argParser(value => {
+	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default(1000).argParser(value => {
 		const timeout = parseInt(value);
 		if (!Number.isSafeInteger(timeout) || timeout < 0) io.warn('Invalid timeout value, using default.');
 		io.setCommandTimeout(timeout);
@@ -107,12 +98,7 @@ interface OptCommon {
 	force?: boolean;
 }
 
-const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout).addOption(opts.host);
-
-interface OptDB extends OptCommon {
-	host: string;
-	force: boolean;
-}
+const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout);
 
 async function dbInitTables() {
 	const info = db.getUpgradeInfo();
@@ -130,10 +116,10 @@ axiumDB
 	.command('init')
 	.description('Initialize the database')
 	.addOption(opts.force)
-	.option('-s, --skip', 'If the user, database, or schema already exists, skip trying to create it.')
+	.option('-s, --skip', 'If the user, database, or schema already exists, skip trying to create it.', false)
 	.addOption(opts.check)
-	.action(async (_localOpts, _: Command) => {
-		const opt = _.optsWithGlobals<OptDB & { skip: boolean; check: boolean }>();
+	.action(async function axium_db_init() {
+		const opt = this.optsWithGlobals();
 		await db.init(opt).catch(io.exit);
 		await dbInitTables().catch(io.exit);
 	});
@@ -155,7 +141,7 @@ axiumDB
 	.command('drop')
 	.description('Drop the Axium database and user')
 	.addOption(opts.force)
-	.action(async (opt: OptDB) => {
+	.action(async opt => {
 		const stats = await db.count('users', 'passkeys', 'sessions').catch(io.exit);
 
 		if (!opt.force)
@@ -190,7 +176,7 @@ axiumDB
 	.command('wipe')
 	.description('Wipe the database')
 	.addOption(opts.force)
-	.action(async (opt: OptDB) => {
+	.action(async opt => {
 		const tables = new Map<keyof db.Schema, string>();
 
 		for (const [plugin, schema] of db.getSchemaFiles()) {
@@ -227,7 +213,7 @@ axiumDB
 	.command('check')
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
-	.action(async (opt: db.CheckOptions) => {
+	.action(async opt => {
 		await io.run('Checking for sudo', 'which sudo').catch(io.exit);
 		await io.run('Checking for psql', 'which psql').catch(io.exit);
 
@@ -257,8 +243,8 @@ axiumDB
 			db.database.introspection.getTables(),
 			db.database.withSchema('acl').introspection.getTables(),
 		]).catch(io.exit);
-		opt._metadata = tablePromises.flat();
-		const tables = Object.fromEntries(opt._metadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
+		const tableMetadata = tablePromises.flat();
+		const tables = Object.fromEntries(tableMetadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
 		io.done();
 
 		io.start('Resolving database schemas');
@@ -271,7 +257,7 @@ axiumDB
 		}
 
 		for (const [name, table] of Object.entries(schema.tables)) {
-			await db.checkTableTypes(name as keyof db.Schema, table, opt);
+			await db.checkTableTypes(name as keyof db.Schema, table, opt, tableMetadata);
 			delete tables[name];
 		}
 
@@ -286,7 +272,7 @@ axiumDB
 	.command('clean')
 	.description('Remove expired rows')
 	.addOption(opts.force)
-	.action(async (opt: OptDB) => {
+	.action(async opt => {
 		await db.clean(opt).catch(io.exit);
 	});
 
@@ -299,7 +285,7 @@ axiumDB
 	.command('schema')
 	.description('Get the JSON schema for the database configuration file')
 	.option('-j, --json', 'values are JSON encoded')
-	.action((opt: { json: boolean }) => {
+	.action(opt => {
 		try {
 			const schema = z.toJSONSchema(db.SchemaFile, { io: 'input' });
 			console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
@@ -314,7 +300,7 @@ axiumDB
 	.alias('up')
 	.description('Upgrade the database to the latest version')
 	.option('--abort', 'Rollback changes instead of committing them')
-	.action(async (opt: OptDB & { abort?: boolean }) => {
+	.action(async function axium_db_upgrade(opt) {
 		const deltas: db.VersionDelta[] = [];
 
 		const info = db.getUpgradeInfo();
@@ -451,20 +437,14 @@ axiumDB
 		}
 	});
 
-interface OptConfig extends OptCommon {
-	global: boolean;
-	json: boolean;
-	redact: boolean;
-}
-
 const axiumConfig = program
 	.command('config')
 	.description('Manage the configuration')
 	.addOption(opts.global)
-	.option('-j, --json', 'values are JSON encoded')
-	.option('-r, --redact', 'Do not output sensitive values');
+	.option('-j, --json', 'values are JSON encoded', false)
+	.option('-r, --redact', 'Do not output sensitive values', false);
 
-function configReplacer(opt: OptConfig) {
+function configReplacer(opt: { redact: boolean }) {
 	return (key: string, value: any) => {
 		return opt.redact && ['password', 'secret'].includes(key) ? '[redacted]' : value;
 	};
@@ -473,8 +453,8 @@ function configReplacer(opt: OptConfig) {
 axiumConfig
 	.command('dump')
 	.description('Output the entire current configuration')
-	.action(() => {
-		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+	.action(function axium_config_dump() {
+		const opt = this.optsWithGlobals();
 		const value = config.plain();
 		console.log(opt.json ? JSON.stringify(value, configReplacer(opt), 4) : value);
 	});
@@ -483,8 +463,8 @@ axiumConfig
 	.command('get')
 	.description('Get a config value')
 	.argument('<key>', 'the key to get')
-	.action((key: string) => {
-		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+	.action(function axium_config_get(key) {
+		const opt = this.optsWithGlobals();
 		const value = getByString(config.plain(), key);
 		console.log(opt.json ? JSON.stringify(value, configReplacer(opt), 4) : value);
 	});
@@ -494,8 +474,8 @@ axiumConfig
 	.description('Set a config value. Note setting objects is not supported.')
 	.argument('<key>', 'the key to set')
 	.argument('<value>', 'the value')
-	.action((key: string, value: string) => {
-		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+	.action(function axium_config_set(key, value) {
+		const opt = this.optsWithGlobals();
 		if (opt.json && !isJSON(value)) io.exit('Invalid JSON');
 		const obj: Record<string, any> = {};
 		setByString(obj, key, opt.json ? JSON.parse(value) : value);
@@ -515,7 +495,7 @@ axiumConfig
 	.command('schema')
 	.description('Get the JSON schema for the configuration file')
 	.action(() => {
-		const opt = axiumConfig.optsWithGlobals<OptConfig>();
+		const opt = axiumConfig.optsWithGlobals();
 		try {
 			const schema = z.toJSONSchema(FileSchema, { io: 'input' });
 			console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
@@ -532,7 +512,7 @@ axiumPlugin
 	.description('List loaded plugins')
 	.option('-l, --long', 'use the long listing format')
 	.option('--no-versions', 'do not show plugin versions')
-	.action((opt: OptCommon & { long: boolean; versions: boolean }) => {
+	.action(opt => {
 		if (!plugins.size) {
 			console.log('No plugins loaded.');
 			return;
@@ -564,7 +544,7 @@ axiumPlugin
 	.alias('rm')
 	.description('Remove a plugin')
 	.argument('<plugin>', 'the plugin to remove')
-	.action(async (search: string, opt: OptCommon) => {
+	.action(async (search, opt) => {
 		const plugin = _findPlugin(search);
 
 		await plugin._hooks?.remove?.(opt);
@@ -587,7 +567,7 @@ axiumPlugin
 	.addOption(opts.timeout)
 	.addOption(opts.check)
 	.argument('<plugin>', 'the plugin to initialize')
-	.action(async (search: string, opt: OptCommon & { check: boolean }) => {
+	.action(async search => {
 		const plugin = _findPlugin(search);
 		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 
@@ -602,7 +582,7 @@ axiumApps
 	.description('List apps added by plugins')
 	.option('-l, --long', 'use the long listing format')
 	.option('-b, --builtin', 'include built-in apps')
-	.action((opt: OptCommon & { long: boolean; builtin: boolean }) => {
+	.action(opt => {
 		if (!apps.size) {
 			console.log('No apps.');
 			return;
@@ -619,18 +599,6 @@ axiumApps
 		}
 	});
 
-interface OptUser extends OptCommon {
-	sessions: boolean;
-	passkeys: boolean;
-	addRole?: string[];
-	removeRole?: string[];
-	tag?: string[];
-	untag?: string[];
-	delete?: boolean;
-	suspend?: boolean;
-	unsuspend?: boolean;
-}
-
 const argUserLookup = new Argument('<user>', 'the UUID or email of the user to operate on').argParser(lookupUser);
 
 program
@@ -646,7 +614,7 @@ program
 	.option('--delete', 'Delete the user')
 	.option('--suspend', 'Suspend the user')
 	.addOption(new Option('--unsuspend', 'Un-suspend the user').conflicts('suspend'))
-	.action(async (_user: Promise<UserInternal>, opt: OptUser) => {
+	.action(async (_user: Promise<UserInternal>, opt) => {
 		let user = await _user;
 
 		const [updatedRoles, roles, rolesDiff] = diffUpdate(user.roles, opt.addRole, opt.removeRole);
@@ -745,7 +713,6 @@ program
 	.command('status')
 	.alias('stats')
 	.description('Get information about the server')
-	.addOption(opts.host)
 	.action(async () => {
 		console.log('Axium Server v' + $pkg.version);
 
@@ -787,7 +754,7 @@ program
 	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
 	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
 	.option('-N, --node <path>', 'the path to the node binary')
-	.action(async (action: PortOptions['action'], opt: OptCommon & Omit<PortOptions, 'action'>) => {
+	.action(async (action: PortOptions['action'], opt) => {
 		await restrictedPorts({ ...opt, action }).catch(io.exit);
 	});
 
@@ -795,11 +762,10 @@ program
 	.command('init')
 	.description('Install Axium server')
 	.addOption(opts.force)
-	.addOption(opts.host)
 	.addOption(opts.check)
 	.addOption(opts.packagesDir)
-	.option('-s, --skip', 'Skip already initialized steps')
-	.action(async (opt: OptDB & { check: boolean; packagesDir?: string; skip: boolean }) => {
+	.option('-s, --skip', 'Skip already initialized steps', false)
+	.action(async opt => {
 		await db.init(opt).catch(io.exit);
 		await dbInitTables().catch(io.exit);
 		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.exit);
@@ -808,10 +774,12 @@ program
 program
 	.command('serve')
 	.description('Start the Axium server')
-	.option('-p, --port <port>', 'the port to listen on')
+	.option('-p, --port <port>', 'the port to listen on', Number.parseInt, config.web.port)
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
 	.option('-b, --build <path>', 'the path to the handler build')
-	.action(async (opt: OptCommon & { ssl?: string; port?: string; build?: string }) => {
+	.action(async opt => {
+		if (opt.port < 1 || opt.port > 65535) io.exit('Invalid port');
+
 		const server = await serve({
 			secure: opt.ssl ? true : config.web.secure,
 			ssl_cert: opt.ssl ? join(opt.ssl, 'cert.pem') : config.web.ssl_cert,
@@ -819,10 +787,8 @@ program
 			build: opt.build ? resolve(opt.build) : config.web.build,
 		});
 
-		const port = !Number.isNaN(Number.parseInt(opt.port ?? 'NaN')) ? Number.parseInt(opt.port!) : config.web.port;
-
-		server.listen(port, () => {
-			console.log('Server is listening on port ' + port);
+		server.listen(opt.port, () => {
+			console.log('Server is listening on port ' + opt.port);
 		});
 	});
 
@@ -833,12 +799,13 @@ program
 	.addOption(new Option('-l, --list', 'list route links').conflicts('delete'))
 	.option('-d, --delete', 'delete route links')
 	.argument('[name...]', 'List of plugin names to operate on. If not specified, operates on all plugins and built-in routes.')
-	.action(async function (this: Command, names: string[]) {
-		const opt = this.optsWithGlobals<OptCommon & LinkOptions & { list?: boolean; delete?: boolean }>();
-		if (names.length) opt.only = names;
+	.action(async function axium_link(names: string[]) {
+		const opt = this.optsWithGlobals();
+
+		const linkOpts = { only: names };
 
 		if (opt.list) {
-			for (const link of listRouteLinks(opt)) {
+			for (const link of listRouteLinks(linkOpts)) {
 				const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
 				const fromColor = await access(link.from)
 					.then(() => 'cyanBright' as const)
@@ -851,18 +818,12 @@ program
 		}
 
 		if (opt.delete) {
-			unlinkRoutes(opt);
+			unlinkRoutes(linkOpts);
 			return;
 		}
 
-		linkRoutes(opt);
+		linkRoutes(linkOpts);
 	});
-
-interface AuditCLIOptions extends AuditFilter {
-	summary: boolean;
-	extra: boolean;
-	includeTags: boolean;
-}
 
 program
 	.command('audit')
@@ -880,7 +841,7 @@ program
 	.option('--source <source>', 'Filter by source')
 	.option('--tag <tag...>', 'Filter by tag(s)')
 	.option('--event <event>', 'Filter by event name')
-	.action(async (opt: AuditCLIOptions) => {
+	.action(async opt => {
 		const filter = await AuditFilter.parseAsync(opt).catch(e => io.exit('Invalid filter: ' + z.prettifyError(e)));
 
 		const events: (AuditEvent & { _extra?: string; _tags?: string })[] = await getEvents(filter).execute();
