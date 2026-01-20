@@ -9,13 +9,17 @@ export const User = z.object({
 	email: z.email(),
 	emailVerified: z.date().nullish(),
 	image: z.url().nullish(),
-	preferences: Preferences,
+	get preferences() {
+		return Preferences;
+	},
 	roles: z.array(z.string()),
 	registeredAt: z.coerce.date(),
 	isAdmin: z.boolean(),
 });
 
-export interface User extends z.infer<typeof User> {}
+export interface User extends z.infer<typeof User> {
+	preferences: Preferences;
+}
 
 export interface UserInternal extends User {
 	isSuspended: boolean;
