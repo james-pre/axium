@@ -2,6 +2,7 @@ import * as z from 'zod';
 import { Preferences } from './preferences.js';
 import { PasskeyRegistration } from './passkeys.js';
 import { colorHash } from './color.js';
+import { pick } from 'utilium';
 
 export const User = z.object({
 	id: z.uuid(),
@@ -43,14 +44,18 @@ export interface UserPublic extends z.infer<typeof UserPublic> {}
 
 export const userProtectedFields = ['email', 'emailVerified', 'preferences', 'isAdmin'] as const satisfies (keyof User)[];
 
-export const UserChangeable = User.pick({
-	name: true,
-	email: true,
-	image: true,
-	preferences: true,
-}).partial();
+export const UserChangeable = z
+	.object({
+		...pick(User.shape, 'name', 'email', 'image'),
+		get preferences() {
+			return Preferences;
+		},
+	})
+	.partial();
 
-export interface UserChangeable extends z.infer<typeof UserChangeable> {}
+export interface UserChangeable extends z.infer<typeof UserChangeable> {
+	preferences?: Preferences;
+}
 
 export function getUserImage(user: Partial<User>): string {
 	if (user.image) return user.image;
