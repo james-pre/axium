@@ -51,7 +51,13 @@
 	function onchange(e: Event) {
 		const value = schema.parse(input instanceof HTMLInputElement && input.type === 'checkbox' ? input.checked : input.value);
 		if (value == getByString(preferences, path)) return;
-		setByString(preferences, path, value);
+
+		if (getByString(preferenceDefaults, path) == value) {
+			const parts = path.split('.');
+			const prop = parts.pop()!;
+			delete getByString<Record<string, any>>(preferences, parts.join('.'))[prop];
+		} else setByString(preferences, path, value);
+
 		fetchAPI('PATCH', 'users/:id', { preferences }, userId);
 	}
 </script>
