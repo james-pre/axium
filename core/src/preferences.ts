@@ -42,6 +42,7 @@ type ZodPrefComposite =
 	| ZodPrefPrimitive
 	| z.ZodNullable<ZodPrefPrimitive>
 	| z.ZodOptional<ZodPrefPrimitive>
+	| z.ZodDefault<ZodPrefPrimitive>
 	| z.ZodArray<ZodPrefPrimitive>
 	| z.ZodTuple<ZodPrefPrimitive[]>
 	| z.ZodRecord<z.ZodString, ZodPrefPrimitive>
@@ -54,7 +55,7 @@ export type ZodPref = ZodPrefComposite | z.ZodObject<Readonly<Record<string, Zod
  * @internal
  */
 export let Preferences = z.object({
-	debug: z.boolean(),
+	debug: z.boolean().default(false),
 });
 
 /**
@@ -62,13 +63,6 @@ export let Preferences = z.object({
  * Modify with `declare module ...`.
  */
 export interface Preferences extends z.infer<typeof Preferences> {}
-
-/**
- * @internal
- */
-export const preferenceDefaults = {
-	debug: false,
-} as Preferences;
 
 /**
  * @internal
@@ -83,14 +77,12 @@ export const preferenceDescriptions = {} as Partial<Record<keyof Preferences, st
 export interface PreferenceInit<T extends keyof Preferences = keyof Preferences, S extends ZodPref = ZodPref> {
 	name: T;
 	schema: S;
-	initial: z.infer<S> & Preferences[T];
 	label: string;
 	descriptions?: string;
 }
 
 export function addPreference<T extends keyof Preferences = keyof Preferences>(init: PreferenceInit<T>) {
 	Preferences = z.object({ ...Preferences.shape, [init.name]: init.schema });
-	preferenceDefaults[init.name] = init.initial;
 	preferenceLabels[init.name] = init.label;
 	preferenceDescriptions[init.name] = init.descriptions;
 }

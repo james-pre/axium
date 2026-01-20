@@ -1,5 +1,4 @@
 /** Register a new passkey for a new or existing user. */
-import { preferenceDefaults, Preferences } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import { PasskeyAuthenticationResponse, PasskeyRegistration } from '@axium/core/passkeys';
 import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
@@ -65,11 +64,6 @@ addRoute({
 		await checkAuthForUser(request, userId);
 
 		if ('email' in body) body.emailVerified = null;
-		if ('preferences' in body)
-			body.preferences = Object.assign(
-				structuredClone(preferenceDefaults),
-				await Preferences.partial().parseAsync(body.preferences).catch(withError('Invalid preferences', 400))
-			);
 
 		const result = await db
 			.updateTable('users')
