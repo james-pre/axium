@@ -1,9 +1,14 @@
 <script lang="ts">
-	import Icon from '@axium/client/components/Icon';
+	import { Dialog, FormDialog, Icon, ClipboardCopy, URLText } from '@axium/client/components';
+	import { fetchAPI } from '@axium/client/requests';
 	import '@axium/client/styles/list';
+	import type { VerificationInternal } from '@axium/core';
 	import { colorHash } from '@axium/core/color';
 
 	const { data } = $props();
+
+	let createdUserDialog = $state<HTMLDialogElement>();
+	let verification = $state<VerificationInternal>();
 </script>
 
 <svelte:head>
@@ -15,6 +20,40 @@
 {#snippet attr(i: string, text: string, color: string = colorHash(text))}
 	<span class="attribute" style:background-color={color}><Icon {i} />{text}</span>
 {/snippet}
+
+<button command="show-modal" commandfor="create-user" class="icon-text">
+	<Icon i="plus" />
+	Create User
+</button>
+
+<FormDialog
+	id="create-user"
+	submitText="Create"
+	submit={(data: { email: string; name: string }) =>
+		fetchAPI('PUT', 'admin/users', data).then(v => {
+			verification = v;
+			createdUserDialog?.showModal();
+		})}
+>
+	<div>
+		<label for="email">Email</label>
+		<input name="email" type="email" required />
+	</div>
+	<div>
+		<label for="name">Name</label>
+		<input name="name" type="text" required />
+	</div>
+</FormDialog>
+
+<Dialog bind:dialog={createdUserDialog} id="created-user-verification">
+	<h3>New User Created</h3>
+
+	<p>They can log in using this URL:</p>
+
+	<URLText url="/login/token?user={verification?.userId}&token={verification?.token}" />
+
+	<button onclick={() => createdUserDialog?.close()}>Okay</button>
+</Dialog>
 
 <div id="user-list" class="list">
 	<div class="list-item list-header">
