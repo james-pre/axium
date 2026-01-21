@@ -1,5 +1,5 @@
-import type { Passkey, Session, UserInternal, Verification } from '@axium/core';
-import type { Insertable, Selectable } from 'kysely';
+import type { Passkey, Session, UserInternal, VerificationInternal, VerificationRole } from '@axium/core';
+import type { Insertable, Kysely, Selectable } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit, type WithRequired } from 'utilium';
 import * as acl from './acl.js';
@@ -79,24 +79,23 @@ export async function getSessions(userId: string): Promise<SessionInternal[]> {
 	return await db.selectFrom('sessions').selectAll().where('userId', '=', userId).where('sessions.expires', '>', new Date()).execute();
 }
 
-export type VerificationRole = 'verify_email' | 'login';
-
-export interface VerificationInternal extends Verification {
-	token: string;
-	role: VerificationRole;
-}
-
 /**
  * Create a verification
- * @param expires How long the token should be valid for in seconds
+ * @param expires How long the token should be valid for in minutes
  */
-export async function createVerification(role: VerificationRole, userId: string, expires: number): Promise<VerificationInternal> {
+export async function createVerification(
+	this: Kysely<Schema> | void,
+	role: VerificationRole,
+	userId: string,
+	expires: number
+): Promise<VerificationInternal> {
+	const tx = this ?? db;
 	const token = randomBytes(64).toString('base64url');
-	const verification: VerificationInternal = { userId, token, expires: new Date(Date.now() + expires * 1000), role };
-	await db.insertInto('verifications').values(verification).executeTakeFirstOrThrow();
+	const verification: VerificationInternal = { userId, token, expires: new Date(Date.now() + expires * 60_000), role };
+	await tx.insertInto('verifications').values(verification).executeTakeFirstOrThrow();
 	setTimeout(() => {
-		void db.deleteFrom('verifications').where('verifications.token', '=', verification.token).execute();
-	}, expires * 1000);
+		void tx.deleteFrom('verifications').where('verifications.token', '=', verification.token).execute();
+	}, expires * 60_000);
 	return verification;
 }
 

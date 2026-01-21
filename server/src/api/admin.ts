@@ -6,10 +6,10 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
 import { audit, events, getEvents } from '../audit.js';
-import { requireSession, type SessionInternal } from '../auth.js';
+import { createVerification, requireSession, type SessionInternal } from '../auth.js';
 import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
-import { error, parseSearch, withError } from '../requests.js';
+import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 
 async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
@@ -106,6 +106,30 @@ addRoute({
 				expires: new Date(s.expires),
 			})),
 		};
+	},
+});
+
+addRoute({
+	path: '/api/admin/users',
+	async PUT(req): AsyncResult<'PUT', 'admin/users'> {
+		await assertAdmin(this, req);
+
+		const { name, email } = await parseBody(req, z.object({ name: z.string(), email: z.email() }));
+
+		const tx = await db.startTransaction().execute();
+
+		try {
+			const user = await tx.insertInto('users').values({ name, email: email.toLowerCase() }).returningAll().executeTakeFirstOrThrow();
+
+			const verification = await createVerification.call(tx, 'login', user.id, config.auth.verification_timeout);
+
+			await tx.commit().execute();
+
+			return verification;
+		} catch (e) {
+			await tx.rollback().execute();
+			throw e;
+		}
 	},
 });
 

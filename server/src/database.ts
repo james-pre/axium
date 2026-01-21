@@ -1,4 +1,4 @@
-import type { Preferences, UserInternal } from '@axium/core';
+import type { Preferences, UserInternal, VerificationRole } from '@axium/core';
 import * as io from '@axium/core/node/io';
 import { plugins } from '@axium/core/plugins';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
@@ -12,7 +12,6 @@ import { styleText } from 'node:util';
 import pg from 'pg';
 import type { Entries, Expand, Filter, MutableRecursive, ReadonlyRecursive, Tuple, WithRequired } from 'utilium';
 import * as z from 'zod';
-import type { VerificationRole } from './auth.js';
 import config from './config.js';
 import rawSchema from './db.json' with { type: 'json' };
 import { dirs, systemDir } from './io.js';

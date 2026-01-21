@@ -15,6 +15,13 @@ export interface Verification {
 	expires: Date;
 }
 
+export type VerificationRole = 'verify_email' | 'login';
+
+export interface VerificationInternal extends Verification {
+	token: string;
+	role: VerificationRole;
+}
+
 export interface NewSessionResponse {
 	userId: string;
 	token: string;

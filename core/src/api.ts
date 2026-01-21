@@ -4,7 +4,7 @@ import type z from 'zod';
 import type { AccessControl, AccessMap } from './access.js';
 import type { App } from './apps.js';
 import type { AuditEvent, AuditFilter, Severity } from './audit.js';
-import type { NewSessionResponse, Session, Verification } from './auth.js';
+import type { NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
 import type { PackageVersionInfo } from './packages.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
 import type { PluginInternal } from './plugins.js';
@@ -92,6 +92,9 @@ export interface $API {
 	};
 	'admin/users/:userId': {
 		GET: UserInternal & { sessions: Session[] };
+	};
+	'admin/users': {
+		PUT: [{ name: string; email: string }, VerificationInternal];
 	};
 	'admin/config': {
 		GET: {

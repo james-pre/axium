@@ -293,7 +293,7 @@ addRoute({
 
 		if (user.emailVerified) error(409, 'Email already verified');
 
-		const verification = await createVerification('verify_email', userId, config.auth.verification_timeout * 60);
+		const verification = await createVerification('verify_email', userId, config.auth.verification_timeout);
 
 		return omit(verification, 'token', 'role');
 	},
