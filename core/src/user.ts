@@ -67,6 +67,11 @@ export function getUserImage(user: Partial<User>): string {
 	</svg>`.replaceAll(/[\t\n]/g, '');
 }
 
+export const UserRegistrationInit = z.object({
+	name: z.string().min(1).max(100).optional(),
+	email: z.email().optional(),
+});
+
 export const UserRegistration = z.object({
 	name: z.string().min(1).max(100),
 	email: z.email(),
