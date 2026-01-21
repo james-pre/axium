@@ -9,7 +9,16 @@ import type { PackageVersionInfo } from './packages.js';
 import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
 import type { PluginInternal } from './plugins.js';
 import type { RequestMethod } from './requests.js';
-import type { LogoutSessions, User, UserAuthOptions, UserChangeable, UserInternal, UserPublic, UserRegistration } from './user.js';
+import type {
+	LogoutSessions,
+	User,
+	UserAuthOptions,
+	UserChangeable,
+	UserInternal,
+	UserPublic,
+	UserRegistration,
+	UserRegistrationInit,
+} from './user.js';
 
 export interface AdminSummary {
 	users: number;
@@ -40,10 +49,7 @@ export interface $API {
 		DELETE: Session;
 	};
 	register: {
-		OPTIONS: {
-			userId: string;
-			options: PublicKeyCredentialCreationOptionsJSON;
-		};
+		OPTIONS: [z.input<typeof UserRegistrationInit>, { userId: string; options: PublicKeyCredentialCreationOptionsJSON }];
 		POST: [z.input<typeof UserRegistration>, NewSessionResponse];
 	};
 	'users/:id': {
