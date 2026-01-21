@@ -21,7 +21,7 @@
 
 <h2>User Management</h2>
 
-<div class="section main">
+<div id="info" class="section main">
 	<div class="item info">
 		<p>UUID</p>
 		<p>{user.id}</p>
@@ -87,12 +87,12 @@
 	</div>
 </div>
 
-<div class="section main">
+<div id="sessions" class="section main">
 	<h3>Sessions</h3>
 	<SessionList {sessions} {user} />
 </div>
 
-<div class="section main">
+<div id="preferences" class="section main">
 	<h3>Preferences</h3>
 	<Preferences userId={user.id} bind:preferences={user.preferences} />
 </div>

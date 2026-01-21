@@ -99,10 +99,6 @@ export interface $API {
 	'admin/users/all': {
 		GET: UserInternal[];
 	};
-	'admin/users/:userId': {
-		GET: UserInternal & { sessions: Session[] };
-		DELETE: UserInternal;
-	};
 	'admin/users': {
 		PUT: [{ name: string; email: string }, VerificationInternal];
 	};

@@ -2,11 +2,11 @@ import type { AsyncResult, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
 import { getVersionInfo } from '@axium/core/packages';
 import { plugins } from '@axium/core/plugins';
-import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
+import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
 import { audit, events, getEvents } from '../audit.js';
-import { createVerification, requireSession, type SessionAndUser, type SessionInternal } from '../auth.js';
+import { createVerification, requireSession, type SessionAndUser } from '../auth.js';
 import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
@@ -75,52 +75,6 @@ addRoute({
 		const users: UserInternal[] = await db.selectFrom('users').selectAll().execute();
 
 		return users;
-	},
-});
-
-addRoute({
-	path: '/api/admin/users/:userId',
-	params: { userId: z.uuid() },
-	async GET(req, { userId }): AsyncResult<'GET', 'admin/users/:userId'> {
-		await assertAdmin(this, req);
-
-		if (!userId) error(400, 'Missing user ID');
-
-		const user = await db
-			.selectFrom('users')
-			.selectAll()
-			.select(eb =>
-				jsonArrayFrom(eb.selectFrom('sessions').whereRef('sessions.userId', '=', 'users.id').selectAll())
-					.$castTo<SessionInternal[]>()
-					.as('sessions')
-			)
-			.where('id', '=', userId)
-			.executeTakeFirstOrThrow()
-			.catch(withError('User not found', 404));
-
-		return {
-			...user,
-			sessions: user.sessions.map(s => ({
-				...omit(s, 'token'),
-				created: new Date(s.created),
-				expires: new Date(s.expires),
-			})),
-		};
-	},
-	async DELETE(req, { userId }): AsyncResult<'DELETE', 'admin/users/:userId'> {
-		const { id: admin_session } = await assertAdmin(this, req, true);
-
-		if (!userId) error(400, 'Missing user ID');
-
-		await audit('user_deleted', userId, { admin_session });
-
-		return await db
-			.deleteFrom('users')
-			.where('id', '=', userId)
-			.limit(1) // just in case userId is still somehow not set
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('User not found', 404));
 	},
 });
 

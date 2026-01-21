@@ -13,20 +13,19 @@ export const User = z.object({
 	get preferences() {
 		return Preferences;
 	},
-	roles: z.array(z.string()),
+	roles: z.string().array(),
+	/** Tags are internal, roles are public */
+	tags: z.string().array(),
 	registeredAt: z.coerce.date(),
 	isAdmin: z.boolean(),
+	isSuspended: z.boolean(),
 });
 
 export interface User extends z.infer<typeof User> {
 	preferences: Preferences;
 }
 
-export interface UserInternal extends User {
-	isSuspended: boolean;
-	/** Tags are internal, roles are public */
-	tags: string[];
-}
+export interface UserInternal extends User {}
 
 export const userPublicFields = ['id', 'image', 'name', 'registeredAt', 'roles'] as const satisfies (keyof User)[];
 
@@ -42,7 +41,14 @@ export const UserPublic = User.partial(
 
 export interface UserPublic extends z.infer<typeof UserPublic> {}
 
-export const userProtectedFields = ['email', 'emailVerified', 'preferences', 'isAdmin'] as const satisfies (keyof User)[];
+export const userProtectedFields = [
+	'email',
+	'emailVerified',
+	'preferences',
+	'isAdmin',
+	'isSuspended',
+	'tags',
+] as const satisfies (keyof User)[];
 
 export const UserChangeable = z
 	.object({
