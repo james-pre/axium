@@ -47,8 +47,8 @@
 		"clean": "rm -rf build .svelte-kit node_modules/{.vite,.vite-temp}"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.9.5",
-		"@axium/core": ">=0.15.0",
+		"@axium/client": ">=0.10.0",
+		"@axium/core": ">=0.16.0",
 		"kysely": "^0.28.0",
 		"utilium": "^2.6.0",
 		"zod": "^4.0.5"
