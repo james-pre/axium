@@ -42,7 +42,7 @@ export async function audit_raw(event: AuditEventInit): Promise<void> {
 
 export interface $EventTypes {
 	user_created: never;
-	user_deleted: never;
+	user_deleted: { admin_session?: string };
 	new_session: { id: string };
 	logout: { sessions: string[] };
 	admin_change: { user: string };
@@ -136,7 +136,13 @@ export function getEvents(filter: AuditFilter): SelectQueryBuilder<Schema, 'audi
 // Register built-ins
 
 addEvent({ source: '@axium/server', name: 'user_created', severity: Severity.Info, tags: ['user'] });
-addEvent({ source: '@axium/server', name: 'user_deleted', severity: Severity.Info, tags: ['user'] });
+addEvent({
+	source: '@axium/server',
+	name: 'user_deleted',
+	severity: Severity.Info,
+	tags: ['user'],
+	extra: { admin_session: z.uuid().optional() },
+});
 addEvent({ source: '@axium/server', name: 'new_session', severity: Severity.Info, tags: ['user'], extra: { id: z.string() } });
 addEvent({ source: '@axium/server', name: 'logout', severity: Severity.Info, tags: ['user'], extra: { sessions: z.array(z.string()) } });
 addEvent({

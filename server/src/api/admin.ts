@@ -107,6 +107,21 @@ addRoute({
 			})),
 		};
 	},
+	async DELETE(req, { userId }): AsyncResult<'DELETE', 'admin/users/:userId'> {
+		const { id: admin_session } = await assertAdmin(this, req, true);
+
+		if (!userId) error(400, 'Missing user ID');
+
+		await audit('user_deleted', userId, { admin_session });
+
+		return await db
+			.deleteFrom('users')
+			.where('id', '=', userId)
+			.limit(1) // just in case userId is still somehow not set
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch(withError('User not found', 404));
+	},
 });
 
 addRoute({
