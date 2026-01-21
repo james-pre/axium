@@ -5,7 +5,7 @@ import { dirname, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { _throw } from 'utilium';
 import { apps } from '../apps.js';
-import { locatePackage } from '../packages.js';
+import { locatePackage } from './packages.js';
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {
 	yield styleText('whiteBright', plugin.name);

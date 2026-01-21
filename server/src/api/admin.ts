@@ -1,6 +1,6 @@
 import type { AsyncResult, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
-import { getVersionInfo } from '@axium/core/packages';
+import { getVersionInfo } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
