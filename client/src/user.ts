@@ -133,18 +133,18 @@ export async function deleteUser(userId: string): Promise<User> {
 
 export async function emailVerificationEnabled(userId: string): Promise<boolean> {
 	_checkId(userId);
-	const { enabled } = await fetchAPI('OPTIONS', 'users/:id/verify_email', {}, userId);
+	const { enabled } = await fetchAPI('OPTIONS', 'users/:id/verify/email', {}, userId);
 	return enabled;
 }
 
 export async function sendVerificationEmail(userId: string): Promise<Verification> {
 	_checkId(userId);
-	return await fetchAPI('GET', 'users/:id/verify_email', {}, userId);
+	return await fetchAPI('GET', 'users/:id/verify/email', {}, userId);
 }
 
 export async function verifyEmail(userId: string, token: string): Promise<void> {
 	_checkId(userId);
-	await fetchAPI('POST', 'users/:id/verify_email', { token }, userId);
+	await fetchAPI('POST', 'users/:id/verify/email', { token }, userId);
 }
 
 export async function getPasskeys(userId: string): Promise<Passkey[]> {

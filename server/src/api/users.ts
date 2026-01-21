@@ -277,35 +277,45 @@ addRoute({
 });
 
 addRoute({
-	path: '/api/users/:id/verify_email',
+	path: '/api/users/:id/verify/email',
 	params,
-	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/verify_email'> {
-		if (!config.auth.email_verification) return { enabled: false };
+	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/verify/email'> {
+		if (!config.verifications.email) return { enabled: false };
 
 		await checkAuthForUser(request, userId);
 
-		if (!config.auth.email_verification) return { enabled: false };
-
 		return { enabled: true };
 	},
-	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/verify_email'> {
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/verify/email'> {
 		const { user } = await checkAuthForUser(request, userId);
 
 		if (user.emailVerified) error(409, 'Email already verified');
 
-		const verification = await createVerification('verify_email', userId, config.auth.verification_timeout);
+		const verification = await createVerification('email', userId, config.verifications.timeout);
 
 		return omit(verification, 'token', 'role');
 	},
-	async POST(request, { id: userId }): AsyncResult<'POST', 'users/:id/verify_email'> {
+	async POST(request, { id: userId }): AsyncResult<'POST', 'users/:id/verify/email'> {
 		const { token } = await parseBody(request, z.object({ token: z.string() }));
 
 		const { user } = await checkAuthForUser(request, userId);
 
 		if (user.emailVerified) error(409, 'Email already verified');
 
-		await useVerification('verify_email', userId, token).catch(withError('Invalid or expired verification token', 400));
+		await useVerification('email', userId, token).catch(withError('Invalid or expired verification token', 400));
 
 		return {};
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/verify/login',
+	params,
+	async POST(request, { id: userId }) {
+		const { token } = await parseBody(request, z.object({ token: z.string() }));
+
+		await useVerification('login', userId, token).catch(withError('Invalid or expired verification token', 400));
+
+		return await createSessionData(userId);
 	},
 });

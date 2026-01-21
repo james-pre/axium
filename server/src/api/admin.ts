@@ -121,7 +121,7 @@ addRoute({
 		try {
 			const user = await tx.insertInto('users').values({ name, email: email.toLowerCase() }).returningAll().executeTakeFirstOrThrow();
 
-			const verification = await createVerification.call(tx, 'login', user.id, config.auth.verification_timeout);
+			const verification = await createVerification.call(tx, 'login', user.id, config.verifications.timeout);
 
 			await tx.commit().execute();
 

@@ -73,10 +73,13 @@ export interface $API {
 		GET: Passkey[];
 		PUT: [z.input<typeof PasskeyRegistration>, Passkey];
 	};
-	'users/:id/verify_email': {
+	'users/:id/verify/email': {
 		OPTIONS: { enabled: boolean };
 		GET: Verification;
 		POST: [{ token: string }, {}];
+	};
+	'users/:id/verify/login': {
+		POST: [{ token: string }, NewSessionResponse];
 	};
 	'passkeys/:id': {
 		GET: Passkey;

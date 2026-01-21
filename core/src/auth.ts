@@ -15,7 +15,9 @@ export interface Verification {
 	expires: Date;
 }
 
-export type VerificationRole = 'verify_email' | 'login';
+export const VerificationRole = z.literal(['email', 'login']);
+
+export type VerificationRole = z.infer<typeof VerificationRole>;
 
 export interface VerificationInternal extends Verification {
 	token: string;

@@ -41,10 +41,6 @@ export let ConfigSchema = z
 				rp_id: z.string(),
 				rp_name: z.string(),
 				secure_cookies: z.boolean(),
-				/** In minutes */
-				verification_timeout: z.number(),
-				/** Whether users can verify emails */
-				email_verification: z.boolean(),
 				/** Whether only the `Authorization` header can be used to authenticate requests. */
 				header_only: z.boolean(),
 			})
@@ -70,6 +66,14 @@ export let ConfigSchema = z
 		origin: z.string(),
 		request_size_limit: z.number().min(0).optional(),
 		show_duplicate_state: z.boolean(),
+		verifications: z
+			.looseObject({
+				/** In minutes */
+				timeout: z.number(),
+				/** Whether users can verify emails */
+				email: z.boolean(),
+			})
+			.partial(),
 		web: z
 			.looseObject({
 				disable_cache: z.boolean(),
@@ -114,8 +118,6 @@ export const defaultConfig: DeepRequired<Config> = {
 		rp_id: 'test.localhost',
 		rp_name: 'Axium',
 		secure_cookies: true,
-		verification_timeout: 60,
-		email_verification: false,
 		header_only: false,
 	},
 	db: {
@@ -139,6 +141,10 @@ export const defaultConfig: DeepRequired<Config> = {
 	origin: 'https://test.localhost',
 	show_duplicate_state: false,
 	request_size_limit: 0,
+	verifications: {
+		timeout: 60,
+		email: false,
+	},
 	web: {
 		disable_cache: false,
 		port: 443,
