@@ -36,7 +36,7 @@
 	</div>
 	<p class="greeting">Welcome, {user.name}</p>
 
-	<div class="section main">
+	<div id="info" class="section main">
 		<h3>Personal Information</h3>
 		<div class="item info">
 			<p class="subtle">Name</p>
@@ -92,7 +92,7 @@
 		</div>
 	</div>
 
-	<div class="section main">
+	<div id="passkeys" class="section main">
 		<h3>Passkeys</h3>
 		{#each passkeys as passkey}
 			<div class="item passkey">
@@ -154,12 +154,12 @@
 		</button>
 	</div>
 
-	<div class="section main">
+	<div id="sessions" class="section main">
 		<h3>Sessions</h3>
 		<SessionList {sessions} {currentSession} {user} redirectAfterLogoutAll />
 	</div>
 
-	<div class="section main">
+	<div id="preferences" class="section main">
 		<h3>Preferences</h3>
 		<Preferences userId={user.id} bind:preferences={user.preferences} />
 	</div>
