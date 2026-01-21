@@ -6,14 +6,14 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { omit } from 'utilium';
 import * as z from 'zod';
 import { audit, events, getEvents } from '../audit.js';
-import { createVerification, requireSession, type SessionInternal } from '../auth.js';
+import { createVerification, requireSession, type SessionAndUser, type SessionInternal } from '../auth.js';
 import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 
-async function assertAdmin(route: RouteCommon, req: Request): Promise<UserInternal> {
-	const admin = await requireSession(req);
+async function assertAdmin(route: RouteCommon, req: Request, sensitive: boolean = false): Promise<SessionAndUser> {
+	const admin = await requireSession(req, sensitive);
 
 	if (!admin.user.isAdmin) error(403, 'Not an administrator');
 
@@ -21,7 +21,7 @@ async function assertAdmin(route: RouteCommon, req: Request): Promise<UserIntern
 
 	await audit('admin_api', admin.userId, { route: route.path, session: admin.id });
 
-	return admin.user;
+	return admin;
 }
 
 addRoute({
