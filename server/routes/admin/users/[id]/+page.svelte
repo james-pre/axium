@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { ClipboardCopy, Preferences, SessionList, Icon } from '@axium/client/components';
+	import { ClipboardCopy, Preferences, SessionList, Icon, FormDialog } from '@axium/client/components';
 	import '@axium/client/styles/account';
+	import { deleteUser } from '@axium/client/user';
 	import { formatDateRange } from '@axium/core/format';
 
 	const { data } = $props();
@@ -85,6 +86,19 @@
 		<p>Tags</p>
 		<p>{user.tags.join(', ')}</p>
 	</div>
+
+	<button class="inline-button icon-text danger" command="show-modal" commandfor="delete-user">
+		<Icon i="trash" /> Delete User
+	</button>
+
+	<FormDialog
+		id="delete-user"
+		submit={() => deleteUser(user.id).then(() => (window.location.href = '/admin/users'))}
+		submitText="Delete User"
+		submitDanger
+	>
+		<p>Are you sure you want to delete this user?<br />This action can't be undone.</p>
+	</FormDialog>
 </div>
 
 <div id="sessions" class="section main">
