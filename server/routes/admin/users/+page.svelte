@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { Dialog, FormDialog, Icon, ClipboardCopy, URLText } from '@axium/client/components';
+	import { FormDialog, Icon, URLText } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import '@axium/client/styles/list';
 	import type { VerificationInternal } from '@axium/core';
@@ -45,7 +45,7 @@
 	</div>
 </FormDialog>
 
-<Dialog bind:dialog={createdUserDialog} id="created-user-verification">
+<dialog bind:this={createdUserDialog} id="created-user-verification">
 	<h3>New User Created</h3>
 
 	<p>They can log in using this URL:</p>
@@ -53,7 +53,7 @@
 	<URLText url="/login/token?user={verification?.userId}&token={verification?.token}" />
 
 	<button onclick={() => createdUserDialog?.close()}>Okay</button>
-</Dialog>
+</dialog>
 
 <div id="user-list" class="list">
 	<div class="list-item list-header">

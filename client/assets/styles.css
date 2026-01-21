@@ -101,6 +101,47 @@ pre {
 	border-radius: 0.5em;
 }
 
+dialog {
+	border-radius: 1em;
+	background: var(--bg-menu);
+	border: 1px solid #8888;
+	padding: 1em;
+}
+
+dialog::backdrop {
+	background: #0003;
+}
+
+dialog[open] {
+	animation: zoom 0.25s cubic-bezier(0.35, 1.55, 0.65, 1);
+}
+
+@keyframes zoom {
+	from {
+		transform: scale(0.95);
+	}
+	to {
+		transform: scale(1);
+	}
+}
+
+dialog[open]::backdrop {
+	animation: fade 0.25s ease-out;
+}
+
+@keyframes fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+dialog form {
+	display: contents;
+}
+
 .error {
 	padding: 1em;
 	border-radius: 0.5em;
@@ -208,6 +249,9 @@ h6 {
 }
 
 @media (width < 700px) {
+	dialog {
+	}
+
 	.mobile-hide {
 		display: none !important;
 	}

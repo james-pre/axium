@@ -1,5 +1,4 @@
 <script lang="ts">
-	import Dialog from './Dialog.svelte';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
 
 	let {
@@ -59,7 +58,7 @@
 	<button type="submit" class={['submit', submitDanger && 'danger']}>{submitText}</button>
 {/snippet}
 
-<Dialog bind:dialog {onclose} {...rest}>
+<dialog bind:this={dialog} {onclose} {...rest}>
 	{@render header?.()}
 	<form {onsubmit} class="main" method="dialog">
 		{#if error}
@@ -76,7 +75,7 @@
 		{/if}
 	</form>
 	{@render footer?.()}
-</Dialog>
+</dialog>
 
 <style>
 	.actions {
