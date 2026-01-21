@@ -68,18 +68,14 @@ addRoute({
 });
 
 addRoute({
-	path: '/api/admin/users/all',
-	async GET(req): AsyncResult<'GET', 'admin/users/all'> {
+	path: '/api/admin/users',
+	async GET(req): AsyncResult<'GET', 'admin/users'> {
 		await assertAdmin(this, req);
 
 		const users: UserInternal[] = await db.selectFrom('users').selectAll().execute();
 
 		return users;
 	},
-});
-
-addRoute({
-	path: '/api/admin/users',
 	async PUT(req): AsyncResult<'PUT', 'admin/users'> {
 		await assertAdmin(this, req);
 

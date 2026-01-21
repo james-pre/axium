@@ -96,10 +96,8 @@ export interface $API {
 	'admin/summary': {
 		GET: AdminSummary;
 	};
-	'admin/users/all': {
-		GET: UserInternal[];
-	};
 	'admin/users': {
+		GET: UserInternal[];
 		PUT: [{ name: string; email: string }, VerificationInternal];
 	};
 	'admin/config': {
