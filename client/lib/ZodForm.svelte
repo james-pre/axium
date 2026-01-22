@@ -13,7 +13,7 @@
 </script>
 
 <div class="ZodForm">
-	{#each Object.keys(schema.shape) as path}
+	{#each Object.keys(schema.shape).sort((a, b) => a.localeCompare(b)) as path}
 		<ZodInput bind:rootValue {updateValue} {path} schema={schema.shape[path]} label={labels[path] || path} />
 	{/each}
 </div>
