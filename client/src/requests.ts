@@ -29,9 +29,9 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 		},
 	};
 
-	const schema = $API[endpoint][method];
+	const schema = $API[endpoint]?.[method];
 
-	if (Array.isArray(schema))
+	if (schema && Array.isArray(schema))
 		try {
 			data = schema[0].parse(data);
 		} catch (e: any) {
@@ -67,6 +67,8 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 	const json: any = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
 
 	if (!response.ok) throw new Error(json.message);
+
+	if (!schema) return json;
 
 	const Output = Array.isArray(schema) ? schema[1] : schema;
 
