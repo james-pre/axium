@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Icon } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
-	import { parseNote } from '@axium/notes/client';
 	import { Note } from '@axium/notes/components';
 
 	const { data } = $props();
@@ -20,7 +19,6 @@
 		class="icon-text mobile-float-right"
 		onclick={async () => {
 			const result = await fetchAPI('PUT', 'users/:id/notes', { title: '' }, data.session.userId);
-			parseNote(result);
 			notes.push(result);
 		}}
 	>
