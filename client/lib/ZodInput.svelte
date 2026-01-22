@@ -4,6 +4,7 @@
 	import { getByString, pick, setByString } from 'utilium';
 	import Icon from './Icon.svelte';
 	import ZodInput from './ZodInput.svelte';
+	import { prettifyError } from 'zod';
 
 	interface Props {
 		idPrefix?: string;
@@ -22,6 +23,8 @@
 	let input = $state<HTMLInputElement | HTMLSelectElement>()!;
 	let checked = $state(schema.def.type == 'boolean' && getByString<boolean>(rootValue, path));
 	const initialValue = $derived<any>(getByString(rootValue, path));
+
+	let error = $state();
 
 	function dateAttr(date: Date | null, format: 'date' | 'time' | 'datetime' | 'time+sec') {
 		if (!date) return null;
@@ -51,7 +54,18 @@
 	}
 
 	function onchange(e: Event) {
-		const value = schema.parse(input instanceof HTMLInputElement && input.type === 'checkbox' ? input.checked : input.value);
+		let value: any = input.value;
+		if (input.type == 'checkbox') value = input.checked;
+		if (schema.type == 'number') value = Number(value);
+		if (schema.type == 'bigint') value = BigInt(value);
+
+		try {
+			value = schema.parse(value);
+		} catch (e: any) {
+			error = prettifyError(e);
+			return;
+		}
+
 		const oldValue = getByString(rootValue, path);
 		if (value == oldValue) return;
 
@@ -68,6 +82,7 @@
 {#snippet _in(rest: HTMLInputAttributes)}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
+		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
 		<input bind:this={input} {id} {...rest} value={initialValue} {onchange} required={!optional} {defaultValue} />
 	</div>
 {/snippet}
@@ -172,10 +187,19 @@
 		align-items: center;
 	}
 
+	.ZodInput-error {
+		position: fixed;
+		position-anchor: --zod-input;
+		bottom: anchor(top);
+		left: anchor(left);
+		padding-bottom: 0.5em;
+	}
+
 	.ZodInput {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1em;
+		anchor-name: --zod-input;
 	}
 
 	.ZodInput-object,
