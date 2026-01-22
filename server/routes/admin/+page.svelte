@@ -33,6 +33,7 @@
 
 <p>
 	{Object.entries(data.auditEvents)
+		.filter(([, count]) => count)
 		.map(([severity, count]) => `${count} ${Severity[severity].toUpperCase()} events`)
 		.join(', ')}.
 </p>
