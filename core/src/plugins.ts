@@ -49,6 +49,7 @@ export const Plugin = z.looseObject({
 		/** The path to the HTTP handler used by the server */
 		routes: z.string().optional(),
 		db: z.string().optional(),
+		web_client_hooks: z.string().optional(),
 	}).optional(),
 	/** If set Axium can check the npm registry for updates */
 	update_checks: z.boolean().nullish(),
