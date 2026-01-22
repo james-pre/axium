@@ -22,6 +22,7 @@ export default {
 			routes: config.web.routes,
 			hooks: {
 				universal: '/dev/null',
+				client: join(import.meta.dirname, '.hooks.js'),
 			},
 		},
 	},

@@ -1,7 +1,7 @@
 import * as io from '@axium/core/node/io';
 import { plugins } from '@axium/core/plugins';
-import { existsSync, symlinkSync, unlinkSync } from 'node:fs';
-import { join, resolve } from 'node:path/posix';
+import { existsSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
+import { join, relative, resolve } from 'node:path/posix';
 import config from './config.js';
 
 const textFor: Record<string, string> = {
@@ -71,6 +71,20 @@ export function linkRoutes(options: LinkOptions = {}) {
 			io.exit(e);
 		}
 	}
+}
+
+export function writePluginHooks() {
+	const hooksPath = join(import.meta.dirname, '../.hooks.js');
+	io.start('Writing web client hooks for plugins');
+	let hooks = `// auto-generated plugin hooks //\n`;
+	for (const plugin of plugins.values()) {
+		if (!plugin.server?.web_client_hooks) continue;
+		const specifier = relative(resolve(import.meta.dirname, '..'), resolve(plugin.dirname, plugin.server.web_client_hooks));
+		hooks += `import '${specifier}';\n`;
+	}
+	writeFileSync(hooksPath, hooks, 'utf8');
+	io.done();
+	io.debug('Wrote', hooksPath);
 }
 
 export function unlinkRoutes(options: LinkOptions = {}) {

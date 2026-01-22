@@ -18,7 +18,7 @@ import { diffUpdate, lookupUser, userText } from './cli.js';
 import config, { configFiles, ConfigFile, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
-import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
+import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks } from './linking.js';
 import { serve } from './serve.js';
 
 using rl = createInterface({
@@ -833,6 +833,7 @@ program
 		}
 
 		linkRoutes(linkOpts);
+		writePluginHooks();
 	});
 
 program
