@@ -14,16 +14,5 @@
 </script>
 
 {#each Object.keys(schema.shape) as path}
-	<div class="zod-input">
-		<label for={id}>{labels[path]}</label>
-		<ZodInput bind:rootValue {updateValue} {path} schema={schema.shape[path]} />
-	</div>
+	<ZodInput bind:rootValue {updateValue} {path} schema={schema.shape[path]} label={labels[path] || path} />
 {/each}
-
-<style>
-	.zod-input {
-		display: grid;
-		grid-template-columns: 1fr 1fr;
-		gap: 1em;
-	}
-</style>

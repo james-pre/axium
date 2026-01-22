@@ -39,6 +39,7 @@
 		</p>
 		<p>{plugin.description}</p>
 		{#if cfg && plugin.config}
+			<h4>Configuration</h4>
 			{@const { schema, labels } = cfg}
 			<ZodForm
 				rootValue={plugin.config}
