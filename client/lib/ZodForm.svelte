@@ -7,14 +7,15 @@
 		schema: ZodObject;
 		labels: Record<string, string>;
 		updateValue(value: any): void;
+		idPrefix?: string;
 	}
 
-	let { rootValue = $bindable(), schema, labels, updateValue }: Props = $props();
+	let { rootValue = $bindable(), schema, labels, updateValue, idPrefix }: Props = $props();
 </script>
 
 <div class="ZodForm">
 	{#each Object.keys(schema.shape).sort((a, b) => a.localeCompare(b)) as path}
-		<ZodInput bind:rootValue {updateValue} {path} schema={schema.shape[path]} label={labels[path] || path} />
+		<ZodInput bind:rootValue {updateValue} {idPrefix} {path} schema={schema.shape[path]} label={labels[path] || path} />
 	{/each}
 </div>
 

@@ -6,6 +6,7 @@
 	import ZodInput from './ZodInput.svelte';
 
 	interface Props {
+		idPrefix?: string;
 		rootValue: any;
 		path: string;
 		label?: string;
@@ -15,8 +16,8 @@
 		updateValue(value: any): void;
 	}
 
-	let { rootValue = $bindable(), label, path, schema, optional = false, defaultValue, updateValue }: Props = $props();
-	const id = $props.id();
+	let { rootValue = $bindable(), label, path, schema, optional = false, defaultValue, idPrefix, updateValue }: Props = $props();
+	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
 
 	let input = $state<HTMLInputElement | HTMLSelectElement>()!;
 	let checked = $state(schema.def.type == 'boolean' && getByString<boolean>(rootValue, path));
@@ -79,9 +80,9 @@
 	{@render _in({ type: 'number', min: Number(schema.minValue), max: Number(schema.maxValue), step: 1 })}
 {:else if schema.type == 'boolean'}
 	<div class="ZodInput">
-		<label for={id}>{label || path}</label>
-		<input bind:checked bind:this={input} {id} type="checkbox" {onchange} required={!optional} />
-		<label for={id} class="checkbox">
+		<label for="{id}:checkbox">{label || path}</label>
+		<input bind:checked bind:this={input} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} />
+		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if checked}<Icon i="check" --size="1.3em" />{/if}
 		</label>
 	</div>
@@ -105,16 +106,16 @@
 {:else if schema.type == 'template_literal'}
 	<!-- todo -->
 {:else if schema.type == 'default'}
-	<ZodInput bind:rootValue {updateValue} {path} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
+	<ZodInput bind:rootValue {updateValue} {idPrefix} {path} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
 {:else if schema.type == 'nullable' || schema.type == 'optional'}
 	<!-- defaults are handled differently -->
-	<ZodInput bind:rootValue {updateValue} {path} {defaultValue} schema={schema.def.innerType} optional={true} />
+	<ZodInput bind:rootValue {updateValue} {idPrefix} {path} {defaultValue} schema={schema.def.innerType} optional={true} />
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
 		{#each initialValue, i}
 			<div class="ZodInput-element">
-				<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{i}" schema={schema.element} />
+				<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{i}" schema={schema.element} />
 			</div>
 		{:else}
 			<i>Empty</i>
@@ -125,20 +126,20 @@
 		{#each Object.keys(initialValue) as key}
 			<div class="ZodInput-record-entry">
 				<label for={id}>{key}</label>
-				<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{key}" schema={schema.valueType} />
+				<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{key}" schema={schema.valueType} />
 			</div>
 		{/each}
 	</div>
 {:else if schema.type == 'object'}
 	<!-- <div class="ZodInput-object"> -->
 	{#each Object.entries(schema.shape) as [key, value]}
-		<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{key}" schema={value} />
+		<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{key}" schema={value} />
 	{/each}
 	<!-- </div> -->
 {:else if schema.type == 'tuple'}
 	<div class="ZodInput-tuple" data-rest={schema.def.rest}>
 		{#each schema.def.items as item, i}
-			<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{i}" schema={item} />
+			<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{i}" schema={item} />
 		{/each}
 	</div>
 {:else if schema.type == 'enum'}

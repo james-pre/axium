@@ -43,6 +43,7 @@
 			{@const { schema, labels } = cfg}
 			<ZodForm
 				rootValue={plugin.config}
+				idPrefix={plugin.name}
 				{schema}
 				{labels}
 				updateValue={config => fetchAPI('POST', 'admin/plugins', { plugin: plugin.name, config })}

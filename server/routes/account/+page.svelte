@@ -165,6 +165,7 @@
 		<h3>Preferences</h3>
 		<ZodForm
 			bind:rootValue={user.preferences}
+			idPrefix="preferences"
 			schema={Preferences}
 			labels={preferenceLabels}
 			updateValue={(preferences: Preferences) => fetchAPI('PATCH', 'users/:id', { preferences }, user.id)}
