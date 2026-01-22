@@ -106,6 +106,12 @@ dialog {
 	background: var(--bg-menu);
 	border: 1px solid #8888;
 	padding: 1em;
+	max-width: calc(100% - 2em);
+	word-wrap: normal;
+
+	form {
+		max-width: 100%;
+	}
 }
 
 dialog::backdrop {
