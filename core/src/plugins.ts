@@ -3,6 +3,30 @@ import { App } from './apps.js';
 import { debug, warn } from './io.js';
 import { zAsyncFunction } from './schemas.js';
 
+const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
+
+export const PluginServerHooks = z.object({
+	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })).optional(),
+	remove: fn.optional(),
+	clean: fn.optional(),
+});
+
+interface _InitOptions {
+	force?: boolean;
+	skip: boolean;
+	check: boolean;
+}
+
+export interface ServerHooks {
+	statusText?(): string | Promise<string>;
+	remove?: (opt: { force?: boolean }) => void | Promise<void>;
+	clean?: (opt: Partial<_InitOptions>) => void | Promise<void>;
+}
+
+export interface ClientHooks {
+	run(): void | Promise<void>;
+}
+
 const PluginCommon = z.object({
 	/** CLI mixin path */
 	cli: z.string().optional(),
@@ -28,21 +52,25 @@ export const Plugin = z.looseObject({
 	update_checks: z.boolean().nullish(),
 });
 
-export type Plugin = z.infer<typeof Plugin>;
+export interface Plugin extends z.infer<typeof Plugin> {}
 
-export interface PluginInfo {
-	path: string;
-	dirname: string;
-	specifier: string;
-	loadedBy: string;
-	cli?: string;
+export const PluginInfo = z.object({
+	path: z.string(),
+	dirname: z.string(),
+	specifier: z.string(),
+	loadedBy: z.string(),
+	cli: z.string().optional(),
 	/** @internal */
-	_hooks?: ServerHooks;
+	_hooks: PluginServerHooks.optional(),
 	/** @internal */
-	_client?: ClientHooks;
-	isServer: boolean;
-	_db?: any;
-}
+	_client: z.any().optional(),
+	isServer: z.boolean(),
+	_db: z.any().optional(),
+});
+
+export interface PluginInfo extends z.infer<typeof PluginInfo> {}
+
+export const PluginInternal = z.looseObject({ ...Plugin.shape, ...PluginInfo.shape });
 
 export interface PluginInternal extends Plugin, Readonly<PluginInfo> {}
 
@@ -55,30 +83,6 @@ export function _findPlugin(search: string): PluginInternal {
 	const plugin = plugins.get(search) ?? plugins.values().find(p => p.specifier.toLowerCase() == search.toLowerCase());
 	if (!plugin) throw `Can't find a plugin matching "${search}"`;
 	return plugin;
-}
-
-const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
-
-export const PluginServerHooks = z.object({
-	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })).optional(),
-	remove: fn.optional(),
-	clean: fn.optional(),
-});
-
-interface _InitOptions {
-	force?: boolean;
-	skip: boolean;
-	check: boolean;
-}
-
-export interface ServerHooks {
-	statusText?(): string | Promise<string>;
-	remove?: (opt: { force?: boolean }) => void | Promise<void>;
-	clean?: (opt: Partial<_InitOptions>) => void | Promise<void>;
-}
-
-export interface ClientHooks {
-	run(): void | Promise<void>;
 }
 
 export async function runIntegrations() {

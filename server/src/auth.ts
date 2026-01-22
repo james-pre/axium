@@ -89,12 +89,11 @@ export async function createVerification(
 	userId: string,
 	expires: number
 ): Promise<VerificationInternal> {
-	const tx = this ?? db;
 	const token = randomBytes(64).toString('base64url');
 	const verification: VerificationInternal = { userId, token, expires: new Date(Date.now() + expires * 60_000), role };
-	await tx.insertInto('verifications').values(verification).executeTakeFirstOrThrow();
+	await (this || db).insertInto('verifications').values(verification).executeTakeFirstOrThrow();
 	setTimeout(() => {
-		void tx.deleteFrom('verifications').where('verifications.token', '=', verification.token).execute();
+		void db.deleteFrom('verifications').where('verifications.token', '=', verification.token).execute();
 	}, expires * 60_000);
 	return verification;
 }

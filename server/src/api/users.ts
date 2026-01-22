@@ -1,6 +1,6 @@
 /** Register a new passkey for a new or existing user. */
 import type { AsyncResult } from '@axium/core/api';
-import { PasskeyAuthenticationResponse, PasskeyRegistration } from '@axium/core/passkeys';
+import { PasskeyAuthResponse, PasskeyRegistration } from '@axium/core/passkeys';
 import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
 import * as webauthn from '@simplewebauthn/server';
 import { encodeUUID, omit, pick, type UUID } from 'utilium';
@@ -129,7 +129,7 @@ addRoute({
 		return options;
 	},
 	async POST(request, { id: userId }) {
-		const response = await parseBody(request, PasskeyAuthenticationResponse);
+		const response = await parseBody(request, PasskeyAuthResponse);
 
 		const auth = challenges.get(userId);
 		if (!auth) error(404, 'No challenge');

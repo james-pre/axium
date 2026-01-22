@@ -3,7 +3,7 @@ import { AuditFilter, Severity } from '@axium/core';
 import { getVersionInfo } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { omit } from 'utilium';
+import { omit, type Add, type Tuple } from 'utilium';
 import * as z from 'zod';
 import { audit, events, getEvents } from '../audit.js';
 import { createVerification, requireSession, type SessionAndUser } from '../auth.js';
@@ -29,11 +29,15 @@ addRoute({
 	async GET(req): AsyncResult<'GET', 'admin/summary'> {
 		await assertAdmin(this, req);
 
-		const groups = Object.groupBy(await getEvents({}).execute(), e => e.severity);
-		const auditEvents = Object.fromEntries(Object.entries(groups).map(([sev, events]) => [sev, events.length])) as Record<
-			keyof typeof Severity,
-			number
-		>;
+		const results = await db
+			.selectFrom('audit_log')
+			.select(({ fn }) => ['severity', fn.countAll<number>().as('count')])
+			.groupBy('severity')
+			.execute();
+
+		const auditEvents = Array(Severity.Debug + 1).fill(0) as Tuple<number, Add<Severity.Debug, 1>>;
+
+		for (const { severity, count } of results) auditEvents[severity] = count;
 
 		return {
 			...(await count('users', 'passkeys', 'sessions')),
@@ -90,7 +94,7 @@ addRoute({
 
 			await tx.commit().execute();
 
-			return verification;
+			return { user, verification };
 		} catch (e) {
 			await tx.rollback().execute();
 			throw e;

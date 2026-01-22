@@ -1,4 +1,4 @@
-import type { WithRequired } from 'utilium';
+import { $API } from '@axium/core';
 import * as z from 'zod';
 
 export const TaskInit = z.object({
@@ -7,14 +7,16 @@ export const TaskInit = z.object({
 	listId: z.uuid(),
 	parentId: z.uuid().nullish(),
 	completed: z.boolean().optional(),
-	due: z.date().nullish(),
+	due: z.coerce.date().nullish(),
 });
 export type TaskInit = z.infer<typeof TaskInit>;
 
-export interface Task extends TaskInit {
-	id: string;
-	created: Date;
-}
+export const Task = TaskInit.extend({
+	id: z.uuid(),
+	created: z.coerce.date(),
+});
+
+export interface Task extends z.infer<typeof Task> {}
 
 export const TaskListInit = z.object({
 	name: z.string().min(1).max(50),
@@ -27,29 +29,37 @@ export const TaskListUpdate = z.object({
 });
 export type TaskListUpdate = z.infer<typeof TaskListUpdate>;
 
-export interface TaskList extends TaskListInit {
-	id: string;
-	userId: string;
-	created: Date;
-	tasks?: Task[];
-}
+export const TaskList = TaskListInit.extend({
+	id: z.uuid(),
+	userId: z.uuid(),
+	created: z.coerce.date(),
+	tasks: Task.array().optional(),
+});
+
+export interface TaskList extends z.infer<typeof TaskList> {}
+
+const TasksAPI = {
+	'users/:id/task_lists': {
+		GET: TaskList.required({ tasks: true }).array(),
+		PUT: [TaskListInit, TaskList],
+	},
+	'task_lists/:id': {
+		GET: TaskList.required({ tasks: true }),
+		PATCH: [TaskListInit, TaskList],
+		POST: [TaskListUpdate, {}],
+		PUT: [TaskInit.omit({ listId: true }), Task],
+		DELETE: TaskList,
+	},
+	'tasks/:id': {
+		PATCH: [TaskInit.omit({ listId: true }), Task],
+		DELETE: Task,
+	},
+} as const;
+
+type TasksAPI = typeof TasksAPI;
 
 declare module '@axium/core/api' {
-	export interface $API {
-		'users/:id/task_lists': {
-			GET: WithRequired<TaskList, 'tasks'>[];
-			PUT: [z.input<typeof TaskListInit>, TaskList];
-		};
-		'task_lists/:id': {
-			GET: WithRequired<TaskList, 'tasks'>;
-			PATCH: [z.input<typeof TaskListInit>, TaskList];
-			POST: [z.input<typeof TaskListUpdate>, {}];
-			PUT: [Omit<z.input<typeof TaskInit>, 'listId'>, Task];
-			DELETE: TaskList;
-		};
-		'tasks/:id': {
-			PATCH: [Omit<z.input<typeof TaskInit>, 'listId'>, Task];
-			DELETE: Task;
-		};
-	}
+	export interface $API extends TasksAPI {}
 }
+
+Object.assign($API, TasksAPI);

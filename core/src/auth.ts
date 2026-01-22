@@ -10,21 +10,27 @@ export const Session = z.object({
 
 export interface Session extends z.infer<typeof Session> {}
 
-export interface Verification {
-	userId: string;
-	expires: Date;
-}
+export const Verification = z.object({
+	userId: z.uuid(),
+	expires: z.coerce.date(),
+});
+
+export interface Verification extends z.infer<typeof Verification> {}
 
 export const VerificationRole = z.literal(['email', 'login']);
 
 export type VerificationRole = z.infer<typeof VerificationRole>;
 
-export interface VerificationInternal extends Verification {
-	token: string;
-	role: VerificationRole;
-}
+export const VerificationInternal = Verification.extend({
+	token: z.string(),
+	role: VerificationRole,
+});
 
-export interface NewSessionResponse {
-	userId: string;
-	token: string;
-}
+export interface VerificationInternal extends z.infer<typeof VerificationInternal> {}
+
+export const NewSessionResponse = z.object({
+	userId: z.uuid(),
+	token: z.string(),
+});
+
+export interface NewSessionResponse extends z.infer<typeof NewSessionResponse> {}

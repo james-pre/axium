@@ -1,14 +1,16 @@
 import * as z from 'zod';
-import type { User } from './user.js';
+import { User } from './user.js';
 import { omit, type Omit } from 'utilium';
 
-export interface AccessControl {
-	itemId: string;
-	userId?: string | null;
-	role?: string | null;
-	user?: User;
-	createdAt: Date;
-}
+export const AccessControl = z.object({
+	itemId: z.uuid(),
+	userId: z.uuid().nullish(),
+	role: z.string().nullish(),
+	user: User.optional(),
+	createdAt: z.coerce.date(),
+});
+
+export interface AccessControl extends z.infer<typeof AccessControl> {}
 
 export function pickPermissions<T extends AccessControl & object>(ac: T): Omit<T, 'itemId' | 'userId' | 'role' | 'user' | 'createdAt'> {
 	return omit(ac, ['itemId', 'userId', 'role', 'user', 'createdAt']);

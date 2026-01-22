@@ -8,9 +8,9 @@ export const User = z.object({
 	id: z.uuid(),
 	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
 	email: z.email(),
-	emailVerified: z.date().nullish(),
+	emailVerified: z.coerce.date().nullish(),
 	image: z.url().nullish(),
-	get preferences() {
+	get preferences(): typeof Preferences {
 		return Preferences;
 	},
 	roles: z.string().array(),
@@ -53,7 +53,7 @@ export const userProtectedFields = [
 export const UserChangeable = z
 	.object({
 		...pick(User.shape, 'name', 'email', 'image'),
-		get preferences() {
+		get preferences(): typeof Preferences {
 			return Preferences;
 		},
 	})

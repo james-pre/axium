@@ -6,6 +6,7 @@
 	import { colorHash } from '@axium/core/color';
 
 	const { data } = $props();
+	let users = $state(data.users);
 
 	let createdUserDialog = $state<HTMLDialogElement>();
 	let verification = $state<VerificationInternal>();
@@ -30,8 +31,9 @@
 	id="create-user"
 	submitText="Create"
 	submit={(data: { email: string; name: string }) =>
-		fetchAPI('PUT', 'admin/users', data).then(v => {
-			verification = v;
+		fetchAPI('PUT', 'admin/users', data).then(res => {
+			verification = res.verification;
+			users.push(res.user);
 			createdUserDialog?.showModal();
 		})}
 >
@@ -61,7 +63,7 @@
 		<span>Email</span>
 		<span>Attributes</span>
 	</div>
-	{#each data.users as user}
+	{#each users as user}
 		<div class="user list-item" onclick={e => e.currentTarget === e.target && (location.href = '/admin/users/' + user.id)}>
 			<span>{user.name}</span>
 			<span>{user.email}</span>

@@ -1,6 +1,6 @@
 import { capitalize, uncapitalize } from 'utilium/string.js';
 import * as z from 'zod';
-import type { User } from './user.js';
+import { User } from './user.js';
 
 export enum Severity {
 	Emergency,
@@ -17,23 +17,27 @@ export const severityNames = Object.keys(Severity)
 	.filter(k => isNaN(Number(k)))
 	.map(uncapitalize) as Lowercase<keyof typeof Severity>[];
 
-export interface AuditEvent<T extends Record<string, unknown> = Record<string, unknown>> {
+export const AuditEvent = z.object({
 	/** UUID of the event */
-	id: string;
+	id: z.uuid(),
 	/** UUID of the user that triggered the event. `null` for events triggered via the server CLI */
-	userId: string | null;
-	user?: (Pick<User, 'id' | 'name'> & Partial<User>) | null;
+	userId: z.uuid().nullable(),
+	user: User.partial().required({ id: true, name: true }).nullish(),
 	/** When the event happened */
-	timestamp: Date;
+	timestamp: z.coerce.date(),
 	/** How severe the event is */
-	severity: Severity;
+	severity: z.enum(Severity),
 	/** Snake case name for the event */
-	name: string;
+	name: z.string(),
 	/** The source of the event. This should be a package name */
-	source: string;
+	source: z.string(),
 	/** Tags for the event. For example, `auth` for authentication events */
-	tags: string[];
+	tags: z.string().array(),
 	/** Additional event specific data. */
+	extra: z.record(z.any(), z.unknown()),
+});
+
+export interface AuditEvent<T extends Record<string, unknown> = Record<string, unknown>> extends z.infer<typeof AuditEvent> {
 	extra: T;
 }
 

@@ -1,141 +1,155 @@
-import type { PublicKeyCredentialCreationOptionsJSON, PublicKeyCredentialRequestOptionsJSON } from '@simplewebauthn/types';
-import type { Omit } from 'utilium';
-import type z from 'zod';
-import type { AccessControl, AccessMap } from './access.js';
-import type { App } from './apps.js';
-import type { AuditEvent, AuditFilter, Severity } from './audit.js';
-import type { NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
-import type { PackageVersionInfo } from './packages.js';
-import type { Passkey, PasskeyAuthenticationResponse, PasskeyChangeable, PasskeyRegistration } from './passkeys.js';
-import type { PluginInternal } from './plugins.js';
+import type { Add, Tuple } from 'utilium';
+import * as z from 'zod';
+import { AccessControl, AccessMap } from './access.js';
+import { App } from './apps.js';
+import { AuditEvent, AuditFilter, Severity } from './audit.js';
+import { NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
+import { PackageVersionInfo } from './packages.js';
+import {
+	Passkey,
+	PasskeyAuthOptions,
+	PasskeyAuthResponse,
+	PasskeyChangeable,
+	PasskeyCreationOptions,
+	PasskeyRegistration,
+} from './passkeys.js';
+import { PluginInternal } from './plugins.js';
 import type { RequestMethod } from './requests.js';
-import type {
-	LogoutSessions,
-	User,
-	UserAuthOptions,
-	UserChangeable,
-	UserInternal,
-	UserPublic,
-	UserRegistration,
-	UserRegistrationInit,
-} from './user.js';
+import { LogoutSessions, User, UserAuthOptions, UserChangeable, UserPublic, UserRegistration, UserRegistrationInit } from './user.js';
 
-export interface AdminSummary {
-	users: number;
-	passkeys: number;
-	sessions: number;
-	auditEvents: Record<keyof typeof Severity, number>;
-	configFiles: number;
-	plugins: number;
-	versions: Record<'core' | 'server' | 'client', PackageVersionInfo>;
-}
+export const AdminSummary = z.object({
+	users: z.number(),
+	passkeys: z.number(),
+	sessions: z.number(),
+	auditEvents: z.tuple(Array(Severity.Debug + 1).fill(z.number()) as Tuple<z.ZodNumber, Add<typeof Severity.Debug, 1>>),
+	configFiles: z.number(),
+	plugins: z.number(),
+	versions: z.record(z.literal(['core', 'server', 'client']), PackageVersionInfo),
+});
 
 /**
- * Types for all API endpoints
+ * Schemas for all API endpoints
  * @internal
  */
-export interface $API {
+const _API = {
 	metadata: {
-		GET: {
-			versions: PackageVersionInfo[];
-			routes: Record<string, { params: Record<string, string | null>; methods: string[] }>;
-		};
-	};
+		GET: z.object({
+			versions: PackageVersionInfo.array(),
+			routes: z.record(z.string(), z.object({ params: z.record(z.string(), z.string().nullable()), methods: z.string().array() })),
+		}),
+	},
 	apps: {
-		GET: App[];
-	};
+		GET: App.array(),
+	},
 	session: {
-		GET: Session & { user: User };
-		DELETE: Session;
-	};
+		GET: Session.extend({ user: User }),
+		DELETE: Session,
+	},
 	register: {
-		OPTIONS: [z.input<typeof UserRegistrationInit>, { userId: string; options: PublicKeyCredentialCreationOptionsJSON }];
-		POST: [z.input<typeof UserRegistration>, NewSessionResponse];
-	};
+		OPTIONS: [UserRegistrationInit, z.object({ userId: z.uuid(), options: PasskeyCreationOptions })],
+		POST: [UserRegistration, NewSessionResponse],
+	},
 	'users/:id': {
-		GET: UserPublic & Partial<User>;
-		PATCH: [z.input<typeof UserChangeable>, User];
-		DELETE: User;
-	};
+		GET: UserPublic,
+		PATCH: [UserChangeable, User],
+		DELETE: User,
+	},
 	'users/:id/full': {
-		GET: User & { sessions: Session[] };
-	};
+		GET: User.extend({ sessions: Session.array() }),
+	},
 	'users/:id/auth': {
-		OPTIONS: [z.input<typeof UserAuthOptions>, PublicKeyCredentialRequestOptionsJSON];
-		POST: [z.input<typeof PasskeyAuthenticationResponse>, NewSessionResponse];
-	};
+		OPTIONS: [UserAuthOptions, PasskeyAuthOptions],
+		POST: [PasskeyAuthResponse, NewSessionResponse],
+	},
 	'users/:id/sessions': {
-		GET: Session[];
-		DELETE: [z.input<typeof LogoutSessions>, Session[]];
-	};
+		GET: Session.array(),
+		DELETE: [LogoutSessions, Session.array()],
+	},
 	'users/:id/passkeys': {
-		OPTIONS: PublicKeyCredentialCreationOptionsJSON;
-		GET: Passkey[];
-		PUT: [z.input<typeof PasskeyRegistration>, Passkey];
-	};
+		OPTIONS: PasskeyCreationOptions,
+		GET: Passkey.array(),
+		PUT: [PasskeyRegistration, Passkey],
+	},
 	'users/:id/verify/email': {
-		OPTIONS: { enabled: boolean };
-		GET: Verification;
-		POST: [{ token: string }, {}];
-	};
+		OPTIONS: z.object({ enabled: z.boolean() }),
+		GET: Verification,
+		POST: [z.object({ token: z.string() }), z.object({})],
+	},
 	'users/:id/verify/login': {
-		POST: [{ token: string }, NewSessionResponse];
-	};
+		POST: [z.object({ token: z.string() }), NewSessionResponse],
+	},
 	'passkeys/:id': {
-		GET: Passkey;
-		PATCH: [z.input<typeof PasskeyChangeable>, Passkey];
-		DELETE: Passkey;
-	};
+		GET: Passkey,
+		PATCH: [PasskeyChangeable, Passkey],
+		DELETE: Passkey,
+	},
 	user_id: {
-		POST: [{ using: 'email' | 'handle'; value: string }, { id: string }];
-	};
+		POST: [z.object({ using: z.literal(['email', 'handle']), value: z.string() }), z.object({ id: z.uuid() })],
+	},
 	'acl/:itemType/:itemId': {
-		GET: AccessControl[];
-		POST: [AccessMap, AccessControl[]];
-	};
+		GET: AccessControl.array(),
+		POST: [AccessMap, AccessControl.array()],
+	},
 	'admin/summary': {
-		GET: AdminSummary;
-	};
+		GET: AdminSummary,
+	},
 	'admin/users': {
-		GET: UserInternal[];
-		PUT: [{ name: string; email: string }, VerificationInternal];
-	};
+		GET: User.array(),
+		PUT: [z.object({ name: z.string(), email: z.email() }), z.object({ user: User, verification: VerificationInternal })],
+	},
 	'admin/config': {
-		GET: {
-			files: Record<string, object>;
-			config: Record<string, unknown>;
-		};
-	};
+		GET: z.object({
+			files: z.record(z.string(), z.any()),
+			config: z.record(z.string(), z.unknown()),
+		}),
+	},
 	'admin/plugins': {
-		GET: (Omit<PluginInternal, '_hooks' | '_client'> & PackageVersionInfo)[];
-	};
+		GET: z.object({ ...PluginInternal.omit({ _hooks: true, _client: true }).shape, ...PackageVersionInfo.shape }).array(),
+	},
 	'admin/audit/events': {
-		OPTIONS: { name: string[]; source: string[]; tags: string[] } | false;
-		GET: [filter: z.input<typeof AuditFilter>, result: AuditEvent[]];
-	};
+		OPTIONS: z.object({ name: z.string().array(), source: z.string().array(), tags: z.string().array() }).or(z.literal(false)),
+		GET: [AuditFilter, AuditEvent.array()],
+	},
 	'admin/audit/:eventId': {
-		GET: AuditEvent;
+		GET: AuditEvent,
+	},
+} as const satisfies Record<string, { [K in RequestMethod]?: z.ZodType | [z.ZodType, z.ZodType] }>;
+
+type _API = typeof _API;
+export interface $API extends _API {}
+export const $API = _API as $API;
+
+export type APIValues = {
+	[Endpoint in keyof $API]: {
+		[Method in keyof $API[Endpoint]]: $API[Endpoint][Method] extends readonly [
+			infer Body extends z.ZodType,
+			infer Result extends z.ZodType,
+		]
+			? [z.input<Body>, z.infer<Result>]
+			: $API[Endpoint][Method] extends z.ZodType
+				? z.infer<$API[Endpoint][Method]>
+				: never;
 	};
-}
+};
 
 export type Endpoint = keyof $API;
 
-export type APIFunction<Method extends RequestMethod, E extends Endpoint> = Method extends keyof $API[E]
-	? $API[E][Method] extends [infer Body, infer Result]
+export type APIFunction<Method extends RequestMethod & keyof $API[E], E extends Endpoint> = Method extends keyof APIValues[E]
+	? APIValues[E][Method] extends [infer Body, infer Result]
 		? (body: Body) => Promise<Result>
-		: () => $API[E][Method]
+		: () => APIValues[E][Method]
 	: unknown;
 
-export type RequestBody<Method extends RequestMethod, E extends Endpoint> = Method extends keyof $API[E]
-	? $API[E][Method] extends [infer Body, unknown]
+export type RequestBody<Method extends RequestMethod & keyof $API[E], E extends Endpoint> = Method extends keyof APIValues[E]
+	? APIValues[E][Method] extends [infer Body, unknown]
 		? Body
 		: any
 	: unknown;
 
-export type Result<Method extends RequestMethod & keyof $API[E], E extends Endpoint> = $API[E][Method] extends [unknown, infer R]
+export type Result<Method extends RequestMethod & keyof APIValues[E], E extends Endpoint> = APIValues[E][Method] extends [unknown, infer R]
 	? R
-	: $API[E][Method];
+	: APIValues[E][Method];
 
-export type AsyncResult<Method extends RequestMethod & keyof $API[E], E extends Endpoint> = Promise<Result<Method, E>>;
+export type AsyncResult<Method extends RequestMethod & keyof APIValues[E], E extends Endpoint> = Promise<Result<Method, E>>;
 
 export type APIParameters<S extends string> = S extends `${string}/:${infer Right}` ? [string, ...APIParameters<Right>] : [];

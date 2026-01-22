@@ -1,5 +1,6 @@
 import * as io from '@axium/core/node/io';
-import { getVersionInfo, type PackageVersionInfo } from '@axium/core/packages';
+import type { PackageVersionInfo } from '@axium/core/packages';
+import { getVersionInfo } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';
 import { Logger } from 'logzen';
 import * as fs from 'node:fs';

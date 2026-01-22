@@ -35,13 +35,6 @@ async function _upload(
 	return json;
 }
 
-export function parseItem(result: StorageItemMetadata): StorageItemMetadata {
-	result.createdAt = new Date(result.createdAt);
-	result.modifiedAt = new Date(result.modifiedAt);
-	if (result.trashedAt) result.trashedAt = new Date(result.trashedAt);
-	return result;
-}
-
 function rawStorage(fileId?: string): string | URL {
 	const raw = '/raw/storage' + (fileId ? '/' + fileId : '');
 	if (prefix[0] == '/') return raw;
@@ -59,25 +52,20 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 	const headers: Record<string, string> = {};
 	if (opt.parentId) headers['x-parent'] = opt.parentId;
 	if (opt.name) headers['x-name'] = opt.name;
-	return parseItem(await _upload('PUT', rawStorage(), file, headers));
+	return await _upload('PUT', rawStorage(), file, headers);
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
-	return parseItem(await _upload('POST', rawStorage(fileId), data));
+	return await _upload('POST', rawStorage(fileId), data);
 }
 
 export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
-	const result = await fetchAPI('GET', 'storage/item/:id', undefined, fileId);
-	return parseItem(result);
+	return await fetchAPI('GET', 'storage/item/:id', undefined, fileId);
 }
 
-/**
- * Gets the metadata for all items in a directory.
- */
+/** Gets the metadata for all items in a directory. */
 export async function getDirectoryMetadata(parentId: string): Promise<StorageItemMetadata[]> {
-	const result = await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
-	for (const item of result) parseItem(item);
-	return result;
+	return await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
 }
 
 export async function downloadItem(fileId: string): Promise<Blob> {
@@ -91,21 +79,15 @@ export async function downloadItem(fileId: string): Promise<Blob> {
 }
 
 export async function updateItemMetadata(fileId: string, metadata: StorageItemUpdate): Promise<StorageItemMetadata> {
-	const result = await fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
-	return parseItem(result);
+	return await fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
 }
 
 export async function deleteItem(fileId: string): Promise<StorageItemMetadata> {
-	const result = await fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
-	return parseItem(result);
+	return await fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
 }
 
 export async function getUserStorage(userId: string): Promise<UserStorage> {
-	const result = await fetchAPI('GET', 'users/:id/storage', undefined, userId);
-	result.lastModified = new Date(result.lastModified);
-	if (result.lastTrashed) result.lastTrashed = new Date(result.lastTrashed);
-	for (const item of result.items) parseItem(item);
-	return result;
+	return await fetchAPI('GET', 'users/:id/storage', undefined, userId);
 }
 
 export async function getUserStats(userId: string): Promise<UserStorageInfo> {
@@ -116,19 +98,13 @@ export async function getUserStats(userId: string): Promise<UserStorageInfo> {
 }
 
 export async function getUserTrash(userId: string): Promise<StorageItemMetadata[]> {
-	const result = await fetchAPI('GET', 'users/:id/storage/trash', undefined, userId);
-	for (const item of result) parseItem(item);
-	return result;
+	return await fetchAPI('GET', 'users/:id/storage/trash', undefined, userId);
 }
 
 export async function itemsSharedWith(userId: string): Promise<StorageItemMetadata[]> {
-	const result = await fetchAPI('GET', 'users/:id/storage/shared', undefined, userId);
-	for (const item of result) parseItem(item);
-	return result;
+	return await fetchAPI('GET', 'users/:id/storage/shared', undefined, userId);
 }
 
 export async function getUserStorageRoot(userId: string): Promise<StorageItemMetadata[]> {
-	const result = await fetchAPI('GET', 'users/:id/storage/root', undefined, userId);
-	for (const item of result) parseItem(item);
-	return result;
+	return await fetchAPI('GET', 'users/:id/storage/root', undefined, userId);
 }

@@ -1,4 +1,4 @@
-import type {} from '@axium/core/api';
+import { $API } from '@axium/core/api';
 import * as z from 'zod';
 
 export const NoteInit = z.object({
@@ -9,23 +9,31 @@ export const NoteInit = z.object({
 
 export interface NoteInit extends z.infer<typeof NoteInit> {}
 
-export interface Note extends z.infer<typeof NoteInit> {
-	id: string;
-	userId: string;
-	created: Date;
-	modified: Date;
-}
+export const Note = NoteInit.extend({
+	id: z.uuid(),
+	userId: z.uuid(),
+	created: z.coerce.date(),
+	modified: z.coerce.date(),
+});
+
+export interface Note extends z.infer<typeof Note> {}
+
+const NotesAPI = {
+	'users/:id/notes': {
+		GET: Note.array(),
+		PUT: [NoteInit, Note],
+	},
+	'notes/:id': {
+		GET: Note,
+		PATCH: [NoteInit, Note],
+		DELETE: Note,
+	},
+} as const;
+
+type NotesAPI = typeof NotesAPI;
 
 declare module '@axium/core/api' {
-	export interface $API {
-		'users/:id/notes': {
-			GET: Note[];
-			PUT: [z.input<typeof NoteInit>, Note];
-		};
-		'notes/:id': {
-			GET: Note;
-			PATCH: [z.input<typeof NoteInit>, Note];
-			DELETE: Note;
-		};
-	}
+	export interface $API extends NotesAPI {}
 }
+
+Object.assign($API, NotesAPI);

@@ -1,5 +1,7 @@
-import type { $API, APIParameters, Endpoint, RequestBody } from '@axium/core/api';
+import type { APIParameters, APIValues, Endpoint, RequestBody } from '@axium/core/api';
+import { $API } from '@axium/core/api';
 import type { RequestMethod } from '@axium/core/requests';
+import { prettifyError } from 'zod';
 
 export let token: string | null = null;
 
@@ -13,12 +15,12 @@ export function setPrefix(value: string): void {
 	prefix = value;
 }
 
-export async function fetchAPI<const M extends RequestMethod, const E extends Endpoint>(
+export async function fetchAPI<const E extends Endpoint, const M extends keyof $API[E] & RequestMethod>(
 	method: M,
 	endpoint: E,
 	data?: RequestBody<M, E>,
 	...params: APIParameters<E>
-): Promise<M extends keyof $API[E] ? ($API[E][M] extends [unknown, infer R] ? R : $API[E][M]) : unknown> {
+): Promise<M extends keyof APIValues[E] ? (APIValues[E][M] extends readonly [unknown, infer R] ? R : APIValues[E][M]) : unknown> {
 	const options: RequestInit & { headers: Record<string, string> } = {
 		method,
 		headers: {
@@ -26,6 +28,15 @@ export async function fetchAPI<const M extends RequestMethod, const E extends En
 			Accept: 'application/json',
 		},
 	};
+
+	const schema = $API[endpoint][method];
+
+	if (Array.isArray(schema))
+		try {
+			data = schema[0].parse(data);
+		} catch (e: any) {
+			throw prettifyError(e);
+		}
 
 	if (method !== 'GET' && method !== 'HEAD') options.body = JSON.stringify(data);
 	const search =
@@ -57,5 +68,11 @@ export async function fetchAPI<const M extends RequestMethod, const E extends En
 
 	if (!response.ok) throw new Error(json.message);
 
-	return json;
+	const Output = Array.isArray(schema) ? schema[1] : schema;
+
+	try {
+		return Output.parse(json);
+	} catch (e: any) {
+		throw prettifyError(e);
+	}
 }
