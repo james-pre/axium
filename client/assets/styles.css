@@ -148,7 +148,7 @@ dialog form {
 	display: contents;
 }
 
-.error {
+:not(input).error {
 	padding: 1em;
 	border-radius: 0.5em;
 	background-color: var(--bg-error);
@@ -156,6 +156,10 @@ dialog form {
 
 .error-text {
 	color: hsl(0 50 50%);
+}
+
+input.error {
+	border: 1px solid var(--bg-error);
 }
 
 .success {

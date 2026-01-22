@@ -21,8 +21,7 @@
 	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
 
 	let input = $state<HTMLInputElement | HTMLSelectElement>()!;
-	let checked = $state(schema.def.type == 'boolean' && getByString<boolean>(rootValue, path));
-	const initialValue = $derived<any>(getByString(rootValue, path));
+	let value = $state<any>(getByString(rootValue, path));
 
 	let error = $state();
 
@@ -54,26 +53,23 @@
 	}
 
 	function onchange(e: Event) {
-		let value: any = input.value;
-		if (input.type == 'checkbox') value = input.checked;
-		if (schema.type == 'number') value = Number(value);
-		if (schema.type == 'bigint') value = BigInt(value);
+		let val;
 
 		try {
-			value = schema.parse(value);
+			val = schema.parse(value);
 		} catch (e: any) {
 			error = prettifyError(e);
 			return;
 		}
 
 		const oldValue = getByString(rootValue, path);
-		if (value == oldValue) return;
+		if (val == oldValue) return;
 
-		if (defaultValue == value) {
+		if (defaultValue == val) {
 			const parts = path.split('.');
 			const prop = parts.pop()!;
 			delete getByString<Record<string, any>>(rootValue, parts.join('.'))[prop];
-		} else setByString(rootValue, path, value);
+		} else setByString(rootValue, path, val);
 
 		updateValue(rootValue);
 	}
@@ -83,7 +79,7 @@
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
-		<input bind:this={input} {id} {...rest} value={initialValue} {onchange} required={!optional} {defaultValue} />
+		<input bind:this={input} {id} {...rest} bind:value {onchange} required={!optional} {defaultValue} class={[error && 'error']} />
 	</div>
 {/snippet}
 
@@ -96,9 +92,9 @@
 {:else if schema.type == 'boolean'}
 	<div class="ZodInput">
 		<label for="{id}:checkbox">{label || path}</label>
-		<input bind:checked bind:this={input} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} />
+		<input bind:checked={value} bind:this={input} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} />
 		<label for="{id}:checkbox" {id} class="checkbox">
-			{#if checked}<Icon i="check" --size="1.3em" />{/if}
+			{#if value}<Icon i="check" --size="1.3em" />{/if}
 		</label>
 	</div>
 {:else if schema.type == 'date'}
@@ -112,9 +108,9 @@
 {:else if schema.type == 'literal'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		<select bind:this={input} {id} {onchange} required={!optional}>
+		<select bind:this={input} bind:value {id} {onchange} required={!optional}>
 			{#each schema.values as value}
-				<option {value} selected={initialValue === value}>{value}</option>
+				<option {value} selected={value === value}>{value}</option>
 			{/each}
 		</select>
 	</div>
@@ -128,7 +124,7 @@
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		{#each initialValue, i}
+		{#each value, i}
 			<div class="ZodInput-element">
 				<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{i}" schema={schema.element} />
 			</div>
@@ -138,7 +134,7 @@
 	</div>
 {:else if schema.type == 'record'}
 	<div class="ZodInput-record">
-		{#each Object.keys(initialValue) as key}
+		{#each Object.keys(value) as key}
 			<div class="ZodInput-record-entry">
 				<label for={id}>{key}</label>
 				<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{key}" schema={schema.valueType} />
@@ -160,9 +156,9 @@
 {:else if schema.type == 'enum'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		<select bind:this={input} {id} {onchange} required={!optional}>
+		<select bind:this={input} {id} {onchange} bind:value required={!optional}>
 			{#each Object.entries(schema.enum) as [key, value]}
-				<option {value} selected={initialValue === value}>{key}</option>
+				<option {value} selected={value === value}>{key}</option>
 			{/each}
 		</select>
 	</div>
@@ -190,16 +186,19 @@
 	.ZodInput-error {
 		position: fixed;
 		position-anchor: --zod-input;
-		bottom: anchor(top);
+		bottom: calc(anchor(top) - 0.3em);
 		left: anchor(left);
-		padding-bottom: 0.5em;
 	}
 
 	.ZodInput {
 		display: grid;
 		grid-template-columns: 1fr 1fr;
 		gap: 1em;
-		anchor-name: --zod-input;
+		anchor-scope: --zod-input;
+
+		input {
+			anchor-name: --zod-input;
+		}
 	}
 
 	.ZodInput-object,
