@@ -5,7 +5,7 @@
 	import { formatDateRange } from '@axium/core/format';
 
 	const { data } = $props();
-	const { user } = data;
+	const { user, session } = data;
 
 	let sessions = $state(user.sessions);
 </script>
@@ -93,7 +93,7 @@
 
 	<FormDialog
 		id="delete-user"
-		submit={() => deleteUser(user.id).then(() => (window.location.href = '/admin/users'))}
+		submit={() => deleteUser(user.id, session?.userId).then(() => (window.location.href = '/admin/users'))}
 		submitText="Delete User"
 		submitDanger
 	>

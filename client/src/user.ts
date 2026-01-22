@@ -89,11 +89,15 @@ export async function fullUserInfo(userId: string): Promise<User & { sessions: S
 	return await fetchAPI('GET', 'users/:id/full', {}, userId);
 }
 
-export async function deleteUser(userId: string): Promise<User> {
+/**
+ * @param userId The UUID of the user to delete
+ * @param deletingId The UUID of the user performing the deletion (for authentication). Defaults to userId.
+ */
+export async function deleteUser(userId: string, deletingId: string = userId): Promise<User> {
 	_checkId(userId);
-	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'action' }, userId);
+	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'action' }, deletingId);
 	const response = await startAuthentication({ optionsJSON: options });
-	await fetchAPI('POST', 'users/:id/auth', response, userId);
+	await fetchAPI('POST', 'users/:id/auth', response, deletingId);
 	return await fetchAPI('DELETE', 'users/:id', response, userId);
 }
 
