@@ -30,8 +30,6 @@ async function _upload(
 
 	if (!response.ok) throw new Error((json as any).message);
 
-	json.modifiedAt = new Date(json.modifiedAt);
-
 	return json;
 }
 
@@ -91,10 +89,7 @@ export async function getUserStorage(userId: string): Promise<UserStorage> {
 }
 
 export async function getUserStats(userId: string): Promise<UserStorageInfo> {
-	const result = await fetchAPI('OPTIONS', 'users/:id/storage', undefined, userId);
-	result.lastModified = new Date(result.lastModified);
-	if (result.lastTrashed) result.lastTrashed = new Date(result.lastTrashed);
-	return result;
+	return await fetchAPI('OPTIONS', 'users/:id/storage', undefined, userId);
 }
 
 export async function getUserTrash(userId: string): Promise<StorageItemMetadata[]> {
