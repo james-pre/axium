@@ -74,4 +74,8 @@
 	.apps a {
 		text-decoration: underline;
 	}
+
+	.plugin :global(label:not(.checkbox)) {
+		font-family: monospace;
+	}
 </style>
