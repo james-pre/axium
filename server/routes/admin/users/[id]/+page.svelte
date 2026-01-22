@@ -1,7 +1,9 @@
 <script lang="ts">
-	import { ClipboardCopy, Preferences, SessionList, Icon, FormDialog } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, SessionList, ZodForm } from '@axium/client/components';
+	import { fetchAPI } from '@axium/client/requests';
 	import '@axium/client/styles/account';
 	import { deleteUser } from '@axium/client/user';
+	import { preferenceLabels, Preferences } from '@axium/core';
 	import { formatDateRange } from '@axium/core/format';
 
 	const { data } = $props();
@@ -108,7 +110,12 @@
 
 <div id="preferences" class="section main">
 	<h3>Preferences</h3>
-	<Preferences userId={user.id} bind:preferences={user.preferences} />
+	<ZodForm
+		bind:rootValue={user.preferences}
+		schema={Preferences}
+		labels={preferenceLabels}
+		updateValue={(preferences: Preferences) => fetchAPI('PATCH', 'users/:id', { preferences }, user.id)}
+	/>
 </div>
 
 <style>

@@ -1,26 +1,25 @@
 <script lang="ts">
-	import { fetchAPI } from '@axium/client/requests';
-	import type { Preferences, ZodPref } from '@axium/core';
+	import type { ZodPref } from '@axium/core';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
 	import Icon from './Icon.svelte';
-	import Preference from './Preference.svelte';
+	import ZodInput from './ZodInput.svelte';
 
 	interface Props {
-		userId: string;
-		preferences: Preferences;
+		rootValue: any;
 		path: string;
 		schema: ZodPref;
 		defaultValue?: any;
 		optional?: boolean;
+		updateValue(value: any): void;
 	}
 
-	let { preferences = $bindable(), userId, path, schema, optional = false, defaultValue }: Props = $props();
+	let { rootValue = $bindable(), path, schema, optional = false, defaultValue, updateValue }: Props = $props();
 	const id = $props.id();
 
 	let input = $state<HTMLInputElement | HTMLSelectElement>()!;
-	let checked = $state(schema.def.type == 'boolean' && getByString<boolean>(preferences, path));
-	const initialValue = $derived<any>(getByString(preferences, path));
+	let checked = $state(schema.def.type == 'boolean' && getByString<boolean>(rootValue, path));
+	const initialValue = $derived<any>(getByString(rootValue, path));
 
 	function dateAttr(date: Date | null, format: 'date' | 'time' | 'datetime' | 'time+sec') {
 		if (!date) return null;
@@ -51,16 +50,16 @@
 
 	function onchange(e: Event) {
 		const value = schema.parse(input instanceof HTMLInputElement && input.type === 'checkbox' ? input.checked : input.value);
-		const oldValue = getByString(preferences, path);
+		const oldValue = getByString(rootValue, path);
 		if (value == oldValue) return;
 
 		if (defaultValue == value) {
 			const parts = path.split('.');
 			const prop = parts.pop()!;
-			delete getByString<Record<string, any>>(preferences, parts.join('.'))[prop];
-		} else setByString(preferences, path, value);
+			delete getByString<Record<string, any>>(rootValue, parts.join('.'))[prop];
+		} else setByString(rootValue, path, value);
 
-		fetchAPI('PATCH', 'users/:id', { preferences }, userId);
+		updateValue(rootValue);
 	}
 </script>
 
@@ -96,38 +95,38 @@
 {:else if schema.type == 'template_literal'}
 	<!-- todo -->
 {:else if schema.type == 'default'}
-	<Preference {userId} bind:preferences {path} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
+	<ZodInput bind:rootValue {updateValue} {path} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
 {:else if schema.type == 'nullable' || schema.type == 'optional'}
 	<!-- defaults are handled differently -->
-	<Preference {userId} bind:preferences {path} {defaultValue} schema={schema.def.innerType} optional={true} />
+	<ZodInput bind:rootValue {updateValue} {path} {defaultValue} schema={schema.def.innerType} optional={true} />
 {:else if schema.type == 'array'}
-	<div class="pref-sub">
+	<div class="zod-input-sub">
 		{#each initialValue, i}
-			<div class="pref-record-entry">
-				<Preference {userId} bind:preferences {defaultValue} path="{path}.{i}" schema={schema.element} />
+			<div class="zod-input-record-entry">
+				<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{i}" schema={schema.element} />
 			</div>
 		{/each}
 	</div>
 {:else if schema.type == 'record'}
-	<div class="pref-sub">
+	<div class="zod-input-sub">
 		{#each Object.keys(initialValue) as key}
-			<div class="pref-record-entry">
+			<div class="zod-input-record-entry">
 				<label for={id}>{key}</label>
-				<Preference {userId} bind:preferences {defaultValue} path="{path}.{key}" schema={schema.valueType} />
+				<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{key}" schema={schema.valueType} />
 			</div>
 		{/each}
 	</div>
 {:else if schema.type == 'object'}
 	{#each Object.entries(schema.shape) as [key, value]}
-		<div class="pref-sub">
+		<div class="zod-input-sub">
 			<label for={id}>{key}</label>
-			<Preference {userId} bind:preferences {defaultValue} path="{path}.{key}" schema={value} />
+			<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{key}" schema={value} />
 		</div>
 	{/each}
 {:else if schema.type == 'tuple'}
-	<div class="pref-sub" data-rest={schema.def.rest}>
+	<div class="zod-input-sub" data-rest={schema.def.rest}>
 		{#each schema.def.items as item, i}
-			<Preference {userId} bind:preferences {defaultValue} path="{path}.{i}" schema={item} />
+			<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{i}" schema={item} />
 		{/each}
 	</div>
 {:else if schema.type == 'enum'}
