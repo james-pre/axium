@@ -10,9 +10,19 @@
 	}
 
 	let { rootValue = $bindable(), schema, labels, updateValue }: Props = $props();
-	const id = $props.id();
 </script>
 
-{#each Object.keys(schema.shape) as path}
-	<ZodInput bind:rootValue {updateValue} {path} schema={schema.shape[path]} label={labels[path] || path} />
-{/each}
+<div class="ZodForm">
+	{#each Object.keys(schema.shape) as path}
+		<ZodInput bind:rootValue {updateValue} {path} schema={schema.shape[path]} label={labels[path] || path} />
+	{/each}
+</div>
+
+<style>
+	.ZodForm {
+		display: flex;
+		flex-direction: column;
+		align-items: stretch;
+		gap: 1em;
+	}
+</style>

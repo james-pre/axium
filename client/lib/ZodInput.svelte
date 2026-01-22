@@ -110,11 +110,14 @@
 	<!-- defaults are handled differently -->
 	<ZodInput bind:rootValue {updateValue} {path} {defaultValue} schema={schema.def.innerType} optional={true} />
 {:else if schema.type == 'array'}
-	<div class="ZodInput-array">
+	<div class="ZodInput">
+		<label for={id}>{label || path}</label>
 		{#each initialValue, i}
-			<div class="ZodInput-record-entry">
+			<div class="ZodInput-element">
 				<ZodInput bind:rootValue {updateValue} {defaultValue} path="{path}.{i}" schema={schema.element} />
 			</div>
+		{:else}
+			<i>Empty</i>
 		{/each}
 	</div>
 {:else if schema.type == 'record'}
