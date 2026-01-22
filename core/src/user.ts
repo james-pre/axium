@@ -10,9 +10,7 @@ export const User = z.object({
 	email: z.email(),
 	emailVerified: z.coerce.date().nullish(),
 	image: z.url().nullish(),
-	get preferences(): typeof Preferences {
-		return Preferences;
-	},
+	preferences: z.lazy(() => Preferences),
 	roles: z.string().array(),
 	/** Tags are internal, roles are public */
 	tags: z.string().array(),
@@ -53,9 +51,7 @@ export const userProtectedFields = [
 export const UserChangeable = z
 	.object({
 		...pick(User.shape, 'name', 'email', 'image'),
-		get preferences(): typeof Preferences {
-			return Preferences;
-		},
+		preferences: z.lazy(() => Preferences),
 	})
 	.partial();
 

@@ -42,7 +42,7 @@ const _API = {
 		GET: App.array(),
 	},
 	session: {
-		GET: Session.extend({ user: User }),
+		GET: z.object({ ...Session.shape, user: User }),
 		DELETE: Session,
 	},
 	register: {

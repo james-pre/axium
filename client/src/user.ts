@@ -1,5 +1,4 @@
 import type { NewSessionResponse, Passkey, PasskeyChangeable, Session, User, UserPublic, Verification } from '@axium/core';
-import { UserChangeable } from '@axium/core';
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import * as z from 'zod';
 import { fetchAPI } from './requests.js';
@@ -28,41 +27,23 @@ export async function loginByEmail(email: string): Promise<NewSessionResponse> {
 }
 
 export async function getCurrentSession(): Promise<Session & { user: User }> {
-	const result = await fetchAPI('GET', 'session');
-	result.created = new Date(result.created);
-	result.expires = new Date(result.expires);
-	return result;
+	return await fetchAPI('GET', 'session');
 }
 
 export async function getSessions(userId: string): Promise<Session[]> {
 	_checkId(userId);
-	const result = await fetchAPI('GET', 'users/:id/sessions', {}, userId);
-	for (const session of result) {
-		session.created = new Date(session.created);
-		session.expires = new Date(session.expires);
-	}
-	return result;
+	return await fetchAPI('GET', 'users/:id/sessions', {}, userId);
 }
 
 export async function logout(userId: string, ...sessionId: string[]): Promise<Session[]> {
 	_checkId(userId);
-	const result = await fetchAPI('DELETE', 'users/:id/sessions', { id: sessionId }, userId);
-	for (const session of result) {
-		session.created = new Date(session.created);
-		session.expires = new Date(session.expires);
-	}
-	return result;
+	return await fetchAPI('DELETE', 'users/:id/sessions', { id: sessionId }, userId);
 }
 
 export async function logoutAll(userId: string): Promise<Session[]> {
 	_checkId(userId);
 	await elevate(userId);
-	const result = await fetchAPI('DELETE', 'users/:id/sessions', { confirm_all: true }, userId);
-	for (const session of result) {
-		session.created = new Date(session.created);
-		session.expires = new Date(session.expires);
-	}
-	return result;
+	return await fetchAPI('DELETE', 'users/:id/sessions', { confirm_all: true }, userId);
 }
 
 export async function logoutCurrentSession(): Promise<Session> {
@@ -94,30 +75,18 @@ function _checkId(userId: string): void {
 
 export async function userInfo(userId: string): Promise<UserPublic & Partial<User>> {
 	_checkId(userId);
-	const user = await fetchAPI('GET', 'users/:id', {}, userId);
-	user.registeredAt = new Date(user.registeredAt);
-	user.emailVerified = user.emailVerified ? new Date(user.emailVerified) : null;
-	return user;
+	return await fetchAPI('GET', 'users/:id', {}, userId);
 }
 
 export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>): Promise<User> {
 	_checkId(userId);
-	const body = await UserChangeable.parseAsync(data).catch(e => {
-		throw e instanceof z.core.$ZodError ? z.prettifyError(e) : e;
-	});
 
-	const result = await fetchAPI('PATCH', 'users/:id', body, userId);
-	result.registeredAt = new Date(result.registeredAt);
-	if (result.emailVerified) result.emailVerified = new Date(result.emailVerified);
-	return result;
+	return await fetchAPI('PATCH', 'users/:id', data, userId);
 }
 
 export async function fullUserInfo(userId: string): Promise<User & { sessions: Session[] }> {
 	_checkId(userId);
-	const result = await fetchAPI('GET', 'users/:id/full', {}, userId);
-	result.registeredAt = new Date(result.registeredAt);
-	result.emailVerified = new Date(result.emailVerified!);
-	return result;
+	return await fetchAPI('GET', 'users/:id/full', {}, userId);
 }
 
 export async function deleteUser(userId: string): Promise<User> {
@@ -125,10 +94,7 @@ export async function deleteUser(userId: string): Promise<User> {
 	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'action' }, userId);
 	const response = await startAuthentication({ optionsJSON: options });
 	await fetchAPI('POST', 'users/:id/auth', response, userId);
-	const result = await fetchAPI('DELETE', 'users/:id', response, userId);
-	result.registeredAt = new Date(result.registeredAt);
-	result.emailVerified = new Date(result.emailVerified!);
-	return result;
+	return await fetchAPI('DELETE', 'users/:id', response, userId);
 }
 
 export async function emailVerificationEnabled(userId: string): Promise<boolean> {
@@ -149,11 +115,7 @@ export async function verifyEmail(userId: string, token: string): Promise<void> 
 
 export async function getPasskeys(userId: string): Promise<Passkey[]> {
 	_checkId(userId);
-	const result = await fetchAPI('GET', 'users/:id/passkeys', {}, userId);
-	for (const passkey of result) {
-		passkey.createdAt = new Date(passkey.createdAt);
-	}
-	return result;
+	return await fetchAPI('GET', 'users/:id/passkeys', {}, userId);
 }
 
 /**
