@@ -71,13 +71,14 @@ export const PluginInfo = z.object({
 	_client: z.any().optional(),
 	isServer: z.boolean(),
 	_db: z.any().optional(),
+	_configPath: z.string().optional(),
 });
 
 export interface PluginInfo extends z.infer<typeof PluginInfo> {}
 
 export const PluginInternal = z.looseObject({ ...Plugin.shape, ...PluginInfo.shape });
 
-export interface PluginInternal extends Plugin, Readonly<PluginInfo> {}
+export interface PluginInternal extends Plugin, PluginInfo {}
 
 export const plugins = new Map<string, PluginInternal>();
 

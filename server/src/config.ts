@@ -268,24 +268,20 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		const serverConfig = serverConfigs.get(plugin.name);
 		if (serverConfig) {
 			plugin.config ||= {};
+			let configPath;
 			for (const dir of dirs) {
-				const configPath = join(dir, 'plugins', toBaseName(plugin.name) + '.json');
+				configPath = join(dir, 'plugins', toBaseName(plugin.name) + '.json');
 				if (!existsSync(configPath)) continue;
-				let pluginJson;
-				try {
-					pluginJson = JSON.parse(readFileSync(configPath, 'utf8'));
-				} catch {
-					io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath} (invalid JSON)`);
-					continue;
-				}
 
 				try {
-					Object.assign(plugin.config, serverConfig.schema.partial().parse(pluginJson));
+					const data = io.readJSON(configPath, serverConfig.schema.partial());
+					deepAssign(plugin.config, data);
 					io.debug(`Loaded config for plugin ${plugin.name} from ${configPath}`);
 				} catch (e: any) {
-					io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath} (${e.message})`);
+					io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath}: ${e}`);
 				}
 			}
+			plugin._configPath = configPath;
 		}
 	}
 }

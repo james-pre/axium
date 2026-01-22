@@ -12,6 +12,7 @@ import { count, database as db } from '../database.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 import { errorText } from '@axium/core/io';
+import { writeJSON } from '@axium/core/node/io';
 
 async function assertAdmin(route: RouteCommon, req: Request, sensitive: boolean = false): Promise<SessionAndUser> {
 	const admin = await requireSession(req, sensitive);
@@ -85,11 +86,13 @@ addRoute({
 		if (config) {
 			const { schema } = serverConfigs.get(name) || {};
 			if (!schema) error(400, 'Plugin does not have a configuration schema');
+			if (!plugin._configPath) error(503, 'Plugin configuration path is not set');
 
 			plugin.config ||= {};
 
 			const parsed = await schema.parseAsync(config).catch(e => error(400, errorText(e)));
 			deepAssign(plugin.config, parsed);
+			writeJSON(plugin._configPath, plugin.config);
 		}
 
 		return {};
