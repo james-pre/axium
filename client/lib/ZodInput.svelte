@@ -57,10 +57,13 @@
 
 		try {
 			val = schema.parse(value);
+			error = null;
 		} catch (e: any) {
 			error = prettifyError(e);
 			return;
 		}
+
+		if (e instanceof KeyboardEvent && e.key !== 'Enter') return;
 
 		const oldValue = getByString(rootValue, path);
 		if (val == oldValue) return;
@@ -73,13 +76,25 @@
 
 		updateValue(rootValue);
 	}
+
+	const onkeyup = onchange;
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
-		<input bind:this={input} {id} {...rest} bind:value {onchange} required={!optional} {defaultValue} class={[error && 'error']} />
+		<input
+			bind:this={input}
+			{id}
+			{...rest}
+			bind:value
+			{onchange}
+			{onkeyup}
+			required={!optional}
+			{defaultValue}
+			class={[error && 'error']}
+		/>
 	</div>
 {/snippet}
 
@@ -92,7 +107,7 @@
 {:else if schema.type == 'boolean'}
 	<div class="ZodInput">
 		<label for="{id}:checkbox">{label || path}</label>
-		<input bind:checked={value} bind:this={input} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} />
+		<input bind:checked={value} bind:this={input} id="{id}:checkbox" type="checkbox" {onchange} {onkeyup} required={!optional} />
 		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if value}<Icon i="check" --size="1.3em" />{/if}
 		</label>
@@ -108,7 +123,7 @@
 {:else if schema.type == 'literal'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		<select bind:this={input} bind:value {id} {onchange} required={!optional}>
+		<select bind:this={input} bind:value {id} {onchange} {onkeyup} required={!optional}>
 			{#each schema.values as value}
 				<option {value} selected={value === value}>{value}</option>
 			{/each}
@@ -156,7 +171,7 @@
 {:else if schema.type == 'enum'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		<select bind:this={input} {id} {onchange} bind:value required={!optional}>
+		<select bind:this={input} {id} {onchange} {onkeyup} bind:value required={!optional}>
 			{#each Object.entries(schema.enum) as [key, value]}
 				<option {value} selected={value === value}>{key}</option>
 			{/each}
