@@ -1,6 +1,5 @@
-import type { AsyncResult, Result, UserInternal } from '@axium/core';
+import { getConfig, type AsyncResult, type Result, type UserInternal } from '@axium/core';
 import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
-import { config } from '@axium/server/config';
 import { database, type Schema } from '@axium/server/database';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -17,7 +16,7 @@ addRoute({
 	path: '/api/storage',
 	OPTIONS(): Result<'OPTIONS', 'storage'> {
 		return {
-			...pick(config.storage, 'batch', 'chunk', 'max_chunks', 'max_transfer_size'),
+			...pick(getConfig('@axium/storage'), 'batch', 'chunk', 'max_chunks', 'max_transfer_size'),
 			syncProtocolVersion,
 			batchFormatVersion,
 		};
@@ -28,14 +27,14 @@ addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/item/:id'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
 		return parseItem(item);
 	},
 	async PATCH(request, { id: itemId }): AsyncResult<'PATCH', 'storage/item/:id'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const body = await parseBody(request, StorageItemUpdate);
 
@@ -59,7 +58,7 @@ addRoute({
 		);
 	},
 	async DELETE(request, { id: itemId }): AsyncResult<'DELETE', 'storage/item/:id'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const auth = await checkAuthForItem(request, 'storage', itemId, { manage: true });
 		const item = parseItem(auth.item);
@@ -74,7 +73,7 @@ addRoute({
 	path: '/api/storage/directory/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
@@ -95,7 +94,7 @@ addRoute({
 	path: '/api/storage/directory/:id/recursive',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id/recursive'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
@@ -110,7 +109,7 @@ addRoute({
 	path: '/api/users/:id/storage',
 	params: { id: z.uuid() },
 	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/storage'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		await checkAuthForUser(request, userId);
 
@@ -119,7 +118,7 @@ addRoute({
 		return Object.assign(stats, { limits });
 	},
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		await checkAuthForUser(request, userId);
 
@@ -137,7 +136,7 @@ addRoute({
 	path: '/api/users/:id/storage/root',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/root'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		await checkAuthForUser(request, userId);
 
@@ -176,7 +175,7 @@ addRoute({
 	path: '/api/users/:id/storage/shared',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/shared'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const { user } = await checkAuthForUser(request, userId);
 
@@ -197,7 +196,7 @@ addRoute({
 	path: '/api/users/:id/storage/trash',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/trash'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		await checkAuthForUser(request, userId);
 

@@ -67,6 +67,30 @@
 				"icon": "folders"
 			}
 		],
-		"update_checks": true
+		"update_checks": true,
+		"config": {
+			"app_enabled": true,
+			"batch": {
+				"enabled": false,
+				"max_items": 100,
+				"max_item_size": 100
+			},
+			"cas": {
+				"enabled": true,
+				"include": [],
+				"exclude": []
+			},
+			"chunk": false,
+			"data": "/srv/axium/storage",
+			"enabled": true,
+			"limits": {
+				"user_size": 1000,
+				"item_size": 100,
+				"user_items": 10000
+			},
+			"max_chunks": 10,
+			"max_transfer_size": 100,
+			"trash_duration": 30
+		}
 	}
 }

@@ -1,8 +1,7 @@
-import type { AsyncResult } from '@axium/core';
+import { getConfig, type AsyncResult } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { audit } from '@axium/server/audit';
 import { requireSession } from '@axium/server/auth';
-import config from '@axium/server/config';
 import { database } from '@axium/server/database';
 import { withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -18,8 +17,8 @@ import { getRecursiveIds, getUserStats, parseItem } from './db.js';
 addRoute({
 	path: '/api/storage/batch',
 	async POST(req): AsyncResult<'POST', 'storage/batch'> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
-		if (!config.storage.batch.enabled) error(503, 'Batch updates are disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').batch.enabled) error(503, 'Batch updates are disabled');
 
 		const { userId, user } = await requireSession(req);
 
@@ -107,7 +106,7 @@ addRoute({
 					.returningAll()
 					.executeTakeFirstOrThrow();
 
-				writeFileSync(join(config.storage.data, result.id), content);
+				writeFileSync(join(getConfig('@axium/storage').data, result.id), content);
 
 				await tx.commit().execute();
 				results.set(itemId, parseItem(result));
@@ -118,7 +117,7 @@ addRoute({
 			);
 
 			const deleted = await tx.deleteFrom('storage').where('id', 'in', header.deleted).returningAll().execute();
-			for (const id of toDelete) unlinkSync(join(config.storage.data, id));
+			for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
 			for (const item of deleted) results.set(item.id, parseItem(item));
 
 			for (const [itemId, update] of Object.entries(header.metadata)) {

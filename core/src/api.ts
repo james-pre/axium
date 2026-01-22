@@ -13,7 +13,7 @@ import {
 	PasskeyCreationOptions,
 	PasskeyRegistration,
 } from './passkeys.js';
-import { PluginInternal } from './plugins.js';
+import { PluginInternal, PluginUpdate } from './plugins.js';
 import type { RequestMethod } from './requests.js';
 import { LogoutSessions, User, UserAuthOptions, UserChangeable, UserPublic, UserRegistration, UserRegistrationInit } from './user.js';
 
@@ -104,7 +104,14 @@ const _API = {
 		}),
 	},
 	'admin/plugins': {
-		GET: z.object({ ...PluginInternal.omit({ _hooks: true, _client: true }).shape, ...PackageVersionInfo.shape }).array(),
+		GET: z
+			.looseObject({
+				...PluginInternal.omit({ _hooks: true, _client: true }).shape,
+				...PackageVersionInfo.shape,
+				config: z.record(z.string(), z.any()).optional(),
+			})
+			.array(),
+		POST: [PluginUpdate, z.object({})],
 	},
 	'admin/audit/events': {
 		OPTIONS: z.object({ name: z.string().array(), source: z.string().array(), tags: z.string().array() }).or(z.literal(false)),

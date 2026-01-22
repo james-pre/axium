@@ -8,6 +8,7 @@ import { capitalize, deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
 import { dirs, logger, systemDir } from './io.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
+import { serverConfigs, toBaseName } from '@axium/core';
 
 const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
 	keyof typeof Severity
@@ -15,7 +16,7 @@ const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warni
 
 const z_audit_severity = z.literal([...audit_severity_levels, ...audit_severity_levels.map(capitalize)]);
 
-export let ConfigSchema = z
+export const Config = z
 	.looseObject({
 		/** Whether /api/admin is enabled */
 		admin_api: z.boolean(),
@@ -89,13 +90,9 @@ export let ConfigSchema = z
 	})
 	.partial();
 
-export function addConfig<T extends z.core.$ZodLooseShape>(shape: T) {
-	ConfigSchema = z.looseObject({ ...ConfigSchema.shape, ...shape });
-}
+export interface Config extends z.infer<typeof Config> {}
 
-export interface Config extends z.infer<typeof ConfigSchema> {}
-
-export const configFiles = _unique('configFiles', new Map<string, File>());
+export const configFiles = _unique('configFiles', new Map<string, ConfigFile>());
 
 export function plainConfig(): Omit<DeepRequired<Config>, keyof typeof configShortcuts> {
 	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);
@@ -176,29 +173,14 @@ export const config: DeepRequired<Config> & typeof configShortcuts = _unique('co
 export default config;
 
 // config from file
-export const FileSchema = z
+export const ConfigFile = z
 	.looseObject({
-		...ConfigSchema.shape,
+		...Config.shape,
 		include: z.string().array(),
 		plugins: z.string().array(),
 	})
 	.partial();
-export interface File extends z.infer<typeof FileSchema> {}
-
-export function addConfigDefaults(other: Config, _target: Record<string, any> = config, _noDefault: boolean = false): void {
-	if (!_noDefault) deepAssign(defaultConfig, other);
-
-	for (const [key, value] of Object.entries(other)) {
-		if (!(key in _target) || _target[key] === null || _target[key] === undefined || Number.isNaN(_target[key])) {
-			_target[key] = value;
-			continue;
-		}
-
-		if (typeof value == 'object' && value != null && typeof _target[key] == 'object') {
-			addConfigDefaults(value as any, _target[key], true);
-		}
-	}
-}
+export interface ConfigFile extends z.infer<typeof ConfigFile> {}
 
 /**
  * Update the current config
@@ -266,9 +248,9 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 		return;
 	}
 
-	let file: File;
+	let file: ConfigFile;
 	try {
-		file = FileSchema.parse(json);
+		file = ConfigFile.parse(json);
 		if (file.web?.build) file.web.build = resolve(dirname(path), file.web.build);
 	} catch (e: any) {
 		if (!options.loose) throw e;
@@ -283,6 +265,28 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	for (const pluginPath of file.plugins ?? []) {
 		const plugin = await loadPlugin('server', pluginPath, path, options.safe);
 		if (!plugin) continue;
+		const serverConfig = serverConfigs.get(plugin.name);
+		if (serverConfig) {
+			plugin.config ||= {};
+			for (const dir of dirs) {
+				const configPath = join(dir, 'plugins', toBaseName(plugin.name) + '.json');
+				if (!existsSync(configPath)) continue;
+				let pluginJson;
+				try {
+					pluginJson = JSON.parse(readFileSync(configPath, 'utf8'));
+				} catch {
+					io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath} (invalid JSON)`);
+					continue;
+				}
+
+				try {
+					Object.assign(plugin.config, serverConfig.schema.partial().parse(pluginJson));
+					io.debug(`Loaded config for plugin ${plugin.name} from ${configPath}`);
+				} catch (e: any) {
+					io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath} (${e.message})`);
+				}
+			}
+		}
 	}
 }
 

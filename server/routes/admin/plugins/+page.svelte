@@ -1,5 +1,7 @@
 <script lang="ts">
-	import { Version } from '@axium/client/components';
+	import { Version, ZodForm } from '@axium/client/components';
+	import { fetchAPI } from '@axium/client/requests';
+	import { serverConfigs } from '@axium/core';
 
 	const { data } = $props();
 </script>
@@ -11,6 +13,7 @@
 <h2>Plugins</h2>
 
 {#each data.plugins as plugin}
+	{@const cfg = serverConfigs.get(plugin.name)}
 	<div class="plugin">
 		<h3>{plugin.name}<Version v={plugin.version} latest={plugin.latest} /></h3>
 		<p>
@@ -35,6 +38,15 @@
 			{:else}<i>None</i>{/if}
 		</p>
 		<p>{plugin.description}</p>
+		{#if cfg && plugin.config}
+			{@const { schema, labels } = cfg}
+			<ZodForm
+				rootValue={plugin.config}
+				{schema}
+				{labels}
+				updateValue={config => fetchAPI('POST', 'admin/plugins', { plugin: plugin.name, config })}
+			/>
+		{/if}
 	</div>
 {:else}
 	<i>No plugins loaded.</i>

@@ -1,4 +1,4 @@
-import { config } from '@axium/server/config';
+import { getConfig } from '@axium/core';
 import { database, type Schema } from '@axium/server/database';
 import { withError } from '@axium/server/requests';
 import type { Generated, Selectable } from 'kysely';
@@ -105,5 +105,5 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 
 	await database.deleteFrom('storage').where('id', '=', itemId).returningAll().execute().catch(withError('Could not delete item'));
 
-	for (const id of toDelete) unlinkSync(join(config.storage.data, id));
+	for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
 }

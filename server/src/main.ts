@@ -15,7 +15,7 @@ import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { audit, getEvents, styleSeverity } from './audit.js';
 import { diffUpdate, lookupUser, userText } from './cli.js';
-import config, { configFiles, FileSchema, saveConfigTo } from './config.js';
+import config, { configFiles, ConfigFile, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes } from './linking.js';
@@ -35,14 +35,24 @@ async function rlConfirm(question: string = 'Is this ok'): Promise<void> {
 }
 
 // Need these before Command is set up (e.g. for CLI integrations)
-const { safe, config: configFromCLI } = parseArgs({
+const {
+	safe,
+	debug,
+	config: configFromCLI,
+} = parseArgs({
 	options: {
 		safe: { type: 'boolean', default: z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) },
+		debug: { type: 'boolean', default: z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) },
 		config: { type: 'string', short: 'c' },
 	},
 	allowPositionals: true,
 	strict: false,
-}).values as { safe: boolean; config?: string };
+}).values as { safe: boolean; debug: boolean; config?: string };
+
+if (debug) {
+	io._setDebugOutput(true);
+	config.set({ debug: true });
+}
 
 await config.loadDefaults(safe);
 
@@ -497,7 +507,7 @@ axiumConfig
 	.action(() => {
 		const opt = axiumConfig.optsWithGlobals();
 		try {
-			const schema = z.toJSONSchema(FileSchema, { io: 'input' });
+			const schema = z.toJSONSchema(ConfigFile, { io: 'input' });
 			console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
 		} catch (e: any) {
 			io.exit(e);

@@ -53,6 +53,9 @@ addRoute({
 	},
 });
 
+/**
+ * @todo add `POST`
+ */
 addRoute({
 	path: '/api/admin/plugins',
 	async GET(req): AsyncResult<'GET', 'admin/plugins'> {

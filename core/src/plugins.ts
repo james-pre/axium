@@ -9,6 +9,7 @@ export const PluginServerHooks = z.object({
 	statusText: zAsyncFunction(z.function({ input: [], output: z.string() })).optional(),
 	remove: fn.optional(),
 	clean: fn.optional(),
+	load: fn.optional(),
 });
 
 interface _InitOptions {
@@ -21,6 +22,7 @@ export interface ServerHooks {
 	statusText?(): string | Promise<string>;
 	remove?: (opt: { force?: boolean }) => void | Promise<void>;
 	clean?: (opt: Partial<_InitOptions>) => void | Promise<void>;
+	load?(): void | Promise<void>;
 }
 
 export interface ClientHooks {
@@ -50,6 +52,8 @@ export const Plugin = z.looseObject({
 	}).optional(),
 	/** If set Axium can check the npm registry for updates */
 	update_checks: z.boolean().nullish(),
+	/** In plugin's packages, this is the default. At runtime this is the loaded config */
+	config: z.record(z.string(), z.any()).optional(),
 });
 
 export interface Plugin extends z.infer<typeof Plugin> {}
@@ -98,4 +102,38 @@ export async function runIntegrations() {
 			});
 		}
 	}
+}
+
+export interface $PluginConfigs {}
+
+interface PluginConfigData {
+	schema: z.ZodObject;
+	labels: Record<string, string>;
+}
+
+/**
+ * @todo make sure this is loaded client-side
+ */
+export const serverConfigs = new Map<string, PluginConfigData>();
+
+export function setServerConfig(pluginName: string, schema: z.ZodObject, labels: Record<string, string> = {}) {
+	serverConfigs.set(pluginName, { schema, labels });
+}
+
+export function getConfig<T extends string>(pluginName: T): T extends keyof $PluginConfigs ? $PluginConfigs[T] : Record<string, unknown> {
+	const plugin = _findPlugin(pluginName);
+	return plugin.config as any;
+}
+
+export const PluginUpdate = z.object({
+	plugin: z.string(),
+	config: z.record(z.string(), z.any()).optional(),
+});
+
+/**
+ * Transforms a plugin name into a string suitable for use with file systems.
+ */
+export function toBaseName(pluginName: string): string {
+	if (pluginName[0] == '@') pluginName = pluginName.slice(1);
+	return pluginName.replaceAll('/', '_');
 }

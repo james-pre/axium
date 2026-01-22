@@ -1,6 +1,6 @@
+import { getConfig } from '@axium/core';
 import { audit } from '@axium/server/audit';
 import { checkAuthForItem, requireSession } from '@axium/server/auth';
-import { config } from '@axium/server/config';
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -11,12 +11,12 @@ import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 import { defaultCASMime, getLimits } from './config.js';
-import { getUserStats, parseItem, type SelectedItem } from './db.js';
+import { getUserStats, parseItem } from './db.js';
 
 addRoute({
 	path: '/raw/storage',
 	async PUT(request): Promise<StorageItemMetadata> {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const { userId } = await requireSession(request);
 
@@ -60,9 +60,9 @@ addRoute({
 		if (isDirectory && size > 0) error(400, 'Directories can not have content');
 
 		const useCAS =
-			config.storage.cas.enabled &&
+			getConfig('@axium/storage').cas.enabled &&
 			!isDirectory &&
-			(defaultCASMime.some(pattern => pattern.test(type)) || config.storage.cas.include.some(mime => type.match(mime)));
+			(defaultCASMime.some(pattern => pattern.test(type)) || getConfig('@axium/storage').cas.include?.some(mime => type.match(mime)));
 
 		const hash = isDirectory ? null : createHash('BLAKE2b512').update(content).digest();
 
@@ -77,7 +77,7 @@ addRoute({
 					.executeTakeFirstOrThrow()
 			);
 
-			const path = join(config.storage.data, item.id);
+			const path = join(getConfig('@axium/storage').data, item.id);
 
 			if (!useCAS) {
 				if (!isDirectory) writeFileSync(path, content);
@@ -99,7 +99,7 @@ addRoute({
 				return item;
 			}
 
-			linkSync(join(config.storage.data, existing.id), path);
+			linkSync(join(getConfig('@axium/storage').data, existing.id), path);
 			await tx.commit().execute();
 			return item;
 		} catch (error: any) {
@@ -113,13 +113,13 @@ addRoute({
 	path: '/raw/storage/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }) {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
-		const content = new Uint8Array(readFileSync(join(config.storage.data, item.id)));
+		const content = new Uint8Array(readFileSync(join(getConfig('@axium/storage').data, item.id)));
 
 		return new Response(content, {
 			headers: {
@@ -129,7 +129,7 @@ addRoute({
 		});
 	},
 	async POST(request, { id: itemId }) {
-		if (!config.storage.enabled) error(503, 'User storage is disabled');
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
 		const { item, session } = await checkAuthForItem(request, 'storage', itemId, { write: true });
 
@@ -174,7 +174,7 @@ addRoute({
 				.returningAll()
 				.executeTakeFirstOrThrow();
 
-			writeFileSync(join(config.storage.data, result.id), content);
+			writeFileSync(join(getConfig('@axium/storage').data, result.id), content);
 
 			await tx.commit().execute();
 			return parseItem(result);

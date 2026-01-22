@@ -1,25 +1,5 @@
-import { $API } from '@axium/core';
+import { $API, setServerConfig } from '@axium/core';
 import * as z from 'zod';
-
-export const StoragePublicConfig = z.object({
-	/** Configuration for batch updates */
-	batch: z.object({
-		/** Whether to enable sending multiple files per request */
-		enabled: z.boolean(),
-		/** Maximum number of items that can be included in a single batch update */
-		max_items: z.number(),
-		/** Maximum size in KiB per item */
-		max_item_size: z.number(),
-	}),
-	/** Whether to split files larger than `max_transfer_size` into multiple chunks */
-	chunk: z.boolean(),
-	/** Maximum size in MiB per transfer/request */
-	max_transfer_size: z.number(),
-	/** Maximum number of chunks */
-	max_chunks: z.number(),
-});
-
-export interface StoragePublicConfig extends z.infer<typeof StoragePublicConfig> {}
 
 /**
  * An update to file metadata.
@@ -116,6 +96,58 @@ export const StorageBatchUpdate = z.object({
 });
 
 export interface StorageBatchUpdate extends z.infer<typeof StorageBatchUpdate> {}
+
+export const StoragePublicConfig = z.object({
+	/** Configuration for batch updates */
+	batch: z.object({
+		/** Whether to enable sending multiple files per request */
+		enabled: z.boolean(),
+		/** Maximum number of items that can be included in a single batch update */
+		max_items: z.number(),
+		/** Maximum size in KiB per item */
+		max_item_size: z.number(),
+	}),
+	/** Whether to split files larger than `max_transfer_size` into multiple chunks */
+	chunk: z.boolean(),
+	/** Maximum size in MiB per transfer/request */
+	max_transfer_size: z.number(),
+	/** Maximum number of chunks */
+	max_chunks: z.number(),
+});
+
+export interface StoragePublicConfig extends z.infer<typeof StoragePublicConfig> {}
+
+export const StorageConfig = StoragePublicConfig.safeExtend({
+	/** Whether the files app is enabled. Requires `enabled` */
+	app_enabled: z.boolean(),
+	/** Content Addressable Storage (CAS) configuration */
+	cas: z
+		.object({
+			/** Whether to use CAS */
+			enabled: z.boolean(),
+			/** Mime types to include when determining if CAS should be used */
+			include: z.string().array(),
+			/** Mime types to exclude when determining if CAS should be used */
+			exclude: z.string().array(),
+		})
+		.partial(),
+	/** Path to data directory */
+	data: z.string(),
+	/** Whether the storage API endpoints are enabled */
+	enabled: z.boolean(),
+	/** Default limits */
+	limits: StorageLimits,
+	/** How many days files are kept in the trash */
+	trash_duration: z.number(),
+});
+
+declare module '@axium/core/plugins' {
+	export interface $PluginConfigs {
+		'@axium/storage': z.infer<typeof StorageConfig>;
+	}
+}
+
+setServerConfig('@axium/storage', StorageConfig);
 
 const StorageAPI = {
 	'users/:id/storage': {
