@@ -1,8 +1,11 @@
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
+import { errorText, writeJSON } from '@axium/core/node/io';
 import { getVersionInfo } from '@axium/core/node/packages';
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
+import { mkdirSync } from 'node:fs';
+import { dirname } from 'node:path/posix';
 import { deepAssign, omit, type Add, type Tuple } from 'utilium';
 import * as z from 'zod';
 import { audit, events, getEvents } from '../audit.js';
@@ -11,8 +14,6 @@ import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
-import { errorText } from '@axium/core/io';
-import { writeJSON } from '@axium/core/node/io';
 
 async function assertAdmin(route: RouteCommon, req: Request, sensitive: boolean = false): Promise<SessionAndUser> {
 	const admin = await requireSession(req, sensitive);
@@ -92,6 +93,7 @@ addRoute({
 
 			const parsed = await schema.parseAsync(config).catch(e => error(400, errorText(e)));
 			deepAssign(plugin.config, parsed);
+			mkdirSync(dirname(plugin._configPath), { recursive: true });
 			writeJSON(plugin._configPath, plugin.config);
 		}
 
