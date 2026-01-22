@@ -1,9 +1,9 @@
-import type { AsyncResult, UserInternal } from '@axium/core';
+import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity } from '@axium/core';
 import { getVersionInfo } from '@axium/core/node/packages';
-import { plugins } from '@axium/core/plugins';
+import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
-import { omit, type Add, type Tuple } from 'utilium';
+import { deepAssign, omit, type Add, type Tuple } from 'utilium';
 import * as z from 'zod';
 import { audit, events, getEvents } from '../audit.js';
 import { createVerification, requireSession, type SessionAndUser } from '../auth.js';
@@ -11,6 +11,7 @@ import { config, type Config } from '../config.js';
 import { count, database as db } from '../database.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
+import { errorText } from '@axium/core/io';
 
 async function assertAdmin(route: RouteCommon, req: Request, sensitive: boolean = false): Promise<SessionAndUser> {
 	const admin = await requireSession(req, sensitive);
@@ -53,9 +54,6 @@ addRoute({
 	},
 });
 
-/**
- * @todo add `POST`
- */
 addRoute({
 	path: '/api/admin/plugins',
 	async GET(req): AsyncResult<'GET', 'admin/plugins'> {
@@ -71,6 +69,30 @@ addRoute({
 					)
 				)
 		);
+	},
+	async POST(req): AsyncResult<'POST', 'admin/plugins'> {
+		await assertAdmin(this, req);
+
+		const { plugin: name, config } = await parseBody(req, PluginUpdate);
+
+		let plugin: PluginInternal;
+		try {
+			plugin = _findPlugin(name);
+		} catch {
+			error(404, 'Plugin not found');
+		}
+
+		if (config) {
+			const { schema } = serverConfigs.get(name) || {};
+			if (!schema) error(400, 'Plugin does not have a configuration schema');
+
+			plugin.config ||= {};
+
+			const parsed = await schema.parseAsync(config).catch(e => error(400, errorText(e)));
+			deepAssign(plugin.config, parsed);
+		}
+
+		return {};
 	},
 });
 

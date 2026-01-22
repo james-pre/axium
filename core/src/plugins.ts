@@ -112,9 +112,6 @@ interface PluginConfigData {
 	labels: Record<string, string>;
 }
 
-/**
- * @todo make sure this is loaded client-side
- */
 export const serverConfigs = new Map<string, PluginConfigData>();
 
 export function setServerConfig(pluginName: string, schema: z.ZodObject, labels: Record<string, string> = {}) {
