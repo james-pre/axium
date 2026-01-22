@@ -35,7 +35,7 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.9.6",
+		"@axium/client": ">=0.11.0",
 		"@axium/core": ">=0.17.0",
 		"@axium/server": ">=0.28.0",
 		"@sveltejs/kit": "^2.27.3",
