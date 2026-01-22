@@ -1,7 +1,7 @@
 export function formatDateRange(date: Date): string {
 	const rawDays = (date.getTime() - Date.now()) / (24 * 3600_000);
 	const daysCount = Math.abs(rawDays);
-	const daysText = Number.isInteger(daysCount) ? daysCount : daysCount.toFixed(1);
+	const daysText = Math.round(daysCount);
 
 	const plural = daysCount == 1 ? '' : 's';
 
