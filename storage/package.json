@@ -54,7 +54,8 @@
 			"hooks": "./dist/server/hooks.js",
 			"routes": "./routes",
 			"cli": "./dist/server/cli.js",
-			"db": "./db.json"
+			"db": "./db.json",
+			"web_client_hooks": "./dist/common.js"
 		},
 		"client": {
 			"cli": "./dist/client/cli.js",
