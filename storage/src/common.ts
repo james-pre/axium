@@ -103,16 +103,16 @@ export const StoragePublicConfig = z.object({
 		/** Whether to enable sending multiple files per request */
 		enabled: z.boolean(),
 		/** Maximum number of items that can be included in a single batch update */
-		max_items: z.number(),
+		max_items: z.int().positive(),
 		/** Maximum size in KiB per item */
-		max_item_size: z.number(),
+		max_item_size: z.int().positive(),
 	}),
 	/** Whether to split files larger than `max_transfer_size` into multiple chunks */
 	chunk: z.boolean(),
 	/** Maximum size in MiB per transfer/request */
-	max_transfer_size: z.number(),
+	max_transfer_size: z.int().positive(),
 	/** Maximum number of chunks */
-	max_chunks: z.number(),
+	max_chunks: z.int().positive(),
 });
 
 export interface StoragePublicConfig extends z.infer<typeof StoragePublicConfig> {}
