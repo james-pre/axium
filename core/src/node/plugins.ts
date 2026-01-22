@@ -69,8 +69,6 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 			}
 		}
 
-		Object.freeze(plugin);
-
 		if (plugins.has(plugin.name)) throw 'Plugin already loaded';
 
 		if (plugin.name.startsWith('#') || plugin.name.includes(' ')) {
