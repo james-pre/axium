@@ -55,7 +55,7 @@ const _API = {
 		DELETE: User,
 	},
 	'users/:id/full': {
-		GET: User.extend({ sessions: Session.array() }),
+		GET: z.object({ ...User.shape, sessions: Session.array() }),
 	},
 	'users/:id/auth': {
 		OPTIONS: [UserAuthOptions, PasskeyAuthOptions],
