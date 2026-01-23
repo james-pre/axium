@@ -118,8 +118,6 @@ export const StoragePublicConfig = z.object({
 export interface StoragePublicConfig extends z.infer<typeof StoragePublicConfig> {}
 
 export const StorageConfig = StoragePublicConfig.safeExtend({
-	/** Whether the files app is enabled. Requires `enabled` */
-	app_enabled: z.boolean(),
 	/** Content Addressable Storage (CAS) configuration */
 	cas: z
 		.object({

@@ -70,7 +70,6 @@
 		],
 		"update_checks": true,
 		"config": {
-			"app_enabled": true,
 			"batch": {
 				"enabled": false,
 				"max_items": 100,
