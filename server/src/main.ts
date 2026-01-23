@@ -15,7 +15,7 @@ import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { audit, getEvents, styleSeverity } from './audit.js';
 import { diffUpdate, lookupUser, userText } from './cli.js';
-import config, { configFiles, ConfigFile, saveConfigTo } from './config.js';
+import config, { ConfigFile, configFiles, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks } from './linking.js';
@@ -101,12 +101,6 @@ const opts = {
 	}),
 	packagesDir: new Option('-p, --packages-dir <dir>', 'the directory to look for packages in'),
 };
-
-interface OptCommon {
-	debug: boolean;
-	config: string;
-	force?: boolean;
-}
 
 const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout);
 

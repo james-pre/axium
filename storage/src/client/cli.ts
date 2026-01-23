@@ -1,7 +1,7 @@
 import { configDir, session } from '@axium/client/cli/config';
 import { formatBytes } from '@axium/core/format';
 import * as io from '@axium/core/node/io';
-import { Option, program, type Command } from 'commander';
+import { Option, program } from 'commander';
 import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
