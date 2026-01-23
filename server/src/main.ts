@@ -6,6 +6,8 @@ import { formatDateRange } from '@axium/core/format';
 import { io, outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins, runIntegrations } from '@axium/core/plugins';
 import { Argument, Option, program } from 'commander';
+import { allLogLevels } from 'logzen';
+import { createWriteStream } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
@@ -15,15 +17,20 @@ import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { audit, getEvents, styleSeverity } from './audit.js';
 import { diffUpdate, lookupUser, userText } from './cli.js';
-import config, { ConfigFile, configFiles, saveConfigTo } from './config.js';
+import config, { ConfigFile, configFiles, reloadConfigs, saveConfigTo } from './config.js';
 import * as db from './database.js';
-import { _portActions, _portMethods, restrictedPorts, type PortOptions } from './io.js';
+import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks } from './linking.js';
 import { serve } from './serve.js';
 
 using rl = createInterface({
 	input: process.stdin,
 	output: process.stdout,
+});
+
+process.on('SIGHUP', () => {
+	io.info('Reloading configuration due to SIGHUP.');
+	void reloadConfigs();
 });
 
 async function rlConfirm(question: string = 'Is this ok'): Promise<void> {
@@ -790,6 +797,14 @@ program
 			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,
 			build: opt.build ? resolve(opt.build) : config.web.build,
 		});
+
+		logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
+
+		db.connect();
+		await db.clean({});
+
+		// eslint-disable-next-line @typescript-eslint/no-misused-promises
+		process.on('beforeExit', () => db.database.destroy());
 
 		server.listen(opt.port, () => {
 			console.log('Server is listening on port ' + opt.port);

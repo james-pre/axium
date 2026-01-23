@@ -1,12 +1,8 @@
 import { apps, type RequestMethod } from '@axium/core';
-import { _debugOutput, debug, warn, info } from '@axium/core/node/io';
+import { _debugOutput, debug, warn } from '@axium/core/node/io';
 import { plugins } from '@axium/core/plugins';
 import '@axium/server/api/index';
-import { loadDefaultConfigs, reloadConfigs } from '@axium/server/config';
-import { clean, connect, database } from '@axium/server/database';
-import { dirs, logger } from '@axium/server/io';
-import { allLogLevels } from 'logzen';
-import { createWriteStream, readFileSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import type { IncomingMessage, Server } from 'node:http';
 import { createServer, ServerResponse } from 'node:http';
 import { createServer as createSecureServer } from 'node:https';
@@ -226,17 +222,4 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
 /**
  * Perform initial setup for when the server is serving web pages.
  */
-export async function init() {
-	logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
-	await loadDefaultConfigs();
-	connect();
-	await clean({});
-
-	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	process.on('beforeExit', () => database.destroy());
-
-	process.on('SIGHUP', () => {
-		info('Reloading configuration due to SIGHUP.');
-		void reloadConfigs();
-	});
-}
+export async function init() {}
