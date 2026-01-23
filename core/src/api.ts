@@ -18,12 +18,12 @@ import type { RequestMethod } from './requests.js';
 import { LogoutSessions, User, UserAuthOptions, UserChangeable, UserPublic, UserRegistration, UserRegistrationInit } from './user.js';
 
 export const AdminSummary = z.object({
-	users: z.number(),
-	passkeys: z.number(),
-	sessions: z.number(),
-	auditEvents: z.tuple(Array(Severity.Debug + 1).fill(z.number()) as Tuple<z.ZodNumber, Add<typeof Severity.Debug, 1>>),
-	configFiles: z.number(),
-	plugins: z.number(),
+	users: z.int().nonnegative(),
+	passkeys: z.int().nonnegative(),
+	sessions: z.int().nonnegative(),
+	auditEvents: z.tuple(Array(Severity.Debug + 1).fill(z.int().nonnegative()) as Tuple<z.ZodNumber, Add<typeof Severity.Debug, 1>>),
+	configFiles: z.int().nonnegative(),
+	plugins: z.int().nonnegative(),
 	versions: z.record(z.literal(['core', 'server', 'client']), PackageVersionInfo),
 });
 

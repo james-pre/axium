@@ -41,18 +41,18 @@ export const syncProtocolVersion = 0;
 
 export const StorageLimits = z.object({
 	/** The maximum size per item in MB */
-	item_size: z.number(),
+	item_size: z.int().nonnegative(),
 	/** Maximum number of items per user */
-	user_items: z.number(),
+	user_items: z.int().nonnegative(),
 	/** The maximum storage size per user in MB */
-	user_size: z.number(),
+	user_size: z.int().nonnegative(),
 });
 
 export interface StorageLimits extends z.infer<typeof StorageLimits> {}
 
 export const StorageStats = z.object({
-	usedBytes: z.number().nonnegative(),
-	itemCount: z.number().nonnegative(),
+	usedBytes: z.int().nonnegative(),
+	itemCount: z.int().nonnegative(),
 	lastModified: z.coerce.date(),
 	lastTrashed: z.coerce.date().nullable(),
 });
@@ -165,8 +165,8 @@ const StorageAPI = {
 	},
 	storage: {
 		OPTIONS: StoragePublicConfig.extend({
-			syncProtocolVersion: z.number(),
-			batchFormatVersion: z.number(),
+			syncProtocolVersion: z.int32().nonnegative(),
+			batchFormatVersion: z.int32().nonnegative(),
 		}),
 	},
 	'storage/batch': {

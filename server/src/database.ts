@@ -390,7 +390,7 @@ export const SchemaFile = z.object({
 	/** List of tables to wipe */
 	wipe: z.string().array().optional().default([]),
 	/** Set the latest version, defaults to the last one */
-	latest: z.number().nonnegative().optional(),
+	latest: z.int32().nonnegative().optional(),
 	/** Maps tables to their ACL tables, e.g. `"storage": "acl.storage"` */
 	acl_tables: z.record(z.string(), z.string()).optional().default({}),
 });
@@ -611,7 +611,7 @@ const schemaToIntrospected = {
 	'text[]': '_text',
 };
 
-const VersionMap = z.record(z.string(), z.int().nonnegative());
+const VersionMap = z.record(z.string(), z.int32().nonnegative());
 
 export const UpgradesInfo = z.object({
 	current: VersionMap.default({}),

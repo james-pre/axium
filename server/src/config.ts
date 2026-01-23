@@ -49,7 +49,7 @@ export const Config = z
 		db: z
 			.looseObject({
 				host: z.string(),
-				port: z.number(),
+				port: z.int().min(1).max(65535),
 				password: z.string(),
 				user: z.string(),
 				database: z.string(),
