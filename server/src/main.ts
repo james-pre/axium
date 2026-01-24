@@ -635,6 +635,7 @@ program
 		if (updatedRoles || updatedTags || changeSuspend) {
 			user = await db.database
 				.updateTable('users')
+				.where('id', '=', user.id)
 				.set({ roles, tags, isSuspended: !changeSuspend ? user.isSuspended : (opt.suspend ?? !opt.unsuspend) })
 				.returningAll()
 				.executeTakeFirstOrThrow()
