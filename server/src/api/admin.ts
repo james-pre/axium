@@ -1,5 +1,5 @@
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
-import { AuditFilter, Severity } from '@axium/core';
+import { AuditFilter, Severity, UserAdminChange } from '@axium/core';
 import { errorText, writeJSON } from '@axium/core/node/io';
 import { getVersionInfo } from '@axium/core/node/packages';
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
@@ -109,6 +109,16 @@ addRoute({
 		const users: UserInternal[] = await db.selectFrom('users').selectAll().execute();
 
 		return users;
+	},
+	async PATCH(req): AsyncResult<'PATCH', 'admin/users'> {
+		await assertAdmin(this, req);
+
+		const userChange = await parseBody(req, UserAdminChange);
+
+		const userId = userChange.id;
+		delete (userChange as { id?: string }).id;
+
+		return await db.updateTable('users').set(userChange).where('id', '=', userId).returningAll().executeTakeFirstOrThrow();
 	},
 	async PUT(req): AsyncResult<'PUT', 'admin/users'> {
 		await assertAdmin(this, req);

@@ -1,15 +1,21 @@
 <script lang="ts">
-	import { ClipboardCopy, FormDialog, Icon, SessionList, ZodForm } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, SessionList, ZodForm, ZodInput } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import '@axium/client/styles/account';
 	import { deleteUser } from '@axium/client/user';
-	import { preferenceLabels, Preferences } from '@axium/core';
+	import { preferenceLabels, Preferences, User } from '@axium/core';
 	import { formatDateRange } from '@axium/core/format';
 
 	const { data } = $props();
-	const { user, session } = data;
+	let user = $state(data.user);
+	const { session } = data;
 
 	let sessions = $state(user.sessions);
+
+	async function updateValue(val: User) {
+		const result = await fetchAPI('PATCH', 'admin/users', val);
+		Object.assign(user, result);
+	}
 </script>
 
 <svelte:head>
@@ -68,7 +74,12 @@
 		{:else}
 			<p>No</p>
 		{/if}
-		<button>{user.isSuspended ? 'Unsuspend' : 'Suspend'}</button>
+		<button
+			onclick={async () => {
+				const { isSuspended } = await fetchAPI('PATCH', 'admin/users', { isSuspended: !user.isSuspended, id: user.id });
+				user.isSuspended = isSuspended;
+			}}>{user.isSuspended ? 'Unsuspend' : 'Suspend'}</button
+		>
 	</div>
 	<div class="item info">
 		<p>Profile Image</p>
@@ -82,11 +93,11 @@
 	</div>
 	<div class="item info">
 		<p>Roles</p>
-		<p>{user.roles.join(', ')}</p>
+		<ZodInput bind:rootValue={user} path="roles" schema={User.shape.roles} {updateValue} noLabel />
 	</div>
 	<div class="item info">
 		<p>Tags</p>
-		<p>{user.tags.join(', ')}</p>
+		<ZodInput bind:rootValue={user} path="tags" schema={User.shape.tags} {updateValue} noLabel />
 	</div>
 
 	<button class="inline-button icon-text danger" command="show-modal" commandfor="delete-user">
