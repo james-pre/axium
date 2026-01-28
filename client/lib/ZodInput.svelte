@@ -20,7 +20,6 @@
 	let { rootValue = $bindable(), label, path, schema, optional = false, defaultValue, idPrefix, updateValue }: Props = $props();
 	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
 
-	let input = $state<HTMLInputElement | HTMLSelectElement>()!;
 	let value = $state<any>(getByString(rootValue, path));
 
 	let error = $state();
@@ -84,17 +83,7 @@
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
-		<input
-			bind:this={input}
-			{id}
-			{...rest}
-			bind:value
-			{onchange}
-			{onkeyup}
-			required={!optional}
-			{defaultValue}
-			class={[error && 'error']}
-		/>
+		<input {id} {...rest} bind:value {onchange} {onkeyup} required={!optional} {defaultValue} class={[error && 'error']} />
 	</div>
 {/snippet}
 
@@ -107,7 +96,7 @@
 {:else if schema.type == 'boolean'}
 	<div class="ZodInput">
 		<label for="{id}:checkbox">{label || path}</label>
-		<input bind:checked={value} bind:this={input} id="{id}:checkbox" type="checkbox" {onchange} {onkeyup} required={!optional} />
+		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} {onkeyup} required={!optional} />
 		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if value}<Icon i="check" --size="1.3em" />{/if}
 		</label>
@@ -123,7 +112,7 @@
 {:else if schema.type == 'literal'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		<select bind:this={input} bind:value {id} {onchange} {onkeyup} required={!optional}>
+		<select bind:value {id} {onchange} {onkeyup} required={!optional}>
 			{#each schema.values as value}
 				<option {value} selected={value === value}>{value}</option>
 			{/each}
@@ -139,13 +128,33 @@
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		{#each value, i}
-			<div class="ZodInput-element">
-				<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{i}" schema={schema.element} />
-			</div>
-		{:else}
-			<i>Empty</i>
-		{/each}
+		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
+		<div class="ZodInput-array">
+			{#each value, i}
+				<div class="ZodInput-element">
+					<input
+						id="{id}.{i}"
+						bind:value={value[i]}
+						{onchange}
+						{onkeyup}
+						required={!optional}
+						{defaultValue}
+						class={[error && 'error']}
+					/>
+					<button
+						onclick={e => {
+							value.splice(i, 1);
+							onchange(e);
+						}}
+					>
+						<Icon i="trash" --size="16px" />
+					</button>
+				</div>
+			{/each}
+			<button onclick={() => value.push('')}>
+				<Icon i="plus" --size="16px" />
+			</button>
+		</div>
 	</div>
 {:else if schema.type == 'record'}
 	<div class="ZodInput-record">
@@ -171,7 +180,7 @@
 {:else if schema.type == 'enum'}
 	<div class="ZodInput">
 		<label for={id}>{label || path}</label>
-		<select bind:this={input} {id} {onchange} {onkeyup} bind:value required={!optional}>
+		<select {id} {onchange} {onkeyup} bind:value required={!optional}>
 			{#each Object.entries(schema.enum) as [key, value]}
 				<option {value} selected={value === value}>{key}</option>
 			{/each}
@@ -216,9 +225,25 @@
 		}
 	}
 
+	.ZodInput-element {
+		display: flex;
+		gap: 0.5em;
+		align-items: center;
+
+		button {
+			position: relative;
+			right: 1em;
+		}
+	}
+
+	.ZodInput-array {
+		display: flex;
+		gap: 0.5em;
+		align-items: center;
+	}
+
 	.ZodInput-object,
 	.ZodInput-record,
-	.ZodInput-array,
 	.ZodInput-tuple {
 		display: flex;
 		flex-direction: column;
