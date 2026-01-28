@@ -15,7 +15,16 @@ import {
 } from './passkeys.js';
 import { PluginInternal, PluginUpdate } from './plugins.js';
 import type { RequestMethod } from './requests.js';
-import { LogoutSessions, User, UserAuthOptions, UserChangeable, UserPublic, UserRegistration, UserRegistrationInit } from './user.js';
+import {
+	LogoutSessions,
+	User,
+	UserAdminChange,
+	UserAuthOptions,
+	UserChangeable,
+	UserPublic,
+	UserRegistration,
+	UserRegistrationInit,
+} from './user.js';
 
 export const AdminSummary = z.object({
 	users: z.int().nonnegative(),
@@ -95,6 +104,7 @@ const _API = {
 	},
 	'admin/users': {
 		GET: User.array(),
+		PATCH: [UserAdminChange, User],
 		PUT: [z.object({ name: z.string(), email: z.email() }), z.object({ user: User, verification: VerificationInternal })],
 	},
 	'admin/config': {

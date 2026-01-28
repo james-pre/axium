@@ -59,6 +59,18 @@ export interface UserChangeable extends z.infer<typeof UserChangeable> {
 	preferences?: Preferences;
 }
 
+export const UserAdminChange = z
+	.object({
+		...pick(User.shape, 'id', 'name', 'email', 'image', 'roles', 'tags', 'isSuspended'),
+		preferences: z.lazy(() => Preferences),
+	})
+	.partial()
+	.required({ id: true });
+
+export interface UserAdminChange extends z.infer<typeof UserAdminChange> {
+	preferences?: Preferences;
+}
+
 export function getUserImage(user: Partial<User>): string {
 	if (user.image) return user.image;
 
