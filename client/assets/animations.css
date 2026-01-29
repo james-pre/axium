@@ -1,0 +1,30 @@
+@keyframes zoom {
+	from {
+		transform: scale(0.95);
+	}
+	to {
+		transform: scale(1);
+	}
+}
+
+@keyframes fade {
+	from {
+		opacity: 0;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
+:root {
+	--A-zoom: zoom 0.25s cubic-bezier(0.35, 1.55, 0.65, 1);
+	--A-fade: fade 0.25s ease-out;
+}
+
+dialog[open] {
+	animation: var(--A-zoom);
+}
+
+dialog[open]::backdrop {
+	animation: var(--A-fade);
+}

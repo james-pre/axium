@@ -1,3 +1,5 @@
+@import './animations.css';
+
 * {
 	box-sizing: border-box;
 	color: hsl(0 0 var(--fg-light));
@@ -116,32 +118,6 @@ dialog {
 
 dialog::backdrop {
 	background: #0003;
-}
-
-dialog[open] {
-	animation: zoom 0.25s cubic-bezier(0.35, 1.55, 0.65, 1);
-}
-
-@keyframes zoom {
-	from {
-		transform: scale(0.95);
-	}
-	to {
-		transform: scale(1);
-	}
-}
-
-dialog[open]::backdrop {
-	animation: fade 0.25s ease-out;
-}
-
-@keyframes fade {
-	from {
-		opacity: 0;
-	}
-	to {
-		opacity: 1;
-	}
 }
 
 dialog form {
