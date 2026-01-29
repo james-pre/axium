@@ -9,6 +9,7 @@ export { default as NumberBar } from './NumberBar.svelte';
 export { default as Popover } from './Popover.svelte';
 export { default as Register } from './Register.svelte';
 export { default as SessionList } from './SessionList.svelte';
+export { default as SidebarLayout } from './SidebarLayout.svelte';
 export { default as Toast } from './Toast.svelte';
 export { default as Upload } from './Upload.svelte';
 export { default as URLText } from './URLText.svelte';
