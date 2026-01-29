@@ -47,7 +47,10 @@
 	}
 
 	.popover-toggle + [popover] {
-		position-try: flip-inline;
+		position-try-fallbacks:
+			flip-inline,
+			flip-block,
+			flip-block flip-inline;
 		position-visibility: always;
 		left: anchor(left);
 		top: anchor(bottom);
