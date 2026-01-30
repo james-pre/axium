@@ -1,5 +1,5 @@
 import * as z from 'zod';
-import { User } from './user.js';
+import { UserPublic } from './user.js';
 import { omit, type Omit } from 'utilium';
 
 export const AccessControl = z.looseObject({
@@ -7,7 +7,7 @@ export const AccessControl = z.looseObject({
 	userId: z.uuid().nullish(),
 	role: z.string().nullish(),
 	tag: z.string().nullish(),
-	user: User.nullish(),
+	user: UserPublic.nullish(),
 	createdAt: z.coerce.date(),
 });
 
