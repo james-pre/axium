@@ -1,6 +1,6 @@
 import type { Add, Tuple } from 'utilium';
 import * as z from 'zod';
-import { AccessControl, AccessMap } from './access.js';
+import { AccessControl, AccessControlUpdate, AccessTarget } from './access.js';
 import { App } from './apps.js';
 import { AuditEvent, AuditFilter, Severity } from './audit.js';
 import { NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
@@ -100,7 +100,8 @@ const _API = {
 	},
 	'acl/:itemType/:itemId': {
 		GET: AccessControl.array(),
-		POST: [AccessMap, AccessControl.array()],
+		PATCH: [AccessControlUpdate, AccessControl],
+		PUT: [AccessTarget, AccessControl],
 	},
 	'admin/summary': {
 		GET: AdminSummary,
