@@ -6,6 +6,7 @@ export const AccessControl = z.object({
 	itemId: z.uuid(),
 	userId: z.uuid().nullish(),
 	role: z.string().nullish(),
+	tag: z.string().nullish(),
 	user: User.optional(),
 	createdAt: z.coerce.date(),
 });
@@ -21,9 +22,15 @@ export interface AccessControllable {
 	acl?: AccessControl[];
 }
 
-export const AccessMap = z.record(
-	z.union([z.uuid(), z.templateLiteral(['@', z.string()]), z.templateLiteral(['#', z.string()]), z.literal('public')]),
-	z.any()
-);
+export const AccessTarget = z.union([
+	z.uuid(),
+	z.templateLiteral(['@', z.string()]),
+	z.templateLiteral(['#', z.string()]),
+	z.literal('public'),
+]);
+
+export type AccessTarget = z.infer<typeof AccessTarget>;
+
+export const AccessMap = z.record(AccessTarget, z.any());
 
 export interface AccessMap extends z.infer<typeof AccessMap> {}
