@@ -1,8 +1,10 @@
 import { getConfig, Severity } from '@axium/core';
 import { addEvent } from '@axium/server/audit';
+import { statfsSync } from 'node:fs';
 import * as z from 'zod';
 import type { StorageLimits } from '../common.js';
 import '../polyfills.js';
+import { getTotalUse } from './db.js';
 
 export const defaultCASMime = [/video\/.*/, /audio\/.*/];
 
@@ -18,6 +20,11 @@ declare module '@axium/server/audit' {
 			item: string | null;
 		};
 	}
+}
+
+function getSystemAvailable(): bigint {
+	const { bavail, bsize } = statfsSync(getConfig('@axium/storage').data, { bigint: true });
+	return (bavail * bsize) / 1_000_000n;
 }
 
 addEvent({
@@ -46,10 +53,29 @@ export function useLimits(handler: ExternalLimitHandler): void {
 	_getLimits = handler;
 }
 
+let _cachedUnlimited: bigint,
+	_cachedTime = 0;
+
+/**
+ * Used when there is no user limit, that way users have an idea of how close they are to filling up system storage.
+ * @returns The maximum size that we can use in MB
+ */
+async function _unlimitedLimit(): Promise<bigint> {
+	if (_cachedUnlimited && Date.now() - _cachedTime < 300_000) return _cachedUnlimited;
+	_cachedUnlimited = getSystemAvailable() + (await getTotalUse()) / 1_000_000n;
+	_cachedTime = Date.now();
+	return _cachedUnlimited;
+}
+
 export async function getLimits(userId?: string): Promise<StorageLimits> {
+	let limits: StorageLimits;
 	try {
-		return await _getLimits!(userId);
+		limits = await _getLimits!(userId);
 	} catch {
-		return getConfig('@axium/storage').limits;
+		limits = getConfig('@axium/storage').limits;
 	}
+
+	limits.user_size ||= Number(await _unlimitedLimit());
+
+	return limits;
 }

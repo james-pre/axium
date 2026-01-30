@@ -107,3 +107,12 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 
 	for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
 }
+
+export async function getTotalUse(): Promise<bigint> {
+	const { size } = await database
+		.selectFrom('storage')
+		.select(eb => eb.fn.sum('size').as('size'))
+		.executeTakeFirstOrThrow();
+
+	return BigInt(size);
+}

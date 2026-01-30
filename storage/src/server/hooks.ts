@@ -6,6 +6,7 @@ import { count, database } from '@axium/server/database';
 import { mkdirSync } from 'node:fs';
 import '../common.js';
 import './index.js';
+import { getTotalUse } from './db.js';
 
 export function load() {
 	mkdirSync(getConfig('@axium/storage').data, { recursive: true });
@@ -13,10 +14,7 @@ export function load() {
 
 export async function statusText(): Promise<string> {
 	const { storage: items } = await count('storage');
-	const { size } = await database
-		.selectFrom('storage')
-		.select(eb => eb.fn.sum('size').as('size'))
-		.executeTakeFirstOrThrow();
+	const size = await getTotalUse();
 
 	return `${items} items totaling ${formatBytes(Number(size))}`;
 }
