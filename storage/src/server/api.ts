@@ -11,6 +11,7 @@ import { batchFormatVersion, StorageItemUpdate, syncProtocolVersion } from '../c
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { deleteRecursive, getRecursive, getUserStats, parseItem } from './db.js';
+import { from as aclFrom } from '@axium/server/acl';
 
 addRoute({
 	path: '/api/storage',
@@ -81,6 +82,7 @@ addRoute({
 
 		const items = await database
 			.selectFrom('storage')
+			.select(aclFrom('storage'))
 			.where('parentId', '=', itemId)
 			.where('trashedAt', 'is', null)
 			.selectAll()
@@ -142,6 +144,7 @@ addRoute({
 
 		const items = await database
 			.selectFrom('storage')
+			.select(aclFrom('storage'))
 			.where('userId', '=', userId)
 			.where('trashedAt', 'is', null)
 			.where('parentId', 'is', null)
@@ -182,6 +185,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage as item')
 			.selectAll('item')
+			.select(aclFrom('storage', { alias: 'item' }) as any)
 			.where('trashedAt', 'is', null)
 			.where(existsInACL('id', user))
 			.where(eb => eb.not(existsInACL('parentId', user)))
