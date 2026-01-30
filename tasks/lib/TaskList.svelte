@@ -155,7 +155,7 @@
 				</div>
 			{/if}
 		</Popover>
-		<AccessControlDialog bind:dialog={acl} bind:item={list} itemType="task_lists" editable />
+		<AccessControlDialog bind:dialog={acl} item={list} itemType="task_lists" editable />
 	</div>
 	<div>
 		<button

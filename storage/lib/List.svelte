@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
+	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
@@ -10,19 +11,18 @@
 		items = $bindable(),
 		appMode,
 		emptyText = 'Folder is empty.',
-	}: { appMode?: boolean; items: StorageItemMetadata[]; emptyText?: string } = $props();
+		user,
+	}: { appMode?: boolean; items: (StorageItemMetadata & AccessControllable)[]; emptyText?: string; user?: UserPublic } = $props();
 
-	let activeIndex = $state<number>(-1);
-	let activeItem = $derived(activeIndex == -1 ? null : items[activeIndex]);
+	let activeIndex = $state<number>(0);
+	const activeItem = $derived(items[activeIndex]);
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
 
 {#snippet action(name: string, icon: string, i: number)}
 	<span
 		class="action"
-		onclick={(e: Event) => {
-			e.stopPropagation();
-			e.preventDefault();
+		onclick={() => {
 			activeIndex = i;
 			dialogs[name].showModal();
 		}}
@@ -60,10 +60,30 @@
 			<span class="name">{item.name}</span>
 			<span>{item.modifiedAt.toLocaleString()}</span>
 			<span>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span>
-			{@render action('rename', 'pencil', i)}
-			{@render action('share', 'user-group', i)}
-			{@render action('download', 'download', i)}
-			{@render action('trash', 'trash', i)}
+			<div
+				style:display="contents"
+				onclick={e => {
+					e.stopPropagation();
+					e.stopImmediatePropagation();
+				}}
+			>
+				{@render action('rename', 'pencil', i)}
+				{@render action('share' + item.id, 'user-group', i)}
+				<AccessControlDialog
+					bind:dialog={dialogs['share' + item.id]}
+					{item}
+					itemType="storage"
+					editable={(item.acl?.find(
+						a =>
+							a.userId == user?.id ||
+							(a.role && user?.roles.includes(a.role)) ||
+							(a.tag && user?.tags?.includes(a.tag)) ||
+							(!a.userId && !a.role && !a.tag)
+					)?.manage as boolean | undefined) ?? true}
+				/>
+				{@render action('download', 'download', i)}
+				{@render action('trash', 'trash', i)}
+			</div>
 		</div>
 	{:else}
 		<p class="list-empty">{emptyText}</p>
@@ -84,7 +104,6 @@
 		<input name="name" type="text" required value={activeItem?.name} />
 	</div>
 </FormDialog>
-<AccessControlDialog bind:dialog={dialogs.share} bind:item={activeItem} itemType="storage" editable={true} />
 <FormDialog
 	bind:dialog={dialogs.trash}
 	submitText="Trash"

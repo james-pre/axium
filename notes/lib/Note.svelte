@@ -62,7 +62,7 @@
 				</div>
 			{/if}
 		</Popover>
-		<AccessControlDialog bind:dialog={acl} bind:item={note} itemType="notes" editable />
+		<AccessControlDialog bind:dialog={acl} item={note} itemType="notes" editable />
 	</div>
 	<textarea
 		name="content"
