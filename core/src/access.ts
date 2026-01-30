@@ -7,7 +7,7 @@ export const AccessControl = z.looseObject({
 	userId: z.uuid().nullish(),
 	role: z.string().nullish(),
 	tag: z.string().nullish(),
-	user: User.optional(),
+	user: User.nullish(),
 	createdAt: z.coerce.date(),
 });
 
