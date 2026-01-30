@@ -17,3 +17,7 @@ export async function getACL(itemType: string, itemId: string): Promise<AccessCo
 export async function addToACL(itemType: string, itemId: string, target: AccessTarget): Promise<AccessControl> {
 	return await fetchAPI('PUT', 'acl/:itemType/:itemId', target, itemType, itemId);
 }
+
+export async function removeFromACL(itemType: string, itemId: string, target: AccessTarget): Promise<AccessControl> {
+	return await fetchAPI('DELETE', 'acl/:itemType/:itemId', target, itemType, itemId);
+}
