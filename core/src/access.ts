@@ -2,7 +2,7 @@ import * as z from 'zod';
 import { User } from './user.js';
 import { omit, type Omit } from 'utilium';
 
-export const AccessControl = z.object({
+export const AccessControl = z.looseObject({
 	itemId: z.uuid(),
 	userId: z.uuid().nullish(),
 	role: z.string().nullish(),
@@ -13,8 +13,24 @@ export const AccessControl = z.object({
 
 export interface AccessControl extends z.infer<typeof AccessControl> {}
 
-export function pickPermissions<T extends AccessControl & object>(ac: T): Omit<T, 'itemId' | 'userId' | 'role' | 'user' | 'createdAt'> {
-	return omit(ac, ['itemId', 'userId', 'role', 'user', 'createdAt']);
+export function getTarget(ac: AccessControl): AccessTarget {
+	if (ac.userId) return ac.userId;
+	if (ac.role) return '@' + ac.role;
+	if (ac.tag) return '#' + ac.tag;
+	return 'public';
+}
+
+export function fromTarget(target: AccessTarget): Partial<Pick<AccessControl, 'userId' | 'role' | 'tag'>> {
+	if (target == 'public') return { userId: null, role: null, tag: null };
+	if (target[0] == '@') return { userId: null, role: target.slice(1), tag: null };
+	if (target[0] == '#') return { userId: null, role: null, tag: target.slice(1) };
+	return { userId: target, role: null, tag: null };
+}
+
+export function pickPermissions<T extends AccessControl & object>(
+	ac: T
+): Omit<T, 'itemId' | 'userId' | 'role' | 'tag' | 'user' | 'createdAt'> {
+	return omit(ac, 'itemId', 'userId', 'role', 'tag', 'user', 'createdAt');
 }
 
 export interface AccessControllable {
@@ -31,6 +47,9 @@ export const AccessTarget = z.union([
 
 export type AccessTarget = z.infer<typeof AccessTarget>;
 
-export const AccessMap = z.record(AccessTarget, z.any());
+export const AccessControlUpdate = z.object({
+	target: AccessTarget,
+	permissions: z.record(z.string(), z.any()),
+});
 
-export interface AccessMap extends z.infer<typeof AccessMap> {}
+export interface AccessControlUpdate extends z.infer<typeof AccessControlUpdate> {}
