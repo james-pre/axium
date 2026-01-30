@@ -1,4 +1,4 @@
-import type { AccessControl, AccessMap, UserInternal } from '@axium/core';
+import { fromTarget, type AccessControl, type AccessTarget, type UserInternal } from '@axium/core';
 import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Entries, WithRequired } from 'utilium';
@@ -69,30 +69,40 @@ export function from<const TB extends TargetName>(
 			.as('acl');
 }
 
-export async function get<const TB extends TableName>(
-	table: TB,
-	itemId: string
-): Promise<WithRequired<AccessControlInternal & kysely.Selectable<db.Schema[TB]>, 'user'>[]> {
-	// @ts-expect-error 2349
-	return await db.database.selectFrom(table).where('itemId', '=', itemId).selectAll().select(db.userFromId).execute();
+export async function get<const TB extends TableName>(table: TB, itemId: string): Promise<WithRequired<Result<TB>, 'user'>[]> {
+	return await db.database
+		.selectFrom<TableName>(table)
+		.where('itemId', '=', itemId)
+		.selectAll()
+		.select(db.userFromId)
+		.$castTo<WithRequired<AccessControlInternal & kysely.Selectable<db.Schema[TB]>, 'user'>>()
+		.execute();
 }
 
-export async function set<const TB extends TableName>(
+export async function update<const TB extends TableName>(
 	table: TB,
 	itemId: string,
-	data: AccessMap
-): Promise<(AccessControlInternal & kysely.Selectable<db.Schema[TB]>)[]> {
-	const entries = Object.entries(data).map(([userId, perm]) => ({ userId, ...perm }));
-	if (!entries.length) return [];
+	target: AccessTarget,
+	permissions: PermissionsFor<TB>
+): Promise<Result<TB>> {
 	return await db.database
-		.updateTable(table)
-		// @ts-expect-error 2349
-		.from(db.values(entries, 'data'))
-		.set()
-		.whereRef(`${table}.userId`, '=', 'data.userId')
+		.updateTable<TableName>(table)
+		.set(permissions)
 		.where('itemId', '=', itemId)
+		.where(eb => eb.and(fromTarget(target)))
 		.returningAll()
-		.execute();
+		.$castTo<AccessControlInternal & kysely.Selectable<db.Schema[TB]>>()
+		.executeTakeFirstOrThrow();
+}
+
+export async function add<const TB extends TableName>(table: TB, itemId: string, target: AccessTarget): Promise<Result<TB>> {
+	const result = await db.database
+		.insertInto<TableName>(table)
+		.values({ itemId, ...fromTarget(target) })
+		.returningAll()
+		.executeTakeFirstOrThrow();
+
+	return result as any as Result<TB>;
 }
 
 export function check<const TB extends TableName>(
