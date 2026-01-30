@@ -102,6 +102,7 @@ const _API = {
 		GET: AccessControl.array(),
 		PATCH: [AccessControlUpdate, AccessControl],
 		PUT: [AccessTarget, AccessControl],
+		DELETE: [AccessTarget, AccessControl],
 	},
 	'admin/summary': {
 		GET: AdminSummary,

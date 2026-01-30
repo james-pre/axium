@@ -40,4 +40,11 @@ addRoute({
 
 		return await acl.add(table, itemId, target);
 	},
+	async DELETE(request, { itemType, itemId }): AsyncResult<'DELETE', 'acl/:itemType/:itemId'> {
+		const table = getTable(itemType);
+		const target = await parseBody(request, AccessTarget);
+
+		await checkAuthForItem(request, itemType as keyof Schema, itemId, { manage: true });
+		return await acl.remove(table, itemId, target);
+	},
 });
