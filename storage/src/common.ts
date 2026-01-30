@@ -1,4 +1,4 @@
-import { $API, setServerConfig } from '@axium/core';
+import { $API, AccessControl, setServerConfig } from '@axium/core';
 import * as z from 'zod';
 
 /**
@@ -29,6 +29,7 @@ export const StorageItemMetadata = z.object({
 	trashedAt: z.coerce.date().nullable(),
 	type: z.string(),
 	metadata: z.record(z.string(), z.unknown()),
+	acl: AccessControl.array().optional(),
 });
 
 export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> extends z.infer<
