@@ -1,30 +1,30 @@
 <script lang="ts">
 	import { addToACL, getACL, updateACL } from '@axium/client/access';
 	import { userInfo } from '@axium/client/user';
-	import type { AccessControl, AccessControllable, AccessTarget, User } from '@axium/core';
+	import type { AccessControllable, AccessTarget, User } from '@axium/core';
 	import { getTarget, pickPermissions } from '@axium/core/access';
+	import { errorText } from '@axium/core/io';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
 	import UserCard from './UserCard.svelte';
 	import UserDiscovery from './UserDiscovery.svelte';
-	import { errorText } from '@axium/core/io';
 
 	interface Props extends HTMLDialogAttributes {
 		editable: boolean;
 		dialog?: HTMLDialogElement;
 		itemType: string;
 		item: { name?: string; user?: User; id: string } & AccessControllable;
-		acl?: AccessControl[];
 	}
-	let { item, itemType, editable, dialog = $bindable(), acl = item.acl, ...rest }: Props = $props();
+	let { item, itemType, editable, dialog = $bindable(), ...rest }: Props = $props();
 
 	let error = $state<string>();
 
-	acl ||= await getACL(itemType, item.id);
+	const acl = $state(item.acl ?? (await getACL(itemType, item.id)));
 
 	async function onSelect(target: AccessTarget) {
 		const control = await addToACL(itemType, item.id, target);
-		acl!.push(control);
+		if (control.userId) control.user = await userInfo(control.userId);
+		acl.push(control);
 	}
 </script>
 
@@ -49,6 +49,14 @@
 	</div>
 
 	{#each acl as control}
+		{@const update = (key: string) => async (e: Event & { currentTarget: HTMLInputElement }) => {
+			try {
+				const updated = await updateACL(itemType, item.id, getTarget(control), { [key]: e.currentTarget.checked });
+				Object.assign(control, updated);
+			} catch (e) {
+				error = errorText(e);
+			}
+		}}
 		<div class="AccessControl">
 			{#if control.user}
 				<UserCard user={control.user} />
@@ -61,29 +69,22 @@
 			{:else}
 				<i>Unknown</i>
 			{/if}
-			{#if editable}
-				<select
-					multiple
-					onchange={event =>
-						updateACL(
-							itemType,
-							item.id,
-							getTarget(control),
-							Object.fromEntries(Array.from(event.currentTarget.selectedOptions).map(k => [k.value, true])) as any
-						).catch(e => (error = errorText(e)))}
-				>
-					{#each Object.entries(pickPermissions(control)) as [key, value]}
-						<option value={key} selected={!!value}>{key}</option>
-					{/each}
-				</select>
-			{:else}
-				<span
-					>{Object.entries(pickPermissions(control))
-						.filter(([, value]) => value)
-						.map(([key]) => key)
-						.join(', ')}</span
-				>
-			{/if}
+			<div class="permissions">
+				{#each Object.entries(pickPermissions(control) as Record<string, boolean>) as [key, value]}
+					{@const id = `${getTarget(control)}.${key}`}
+					<span class="icon-text">
+						{#if editable}
+							<input {id} type="checkbox" onchange={update(key)} />
+							<label for={id} class="checkbox">
+								{#if value}<Icon i="check" --size="1.3em" />{/if}
+							</label>
+						{:else}
+							<Icon i={value ? 'check' : 'xmark'} />
+						{/if}
+						<span>{key}</span>
+					</span>
+				{/each}
+			</div>
 		</div>
 	{/each}
 
@@ -103,6 +104,12 @@
 
 	.done {
 		float: right;
+	}
+
+	.permissions {
+		display: flex;
+		flex-direction: column;
+		gap: 0.1em;
 	}
 
 	.AccessControl {

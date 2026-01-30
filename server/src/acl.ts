@@ -30,7 +30,7 @@ export type Result<TB extends TableName> = AccessControlInternal & PermissionsFo
 export type WithACL<TB extends TargetName> = kysely.Selectable<db.Schema[TB]> & { userId: string; acl: Result<`acl.${TB}`>[] };
 
 export interface ACLSelectionOptions {
-	/** If specified, files by user UUID */
+	/** If specified, filters by user UUID */
 	user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>;
 
 	/** Instead of using the `id` from `table`, use the `id` from this instead */
@@ -51,19 +51,22 @@ export function from<const TB extends TargetName>(
 			eb
 				.selectFrom(`acl.${table} as _acl`)
 				.selectAll()
-				.whereRef(`_acl.itemId`, '=', `${opt.alias || table}.id` as any)
-				.where(eb => {
-					const allNull = eb.and([eb('userId', 'is', null), eb('role', 'is', null), eb('tag', 'is', null)]);
+				.$if(!opt.user, qb => qb.select(db.userFromId))
+				.whereRef('_acl.itemId', '=', `${opt.alias || table}.id` as any)
+				.$if(!!opt.user, qb =>
+					qb.where(eb => {
+						const allNull = eb.and([eb('userId', 'is', null), eb('role', 'is', null), eb('tag', 'is', null)]);
 
-					if (!opt.user) return allNull;
+						if (!opt.user) return allNull;
 
-					const ors = [allNull, eb('userId', '=', opt.user.id)];
+						const ors = [allNull, eb('userId', '=', opt.user.id)];
 
-					if (opt.user.roles.length) ors.push(eb('role', 'in', opt.user.roles));
-					if (opt.user.tags.length) ors.push(eb('tag', 'in', opt.user.tags));
+						if (opt.user.roles.length) ors.push(eb('role', 'in', opt.user.roles));
+						if (opt.user.tags.length) ors.push(eb('tag', 'in', opt.user.tags));
 
-					return eb.or(ors);
-				})
+						return eb.or(ors);
+					})
+				)
 		)
 			.$castTo<Result<`acl.${TB}`>[]>()
 			.as('acl');
