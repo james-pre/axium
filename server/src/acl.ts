@@ -95,14 +95,23 @@ export async function update<const TB extends TableName>(
 		.executeTakeFirstOrThrow();
 }
 
+export async function remove<const TB extends TableName>(table: TB, itemId: string, target: AccessTarget): Promise<Result<TB>> {
+	return await db.database
+		.deleteFrom<TableName>(table)
+		.where('itemId', '=', itemId)
+		.where(eb => eb.and(fromTarget(target)))
+		.returningAll()
+		.$castTo<AccessControlInternal & kysely.Selectable<db.Schema[TB]>>()
+		.executeTakeFirstOrThrow();
+}
+
 export async function add<const TB extends TableName>(table: TB, itemId: string, target: AccessTarget): Promise<Result<TB>> {
-	const result = await db.database
+	return await db.database
 		.insertInto<TableName>(table)
 		.values({ itemId, ...fromTarget(target) })
 		.returningAll()
+		.$castTo<AccessControlInternal & kysely.Selectable<db.Schema[TB]>>()
 		.executeTakeFirstOrThrow();
-
-	return result as any as Result<TB>;
 }
 
 export function check<const TB extends TableName>(
