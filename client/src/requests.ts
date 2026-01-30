@@ -68,6 +68,11 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 
 	if (!response.ok) throw new Error(json.message);
 
+	if (typeof json == 'object' && json != null && '_warnings' in json) {
+		for (const warning of json._warnings) console.warn('[API]', warning);
+		delete json._warnings;
+	}
+
 	if (!schema) return json;
 
 	const Output = Array.isArray(schema) ? schema[1] : schema;
@@ -75,6 +80,6 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 	try {
 		return Output.parse(json);
 	} catch (e: any) {
-		throw prettifyError(e);
+		throw `${method} ${endpoint}:\n${prettifyError(e)}`;
 	}
 }
