@@ -1,43 +1,46 @@
 <script lang="ts">
-	import { getACL, setACL } from '@axium/client/access';
+	import { addToACL, getACL, updateACL } from '@axium/client/access';
 	import { userInfo } from '@axium/client/user';
-	import type { AccessMap, User } from '@axium/core';
-	import { pickPermissions, type AccessControl, type AccessControllable } from '@axium/core/access';
-	import FormDialog from './FormDialog.svelte';
-	import UserCard from './UserCard.svelte';
-	import Icon from './Icon.svelte';
+	import type { AccessControl, AccessControllable, AccessTarget, User } from '@axium/core';
+	import { getTarget, pickPermissions } from '@axium/core/access';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
+	import Icon from './Icon.svelte';
+	import UserCard from './UserCard.svelte';
+	import UserDiscovery from './UserDiscovery.svelte';
+	import { errorText } from '@axium/core/io';
 
 	interface Props extends HTMLDialogAttributes {
 		editable: boolean;
 		dialog?: HTMLDialogElement;
 		itemType: string;
-		item?: ({ name?: string; user?: User; id: string } & AccessControllable) | null;
+		item: { name?: string; user?: User; id: string } & AccessControllable;
 		acl?: AccessControl[];
 	}
-	let { item = $bindable(), itemType, editable, dialog = $bindable(), acl = $bindable(item?.acl), ...rest }: Props = $props();
+	let { item, itemType, editable, dialog = $bindable(), acl = item.acl, ...rest }: Props = $props();
 
-	if (!acl && item) getACL(itemType, item.id).then(fetched => (acl = item.acl = fetched));
+	let error = $state<string>();
+
+	acl ||= await getACL(itemType, item.id);
+
+	async function onSelect(target: AccessTarget) {
+		const control = await addToACL(itemType, item.id, target);
+		acl!.push(control);
+	}
 </script>
 
-<FormDialog
-	bind:dialog
-	submitText="Save"
-	submit={async data => {
-		if (item) await setACL(itemType, item.id, data as any as AccessMap);
-	}}
-	{...rest}
->
-	{#snippet header()}
-		{#if item?.name}
-			<h3>Permissions for <strong>{item.name}</strong></h3>
-		{:else}
-			<h3>Permissions</h3>
-		{/if}
-	{/snippet}
+<dialog bind:this={dialog} {...rest}>
+	{#if item.name}
+		<h3>Permissions for <strong>{item.name}</strong></h3>
+	{:else}
+		<h3>Permissions</h3>
+	{/if}
+
+	{#if error}
+		<div class="error">{error}</div>
+	{/if}
 
 	<div class="AccessControl">
-		{#if item?.user}
+		{#if item.user}
 			<UserCard user={item.user} />
 		{:else if item}
 			{#await userInfo(item.userId) then user}<UserCard {user} />{/await}
@@ -45,7 +48,7 @@
 		<span>Owner</span>
 	</div>
 
-	{#each acl ?? [] as control}
+	{#each acl as control}
 		<div class="AccessControl">
 			{#if control.user}
 				<UserCard user={control.user} />
@@ -59,7 +62,16 @@
 				<i>Unknown</i>
 			{/if}
 			{#if editable}
-				<select name={control.userId ?? (control.role ? '@' + control.role : 'public')} multiple>
+				<select
+					multiple
+					onchange={event =>
+						updateACL(
+							itemType,
+							item.id,
+							getTarget(control),
+							Object.fromEntries(Array.from(event.currentTarget.selectedOptions).map(k => [k.value, true])) as any
+						).catch(e => (error = errorText(e)))}
+				>
 					{#each Object.entries(pickPermissions(control)) as [key, value]}
 						<option value={key} selected={!!value}>{key}</option>
 					{/each}
@@ -74,9 +86,25 @@
 			{/if}
 		</div>
 	{/each}
-</FormDialog>
+
+	<UserDiscovery {onSelect} excludeTargets={acl.map(getTarget)} />
+
+	<div>
+		<button class="done" onclick={() => dialog!.close()}>Done</button>
+	</div>
+</dialog>
 
 <style>
+	dialog:open {
+		display: flex;
+		flex-direction: column;
+		gap: 1em;
+	}
+
+	.done {
+		float: right;
+	}
+
 	.AccessControl {
 		display: grid;
 		gap: 1em;
