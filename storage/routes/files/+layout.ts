@@ -1,11 +1,11 @@
 import { getCurrentSession } from '@axium/client/user';
-import type { Session } from '@axium/core';
+import type { Session, User } from '@axium/core';
 import type { LayoutRouteId } from './$types';
 
 export const ssr = false;
 
 export async function load({ url, route, parent }) {
-	let { session }: { session?: Session | null } = await parent();
+	let { session }: { session?: (Session & { user: User }) | null } = await parent();
 
 	session ||= await getCurrentSession().catch(() => null);
 

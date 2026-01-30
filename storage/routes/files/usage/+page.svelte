@@ -21,4 +21,4 @@
 
 <p><NumberBar max={limits.user_size * 1_000_000} value={usedBytes} text={barText} /></p>
 
-<StorageList bind:items emptyText="You have not uploaded any files yet." />
+<StorageList bind:items emptyText="You have not uploaded any files yet." user={data.session?.user} />
