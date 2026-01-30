@@ -14,6 +14,7 @@ import {
 	getPasskeysByUserId,
 	getSessions,
 	getUser,
+	requireSession,
 	useVerification,
 } from '../auth.js';
 import { config } from '../config.js';
@@ -45,6 +46,33 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('User not found', 404));
 		return { id };
+	},
+});
+
+addRoute({
+	path: '/api/users/discover',
+	async POST(request): AsyncResult<'POST', 'users/discover'> {
+		const input = await parseBody(request, z.string());
+
+		if (config.user_discovery === 'disabled') error(503, 'User discovery is disabled');
+
+		const { user } = (await requireSession(request).catch(() => null)) ?? {};
+
+		if (config.user_discovery != 'public' && !user) error(401, 'User discovery restricted');
+		if (config.user_discovery == 'admin' && !user?.isAdmin) error(403, 'User discovery is restricted to administrators');
+
+		const search = `%${input.trim().replaceAll(/[\\%_]/g, '\\$&')}%`;
+
+		const results = await db
+			.selectFrom('users')
+			.selectAll()
+			.limit(10)
+			.$if(!!user, qb => qb.where('id', '!=', user!.id))
+			// @todo make `%...%` more robust against DoS? Consider using vectors or fancy indexing.
+			.where(eb => eb.or([eb('email', 'ilike', search), eb('name', 'ilike', search)]))
+			.execute();
+
+		return results.map(u => stripUser(u));
 	},
 });
 

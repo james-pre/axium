@@ -67,6 +67,8 @@ export const Config = z
 		origin: z.string(),
 		request_size_limit: z.number().min(0).optional(),
 		show_duplicate_state: z.boolean(),
+		/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
+		user_discovery: z.literal(['disabled', 'admin', 'user', 'public']),
 		verifications: z
 			.looseObject({
 				/** In minutes */
@@ -138,6 +140,7 @@ export const defaultConfig: DeepRequired<Config> = {
 	origin: 'https://test.localhost',
 	show_duplicate_state: false,
 	request_size_limit: 0,
+	user_discovery: 'user',
 	verifications: {
 		timeout: 60,
 		email: false,

@@ -63,6 +63,9 @@ const _API = {
 		PATCH: [UserChangeable, User],
 		DELETE: User,
 	},
+	'users/discover': {
+		POST: [z.string(), UserPublic.array()],
+	},
 	'users/:id/full': {
 		GET: z.object({ ...User.shape, sessions: Session.array() }),
 	},
