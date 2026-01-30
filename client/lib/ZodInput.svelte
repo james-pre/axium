@@ -204,21 +204,6 @@
 {/if}
 
 <style>
-	input[type='checkbox'] {
-		display: none;
-	}
-
-	label.checkbox {
-		cursor: pointer;
-		width: 1.5em;
-		height: 1.5em;
-		border: 1px solid var(--border-accent);
-		border-radius: 0.5em;
-		display: inline-flex;
-		justify-content: center;
-		align-items: center;
-	}
-
 	.ZodInput-error {
 		position: fixed;
 		position-anchor: --zod-input;

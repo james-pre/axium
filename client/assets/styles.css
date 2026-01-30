@@ -67,6 +67,21 @@ textarea {
 	outline: none;
 }
 
+label.checkbox {
+	cursor: pointer;
+	width: 1.5em;
+	height: 1.5em;
+	border: 1px solid var(--border-accent);
+	border-radius: 0.5em;
+	display: inline-flex;
+	justify-content: center;
+	align-items: center;
+}
+
+input[type='checkbox'] {
+	display: none;
+}
+
 select,
 ::picker(select) {
 	appearance: base-select;
