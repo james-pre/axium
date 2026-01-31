@@ -1,20 +1,18 @@
+import { serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
 import * as io from '@axium/core/node/io';
 import { loadPlugin } from '@axium/core/node/plugins';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
-import { capitalize, deepAssign, omit, type DeepRequired } from 'utilium';
+import { deepAssign, omit, type DeepRequired } from 'utilium';
 import * as z from 'zod';
 import { dirs, logger, systemDir } from './io.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
-import { serverConfigs, toBaseName } from '@axium/core';
 
 const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
 	keyof typeof Severity
 >[];
-
-const z_audit_severity = z.literal([...audit_severity_levels, ...audit_severity_levels.map(capitalize)]);
 
 export const Config = z
 	.looseObject({
@@ -31,8 +29,8 @@ export const Config = z
 				allow_raw: z.boolean(),
 				/** How many days to keep events in the audit log */
 				retention: z.number().min(0),
-				min_severity: z_audit_severity,
-				auto_suspend: z_audit_severity,
+				min_severity: z.literal(audit_severity_levels),
+				auto_suspend: z.literal(audit_severity_levels),
 			})
 			.partial(),
 		auth: z
