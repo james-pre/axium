@@ -24,7 +24,6 @@ export function styleSeverity(sev: Severity, align: boolean = false) {
 }
 
 function output(event: AuditEvent) {
-	if (event.severity > Severity[capitalize(config.audit.min_severity)]) return;
 	console.error('[audit]', styleText('dim', io.prettyDate(event.timestamp)), styleSeverity(event.severity), event.name);
 }
 
@@ -35,6 +34,8 @@ export async function audit_raw(event: AuditEventInit): Promise<void> {
 		io.warn('[audit] Ignoring raw event (disabled)');
 		return;
 	}
+
+	if (event.severity > Severity[capitalize(config.audit.min_severity)]) return;
 
 	const result = await database.insertInto('audit_log').values(event).returningAll().executeTakeFirstOrThrow();
 	output(result);
@@ -91,6 +92,8 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 		io.warn('Ignoring audit event with unknown event name: ' + eventName);
 		return;
 	}
+
+	if (cfg.severity > Severity[capitalize(config.audit.min_severity)]) return;
 
 	try {
 		if (cfg.extra) extra = cfg.extra.parse(extra) as EventExtra<T>;

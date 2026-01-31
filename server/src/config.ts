@@ -29,6 +29,7 @@ export const Config = z
 				allow_raw: z.boolean(),
 				/** How many days to keep events in the audit log */
 				retention: z.number().min(0),
+				/** Minimum severity level. Less severe events will be ignored. */
 				min_severity: z.literal(audit_severity_levels),
 				auto_suspend: z.literal(audit_severity_levels),
 			})
