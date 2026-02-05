@@ -5,6 +5,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import previews from '@axium/storage/client/previews';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
 	let {
@@ -108,10 +109,10 @@
 							</object>
 						{:else if item.type.startsWith('text/')}
 							<div class="preview-content-text">
-								{#await downloadItem(item.id).then(b => b.text()) then content}
-									{content}
-								{/await}
+								{#await downloadItem(item.id).then(b => b.text()) then content}{content}{/await}
 							</div>
+						{:else if previews.has(item.type)}
+							{@render previews.get(item.type)!(item)}
 						{:else}
 							<div class="no-preview">
 								<Icon i="eye-slash" />
@@ -158,15 +159,13 @@
 	submitText="Download"
 	submit={async () => {
 		if (activeItem!.type == 'inode/directory') {
+			/** @todo ZIP support */
 			const children = await getDirectoryMetadata(activeItem!.id);
 			for (const child of children) open(child.dataURL, '_blank');
 		} else open(activeItem!.dataURL, '_blank');
 	}}
 >
-	<p>
-		We are not responsible for the contents of this {activeItem?.type == 'inode/directory' ? 'folder' : 'file'}. <br />
-		Are you sure you want to download {@render _itemName()}?
-	</p>
+	<p>Are you sure you want to download {@render _itemName()}?</p>
 </FormDialog>
 
 <style>
