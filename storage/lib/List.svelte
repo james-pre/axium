@@ -22,7 +22,7 @@
 
 {#snippet action(name: string, icon: string, i: number, preview: boolean = false)}
 	<span
-		class={[!preview && 'action']}
+		class={['icon-text', !preview ? 'action' : 'preview-action']}
 		onclick={() => {
 			activeIndex = i;
 			dialogs[name].showModal();
@@ -72,7 +72,7 @@
 				{@render action('rename', 'pencil', i)}
 				{@render action('share' + item.id, 'user-group', i)}
 				<AccessControlDialog
-					bind:dialog={dialogs['share' + item.id]}
+					bind:dialog={dialogs['share:' + item.id]}
 					{item}
 					itemType="storage"
 					editable={(item.acl?.find(
@@ -86,29 +86,33 @@
 				{@render action('download', 'download', i)}
 				{@render action('trash', 'trash', i)}
 				<dialog bind:this={dialogs['preview:' + item.id]} class="preview">
-					<div class="title">{item.name}</div>
-					{#if itemOpeners.length}
-						{@const [first, ...others] = itemOpeners}
-						<div class="openers">
-							<span>Open with <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
-							{#if others.length}
-								<Popover>
-									{#snippet toggle()}
-										<span class="popover-toggle"><Icon i="caret-down" /></span>
-									{/snippet}
-									{#each others as opener}
-										<a href={opener.openURL(item)} target="_blank">{opener.name}</a>
-									{/each}
-								</Popover>
-							{/if}
+					<div class="preview-top-bar">
+						<div class="title">{item.name}</div>
+						{#if itemOpeners.length}
+							{@const [first, ...others] = itemOpeners}
+							<div class="openers">
+								<span>Open with <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
+								{#if others.length}
+									<Popover>
+										{#snippet toggle()}
+											<span class="popover-toggle"><Icon i="caret-down" /></span>
+										{/snippet}
+										{#each others as opener}
+											<a href={opener.openURL(item)} target="_blank">{opener.name}</a>
+										{/each}
+									</Popover>
+								{/if}
+							</div>
+						{/if}
+						<div class="actions">
+							{@render action('rename', 'pencil', i, true)}
+							{@render action('share:' + item.id, 'user-group', i, true)}
+							{@render action('download', 'download', i, true)}
+							{@render action('trash', 'trash', i, true)}
+							<span class="mobile-hide" onclick={() => dialogs['preview:' + item.id].close()}
+								><Icon i="xmark" --size="20px" /></span
+							>
 						</div>
-					{/if}
-					<div class="actions">
-						{@render action('rename', 'pencil', i, true)}
-						{@render action('share' + item.id, 'user-group', i, true)}
-						{@render action('download', 'download', i, true)}
-						{@render action('trash', 'trash', i, true)}
-						<span onclick={() => dialogs['preview:' + item.id].close()}><Icon i="xmark" --size="20px" /></span>
 					</div>
 					<div class="content">
 						{#if item.type.startsWith('image/')}
@@ -193,39 +197,34 @@
 		inset: 0;
 		width: 100%;
 		height: 100%;
-		background-color: #0008;
+		background-color: #000a;
 		border: none;
 		padding: 1em;
 		word-wrap: normal;
 		anchor-scope: --preview-openers;
 
-		.title,
-		.actions,
-		.openers {
-			align-items: center;
+		.preview-action:hover {
+			cursor: pointer;
+		}
+
+		.preview-top-bar {
 			display: flex;
 			align-items: center;
 			gap: 1em;
+			justify-content: space-between;
+			padding: 0;
 			position: absolute;
-			top: 1em;
-			padding: 1em;
-			height: 1em;
-		}
+			inset: 0.5em 1em 0;
+			height: fit-content;
 
-		.title {
-			left: 1em;
-			overflow: hidden;
-			white-space: nowrap;
-			text-overflow: ellipsis;
+			> div {
+				display: flex;
+				gap: 1em;
+				align-items: center;
+			}
 		}
 
 		.openers {
-			inset-inline: 0;
-			margin-inline: auto;
-			width: fit-content;
-			display: flex;
-			gap: 1em;
-			align-items: center;
 			padding: 1em;
 			border: 1px solid var(--border-accent);
 			border-radius: 1em;
@@ -272,13 +271,27 @@
 		}
 
 		@media (width < 700px) {
-			.actions {
-				top: 3em;
-				left: 1em;
+			.preview-top-bar {
+				flex-direction: column;
+
+				.actions {
+					justify-content: space-around;
+					width: 100%;
+
+					.preview-action {
+						padding: 1em;
+						flex: 1 1 0;
+						border-radius: 1em;
+						border: 1px solid var(--border-accent);
+						padding: 1em;
+						justify-content: center;
+						display: flex;
+					}
+				}
 			}
 
 			.content {
-				inset: 5em 1em 0;
+				inset: 10em 1em 0;
 			}
 		}
 	}

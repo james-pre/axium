@@ -10,7 +10,7 @@ export interface Opener {
 	name: string;
 
 	/** Get a URL to open the item with another plugin */
-	openURL(item: StorageItemMetadata): string | URL;
+	openURL(item: StorageItemMetadata): string;
 }
 
 export const openers: Opener[] = [];
