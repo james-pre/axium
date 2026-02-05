@@ -1,11 +1,11 @@
 <script lang="ts">
-	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
+	import { AccessControlDialog, FormDialog, Icon, Popover } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
-	import previews from '@axium/storage/client/previews';
+	import { openers, previews } from '@axium/storage/client/3rd-party';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
 	let {
@@ -48,6 +48,7 @@
 		<span>Size</span>
 	</div>
 	{#each items as item, i (item.id)}
+		{@const itemOpeners = openers.filter(opener => opener.types.includes(item.type))}
 		<div
 			class="list-item"
 			onclick={async () => {
@@ -86,6 +87,22 @@
 				{@render action('trash', 'trash', i)}
 				<dialog bind:this={dialogs['preview:' + item.id]} class="preview">
 					<div class="title">{item.name}</div>
+					{#if itemOpeners.length}
+						{@const [first, ...others] = itemOpeners}
+						<div class="openers">
+							<span>Open with <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
+							{#if others.length}
+								<Popover>
+									{#snippet toggle()}
+										<span class="popover-toggle"><Icon i="caret-down" /></span>
+									{/snippet}
+									{#each others as opener}
+										<a href={opener.openURL(item)} target="_blank">{opener.name}</a>
+									{/each}
+								</Popover>
+							{/if}
+						</div>
+					{/if}
 					<div class="actions">
 						{@render action('rename', 'pencil', i, true)}
 						{@render action('share' + item.id, 'user-group', i, true)}
@@ -108,12 +125,13 @@
 								<p>PDF not displayed? <a href={item.dataURL} download={item.name}>Download</a></p>
 							</object>
 						{:else if item.type.startsWith('text/')}
-							<pre class="preview-text">{#await downloadItem(item.id).then(b => b.text()) then content}{content}{/await}</pre>
+							<pre
+								class="full-fill preview-text">{#await downloadItem(item.id).then( b => b.text() ) then content}{content}{/await}</pre>
 						{:else if previews.has(item.type)}
 							{@render previews.get(item.type)!(item)}
 						{:else}
-							<div class="no-preview">
-								<Icon i="eye-slash" />
+							<div class="full-fill no-preview">
+								<Icon i="eye-slash" --size="50px" />
 								<span>Preview not available</span>
 							</div>
 						{/if}
@@ -179,9 +197,11 @@
 		border: none;
 		padding: 1em;
 		word-wrap: normal;
+		anchor-scope: --preview-openers;
 
 		.title,
-		.actions {
+		.actions,
+		.openers {
 			align-items: center;
 			display: flex;
 			align-items: center;
@@ -199,6 +219,26 @@
 			text-overflow: ellipsis;
 		}
 
+		.openers {
+			inset-inline: 0;
+			margin-inline: auto;
+			width: fit-content;
+			display: flex;
+			gap: 1em;
+			align-items: center;
+			padding: 1em;
+			border: 1px solid var(--border-accent);
+			border-radius: 1em;
+			height: 2em;
+			anchor-name: --preview-openers;
+		}
+
+		.openers :global([popover]) {
+			inset: anchor(bottom) anchor(right) auto anchor(left);
+			position-anchor: --preview-openers;
+			width: anchor-size(width);
+		}
+
 		.actions {
 			right: 0;
 		}
@@ -207,11 +247,14 @@
 			position: absolute;
 			inset: 3em 10em 0;
 
-			.preview-text {
+			.full-fill {
 				position: absolute;
 				inset: 0;
 				width: 100%;
 				height: 100%;
+			}
+
+			.preview-text {
 				white-space: pre-wrap;
 				overflow-y: scroll;
 				line-height: 1.6;
