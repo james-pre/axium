@@ -109,9 +109,9 @@
 							{@render action('share:' + item.id, 'user-group', i, true)}
 							{@render action('download', 'download', i, true)}
 							{@render action('trash', 'trash', i, true)}
-							<span class="mobile-hide" onclick={() => dialogs['preview:' + item.id].close()}
-								><Icon i="xmark" --size="20px" /></span
-							>
+							<span class="mobile-hide" onclick={() => dialogs['preview:' + item.id].close()}>
+								<Icon i="xmark" --size="20px" />
+							</span>
 						</div>
 					</div>
 					<div class="content">
