@@ -3,10 +3,33 @@
 > [!NOTE]
 > This is a work in progress and under active development!
 
-Axium is a composable platform for building web applications.
-Building a self-hosted productively app?
-The next big tech start-up?
+Axium is a composable platform for building applications.
 Axium provides a foundation for you to work off of.
+
+## Getting Started
+
+At the moment Axium only runs on Linux systems.
+
+Make sure postgresql and Node.js are installed and set up. For postgres make sure to run `postgresql-setup --initdb`.
+
+Then, install Axium and any plugins you want.
+
+By default, Axium does not come with a home page. You can enable a testing/debug home page by setting `debug_home` to `true` in the configuration.
+
+You can initialize Axium with a single command:
+
+```sh
+sudo axium init
+```
+
+Which is equivalent to running the various setup commands individually:
+
+```sh
+sudo axium ports enable # enables using :443 and :80, only needed if you want to change the port
+sudo axium database init # also `... db init`, this adds Axium to the postgres config and sets up the database
+```
+
+After that you can use `axium status` to see if Axium is working correctly.
 
 ## Architecture
 
