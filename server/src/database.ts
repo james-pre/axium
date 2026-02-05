@@ -242,7 +242,7 @@ export async function init(opt: InitOptions): Promise<void> {
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
 	io.start('Connecting to database');
-	await using _ = connect();
+	connect();
 	io.done();
 
 	io.start('Creating schema acl');

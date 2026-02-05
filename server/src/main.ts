@@ -118,6 +118,7 @@ async function dbInitTables() {
 	if (db.deltaIsEmpty(delta)) return;
 	for (const text of db.displayDelta(delta)) console.log(text);
 	await rlConfirm();
+	await using _ = db.connect();
 	await db.applyDelta(delta);
 	Object.assign(info.current, schema.versions);
 	db.setUpgradeInfo(info);
