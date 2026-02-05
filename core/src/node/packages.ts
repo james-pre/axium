@@ -1,26 +1,11 @@
 import * as fs from 'node:fs';
-import { dirname, join, resolve } from 'node:path/posix';
-import { fileURLToPath } from 'node:url';
+import { findPackageJSON } from 'node:module';
 import { lt as ltVersion } from 'semver';
 import { warn } from '../io.js';
 import type { PackageVersionInfo } from '../packages.js';
 
 function isRelative(specifier: string): boolean {
 	return specifier[0] == '/' || ['.', '..'].includes(specifier.split('/')[0]);
-}
-
-export function locatePackage(specifier: string, loadedBy: string): string {
-	if (isRelative(specifier)) {
-		const path = resolve(dirname(loadedBy), specifier);
-		const stats = fs.statSync(path);
-		if (stats.isFile()) return path;
-		if (!stats.isDirectory()) throw new Error('Can not resolve package path: ' + path);
-		return join(path, 'package.json');
-	}
-
-	let packageDir = dirname(fileURLToPath(import.meta.resolve(specifier)));
-	for (; !fs.existsSync(join(packageDir, 'package.json')); packageDir = dirname(packageDir));
-	return join(packageDir, 'package.json');
 }
 
 interface NpmPackageVersion {
@@ -52,7 +37,8 @@ const cache = new Map<string, CacheEntry>();
  * @param version The current/installed version
  */
 export async function getVersionInfo(specifier: string, from: string = import.meta.filename): Promise<PackageVersionInfo> {
-	const path = locatePackage(specifier, from);
+	const path = findPackageJSON(specifier, from);
+	if (!path) throw new Error(`Cannot find package.json for package ${specifier} (from ${from})`);
 	const { version, name } = JSON.parse(fs.readFileSync(path, 'utf8'));
 
 	const info: PackageVersionInfo = { name, version, latest: null };
