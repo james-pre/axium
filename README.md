@@ -1,6 +1,6 @@
 # Axium
 
-> [!WARNING]
+> [!NOTE]
 > This is a work in progress and under active development!
 
 Axium is a composable platform for building web applications.
@@ -31,9 +31,11 @@ The server is the primary package for working with Axium. The package includes:
 
 #### @axium/client
 
-The client is a collection of functions used to interact with the server's HTTP API.
-At the moment, this is only used browser-side on pages served by the server,
-however this can easily be used in other environments provided the Webauthn API is supported.
+The client provides a few things:
+
+- The `axium-client`/`axc` client CLI
+- Svelte UI components
+- Utility functions
 
 ## Getting Started
 
