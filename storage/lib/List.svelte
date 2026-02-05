@@ -108,9 +108,7 @@
 								<p>PDF not displayed? <a href={item.dataURL} download={item.name}>Download</a></p>
 							</object>
 						{:else if item.type.startsWith('text/')}
-							<div class="preview-content-text">
-								{#await downloadItem(item.id).then(b => b.text()) then content}{content}{/await}
-							</div>
+							<pre class="preview-text">{#await downloadItem(item.id).then(b => b.text()) then content}{content}{/await}</pre>
 						{:else if previews.has(item.type)}
 							{@render previews.get(item.type)!(item)}
 						{:else}
@@ -209,9 +207,13 @@
 			position: absolute;
 			inset: 3em 10em 0;
 
-			.preview-content-text {
+			.preview-text {
 				position: absolute;
 				inset: 0;
+				width: 100%;
+				height: 100%;
+				white-space: pre-wrap;
+				overflow-y: scroll;
 				line-height: 1.6;
 				background-color: var(--bg-menu);
 				font-family: monospace;
