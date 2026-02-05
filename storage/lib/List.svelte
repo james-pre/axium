@@ -4,7 +4,7 @@
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
 	let {
@@ -19,15 +19,15 @@
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
 
-{#snippet action(name: string, icon: string, i: number)}
+{#snippet action(name: string, icon: string, i: number, preview: boolean = false)}
 	<span
-		class="action"
+		class={[!preview && 'action']}
 		onclick={() => {
 			activeIndex = i;
 			dialogs[name].showModal();
 		}}
 	>
-		<Icon i={icon} --size="14px" />
+		<Icon i={icon} --size={preview ? '18px' : '14px'} />
 	</span>
 {/snippet}
 
@@ -51,7 +51,7 @@
 			class="list-item"
 			onclick={async () => {
 				if (item.type != 'inode/directory') {
-					// @todo get preview
+					dialogs['preview:' + item.id].showModal();
 				} else if (appMode) location.href = '/files/' + item.id;
 				else items = await getDirectoryMetadata(item.id);
 			}}
@@ -83,6 +83,43 @@
 				/>
 				{@render action('download', 'download', i)}
 				{@render action('trash', 'trash', i)}
+				<dialog bind:this={dialogs['preview:' + item.id]} class="preview">
+					<div class="title">{item.name}</div>
+					<div class="actions">
+						{@render action('rename', 'pencil', i, true)}
+						{@render action('share' + item.id, 'user-group', i, true)}
+						{@render action('download', 'download', i, true)}
+						{@render action('trash', 'trash', i, true)}
+						<span onclick={() => dialogs['preview:' + item.id].close()}><Icon i="xmark" --size="20px" /></span>
+					</div>
+					<div class="content">
+						{#if item.type.startsWith('image/')}
+							<img src={item.dataURL} alt={item.name} width="100%" />
+						{:else if item.type.startsWith('audio/')}
+							<audio src={item.dataURL} controls></audio>
+						{:else if item.type.startsWith('video/')}
+							<video src={item.dataURL} controls width="100%">
+								<track kind="captions" />
+							</video>
+						{:else if item.type == 'application/pdf'}
+							<object data={item.dataURL} type="application/pdf" width="100%" height="100%">
+								<embed src={item.dataURL} type="application/pdf" width="100%" height="100%" />
+								<p>PDF not displayed? <a href={item.dataURL} download={item.name}>Download</a></p>
+							</object>
+						{:else if item.type.startsWith('text/')}
+							<div class="preview-content-text">
+								{#await downloadItem(item.id).then(b => b.text()) then content}
+									{content}
+								{/await}
+							</div>
+						{:else}
+							<div class="no-preview">
+								<Icon i="eye-slash" />
+								<span>Preview not available</span>
+							</div>
+						{/if}
+					</div>
+				</dialog>
 			</div>
 		</div>
 	{:else}
@@ -135,5 +172,70 @@
 <style>
 	.list-item {
 		grid-template-columns: 1em 4fr 15em 5em repeat(4, 1em);
+	}
+
+	dialog.preview {
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		background-color: #0008;
+		border: none;
+		padding: 1em;
+		word-wrap: normal;
+
+		.title,
+		.actions {
+			align-items: center;
+			display: flex;
+			align-items: center;
+			gap: 1em;
+			position: absolute;
+			top: 1em;
+			padding: 1em;
+			height: 1em;
+		}
+
+		.title {
+			left: 1em;
+			overflow: hidden;
+			white-space: nowrap;
+			text-overflow: ellipsis;
+		}
+
+		.actions {
+			right: 0;
+		}
+
+		.content {
+			position: absolute;
+			inset: 3em 10em 0;
+
+			.preview-content-text {
+				position: absolute;
+				inset: 0;
+				line-height: 1.6;
+				background-color: var(--bg-menu);
+				font-family: monospace;
+			}
+		}
+
+		.no-preview {
+			display: flex;
+			flex-direction: column;
+			gap: 1em;
+			align-items: center;
+			justify-content: center;
+		}
+
+		@media (width < 700px) {
+			.actions {
+				top: 3em;
+				left: 1em;
+			}
+
+			.content {
+				inset: 5em 1em 0;
+			}
+		}
 	}
 </style>
