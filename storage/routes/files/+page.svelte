@@ -10,4 +10,4 @@
 </svelte:head>
 
 <StorageList appMode bind:items user={data.session?.user} />
-<StorageAdd onadd={item => items.push(item)} />
+<StorageAdd onAdd={item => items.push(item)} />

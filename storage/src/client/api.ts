@@ -1,5 +1,6 @@
 import { fetchAPI, prefix, token } from '@axium/client/requests';
-import type { StorageItemMetadata, StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.js';
+import { StorageItemMetadata, type StorageItemUpdate, type UserStorage, type UserStorageInfo } from '../common.js';
+import { prettifyError } from 'zod';
 
 async function _upload(
 	method: 'PUT' | 'POST',
@@ -26,11 +27,15 @@ async function _upload(
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
 	}
 
-	const json: StorageItemMetadata = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
+	const json = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
 
-	if (!response.ok) throw new Error((json as any).message);
+	if (!response.ok) throw new Error(json.message);
 
-	return json;
+	try {
+		return StorageItemMetadata.parse(json);
+	} catch (e: any) {
+		throw prettifyError(e);
+	}
 }
 
 function rawStorage(fileId?: string): string | URL {

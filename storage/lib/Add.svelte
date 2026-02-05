@@ -4,7 +4,7 @@
 	import { uploadItem } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 
-	const { parentId, onadd }: { parentId?: string; onadd?(item: StorageItemMetadata): void } = $props();
+	const { parentId, onAdd }: { parentId?: string; onAdd?(item: StorageItemMetadata): void } = $props();
 
 	let uploadDialog = $state<HTMLDialogElement>()!;
 	let input = $state<HTMLInputElement>();
@@ -45,7 +45,7 @@
 	submit={async () => {
 		for (const file of input?.files!) {
 			const item = await uploadItem(file, { parentId });
-			onadd?.(item);
+			onAdd?.(item);
 		}
 	}}
 >
@@ -58,7 +58,7 @@
 	submit={async (data: { name: string; content?: string }) => {
 		const file = new File(createIncludesContent ? [data.content!] : [], data.name, { type: createType });
 		const item = await uploadItem(file, { parentId });
-		onadd?.(item);
+		onAdd?.(item);
 	}}
 >
 	<div>

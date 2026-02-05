@@ -35,7 +35,7 @@
 		<Icon i="folder-arrow-up" /> Back
 	</button>
 	<StorageList appMode bind:items user={data.session?.user} />
-	<StorageAdd parentId={item.id} onadd={item => items.push(item)} />
+	<StorageAdd parentId={item.id} onAdd={item => items.push(item)} />
 {:else}
 	<p>No preview available.</p>
 {/if}
