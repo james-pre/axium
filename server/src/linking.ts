@@ -26,14 +26,14 @@ export interface LinkOptions {
 }
 
 export function* listRouteLinks(options: LinkOptions = {}): Generator<LinkInfo> {
-	if (!options.only) {
+	if (!options.only || !options.only.length) {
 		const [text, link] = info('#builtin');
 		yield { text, id: '#builtin', from: link, to: resolve(import.meta.dirname, '../routes') };
 	}
 
 	for (const plugin of plugins.values()) {
 		if (!plugin.server?.routes) continue;
-		if (options.only && !options.only.includes(plugin.name)) continue;
+		if (options.only && options.only.length && !options.only.includes(plugin.name)) continue;
 
 		const [text, link] = info(plugin.name);
 

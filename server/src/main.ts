@@ -106,7 +106,6 @@ const opts = {
 		if (!Number.isSafeInteger(timeout) || timeout < 0) io.warn('Invalid timeout value, using default.');
 		io.setCommandTimeout(timeout);
 	}),
-	packagesDir: new Option('-p, --packages-dir <dir>', 'the directory to look for packages in'),
 };
 
 const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout);
@@ -776,7 +775,6 @@ program
 	.description('Install Axium server')
 	.addOption(opts.force)
 	.addOption(opts.check)
-	.addOption(opts.packagesDir)
 	.option('-s, --skip', 'Skip already initialized steps', false)
 	.action(async opt => {
 		await db.init(opt).catch(io.exit);
@@ -816,7 +814,6 @@ program
 program
 	.command('link')
 	.description('Link routes provided by plugins and the server')
-	.addOption(opts.packagesDir)
 	.addOption(new Option('-l, --list', 'list route links').conflicts('delete'))
 	.option('-d, --delete', 'delete route links')
 	.argument('[name...]', 'List of plugin names to operate on. If not specified, operates on all plugins and built-in routes.')
