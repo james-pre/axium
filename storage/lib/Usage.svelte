@@ -16,9 +16,9 @@
 				<NumberBar
 					max={info.limits.user_size && info.limits.user_size * 1_000_000}
 					value={info.usedBytes}
-					text="Using {formatBytes(info.usedBytes)} {!info.limits.user_size
+					text="{formatBytes(info.usedBytes)} {!info.limits.user_size
 						? ''
-						: 'of ' + formatBytes(info.limits.user_size * 1_000_000)}"
+						: '/ ' + formatBytes(info.limits.user_size * 1_000_000)}"
 				/>
 			</a>
 		</p>
