@@ -5,7 +5,7 @@ import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { linkSync, readFileSync, writeFileSync } from 'node:fs';
+import { closeSync, linkSync, openSync, readSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
@@ -119,10 +119,44 @@ addRoute({
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
-		const content = new Uint8Array(readFileSync(join(getConfig('@axium/storage').data, item.id)));
+		const path = join(getConfig('@axium/storage').data, item.id);
+		const range = request.headers.get('range');
+
+		const fd = openSync(path, 'r');
+		using _ = { [Symbol.dispose]: () => closeSync(fd) };
+
+		let start = 0,
+			end = item.size - 1,
+			length = item.size;
+
+		if (range) {
+			const [_start, _end = item.size - 1] = range
+				.replace(/bytes=/, '')
+				.split('-')
+				.map(val => (val && Number.isSafeInteger(parseInt(val)) ? parseInt(val) : undefined));
+
+			start = typeof _start == 'number' ? _start : item.size - _end;
+			end = typeof _start == 'number' ? _end : item.size - 1;
+			length = end - start + 1;
+		}
+
+		if (start >= item.size || end >= item.size || start > end || start < 0) {
+			return new Response(null, {
+				status: 416,
+				headers: { 'Content-Range': `bytes */${item.size}` },
+			});
+		}
+
+		const content = new Uint8Array(length);
+
+		readSync(fd, content, 0, length, start);
 
 		return new Response(content, {
+			status: length == item.size ? 200 : 206,
 			headers: {
+				'Content-Range': `bytes ${start}-${end}/${item.size}`,
+				'Accept-Ranges': 'bytes',
+				'Content-Length': String(length),
 				'Content-Type': item.type,
 				'Content-Disposition': `attachment; filename="${item.name}"`,
 			},
