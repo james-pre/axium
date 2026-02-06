@@ -199,9 +199,8 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	if (!item.acl || !item.acl.length) error(403, 'Access denied');
 
-	const perms = acl.check(item.acl, permissions);
-	console.log(perms);
-	if (perms.size) error(403, 'Access denied');
+	const missing = Array.from(acl.check(item.acl, permissions));
+	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
 
 	return result;
 }
