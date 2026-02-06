@@ -101,6 +101,7 @@ case "$sub" in
 		git -C "$root" tag "$tag" -m "$tag"
 		echo -n "+ "
 		git -C "$root" log ${last_tag:+"$last_tag..main"} --format=%B -- "$pkg" | sed '/^$/d'
+		git -C "$root" push --follow-tags
 		;;
 	"history")
 		pkg="${2:?Package name required}"
