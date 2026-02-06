@@ -190,7 +190,7 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 		fromACL: false,
 	};
 
-	if (!session || !user) error(403, 'Access denied');
+	if (!session || !user) error(401, 'Item is not public');
 	if (user.isSuspended) error(403, 'User is suspended');
 
 	if (userId == item.userId) return result;
@@ -199,7 +199,9 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	if (!item.acl || !item.acl.length) error(403, 'Access denied');
 
-	if (acl.check(item.acl, permissions).size) error(403, 'Access denied');
+	const perms = acl.check(item.acl, permissions);
+	console.log(perms);
+	if (perms.size) error(403, 'Access denied');
 
 	return result;
 }
