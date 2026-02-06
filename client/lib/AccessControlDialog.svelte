@@ -65,13 +65,12 @@
 					<Icon i="at" />
 					<span>{control.role}</span>
 				</span>
-				<!-- {:else if control.tag} -->
 			{:else}
 				<i>Unknown</i>
 			{/if}
 			<div class="permissions">
 				{#each Object.entries(pickPermissions(control) as Record<string, boolean>) as [key, value]}
-					{@const id = `${getTarget(control)}.${key}`}
+					{@const id = `${item.id}.${getTarget(control)}.${key}`}
 					<span class="icon-text">
 						{#if editable}
 							<input {id} type="checkbox" onchange={update(key)} />
