@@ -1,26 +1,53 @@
 import { getConfig, type AsyncResult, type Result, type UserInternal } from '@axium/core';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database, type Schema } from '@axium/server/database';
-import { error, parseBody, withError } from '@axium/server/requests';
+import { error, json, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import type { ExpressionBuilder } from 'kysely';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
-import { batchFormatVersion, StorageItemUpdate, syncProtocolVersion } from '../common.js';
+import { batchFormatVersion, StorageItemInit, StorageItemUpdate, syncProtocolVersion } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { deleteRecursive, getRecursive, getUserStats, parseItem } from './db.js';
 import { from as aclFrom } from '@axium/server/acl';
+import { checkNewItem, createNewItem, startUpload } from './item.js';
 
 addRoute({
 	path: '/api/storage',
 	OPTIONS(): Result<'OPTIONS', 'storage'> {
 		return {
-			...pick(getConfig('@axium/storage'), 'batch', 'chunk', 'max_chunks', 'max_transfer_size'),
+			...pick(getConfig('@axium/storage'), 'batch', 'max_transfer_size'),
 			syncProtocolVersion,
 			batchFormatVersion,
 		};
+	},
+	async PUT(request): Promise<Response> {
+		type R = Result<'PUT', 'storage'>;
+
+		const { enabled, ...rest } = getConfig('@axium/storage');
+
+		if (!enabled) error(503, 'User storage is disabled');
+
+		const session = await requireSession(request);
+
+		const init = await parseBody(request, StorageItemInit);
+		const { existing } = await checkNewItem(init, session);
+
+		if (existing || init.type == 'inode/directory') {
+			const item = await createNewItem(init, session.userId);
+			return json({ status: 'created', item } satisfies R, { status: 201 });
+		}
+
+		return json(
+			{
+				...pick(rest, 'batch', 'max_transfer_size'),
+				status: 'accepted',
+				token: startUpload(init, session),
+			} satisfies R,
+			{ status: 202 }
+		);
 	},
 });
 

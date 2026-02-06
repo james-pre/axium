@@ -46,6 +46,7 @@
 		"utilium": "^2.3.8"
 	},
 	"dependencies": {
+		"blakejs": "^1.2.1",
 		"zod": "^4.0.5"
 	},
 	"axium": {
@@ -80,7 +81,6 @@
 				"include": [],
 				"exclude": []
 			},
-			"chunk": false,
 			"data": "/srv/axium/storage",
 			"enabled": true,
 			"limits": {
@@ -88,9 +88,10 @@
 				"item_size": 100,
 				"user_items": 10000
 			},
-			"max_chunks": 10,
 			"max_transfer_size": 100,
-			"trash_duration": 30
+			"trash_duration": 30,
+			"temp_dir": "/tmp/axium",
+			"upload_timeout": 15
 		}
 	}
 }

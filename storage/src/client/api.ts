@@ -1,19 +1,124 @@
 import { fetchAPI, prefix, token } from '@axium/client/requests';
-import { StorageItemMetadata, type StorageItemUpdate, type UserStorage, type UserStorageInfo } from '../common.js';
+import { blake2b } from 'blakejs';
 import { prettifyError } from 'zod';
+import type { StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.js';
+import { StorageItemMetadata } from '../common.js';
+import '../polyfills.js';
 
-async function _upload(
-	method: 'PUT' | 'POST',
-	url: string | URL,
-	data: Blob | File,
-	extraHeaders: Record<string, string> = {}
-): Promise<StorageItemMetadata> {
+function rawStorage(suffix?: string): string | URL {
+	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
+	if (prefix[0] == '/') return raw;
+	const url = new URL(prefix);
+	url.pathname = raw;
+	return url;
+}
+
+export interface UploadOptions {
+	parentId?: string;
+	name?: string;
+	onProgress?(this: void, uploaded: number, total: number): void;
+}
+
+declare global {
+	interface NetworkInformation {
+		readonly downlink: number;
+		readonly downlinkMax?: number;
+		readonly effectiveType: 'slow-2g' | '2g' | '3g' | '4g';
+		readonly rtt: number;
+		readonly saveData: boolean;
+		readonly type: 'bluetooth' | 'cellular' | 'ethernet' | 'none' | 'wifi' | 'wimax' | 'other' | 'unknown';
+	}
+
+	interface Navigator {
+		connection?: NetworkInformation;
+	}
+}
+
+const conTypeToSpeed = {
+	'slow-2g': 1,
+	'2g': 4,
+	'3g': 16,
+	'4g': 64,
+} satisfies Record<NetworkInformation['effectiveType'], number>;
+
+async function handleError(response: Response): Promise<never> {
+	if (response.headers.get('Content-Type')?.trim() != 'application/json') throw await response.text();
+	const json = await response.json();
+	throw json.message;
+}
+
+export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Promise<StorageItemMetadata> {
+	if (file instanceof File) opt.name ||= file.name;
+
+	if (!opt.name) throw 'item name is required';
+
+	const content = await file.bytes();
+
+	/**
+	 * For big files, it takes a *really* long time to compute the hash, so we just don't do it ahead of time and leave it up to the server.
+	 */
+	const hash = content.length < 10_000_000 ? blake2b(content).toHex() : null;
+
+	const upload = await fetchAPI('PUT', 'storage', {
+		parentId: opt.parentId,
+		name: opt.name,
+		type: file.type,
+		size: file.size,
+		hash,
+	});
+
+	if (upload.status == 'created') return upload.item;
+
+	let chunkSize = upload.max_transfer_size * 1_000_000;
+	if (globalThis.navigator?.connection) {
+		chunkSize = Math.min(upload.max_transfer_size, conTypeToSpeed[globalThis.navigator.connection.effectiveType]) * 1_000_000;
+	}
+
+	let response: Response | undefined;
+
+	for (let offset = 0; offset < content.length; offset += chunkSize) {
+		const size = Math.min(chunkSize, content.length - offset);
+		response = await fetch(rawStorage('chunk'), {
+			method: 'POST',
+			headers: {
+				'x-upload': upload.token,
+				'x-offset': offset.toString(),
+				'content-length': size.toString(),
+				'content-type': 'application/octet-stream',
+			},
+			body: content.slice(offset, offset + size),
+		});
+
+		if (!response.ok) await handleError(response);
+
+		opt.onProgress?.(offset + size, content.length);
+
+		if (offset + size != content.length && response.status != 204) console.warn('Unexpected end of upload before last chunk');
+	}
+
+	if (!response) throw new Error('BUG: No response');
+
+	if (!response.headers.get('Content-Type')?.includes('application/json')) {
+		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
+	}
+
+	const json = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
+
+	if (!response.ok) await handleError(response);
+
+	try {
+		return StorageItemMetadata.parse(json);
+	} catch (e: any) {
+		throw prettifyError(e);
+	}
+}
+
+export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
 	const init = {
-		method,
+		method: 'POST',
 		headers: {
 			'Content-Type': data.type,
 			'Content-Length': data.size.toString(),
-			...extraHeaders,
 		} as Record<string, string>,
 		body: data,
 	} satisfies RequestInit;
@@ -21,7 +126,7 @@ async function _upload(
 	if (data instanceof File) init.headers['X-Name'] = data.name;
 	if (token) init.headers.Authorization = 'Bearer ' + token;
 
-	const response = await fetch(url, init);
+	const response = await fetch(rawStorage(fileId), init);
 
 	if (!response.headers.get('Content-Type')?.includes('application/json')) {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
@@ -36,30 +141,6 @@ async function _upload(
 	} catch (e: any) {
 		throw prettifyError(e);
 	}
-}
-
-function rawStorage(fileId?: string): string | URL {
-	const raw = '/raw/storage' + (fileId ? '/' + fileId : '');
-	if (prefix[0] == '/') return raw;
-	const url = new URL(prefix);
-	url.pathname = raw;
-	return url;
-}
-
-export interface UploadOptions {
-	parentId?: string;
-	name?: string;
-}
-
-export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Promise<StorageItemMetadata> {
-	const headers: Record<string, string> = {};
-	if (opt.parentId) headers['x-parent'] = opt.parentId;
-	if (opt.name) headers['x-name'] = opt.name;
-	return await _upload('PUT', rawStorage(), file, headers);
-}
-
-export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
-	return await _upload('POST', rawStorage(fileId), data);
 }
 
 export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {

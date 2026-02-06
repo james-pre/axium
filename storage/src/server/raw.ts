@@ -1,51 +1,31 @@
 import { getConfig } from '@axium/core';
 import { audit } from '@axium/server/audit';
-import { checkAuthForItem, requireSession } from '@axium/server/auth';
+import { authRequestForItem, requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { closeSync, linkSync, openSync, readSync, writeFileSync } from 'node:fs';
+import { closeSync, openSync, readFileSync, readSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
-import { defaultCASMime, getLimits } from './config.js';
+import { getLimits } from './config.js';
 import { getUserStats, parseItem } from './db.js';
+import { checkNewItem, createNewItem, requireUpload } from './item.js';
 
 addRoute({
 	path: '/raw/storage',
 	async PUT(request): Promise<StorageItemMetadata> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { userId } = await requireSession(request);
+		const session = await requireSession(request);
+		const { userId } = session;
 
-		const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
-			withError('Could not fetch usage and/or limits')
-		);
-
-		const name = request.headers.get('x-name');
-		if (!name) error(400, 'Missing name header');
-		if (name.length > 255) error(400, 'Name is too long');
-
-		const maybeParentId = request.headers.get('x-parent');
-		const parentId = maybeParentId
-			? await z
-					.uuid()
-					.parseAsync(maybeParentId)
-					.catch(() => error(400, 'Invalid parent ID'))
-			: null;
-
-		if (parentId) await checkAuthForItem(request, 'storage', parentId, { write: true });
-
-		const size = Number(request.headers.get('content-length'));
-		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
-
-		if (limits.user_items && usage.itemCount >= limits.user_items) error(409, 'Too many items');
-
-		if (limits.user_size && (usage.usedBytes + size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
-
-		if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
+		const name = request.headers.get('x-name')!; // checked in `checkNewItem`
+		const parentId = request.headers.get('x-parent');
+		const size = Number(request.headers.get('x-size'));
+		const type = request.headers.get('content-type') || 'application/octet-stream';
 
 		const content = await request.bytes();
 
@@ -54,58 +34,60 @@ addRoute({
 			error(400, 'Content length does not match size header');
 		}
 
-		const type = request.headers.get('content-type') || 'application/octet-stream';
-		const isDirectory = type == 'inode/directory';
+		const hash = type == 'inode/directory' ? null : createHash('BLAKE2b512').update(content).digest();
 
-		if (isDirectory && size > 0) error(400, 'Directories can not have content');
+		const init = { name, size, type, parentId, hash: hash?.toHex() };
 
-		const useCAS =
-			getConfig('@axium/storage').cas.enabled &&
-			!isDirectory &&
-			(defaultCASMime.some(pattern => pattern.test(type)) || getConfig('@axium/storage').cas.include?.some(mime => type.match(mime)));
+		await checkNewItem(init, session);
 
-		const hash = isDirectory ? null : createHash('BLAKE2b512').update(content).digest();
+		return await createNewItem(init, userId, path => writeFileSync(path, content));
+	},
+});
 
-		const tx = await database.startTransaction().execute();
+addRoute({
+	path: '/raw/storage/chunk',
+	async POST(request) {
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		try {
-			const item = parseItem(
-				await tx
-					.insertInto('storage')
-					.values({ userId, hash, name, size, type, immutable: useCAS, parentId })
-					.returningAll()
-					.executeTakeFirstOrThrow()
-			);
+		const upload = await requireUpload(request);
 
-			const path = join(getConfig('@axium/storage').data, item.id);
+		const size = Number(request.headers.get('content-length'));
 
-			if (!useCAS) {
-				if (!isDirectory) writeFileSync(path, content);
-				await tx.commit().execute();
-				return item;
-			}
+		if (Number.isNaN(size)) error(411, 'Missing or invalid content length');
 
-			const existing = await tx
-				.selectFrom('storage')
-				.select('id')
-				.where('hash', '=', hash)
-				.where('id', '!=', item.id)
-				.limit(1)
-				.executeTakeFirst();
+		if (upload.uploadedBytes + size > upload.init.size) error(413, 'Upload exceeds allowed size');
 
-			if (!existing) {
-				if (!isDirectory) writeFileSync(path, content);
-				await tx.commit().execute();
-				return item;
-			}
+		const content = await request.bytes();
 
-			linkSync(join(getConfig('@axium/storage').data, existing.id), path);
-			await tx.commit().execute();
-			return item;
-		} catch (error: any) {
-			await tx.rollback().execute();
-			throw withError('Could not create item', 500)(error);
+		if (content.byteLength != size) {
+			await audit('storage_size_mismatch', upload.userId, { item: null });
+			error(400, `Content length mismatch: expected ${size}, got ${content.byteLength}`);
 		}
+
+		const offset = Number(request.headers.get('x-offset'));
+		if (offset != upload.uploadedBytes) error(400, `Expected offset ${upload.uploadedBytes} but got ${offset}`);
+
+		writeSync(upload.fd, content); // opened with 'a', this appends
+		upload.hash.update(content);
+		upload.uploadedBytes += size;
+
+		if (upload.uploadedBytes != upload.init.size) return new Response(null, { status: 204 });
+
+		const hash = upload.hash.digest();
+		upload.init.hash ??= hash.toHex();
+		if (hash.toHex() != upload.init.hash) error(409, 'Hash mismatch');
+
+		upload.remove();
+
+		return await createNewItem(upload.init, upload.userId, path => {
+			try {
+				renameSync(upload.file, path);
+			} catch (e: any) {
+				if (e.code != 'EXDEV') throw e;
+				writeFileSync(path, readFileSync(upload.file));
+				unlinkSync(upload.file);
+			}
+		});
 	},
 });
 
@@ -115,7 +97,7 @@ addRoute({
 	async GET(request, { id: itemId }) {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { item } = await checkAuthForItem(request, 'storage', itemId, { read: true });
+		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true });
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -165,7 +147,7 @@ addRoute({
 	async POST(request, { id: itemId }) {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { item, session } = await checkAuthForItem(request, 'storage', itemId, { write: true });
+		const { item, session } = await authRequestForItem(request, 'storage', itemId, { write: true });
 
 		if (item.immutable) error(405, 'Item is immutable');
 		if (item.type == 'inode/directory') error(409, 'Directories do not have content');

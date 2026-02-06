@@ -108,12 +108,8 @@ export const StoragePublicConfig = z.object({
 		/** Maximum size in KiB per item */
 		max_item_size: z.int().positive(),
 	}),
-	/** Whether to split files larger than `max_transfer_size` into multiple chunks */
-	chunk: z.boolean(),
 	/** Maximum size in MiB per transfer/request */
 	max_transfer_size: z.int().positive(),
-	/** Maximum number of chunks */
-	max_chunks: z.int().positive(),
 });
 
 export interface StoragePublicConfig extends z.infer<typeof StoragePublicConfig> {}
@@ -138,6 +134,10 @@ export const StorageConfig = StoragePublicConfig.safeExtend({
 	limits: StorageLimits,
 	/** How many days files are kept in the trash */
 	trash_duration: z.number(),
+	/** Where to put in-progress chunked uploads */
+	temp_dir: z.string(),
+	/** How many minutes before an in-progress upload times out */
+	upload_timeout: z.number(),
 });
 
 declare module '@axium/core/plugins' {
@@ -147,6 +147,30 @@ declare module '@axium/core/plugins' {
 }
 
 setServerConfig('@axium/storage', StorageConfig);
+
+export const StorageItemInit = z.object({
+	name: z.string(),
+	size: z.int().nonnegative(),
+	type: z.string(),
+	parentId: z.uuid().nullish(),
+	hash: z.hex().nullish(),
+});
+
+export interface StorageItemInit extends z.infer<typeof StorageItemInit> {}
+
+export const UploadInitResult = z.discriminatedUnion('status', [
+	StoragePublicConfig.safeExtend({
+		status: z.literal('accepted'),
+		/** Used for chunked uploads */
+		token: z.base64(),
+	}),
+	z.object({
+		status: z.literal('created'),
+		item: StorageItemMetadata,
+	}),
+]);
+
+export type UploadInitResult = z.infer<typeof UploadInitResult>;
 
 const StorageAPI = {
 	'users/:id/storage': {
@@ -167,6 +191,7 @@ const StorageAPI = {
 			syncProtocolVersion: z.int32().nonnegative(),
 			batchFormatVersion: z.int32().nonnegative(),
 		}),
+		PUT: [StorageItemInit, UploadInitResult],
 	},
 	'storage/batch': {
 		POST: [StorageBatchUpdate.array(), StorageItemMetadata.array()],
