@@ -139,6 +139,28 @@ dialog form {
 	display: contents;
 }
 
+progress {
+	appearance: none;
+	border: none;
+	height: 0.5em;
+	border-radius: 1em;
+	overflow: hidden;
+	background-color: var(--bg-normal);
+	border: 1px solid var(--border-accent);
+}
+
+progress::-webkit-progress-bar {
+	background-color: transparent;
+}
+
+progress::-webkit-progress-value {
+	background-color: hsl(0 0 var(--fg-light));
+}
+
+progress::-moz-progress-bar {
+	background-color: hsl(0 0 var(--fg-light));
+}
+
 :not(input).error {
 	padding: 1em;
 	border-radius: 0.5em;

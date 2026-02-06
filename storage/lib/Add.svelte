@@ -7,6 +7,7 @@
 	const { parentId, onAdd }: { parentId?: string; onAdd?(item: StorageItemMetadata): void } = $props();
 
 	let uploadDialog = $state<HTMLDialogElement>()!;
+	let uploadProgress = $state<[number, number][]>([]);
 	let input = $state<HTMLInputElement>()!;
 
 	let createDialog = $state<HTMLDialogElement>()!;
@@ -43,18 +44,18 @@
 	bind:dialog={uploadDialog}
 	submitText="Upload"
 	submit={async () => {
-		for (const file of input.files!) {
+		for (const [i, file] of Array.from(input.files!).entries()) {
 			const item = await uploadItem(file, {
 				parentId,
 				onProgress(uploaded, total) {
-					console.log('Uploading', file.name + ':', uploaded, '/', total);
+					uploadProgress[i] = [uploaded, total];
 				},
 			});
 			onAdd?.(item);
 		}
 	}}
 >
-	<Upload bind:input multiple />
+	<Upload bind:input bind:progress={uploadProgress} multiple />
 </FormDialog>
 
 <FormDialog

@@ -7,17 +7,23 @@
 		name = 'files',
 		input = $bindable(),
 		files = $bindable(),
+		progress = $bindable(),
 		...rest
-	}: HTMLInputAttributes & { input?: HTMLInputElement } = $props();
+	}: HTMLInputAttributes & { input?: HTMLInputElement; progress?: [current: number, max: number][] } = $props();
 
 	const id = $props.id();
 </script>
 
 <div>
 	<label for={id} class={[files?.length && 'file']}>
-		{#each files! as file}
+		{#each files! as file, i}
 			<Icon i={forMime(file.type)} />
-			<span>{file.name}</span>
+			<div class="name">
+				<span>{file.name}</span>
+				{#if progress?.[i]}
+					<progress value={progress[i][0]} max={progress[i][1]}></progress>
+				{/if}
+			</div>
 			<button
 				onclick={e => {
 					e.preventDefault();
@@ -51,6 +57,18 @@
 		gap: 0.5em;
 		border-radius: 0.5em;
 		width: 20em;
+	}
+
+	.name {
+		display: flex;
+		flex-direction: column;
+		justify-content: center;
+		min-width: 0;
+	}
+
+	progress {
+		width: 100%;
+		height: 4px;
 	}
 
 	label.file {
