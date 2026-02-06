@@ -141,9 +141,8 @@ dialog form {
 
 progress {
 	appearance: none;
-	border: none;
 	height: 0.5em;
-	border-radius: 1em;
+	border-radius: 0.5em;
 	overflow: hidden;
 	background-color: var(--bg-normal);
 	border: 1px solid var(--border-accent);
