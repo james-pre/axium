@@ -70,7 +70,7 @@
 				}}
 			>
 				{@render action('rename', 'pencil', i)}
-				{@render action('share' + item.id, 'user-group', i)}
+				{@render action('share:' + item.id, 'user-group', i)}
 				<AccessControlDialog
 					bind:dialog={dialogs['share:' + item.id]}
 					{item}
