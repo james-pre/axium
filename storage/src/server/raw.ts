@@ -79,15 +79,22 @@ addRoute({
 
 		upload.remove();
 
-		return await createNewItem(upload.init, upload.userId, path => {
+		const item = await createNewItem(upload.init, upload.userId, path => {
 			try {
 				renameSync(upload.file, path);
 			} catch (e: any) {
 				if (e.code != 'EXDEV') throw e;
 				writeFileSync(path, readFileSync(upload.file));
-				unlinkSync(upload.file);
 			}
 		});
+
+		try {
+			unlinkSync(upload.file);
+		} catch {
+			// probably renamed
+		}
+
+		return item;
 	},
 });
 
