@@ -162,20 +162,12 @@ export interface ItemAuthResult<TB extends acl.TargetName> {
 	session?: SessionInternal;
 }
 
-/**
- * Authenticate a request against an "item" which has an ACL table.
- * This will fetch the item, ACLs, users, and the authenticating session.
- */
-export async function checkAuthForItem<const TB extends acl.TargetName>(
-	request: Request,
+export async function authSessionForItem<const TB extends acl.TargetName>(
 	itemType: TB,
 	itemId: string,
-	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>
+	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
+	session?: SessionAndUser | null
 ): Promise<ItemAuthResult<TB>> {
-	const token = getToken(request, false);
-	if (!token) error(401, 'Missing token');
-
-	const session = await getSessionAndUser(token).catch(() => null);
 	const { userId, user } = session ?? {};
 
 	// Note: we need to do casting because of TS limitations with generics
@@ -210,4 +202,22 @@ export async function checkAuthForItem<const TB extends acl.TargetName>(
 	if (acl.check(item.acl, permissions).size) error(403, 'Access denied');
 
 	return result;
+}
+
+/**
+ * Authenticate a request against an "item" which has an ACL table.
+ * This will fetch the item, ACLs, users, and the authenticating session.
+ */
+export async function authRequestForItem<const TB extends acl.TargetName>(
+	request: Request,
+	itemType: TB,
+	itemId: string,
+	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>
+): Promise<ItemAuthResult<TB>> {
+	const token = getToken(request, false);
+	if (!token) error(401, 'Missing token');
+
+	const session = await getSessionAndUser(token).catch(() => null);
+
+	return await authSessionForItem(itemType, itemId, permissions, session);
 }
