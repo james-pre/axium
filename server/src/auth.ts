@@ -197,7 +197,7 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	result.fromACL = true;
 
-	if (!item.acl || !item.acl.length) error(403, 'Access denied');
+	if (!item.acl || !item.acl.length) error(403, 'Item is not shared with you');
 
 	const missing = Array.from(acl.check(item.acl, permissions));
 	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
