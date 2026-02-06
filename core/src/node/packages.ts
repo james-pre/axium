@@ -37,7 +37,7 @@ const cache = new Map<string, CacheEntry>();
  * @param version The current/installed version
  */
 export async function getVersionInfo(specifier: string, from: string = import.meta.filename): Promise<PackageVersionInfo> {
-	const path = findPackageJSON(specifier, from);
+	const path = findPackageJSON(specifier, import.meta.resolve(specifier, from));
 	if (!path) throw new Error(`Cannot find package.json for package ${specifier} (from ${from})`);
 	const { version, name } = JSON.parse(fs.readFileSync(path, 'utf8'));
 
