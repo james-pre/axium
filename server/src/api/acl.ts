@@ -3,7 +3,7 @@ import * as z from 'zod';
 import * as acl from '../acl.js';
 import { error, parseBody, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
-import { checkAuthForItem } from '../auth.js';
+import { authRequestForItem } from '../auth.js';
 import type { Schema } from '../database.js';
 import { AccessControlUpdate, AccessTarget } from '@axium/core';
 
@@ -28,7 +28,7 @@ addRoute({
 		const table = getTable(itemType);
 		const { target, permissions } = await parseBody(request, AccessControlUpdate);
 
-		await checkAuthForItem(request, itemType as keyof Schema, itemId, { manage: true });
+		await authRequestForItem(request, itemType as keyof Schema, itemId, { manage: true });
 
 		return await acl.update(table, itemId, target, permissions);
 	},
@@ -36,7 +36,7 @@ addRoute({
 		const table = getTable(itemType);
 		const target = await parseBody(request, AccessTarget);
 
-		await checkAuthForItem(request, itemType as keyof Schema, itemId, { manage: true });
+		await authRequestForItem(request, itemType as keyof Schema, itemId, { manage: true });
 
 		return await acl.add(table, itemId, target);
 	},
@@ -44,7 +44,7 @@ addRoute({
 		const table = getTable(itemType);
 		const target = await parseBody(request, AccessTarget);
 
-		await checkAuthForItem(request, itemType as keyof Schema, itemId, { manage: true });
+		await authRequestForItem(request, itemType as keyof Schema, itemId, { manage: true });
 		return await acl.remove(table, itemId, target);
 	},
 });

@@ -1,5 +1,5 @@
 import type { AsyncResult } from '@axium/core';
-import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
+import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -53,14 +53,14 @@ addRoute({
 	path: '/api/notes/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id }): AsyncResult<'GET', 'notes/:id'> {
-		const { item } = await checkAuthForItem(request, 'notes', id, { read: true });
+		const { item } = await authRequestForItem(request, 'notes', id, { read: true });
 
 		return item;
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'notes/:id'> {
 		const init = await parseBody(request, NoteInit);
 
-		await checkAuthForItem(request, 'notes', id, { edit: true });
+		await authRequestForItem(request, 'notes', id, { edit: true });
 
 		return await database
 			.updateTable('notes')
@@ -72,7 +72,7 @@ addRoute({
 			.catch(withError('Could not update note'));
 	},
 	async DELETE(request, { id }): AsyncResult<'DELETE', 'notes/:id'> {
-		await checkAuthForItem(request, 'notes', id, { manage: true });
+		await authRequestForItem(request, 'notes', id, { manage: true });
 
 		return await database
 			.deleteFrom('notes')

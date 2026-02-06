@@ -1,5 +1,5 @@
 import type { AsyncResult } from '@axium/core/api';
-import { checkAuthForItem, checkAuthForUser } from '@axium/server/auth';
+import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -70,7 +70,7 @@ addRoute({
 	path: '/api/task_lists/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id }): AsyncResult<'GET', 'task_lists/:id'> {
-		const { item } = await checkAuthForItem(request, 'task_lists', id, { read: true });
+		const { item } = await authRequestForItem(request, 'task_lists', id, { read: true });
 
 		const tasks = await database
 			.selectFrom('tasks')
@@ -84,7 +84,7 @@ addRoute({
 	async PUT(request, { id: listId }): AsyncResult<'PUT', 'task_lists/:id'> {
 		const init = await parseBody(request, TaskInit.omit({ listId: true }));
 
-		await checkAuthForItem(request, 'task_lists', listId, { edit: true });
+		await authRequestForItem(request, 'task_lists', listId, { edit: true });
 
 		return await database
 			.insertInto('tasks')
@@ -94,7 +94,7 @@ addRoute({
 			.catch(withError('Could not update task list'));
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'task_lists/:id'> {
-		await checkAuthForItem(request, 'task_lists', id, { edit: true });
+		await authRequestForItem(request, 'task_lists', id, { edit: true });
 
 		const init = await parseBody(request, TaskListInit);
 
@@ -109,7 +109,7 @@ addRoute({
 	async POST(request, { id }): AsyncResult<'POST', 'task_lists/:id'> {
 		const body = await parseBody(request, TaskListUpdate);
 
-		await checkAuthForItem(request, 'task_lists', id, { edit: true });
+		await authRequestForItem(request, 'task_lists', id, { edit: true });
 
 		if (typeof body.all_completed == 'boolean') {
 			await database
@@ -125,7 +125,7 @@ addRoute({
 		return {};
 	},
 	async DELETE(request, { id }): AsyncResult<'DELETE', 'task_lists/:id'> {
-		await checkAuthForItem(request, 'task_lists', id, { manage: true });
+		await authRequestForItem(request, 'task_lists', id, { manage: true });
 
 		return await database
 			.deleteFrom('task_lists')
@@ -149,7 +149,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not get task'));
 
-		await checkAuthForItem(request, 'task_lists', task.listId, { edit: true });
+		await authRequestForItem(request, 'task_lists', task.listId, { edit: true });
 
 		return await database
 			.updateTable('tasks')
@@ -167,7 +167,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not fetch task'));
 
-		await checkAuthForItem(request, 'task_lists', task.listId, { manage: true });
+		await authRequestForItem(request, 'task_lists', task.listId, { manage: true });
 
 		return await database
 			.deleteFrom('tasks')
