@@ -69,6 +69,8 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 
 	const content = await file.bytes();
 
+	opt.onProgress?.(0, content.length);
+
 	/** For big files, it takes a *really* long time to compute the hash, so we just don't do it ahead of time and leave it up to the server. */
 	const hash = content.length < uploadConfig.hashThreshold * 1_000_000 ? blake2b(content).toHex() : null;
 

@@ -7,7 +7,7 @@
 		name = 'files',
 		input = $bindable(),
 		files = $bindable(),
-		progress = $bindable(),
+		progress = $bindable([]),
 		...rest
 	}: HTMLInputAttributes & { input?: HTMLInputElement; progress?: [current: number, max: number][] } = $props();
 
@@ -18,23 +18,33 @@
 	<label for={id} class={[files?.length && 'file']}>
 		{#each files! as file, i}
 			<Icon i={forMime(file.type)} />
-			<div class="name">
-				<span>{file.name}</span>
-				{#if progress?.[i]}
+			{#if !progress[i]}
+				<div class="name">
+					<span>{file.name}</span>
+				</div>
+				<button
+					onclick={e => {
+						e.preventDefault();
+						const dt = new DataTransfer();
+						for (let f of files!) if (file !== f) dt.items.add(f);
+						input!.files = files = dt.files;
+					}}
+					style:display="contents"
+				>
+					<Icon i="trash" />
+				</button>
+			{:else if progress[i][0] == progress[i][1]}
+				<div class="name">
+					<span>{file.name}</span>
+				</div>
+				<Icon i="cloud-check" />
+			{:else}
+				<div class="name">
+					<span>{file.name}</span>
 					<progress value={progress[i][0]} max={progress[i][1]}></progress>
-				{/if}
-			</div>
-			<button
-				onclick={e => {
-					e.preventDefault();
-					const dt = new DataTransfer();
-					for (let f of files!) if (file !== f) dt.items.add(f);
-					input!.files = files = dt.files;
-				}}
-				style:display="contents"
-			>
-				<Icon i="trash" />
-			</button>
+				</div>
+				<Icon i="cloud-arrow-up" />
+			{/if}
 		{:else}
 			<Icon i="upload" /> Upload
 		{/each}
