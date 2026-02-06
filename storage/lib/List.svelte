@@ -4,6 +4,7 @@
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
+	import { errorText } from '@axium/core/io';
 	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { openers, previews } from '@axium/storage/client/3rd-party';
 	import type { StorageItemMetadata } from '@axium/storage/common';
@@ -48,12 +49,12 @@
 		<span>Size</span>
 	</div>
 	{#each items as item, i (item.id)}
-		{@const itemOpeners = openers.filter(opener => opener.types.includes(item.type))}
 		<div
 			class="list-item"
 			onclick={async () => {
 				if (item.type != 'inode/directory') {
-					dialogs['preview:' + item.id].showModal();
+					activeIndex = i;
+					dialogs.preview.showModal();
 				} else if (appMode) location.href = '/files/' + item.id;
 				else items = await getDirectoryMetadata(item.id);
 			}}
@@ -85,68 +86,84 @@
 				/>
 				{@render action('download', 'download', i)}
 				{@render action('trash', 'trash', i)}
-				<dialog bind:this={dialogs['preview:' + item.id]} class="preview">
-					<div class="preview-top-bar">
-						<div class="title">{item.name}</div>
-						{#if itemOpeners.length}
-							{@const [first, ...others] = itemOpeners}
-							<div class="openers">
-								<span>Open with <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
-								{#if others.length}
-									<Popover>
-										{#snippet toggle()}
-											<span class="popover-toggle"><Icon i="caret-down" /></span>
-										{/snippet}
-										{#each others as opener}
-											<a href={opener.openURL(item)} target="_blank">{opener.name}</a>
-										{/each}
-									</Popover>
-								{/if}
-							</div>
-						{/if}
-						<div class="actions">
-							{@render action('rename', 'pencil', i, true)}
-							{@render action('share:' + item.id, 'user-group', i, true)}
-							{@render action('download', 'download', i, true)}
-							{@render action('trash', 'trash', i, true)}
-							<span class="mobile-hide" onclick={() => dialogs['preview:' + item.id].close()}>
-								<Icon i="xmark" --size="20px" />
-							</span>
-						</div>
-					</div>
-					<div class="content">
-						{#if item.type.startsWith('image/')}
-							<img src={item.dataURL} alt={item.name} width="100%" />
-						{:else if item.type.startsWith('audio/')}
-							<audio src={item.dataURL} controls></audio>
-						{:else if item.type.startsWith('video/')}
-							<video src={item.dataURL} controls width="100%">
-								<track kind="captions" />
-							</video>
-						{:else if item.type == 'application/pdf'}
-							<object data={item.dataURL} type="application/pdf" width="100%" height="100%">
-								<embed src={item.dataURL} type="application/pdf" width="100%" height="100%" />
-								<p>PDF not displayed? <a href={item.dataURL} download={item.name}>Download</a></p>
-							</object>
-						{:else if item.type.startsWith('text/')}
-							<pre
-								class="full-fill preview-text">{#await downloadItem(item.id).then( b => b.text() ) then content}{content}{/await}</pre>
-						{:else if previews.has(item.type)}
-							{@render previews.get(item.type)!(item)}
-						{:else}
-							<div class="full-fill no-preview">
-								<Icon i="eye-slash" --size="50px" />
-								<span>Preview not available</span>
-							</div>
-						{/if}
-					</div>
-				</dialog>
 			</div>
 		</div>
 	{:else}
 		<p class="list-empty">{emptyText}</p>
 	{/each}
 </div>
+
+<dialog bind:this={dialogs.preview} class="preview">
+	{#if activeItem}
+		{@const { type, dataURL } = activeItem}
+		{@const itemOpeners = openers.filter(opener => opener.types.includes(type))}
+		<div class="preview-top-bar">
+			<div class="title">{activeItem.name}</div>
+			{#if itemOpeners.length}
+				{@const [first, ...others] = itemOpeners}
+				<div class="openers">
+					<span>Open with <a href={first.openURL(activeItem)} target="_blank">{first.name}</a></span>
+					{#if others.length}
+						<Popover>
+							{#snippet toggle()}
+								<span class="popover-toggle"><Icon i="caret-down" /></span>
+							{/snippet}
+							{#each others as opener}
+								<a href={opener.openURL(activeItem)} target="_blank">{opener.name}</a>
+							{/each}
+						</Popover>
+					{/if}
+				</div>
+			{/if}
+			<div class="actions">
+				{@render action('rename', 'pencil', i, true)}
+				{@render action('share:' + activeItem.id, 'user-group', i, true)}
+				{@render action('download', 'download', i, true)}
+				{@render action('trash', 'trash', i, true)}
+				<span class="mobile-hide" onclick={() => dialogs.preview.close()}>
+					<Icon i="xmark" --size="20px" />
+				</span>
+			</div>
+		</div>
+		<div class="content">
+			{#if type.startsWith('image/')}
+				<img src={dataURL} alt={activeItem.name} width="100%" />
+			{:else if type.startsWith('audio/')}
+				<audio src={dataURL} controls></audio>
+			{:else if type.startsWith('video/')}
+				<video src={dataURL} controls width="100%">
+					<track kind="captions" />
+				</video>
+			{:else if type == 'application/pdf'}
+				<object data={dataURL} type="application/pdf" width="100%" height="100%">
+					<embed src={dataURL} type="application/pdf" width="100%" height="100%" />
+					<p>PDF not displayed? <a href={dataURL} download={activeItem.name}>Download</a></p>
+				</object>
+			{:else if type.startsWith('text/')}
+				{#await downloadItem(activeItem.id).then(b => b.text())}
+					<div class="full-fill no-preview">
+						<Icon i="cloud-arrow-down" --size="50px" />
+						<span>Loading</span>
+					</div>
+				{:then content}
+					<pre class="full-fill preview-text">{content}</pre>
+				{:catch}
+					<div class="full-fill no-preview">
+						<Icon i="cloud-exclamation" --size="50px" />
+						<span>Error loading preview. You might not have permission to view this file.</span>
+					</div>
+				{/await}
+			{:else if previews.has(type)}
+				{@render previews.get(type)!(activeItem)}
+			{:else}
+				<div class="full-fill no-preview">
+					<Icon i="eye-slash" --size="50px" />
+					<span>Preview not available</span>
+				</div>
+			{/if}
+		</div>
+	{/if}
+</dialog>
 
 <FormDialog
 	bind:dialog={dialogs.rename}
