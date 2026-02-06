@@ -5,6 +5,21 @@ import type { StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 
+const uploadConfig = {
+	/**
+	 * Requests below this amount in MB will be hashed client-side to avoid bandwidth usage.
+	 * This is most useful when the client has plenty of compute but a poor network connection.
+	 * For good connections, this isn't really useful since it takes longer than just uploading.
+	 * Note that hashing takes a really long time client-side though.
+	 */
+	hashThreshold: 10,
+	/**
+	 * Set an upper limit for chunk size in MB, independent of `max_transfer_size`.
+	 * Smaller chunks means better UX but more latency from RTT and more requests.
+	 */
+	uxChunkSize: 10,
+};
+
 function rawStorage(suffix?: string): string | URL {
 	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
 	if (prefix[0] == '/') return raw;
@@ -54,10 +69,8 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 
 	const content = await file.bytes();
 
-	/**
-	 * For big files, it takes a *really* long time to compute the hash, so we just don't do it ahead of time and leave it up to the server.
-	 */
-	const hash = content.length < 10_000_000 ? blake2b(content).toHex() : null;
+	/** For big files, it takes a *really* long time to compute the hash, so we just don't do it ahead of time and leave it up to the server. */
+	const hash = content.length < uploadConfig.hashThreshold * 1_000_000 ? blake2b(content).toHex() : null;
 
 	const upload = await fetchAPI('PUT', 'storage', {
 		parentId: opt.parentId,
@@ -69,10 +82,13 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 
 	if (upload.status == 'created') return upload.item;
 
-	let chunkSize = upload.max_transfer_size * 1_000_000;
+	let chunkSize = Math.min(upload.max_transfer_size, uploadConfig.uxChunkSize);
 	if (globalThis.navigator?.connection) {
-		chunkSize = Math.min(upload.max_transfer_size, conTypeToSpeed[globalThis.navigator.connection.effectiveType]) * 1_000_000;
+		chunkSize = Math.min(chunkSize, conTypeToSpeed[globalThis.navigator.connection.effectiveType]);
 	}
+
+	// MB -> bytes
+	chunkSize *= 1_000_000;
 
 	let response: Response | undefined;
 
