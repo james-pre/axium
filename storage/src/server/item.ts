@@ -148,7 +148,11 @@ export function startUpload(init: StorageItemInit, session: Session): string {
 
 	const fd = openSync(file, 'a');
 
+	let removed = false;
+
 	function remove() {
+		if (removed) return;
+		removed = true;
 		inProgress.delete(token.toBase64());
 		closeSync(fd);
 	}
