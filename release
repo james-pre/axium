@@ -99,9 +99,10 @@ case "$sub" in
 		git -C "$root" add "$pkg/package.json" "package-lock.json"
 		git -C "$root" commit -m "$tag"
 		git -C "$root" tag "$tag" -m "$tag"
-		echo -n "+ "
-		git -C "$root" log ${last_tag:+"$last_tag..main"} --format=%B -- "$pkg" | sed '/^$/d'
+		changelog="+ $(git -C "$root" log ${last_tag:+"$last_tag..main"} --format=%B -- "$pkg" | sed '/^$/d')"
 		git -C "$root" push --follow-tags
+		echo "***"
+		echo "$changelog"
 		;;
 	"history")
 		pkg="${2:?Package name required}"
