@@ -1,31 +1,15 @@
 import { getConfig } from '@axium/core';
-import { database, type Schema } from '@axium/server/database';
+import { database, type FromSchemaFile, type Schema } from '@axium/server/database';
 import { withError } from '@axium/server/requests';
-import type { Generated, Selectable } from 'kysely';
+import type { Selectable } from 'kysely';
 import { unlinkSync } from 'node:fs';
 import { join } from 'node:path/posix';
+import type schema from '../../db.json';
 import type { StorageItemMetadata, StorageStats } from '../common.js';
 import '../polyfills.js';
 
 declare module '@axium/server/database' {
-	export interface Schema {
-		storage: {
-			createdAt: Generated<Date>;
-			hash: Uint8Array | null;
-			id: Generated<string>;
-			immutable: Generated<boolean>;
-			modifiedAt: Generated<Date>;
-			name: string;
-			parentId: string | null;
-			size: number;
-			trashedAt: Date | null;
-			type: string;
-			userId: string;
-			metadata: Generated<Record<string, unknown>>;
-		};
-
-		'acl.storage': DBAccessControl & DBBool<'read' | 'write' | 'manage' | 'download' | 'comment'>;
-	}
+	export interface Schema extends FromSchemaFile<typeof schema> {}
 }
 
 /**

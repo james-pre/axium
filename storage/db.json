@@ -62,6 +62,18 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"storage": {
+					"alter_columns": {
+						"name": {
+							"ops": ["set_required"]
+						}
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["storage", "acl.storage"],
