@@ -20,13 +20,13 @@ declare global {
 		 * @throws {SyntaxError} If the input string contains characters outside the specified alphabet, or if the last
 		 * chunk is inconsistent with the `lastChunkHandling` option.
 		 */
-		fromBase64: (string: string) => Uint8Array;
+		fromBase64: (string: string) => Uint8Array<ArrayBuffer>;
 
 		/**
 		 * Creates a new `Uint8Array` from a base16-encoded string.
 		 * @returns A new `Uint8Array` instance.
 		 */
-		fromHex: (string: string) => Uint8Array;
+		fromHex: (string: string) => Uint8Array<ArrayBuffer>;
 	}
 
 	interface Uint8Array {
@@ -82,7 +82,7 @@ Uint8Array.prototype.toBase64 ??=
 
 Uint8Array.fromHex ??=
 	(debug('Using a polyfill of Uint8Array.fromHex'),
-	function fromHex(this: Uint8Array, hex: string): Uint8Array {
+	function fromHex(hex: string): Uint8Array<ArrayBuffer> {
 		const bytes = new Uint8Array(hex.length / 2);
 		for (let i = 0; i < hex.length; i += 2) {
 			bytes[i / 2] = parseInt(hex.slice(i, i + 2), 16);
