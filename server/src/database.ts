@@ -536,11 +536,14 @@ type _DBFromSchema<TBs extends Record<string, z.input<typeof Table>>> = {
 /**
  * Convert an entire schema definition file info the Kysely database schema type
  */
-export type DatabaseFromSchemaFile<S extends ReadonlyRecursive<z.input<typeof SchemaFile>>> = _DBFromSchema<
+export type FromSchemaFile<S extends ReadonlyRecursive<z.input<typeof SchemaFile>>> = _DBFromSchema<
 	FullSchema<MutableRecursive<S>>['tables']
 >;
 
-type RawDB = DatabaseFromSchemaFile<typeof rawSchema>;
+/**@deprecated use {@link FromSchemaFile} */
+export type DatabaseFromSchemaFile<S extends ReadonlyRecursive<z.input<typeof SchemaFile>>> = FromSchemaFile<S>;
+
+type RawDB = FromSchemaFile<typeof rawSchema>;
 
 export interface Schema extends Omit<RawDB, 'users' | 'verifications' | 'passkeys'> {
 	users: Expand<
