@@ -1,6 +1,6 @@
 {
 	"name": "@axium/storage",
-	"version": "0.16.6",
+	"version": "0.16.7",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "User file storage for Axium",
 	"funding": {
