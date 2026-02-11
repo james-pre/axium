@@ -43,6 +43,7 @@
 <FormDialog
 	bind:dialog={uploadDialog}
 	submitText="Upload"
+	cancel={() => (input.value = '')}
 	submit={async () => {
 		for (const [i, file] of Array.from(input.files!).entries()) {
 			const item = await uploadItem(file, {
