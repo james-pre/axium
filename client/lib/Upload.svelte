@@ -5,7 +5,6 @@
 
 	let {
 		name = 'files',
-		input = $bindable(),
 		files = $bindable(),
 		progress = $bindable([]),
 		...rest
@@ -27,7 +26,7 @@
 						e.preventDefault();
 						const dt = new DataTransfer();
 						for (let f of files!) if (file !== f) dt.items.add(f);
-						input!.files = files = dt.files;
+						files = dt.files;
 					}}
 					style:display="contents"
 				>
@@ -50,7 +49,7 @@
 		{/each}
 	</label>
 
-	<input bind:this={input} bind:files {name} {id} type="file" {...rest} />
+	<input bind:files {name} {id} type="file" {...rest} />
 </div>
 
 <style>
