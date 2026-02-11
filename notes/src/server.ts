@@ -3,23 +3,12 @@ import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import type { Generated, GeneratedAlways } from 'kysely';
 import * as z from 'zod';
+import type schema from '../db.json';
 import { NoteInit } from './common.js';
 
 declare module '@axium/server/database' {
-	export interface Schema {
-		notes: {
-			id: GeneratedAlways<string>;
-			userId: string;
-			created: GeneratedAlways<Date>;
-			modified: Generated<Date>;
-			title: string;
-			content: string | null;
-			labels: Generated<string[]>;
-		};
-		'acl.notes': DBAccessControl & DBBool<'read' | 'edit' | 'manage'>;
-	}
+	export interface Schema extends FromSchemaFile<typeof schema> {}
 }
 
 addRoute({

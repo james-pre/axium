@@ -3,32 +3,13 @@ import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import type { Generated, GeneratedAlways } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
+import type schema from '../db.json';
 import { TaskInit, TaskListInit, TaskListUpdate, type Task } from './common.js';
 
 declare module '@axium/server/database' {
-	export interface Schema {
-		tasks: {
-			id: GeneratedAlways<string>;
-			created: GeneratedAlways<Date>;
-			summary: string;
-			description?: string | null;
-			listId: string;
-			parentId?: string | null;
-			completed: Generated<boolean>;
-			due?: Date | null;
-		};
-		task_lists: {
-			id: GeneratedAlways<string>;
-			userId: string;
-			created: GeneratedAlways<Date>;
-			name: string;
-			description?: string | null;
-		};
-		'acl.task_lists': DBAccessControl & DBBool<'read' | 'edit' | 'manage'>;
-	}
+	export interface Schema extends FromSchemaFile<typeof schema> {}
 }
 
 addRoute({
