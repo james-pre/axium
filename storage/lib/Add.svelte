@@ -8,7 +8,7 @@
 
 	let uploadDialog = $state<HTMLDialogElement>()!;
 	let uploadProgress = $state<[number, number][]>([]);
-	let input = $state<HTMLInputElement>()!;
+	let files = $state<FileList>()!;
 
 	let createDialog = $state<HTMLDialogElement>()!;
 	let createType = $state<string>();
@@ -43,9 +43,9 @@
 <FormDialog
 	bind:dialog={uploadDialog}
 	submitText="Upload"
-	cancel={() => (input.value = '')}
+	cancel={() => (files = new DataTransfer().files)}
 	submit={async () => {
-		for (const [i, file] of Array.from(input.files!).entries()) {
+		for (const [i, file] of Array.from(files!).entries()) {
 			const item = await uploadItem(file, {
 				parentId,
 				onProgress(uploaded, total) {
@@ -56,7 +56,7 @@
 		}
 	}}
 >
-	<Upload bind:input bind:progress={uploadProgress} multiple />
+	<Upload bind:files bind:progress={uploadProgress} multiple />
 </FormDialog>
 
 <FormDialog
