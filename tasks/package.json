@@ -48,7 +48,8 @@
 		"server": {
 			"routes": "routes",
 			"hooks": "./dist/hooks.js",
-			"db": "./db.json"
+			"db": "./db.json",
+			"web_client_hooks": "./dist/common.js"
 		},
 		"apps": [
 			{

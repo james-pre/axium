@@ -1,1 +1,0 @@
-import '@axium/notes/common';
