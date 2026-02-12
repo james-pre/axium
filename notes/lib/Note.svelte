@@ -65,17 +65,13 @@
 		<AccessControlDialog bind:dialog={acl} item={note} itemType="notes" editable />
 	</div>
 	<textarea
+		bind:value={note.content}
 		name="content"
 		class="editable-text"
 		placeholder="It's a beautiful day outside..."
-		onchange={e => {
-			note.content = e.currentTarget.value;
-			fetchAPI('PATCH', 'notes/:id', note, note.id);
-		}}
-		onkeyup={e => {
-			if (!navigator.userAgent.includes('Firefox')) return;
-			e.currentTarget.rows = Math.min(e.currentTarget.value.split('\n').length, 40);
-		}}>{note.content}</textarea
+		onchange={() => fetchAPI('PATCH', 'notes/:id', note, note.id)}
+		rows={navigator.userAgent.includes('Firefox') && note.content ? Math.max(Math.min(note.content.split('\n').length, 40), 3) : null}
+		>{note.content}</textarea
 	>
 </div>
 
