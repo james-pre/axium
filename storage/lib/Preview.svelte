@@ -1,9 +1,12 @@
 <script lang="ts">
+	import { copy } from '@axium/client/clipboard';
 	import { FormDialog, Icon, Popover } from '@axium/client/components';
 	import type { AccessControllable } from '@axium/core';
 	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { openers, previews } from '@axium/storage/client/3rd-party';
 	import type { StorageItemMetadata } from '@axium/storage/common';
+	import '@axium/storage/polyfills';
+	import { encodeUUID, type UUID } from 'utilium';
 
 	const {
 		item,
@@ -24,7 +27,7 @@
 
 {#snippet action(name: string, icon: string)}
 	<span class="icon-text preview-action" onclick={() => dialogs[name].showModal()}>
-		<Icon i={icon} --size="18px" />
+		<Icon i={icon} />
 	</span>
 {/snippet}
 
@@ -50,13 +53,24 @@
 		{@render action('rename', 'pencil')}
 		{#if shareDialog}
 			<span class="icon-text preview-action" onclick={() => shareDialog.showModal()}>
-				<Icon i="user-group" --size="18px" />
+				<Icon i="user-group" />
 			</span>
 		{/if}
 		{@render action('download', 'download')}
+		<span
+			class="icon-text preview-action"
+			onclick={() =>
+				copy(
+					'text/plain',
+					new URL('/f/' + encodeUUID(item.id as UUID).toBase64({ alphabet: 'base64url', omitPadding: true }), location.origin)
+						.href
+				)}
+		>
+			<Icon i="link-horizontal" />
+		</span>
 		{@render action('trash', 'trash')}
 		{#if previewDialog}
-			<span class="mobile-hide" onclick={() => previewDialog.close()}>
+			<span class="icon-text preview-action mobile-hide" onclick={() => previewDialog.close()}>
 				<Icon i="xmark" --size="20px" />
 			</span>
 		{/if}
@@ -142,6 +156,10 @@
 <style>
 	:host {
 		anchor-scope: --preview-openers;
+	}
+
+	.preview-action {
+		--size: 18px;
 	}
 
 	.preview-action:hover {
