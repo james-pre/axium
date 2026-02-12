@@ -300,6 +300,11 @@ h6 {
 		cursor: pointer;
 	}
 
+	.mobile-subtle {
+		opacity: 69%;
+		font-size: 0.9em;
+	}
+
 	.mobile-button:hover {
 		background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
 	}
