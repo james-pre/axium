@@ -101,6 +101,7 @@
 			resize: none;
 			field-sizing: content;
 			height: max-content;
+			overflow-y: scroll;
 		}
 	}
 
