@@ -63,8 +63,8 @@
 				{ i: 'pencil', text: 'Rename', action: () => dialogs.rename.showModal() },
 				{ i: 'user-group', text: 'Share', action: () => dialogs['share:' + item.id].showModal() },
 				{ i: 'download', text: 'Download', action: () => dialogs.download.showModal() },
-				{ i: 'trash', text: 'Trash', action: () => dialogs.trash.showModal() },
-				{ i: 'link-horizontal', text: 'Copy Short URL', action: () => copyShortURL(item) }
+				{ i: 'link-horizontal', text: 'Copy Link', action: () => copyShortURL(item) },
+				{ i: 'trash', text: 'Trash', action: () => dialogs.trash.showModal() }
 			)}
 		>
 			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
