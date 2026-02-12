@@ -1,5 +1,6 @@
-export { default as StorageAdd } from './Add.svelte';
-export { default as StorageList } from './List.svelte';
-export { default as StorageSidebar } from './Sidebar.svelte';
-export { default as StorageSidebarItem } from './SidebarItem.svelte';
-export { default as StorageUsage } from './Usage.svelte';
+export { default as Add } from './Add.svelte';
+export { default as List } from './List.svelte';
+export { default as Preview } from './Preview.svelte';
+export { default as Sidebar } from './Sidebar.svelte';
+export { default as SidebarItem } from './SidebarItem.svelte';
+export { default as Usage } from './Usage.svelte';

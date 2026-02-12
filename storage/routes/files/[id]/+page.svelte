@@ -1,13 +1,17 @@
 <script lang="ts">
-	import { Icon } from '@axium/client/components';
-	import { StorageAdd, StorageList } from '@axium/storage/components';
+	import { AccessControlDialog, Icon } from '@axium/client/components';
+	import { Add, List, Preview } from '@axium/storage/components';
 	import type { PageProps } from './$types';
 	import { updateItemMetadata } from '@axium/storage/client';
 
 	const { data }: PageProps = $props();
 
 	let items = $state(data.items!);
-	const item = $state(data.item);
+	const item = $derived(data.item);
+	const user = $derived(data.session?.user);
+	let shareDialog = $state<HTMLDialogElement>();
+
+	const parentHref = $derived('/files' + (item.parentId ? '/' + item.parentId : ''));
 </script>
 
 <svelte:head>
@@ -29,13 +33,35 @@
 		class="icon-text"
 		onclick={e => {
 			e.preventDefault();
-			location.href = '/files' + (item.parentId ? '/' + item.parentId : '');
+			location.href = parentHref;
 		}}
 	>
 		<Icon i="folder-arrow-up" /> Back
 	</button>
-	<StorageList appMode bind:items user={data.session?.user} />
-	<StorageAdd parentId={item.id} onAdd={item => items.push(item)} />
+	<List appMode bind:items user={data.session?.user} />
+	<Add parentId={item.id} onAdd={item => items.push(item)} />
 {:else}
-	<p>No preview available.</p>
+	<div class="preview-container">
+		<AccessControlDialog
+			bind:dialog={shareDialog}
+			{item}
+			itemType="storage"
+			editable={(item.acl?.find(
+				a =>
+					a.userId == user?.id ||
+					(a.role && user?.roles.includes(a.role)) ||
+					(a.tag && user?.tags?.includes(a.tag)) ||
+					(!a.userId && !a.role && !a.tag)
+			)?.manage as boolean | undefined) ?? true}
+		/>
+		<Preview {item} {shareDialog} onDelete={() => (location.href = parentHref)} />
+	</div>
 {/if}
+
+<style>
+	.preview-container {
+		position: relative;
+		width: 100%;
+		height: 100%;
+	}
+</style>

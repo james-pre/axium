@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { StorageList } from '@axium/storage/components';
+	import { List } from '@axium/storage/components';
 
 	const { data } = $props();
 	let items = $state(data.items!);
@@ -9,4 +9,4 @@
 	<title>Files - Shared With You</title>
 </svelte:head>
 
-<StorageList appMode bind:items emptyText="No items have been shared with you." user={data.session?.user} />
+<List appMode bind:items emptyText="No items have been shared with you." user={data.session?.user} />

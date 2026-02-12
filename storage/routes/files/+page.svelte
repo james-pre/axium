@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { StorageAdd, StorageList } from '@axium/storage/components';
+	import { Add, List } from '@axium/storage/components';
 
 	const { data } = $props();
 	let items = $state(data.items!);
@@ -9,5 +9,5 @@
 	<title>Files</title>
 </svelte:head>
 
-<StorageList appMode bind:items user={data.session?.user} />
-<StorageAdd onAdd={item => items.push(item)} />
+<List appMode bind:items user={data.session?.user} />
+<Add onAdd={item => items.push(item)} />

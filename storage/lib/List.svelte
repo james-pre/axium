@@ -1,13 +1,12 @@
 <script lang="ts">
-	import { AccessControlDialog, FormDialog, Icon, Popover } from '@axium/client/components';
+	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { errorText } from '@axium/core/io';
-	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
-	import { openers, previews } from '@axium/storage/client/3rd-party';
+	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
+	import Preview from './Preview.svelte';
 
 	let {
 		items = $bindable(),
@@ -95,73 +94,12 @@
 
 <dialog bind:this={dialogs.preview} class="preview">
 	{#if activeItem}
-		{@const { type, dataURL } = activeItem}
-		{@const itemOpeners = openers.filter(opener => opener.types.includes(type))}
-		<div class="preview-top-bar">
-			<div class="title">{activeItem.name}</div>
-			{#if itemOpeners.length}
-				{@const [first, ...others] = itemOpeners}
-				<div class="openers">
-					<span>Open with <a href={first.openURL(activeItem)} target="_blank">{first.name}</a></span>
-					{#if others.length}
-						<Popover>
-							{#snippet toggle()}
-								<span class="popover-toggle"><Icon i="caret-down" /></span>
-							{/snippet}
-							{#each others as opener}
-								<a href={opener.openURL(activeItem)} target="_blank">{opener.name}</a>
-							{/each}
-						</Popover>
-					{/if}
-				</div>
-			{/if}
-			<div class="actions">
-				{@render action('rename', 'pencil', i, true)}
-				{@render action('share:' + activeItem.id, 'user-group', i, true)}
-				{@render action('download', 'download', i, true)}
-				{@render action('trash', 'trash', i, true)}
-				<span class="mobile-hide" onclick={() => dialogs.preview.close()}>
-					<Icon i="xmark" --size="20px" />
-				</span>
-			</div>
-		</div>
-		<div class="content">
-			{#if type.startsWith('image/')}
-				<img src={dataURL} alt={activeItem.name} width="100%" />
-			{:else if type.startsWith('audio/')}
-				<audio src={dataURL} controls></audio>
-			{:else if type.startsWith('video/')}
-				<video src={dataURL} controls width="100%">
-					<track kind="captions" />
-				</video>
-			{:else if type == 'application/pdf'}
-				<object data={dataURL} type="application/pdf" width="100%" height="100%">
-					<embed src={dataURL} type="application/pdf" width="100%" height="100%" />
-					<p>PDF not displayed? <a href={dataURL} download={activeItem.name}>Download</a></p>
-				</object>
-			{:else if type.startsWith('text/')}
-				{#await downloadItem(activeItem.id).then(b => b.text())}
-					<div class="full-fill no-preview">
-						<Icon i="cloud-arrow-down" --size="50px" />
-						<span>Loading</span>
-					</div>
-				{:then content}
-					<pre class="full-fill preview-text">{content}</pre>
-				{:catch}
-					<div class="full-fill no-preview">
-						<Icon i="cloud-exclamation" --size="50px" />
-						<span>Error loading preview. You might not have permission to view this file.</span>
-					</div>
-				{/await}
-			{:else if previews.has(type)}
-				{@render previews.get(type)!(activeItem)}
-			{:else}
-				<div class="full-fill no-preview">
-					<Icon i="eye-slash" --size="50px" />
-					<span>Preview not available</span>
-				</div>
-			{/if}
-		</div>
+		<Preview
+			item={activeItem}
+			previewDialog={dialogs.preview}
+			shareDialog={dialogs['share:' + activeItem.id]}
+			onDelete={() => items.splice(activeIndex, 1)}
+		/>
 	{/if}
 </dialog>
 
@@ -218,98 +156,5 @@
 		border: none;
 		padding: 1em;
 		word-wrap: normal;
-		anchor-scope: --preview-openers;
-
-		.preview-action:hover {
-			cursor: pointer;
-		}
-
-		.preview-top-bar {
-			display: flex;
-			align-items: center;
-			gap: 1em;
-			justify-content: space-between;
-			padding: 0;
-			position: absolute;
-			inset: 0.5em 1em 0;
-			height: fit-content;
-
-			> div {
-				display: flex;
-				gap: 1em;
-				align-items: center;
-			}
-		}
-
-		.openers {
-			padding: 1em;
-			border: 1px solid var(--border-accent);
-			border-radius: 1em;
-			height: 2em;
-			anchor-name: --preview-openers;
-		}
-
-		.openers :global([popover]) {
-			inset: anchor(bottom) anchor(right) auto anchor(left);
-			position-anchor: --preview-openers;
-			width: anchor-size(width);
-		}
-
-		.actions {
-			right: 0;
-		}
-
-		.content {
-			position: absolute;
-			inset: 3em 10em 0;
-
-			.full-fill {
-				position: absolute;
-				inset: 0;
-				width: 100%;
-				height: 100%;
-			}
-
-			.preview-text {
-				white-space: pre-wrap;
-				overflow-y: scroll;
-				line-height: 1.6;
-				background-color: var(--bg-menu);
-				font-family: monospace;
-			}
-		}
-
-		.no-preview {
-			display: flex;
-			flex-direction: column;
-			gap: 1em;
-			align-items: center;
-			justify-content: center;
-		}
-
-		@media (width < 700px) {
-			.preview-top-bar {
-				flex-direction: column;
-
-				.actions {
-					justify-content: space-around;
-					width: 100%;
-
-					.preview-action {
-						padding: 1em;
-						flex: 1 1 0;
-						border-radius: 1em;
-						border: 1px solid var(--border-accent);
-						padding: 1em;
-						justify-content: center;
-						display: flex;
-					}
-				}
-			}
-
-			.content {
-				inset: 10em 1em 0;
-			}
-		}
 	}
 </style>

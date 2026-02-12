@@ -2,7 +2,7 @@
 	import { NumberBar } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import { formatBytes } from '@axium/core/format';
-	import { StorageList } from '@axium/storage/components';
+	import { List } from '@axium/storage/components';
 
 	const { data } = $props();
 	const { limits } = data.info;
@@ -21,4 +21,4 @@
 
 <p><NumberBar max={limits.user_size * 1_000_000} value={usedBytes} text={barText} /></p>
 
-<StorageList bind:items emptyText="You have not uploaded any files yet." user={data.session?.user} />
+<List bind:items emptyText="You have not uploaded any files yet." user={data.session?.user} />
