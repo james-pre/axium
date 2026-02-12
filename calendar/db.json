@@ -1,0 +1,93 @@
+{
+	"$schema": "../server/schemas/db.json",
+	"format": 0,
+	"versions": [
+		{
+			"delta": false,
+			"tables": {
+				"calendars": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"name": { "type": "text", "required": true }
+					}
+				},
+				"events": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"calId": { "type": "uuid", "required": true, "references": "calendars.id", "onDelete": "cascade" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"summary": { "type": "text", "required": true },
+						"description": { "type": "text" },
+						"location": { "type": "text" },
+						"start": { "type": "timestamptz", "required": true },
+						"end": { "type": "timestamptz", "required": true },
+						"recurrence": { "type": "text" },
+						"recurrenceExcludes": { "type": "text[]" },
+						"recurrenceId": { "type": "uuid", "references": "events.id", "onDelete": "cascade" }
+					}
+				},
+				"acl.calendars": {
+					"columns": {
+						"itemId": { "type": "uuid", "required": true, "references": "calendars.id", "onDelete": "cascade" },
+						"userId": { "type": "uuid", "references": "users.id", "onDelete": "cascade" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"role": { "type": "text" },
+						"tag": { "type": "text" },
+						"read": { "type": "boolean", "required": true, "default": false },
+						"edit": { "type": "boolean", "required": true, "default": false },
+						"manage": { "type": "boolean", "required": true, "default": false }
+					},
+					"constraints": {
+						"unique_calendars": { "type": "unique", "on": ["itemId", "userId", "role", "tag"], "nulls_not_distinct": true }
+					}
+				},
+				"acl.events": {
+					"columns": {
+						"itemId": { "type": "uuid", "required": true, "references": "events.id", "onDelete": "cascade" },
+						"userId": { "type": "uuid", "references": "users.id", "onDelete": "cascade" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"role": { "type": "text" },
+						"tag": { "type": "text" },
+						"read": { "type": "boolean", "required": true, "default": false },
+						"edit": { "type": "boolean", "required": true, "default": false },
+						"manage": { "type": "boolean", "required": true, "default": false }
+					},
+					"constraints": {
+						"unique_events": { "type": "unique", "on": ["itemId", "userId", "role", "tag"], "nulls_not_distinct": true }
+					}
+				},
+				"attendees": {
+					"columns": {
+						"eventId": { "type": "uuid", "required": true, "references": "events.id", "onDelete": "cascade" },
+						"email": { "type": "text", "required": true },
+						"name": { "type": "text" },
+						"userId": { "type": "uuid", "references": "users.id", "onDelete": "cascade" },
+						"status": { "type": "text" },
+						"role": { "type": "text" }
+					},
+					"constraints": {
+						"unique_attendees": { "type": "unique", "on": ["eventId", "email"] }
+					}
+				}
+			},
+			"indexes": [
+				"calendars:userId",
+				"acl.calendars:userId",
+				"acl.calendars:itemId",
+				"events:calId",
+				"events:recurrenceId",
+				"acl.events:userId",
+				"acl.events:itemId",
+				"attendees:eventId",
+				"attendees:userId"
+			]
+		}
+	],
+	"wipe": ["calendars", "events", "acl.calendars", "acl.events"],
+	"acl_tables": {
+		"calendars": "acl.calendars",
+		"events": "acl.events"
+	}
+}
