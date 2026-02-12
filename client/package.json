@@ -34,6 +34,7 @@
 		"./*": "./dist/*.js",
 		"./components": "./lib/index.js",
 		"./components/*": "./lib/*.svelte",
+		"./attachments": "./lib/attachments.js",
 		"./styles/*": "./styles/*.css"
 	},
 	"scripts": {

@@ -16,6 +16,5 @@ export { default as URLText } from './URLText.svelte';
 export { default as UserCard } from './UserCard.svelte';
 export { default as UserMenu } from './UserMenu.svelte';
 export { default as Version } from './Version.svelte';
-export { default as WithContextMenu } from './WithContextMenu.svelte';
 export { default as ZodForm } from './ZodForm.svelte';
 export { default as ZodInput } from './ZodInput.svelte';
