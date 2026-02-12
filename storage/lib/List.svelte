@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { contextMenu } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { copyShortURL } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
 
@@ -57,6 +59,13 @@
 				} else if (appMode) location.href = '/files/' + item.id;
 				else items = await getDirectoryMetadata(item.id);
 			}}
+			{@attach contextMenu(
+				{ i: 'pencil', text: 'Rename', action: () => dialogs.rename.showModal() },
+				{ i: 'user-group', text: 'Share', action: () => dialogs['share:' + item.id].showModal() },
+				{ i: 'download', text: 'Download', action: () => dialogs.download.showModal() },
+				{ i: 'trash', text: 'Trash', action: () => dialogs.trash.showModal() },
+				{ i: 'link-horizontal', text: 'Copy Short URL', action: () => copyShortURL(item) }
+			)}
 		>
 			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 			<span class="name">{item.name}</span>

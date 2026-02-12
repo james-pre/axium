@@ -1,12 +1,11 @@
 <script lang="ts">
-	import { copy } from '@axium/client/clipboard';
 	import { FormDialog, Icon, Popover } from '@axium/client/components';
 	import type { AccessControllable } from '@axium/core';
 	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { openers, previews } from '@axium/storage/client/3rd-party';
+	import { copyShortURL } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import '@axium/storage/polyfills';
-	import { encodeUUID, type UUID } from 'utilium';
 
 	const {
 		item,
@@ -57,15 +56,7 @@
 			</span>
 		{/if}
 		{@render action('download', 'download')}
-		<span
-			class="icon-text preview-action"
-			onclick={() =>
-				copy(
-					'text/plain',
-					new URL('/f/' + encodeUUID(item.id as UUID).toBase64({ alphabet: 'base64url', omitPadding: true }), location.origin)
-						.href
-				)}
-		>
+		<span class="icon-text preview-action" onclick={() => copyShortURL(item)}>
 			<Icon i="link-horizontal" />
 		</span>
 		{@render action('trash', 'trash')}
