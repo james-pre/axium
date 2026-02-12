@@ -221,6 +221,20 @@ input.error {
 	gap: 0.1em;
 }
 
+[popover] .menu-item {
+	display: inline-flex;
+	align-items: center;
+	padding: 0.5em 0.75em;
+	gap: 1em;
+	border-radius: 0.5em;
+	user-select: none;
+
+	&:hover {
+		background-color: var(--bg-strong);
+		cursor: pointer;
+	}
+}
+
 .icon-text {
 	display: inline-flex;
 	align-items: center;

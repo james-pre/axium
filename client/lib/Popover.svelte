@@ -11,8 +11,6 @@
 	}
 </script>
 
-<!-- svelte-ignore a11y_click_events_have_key_events -->
-<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div {onclick}>
 	{#if toggle}
 		{@render toggle()}
@@ -54,18 +52,5 @@
 		position-visibility: always;
 		left: anchor(left);
 		top: anchor(bottom);
-	}
-
-	[popover] :global(.menu-item) {
-		display: inline-flex;
-		align-items: center;
-		padding: 0.5em 0.75em;
-		gap: 1em;
-		border-radius: 0.5em;
-
-		&:hover {
-			background-color: var(--bg-strong);
-			cursor: pointer;
-		}
 	}
 </style>
