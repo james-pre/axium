@@ -71,6 +71,10 @@
 		onchange={e => {
 			note.content = e.currentTarget.value;
 			fetchAPI('PATCH', 'notes/:id', note, note.id);
+		}}
+		onkeyup={e => {
+			if (!navigator.userAgent.includes('Firefox')) return;
+			e.currentTarget.rows = Math.min(e.currentTarget.value.split('\n').length, 40);
 		}}>{note.content}</textarea
 	>
 </div>
