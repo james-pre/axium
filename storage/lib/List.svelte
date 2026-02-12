@@ -67,12 +67,14 @@
 				{ i: 'trash', text: 'Trash', action: () => dialogs.trash.showModal() }
 			)}
 		>
-			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
+			<dfn class="type" title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 			<span class="name">{item.name}</span>
-			<span>{item.modifiedAt.toLocaleString()}</span>
-			<span>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span>
+			<span class="modified mobile-subtle">{item.modifiedAt.toLocaleString()}</span>
+			<span class={['size', item.type != 'inode/directory' && 'file-size', 'mobile-subtle']}
+				>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span
+			>
 			<div
-				style:display="contents"
+				class="item-actions"
 				onclick={e => {
 					e.stopPropagation();
 					e.stopImmediatePropagation();
@@ -153,8 +155,38 @@
 </FormDialog>
 
 <style>
+	.item-actions {
+		display: contents;
+	}
+
 	.list-item {
 		grid-template-columns: 1em 4fr 15em 5em repeat(4, 1em);
+	}
+
+	@media (width < 700px) {
+		.item-actions {
+			display: none;
+		}
+
+		.list-item {
+			grid-template-columns: 1em 2fr 1fr;
+			row-gap: 0.25em;
+
+			.modified {
+				grid-row: 2;
+				grid-column: 2;
+			}
+
+			.size {
+				grid-row: 2;
+				grid-column: 3;
+				text-align: right;
+
+				&:not(.file-size) {
+					display: none;
+				}
+			}
+		}
 	}
 
 	dialog.preview {
