@@ -60,11 +60,11 @@
 				else items = await getDirectoryMetadata(item.id);
 			}}
 			{@attach contextMenu(
-				{ i: 'pencil', text: 'Rename', action: () => dialogs.rename.showModal() },
-				{ i: 'user-group', text: 'Share', action: () => dialogs['share:' + item.id].showModal() },
-				{ i: 'download', text: 'Download', action: () => dialogs.download.showModal() },
-				{ i: 'link-horizontal', text: 'Copy Link', action: () => copyShortURL(item) },
-				{ i: 'trash', text: 'Trash', action: () => dialogs.trash.showModal() }
+				{ i: 'pencil', text: 'Rename', action: () => ((activeIndex = i), dialogs.rename.showModal()) },
+				{ i: 'user-group', text: 'Share', action: () => ((activeIndex = i), dialogs['share:' + item.id].showModal()) },
+				{ i: 'download', text: 'Download', action: () => ((activeIndex = i), dialogs.download.showModal()) },
+				{ i: 'link-horizontal', text: 'Copy Link', action: () => ((activeIndex = i), copyShortURL(item)) },
+				{ i: 'trash', text: 'Trash', action: () => ((activeIndex = i), dialogs.trash.showModal()) }
 			)}
 		>
 			<dfn class="type" title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
