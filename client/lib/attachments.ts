@@ -17,7 +17,7 @@ export interface ContextMenuItem {
 /**
  * Attach a context menu to an element with the given actions
  */
-export function contextMenu(...menuItems: ContextMenuItem[]) {
+export function contextMenu(...menuItems: (ContextMenuItem | false | null | undefined)[]) {
 	function _attachContextMenu(element: HTMLElement) {
 		const menu = document.createElement('div');
 		menu.popover = 'auto';
@@ -26,6 +26,7 @@ export function contextMenu(...menuItems: ContextMenuItem[]) {
 		const mountedIcons = new Set<Record<string, any>>();
 
 		for (const item of menuItems) {
+			if (!item) continue;
 			const div = document.createElement('div');
 			div.classList.add('icon-text', 'menu-item');
 			if (item.danger) div.classList.add('danger');
