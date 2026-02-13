@@ -9,6 +9,7 @@
 	import { copyShortURL } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
+	import { copy } from '@axium/client/clipboard';
 
 	let {
 		items = $bindable(),
@@ -64,7 +65,8 @@
 				{ i: 'user-group', text: 'Share', action: () => ((activeIndex = i), dialogs['share:' + item.id].showModal()) },
 				{ i: 'download', text: 'Download', action: () => ((activeIndex = i), dialogs.download.showModal()) },
 				{ i: 'link-horizontal', text: 'Copy Link', action: () => ((activeIndex = i), copyShortURL(item)) },
-				{ i: 'trash', text: 'Trash', action: () => ((activeIndex = i), dialogs.trash.showModal()) }
+				{ i: 'trash', text: 'Trash', action: () => ((activeIndex = i), dialogs.trash.showModal()) },
+				user?.preferences?.debug && { i: 'hashtag', text: 'Copy ID', action: () => copy('text/plain', item.id) }
 			)}
 		>
 			<dfn class="type" title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
