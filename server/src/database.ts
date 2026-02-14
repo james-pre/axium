@@ -977,7 +977,7 @@ export async function applyDelta(delta: VersionDelta, forceAbort: boolean = fals
 			}
 
 			for (const [colName, column] of Object.entries(tableDelta.alter_columns)) {
-				if (column.default) await query.alterColumn(colName, col => col.setDefault(sql.raw(column.default!))).execute();
+				if (column.default) await query.alterColumn(colName, col => col.setDefault(column.default!)).execute();
 				if (column.type) await query.alterColumn(colName, col => col.setDataType(sql.raw(column.type!))).execute();
 				for (const op of column.ops ?? []) {
 					switch (op) {
