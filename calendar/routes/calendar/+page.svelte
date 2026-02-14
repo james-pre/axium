@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { EventInitFormData } from '@axium/calendar/client';
-	import { getCalPermissionsInfo, weekDaysFor, type EventInit } from '@axium/calendar/common';
+	import { getCalPermissionsInfo, weekDaysFor, type Event, type EventInit } from '@axium/calendar/common';
 	import * as Calendar from '@axium/calendar/components';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
-	import { AccessControlDialog, FormDialog, Icon, Popover, ZodInput, ZodForm } from '@axium/client/components';
+	import { AccessControlDialog, FormDialog, Icon, Popover } from '@axium/client/components';
+	import UserDiscovery from '@axium/client/components/UserDiscovery';
 	import { fetchAPI } from '@axium/client/requests';
 	import { SvelteDate } from 'svelte/reactivity';
-	import { _throw } from 'utilium';
-	import * as z from 'zod';
+	import { _throw, type WithRequired } from 'utilium';
+	import z from 'zod';
 	const { data } = $props();
 
 	const { user } = data.session;
@@ -27,7 +28,7 @@
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	let eventInit = $state<EventInit>({} as EventInit);
+	let eventInit = $state<WithRequired<EventInit, 'attendees'>>({ attendees: [] } as any);
 </script>
 
 <svelte:head>
@@ -146,26 +147,21 @@
 	</div>
 </div>
 
-<!--
-export const EventInit = z.object({
-	calId: z.uuid(),
-	summary: z.string(),
-	location: z.string().nullish(),
-	start: z.coerce.date(),
-	end: z.coerce.date(),
-	description: z.string().nullish(),
-	attendees: AttendeeInit.array().optional().default([]),
-	// note: recurrences are not support yet
-	recurrence: z.string().nullish(),
-	recurrenceExcludes: z.array(z.string()).nullish(),
-	recurrenceId: z.uuid().nullish(),
-});
--->
-
 <FormDialog
 	id="new-event"
 	submitText="Create"
-	submit={(data: EventInitFormData) => fetchAPI('PUT', 'calendars/:id/events', { ...data, ...eventInit, attendees: [] }, data.calId)}
+	submit={async (data: EventInitFormData) => {
+		const calendar = calendars.find(cal => cal.id == data.calId);
+		if (!calendar) throw 'Invalid calendar';
+		const event: Event = await fetchAPI(
+			'PUT',
+			'calendars/:id/events',
+			{ ...data, ...eventInit, recurrenceExcludes: [], recurrenceId: null },
+			data.calId
+		);
+		event.calendar = calendar;
+		calendar.events?.push(event);
+	}}
 >
 	<input name="summary" type="text" required placeholder="Add title" />
 	<div class="event-times-container">
@@ -174,13 +170,15 @@ export const EventInit = z.object({
 			<input type="datetime-local" name="start" id="eventInit.start" required />
 			<input type="datetime-local" name="end" id="eventInit.end" required />
 			<div class="event-time-options">
-				<input bind:checked={eventInit.isAllDay} id="eventInit.isAllDay:checkbox" type="checkbox" required />
+				<input bind:checked={eventInit.isAllDay} id="eventInit.isAllDay:checkbox" type="checkbox" />
 				<label for="eventInit.isAllDay:checkbox" class="checkbox">
 					{#if eventInit.isAllDay}<Icon i="check" --size="1.3em" />{/if}
 				</label>
 				<label for="eventInit.isAllDay:checkbox">All day</label>
 				<div class="spacing"></div>
-				<select class="recurrence"></select>
+				<select class="recurrence">
+					<!-- @todo -->
+				</select>
 			</div>
 		</div>
 	</div>
@@ -192,6 +190,27 @@ export const EventInit = z.object({
 				<option value={cal.id}>{cal.name}</option>
 			{/each}
 		</select>
+	</div>
+
+	<div class="attendees-container">
+		<label for="eventInit.attendee"><Icon i="user-group" /></label>
+		<div class="attendees">
+			<UserDiscovery
+				noRoles
+				allowExact
+				onSelect={target => {
+					const { data: userId } = z.uuid().safeParse(target);
+					const { data: email } = z.email().safeParse(target);
+					if (!userId && !email) throw 'Can not determine attendee: ' + target;
+					if (!email) throw 'Specifying attendees without an email is not supported yet';
+					// @todo supports roles and also contacts
+					eventInit.attendees.push({ userId, email });
+				}}
+			/>
+			{#each eventInit.attendees as attendee (attendee.email)}
+				<div class="attendee">{attendee.email}</div>
+			{/each}
+		</div>
 	</div>
 
 	<div>
@@ -244,13 +263,15 @@ export const EventInit = z.object({
 			div:has(label ~ input),
 			div:has(label ~ textarea),
 			div:has(label ~ select),
-			.event-times-container {
+			.event-times-container,
+			.attendees-container {
 				display: flex;
 				flex-direction: row;
 				gap: 0.5em;
 			}
 
-			div.event-times {
+			div.event-times,
+			div.attendees {
 				display: flex;
 				flex-direction: column;
 				gap: 0.5em;

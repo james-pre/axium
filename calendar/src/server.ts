@@ -101,6 +101,7 @@ addRoute({
 			.select(withAttendees)
 			.where('calId', '=', id)
 			.where(sql<boolean>`(${sql.ref('start')}, ${sql.ref('end')}) OVERLAPS (${sql.val(filter.start)}, ${sql.val(filter.end)})`)
+			.limit(1000)
 			.execute()
 			.catch(withError('Could not get events'));
 
@@ -113,15 +114,33 @@ addRoute({
 
 		const { item: calendar } = await authRequestForItem(request, 'calendars', id, { edit: true });
 
-		const event = await database
-			.insertInto('events')
-			.values({ ...init, calId: id })
-			.returningAll()
-			.returning(withAttendees)
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not create event'));
+		const { attendees: attendeesInit = [] } = init;
+		delete init.attendees;
 
-		return Object.assign(event, { calendar });
+		if (attendeesInit.length > 100) throw error(400, 'Too many attendees');
+
+		const tx = await database.startTransaction().execute();
+		try {
+			const event = await tx
+				.insertInto('events')
+				.values({ ...init, calId: id })
+				.returningAll()
+				.returning(sql<Attendee[]>`'[]'::jsonb`.as('attendees'))
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not create event'));
+
+			const attendees = await tx
+				.insertInto('attendees')
+				.values(attendeesInit.map(a => ({ ...a, eventId: event.id })))
+				.returningAll()
+				.execute();
+
+			await tx.commit().execute();
+			return Object.assign(event, { attendees, calendar });
+		} catch (e) {
+			await tx.rollback().execute();
+			throw e;
+		}
 	},
 });
 
