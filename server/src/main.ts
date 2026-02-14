@@ -583,6 +583,20 @@ axiumPlugin
 		if (!plugin) io.exit(`Can't find a plugin matching "${search}"`);
 
 		await using _ = db.connect();
+		const info = db.getUpgradeInfo();
+		const exclude = Object.keys(info.current);
+		if (exclude.includes(plugin.name)) io.exit('Plugin is already initialized (database)');
+		const schema = db.getFullSchema({ exclude });
+		const delta = db.computeDelta({ tables: {}, indexes: [] }, schema);
+		if (db.deltaIsEmpty(delta)) {
+			io.info('Plugin does not define any database schema.');
+			return;
+		}
+		for (const text of db.displayDelta(delta)) console.log(text);
+		await rlConfirm();
+		await db.applyDelta(delta);
+		Object.assign(info.current, schema.versions);
+		db.setUpgradeInfo(info);
 	});
 
 const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);
