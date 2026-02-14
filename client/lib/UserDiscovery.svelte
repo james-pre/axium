@@ -1,22 +1,25 @@
 <script lang="ts">
 	import { fetchAPI } from '@axium/client/requests';
-	import { getUserImage, type AccessTarget, type UserPublic } from '@axium/core';
+	import { getUserImage, type UserPublic } from '@axium/core';
 	import { colorHash } from '@axium/core/color';
-	import Icon from './Icon.svelte';
 	import { errorText } from '@axium/core/io';
+	import Icon from './Icon.svelte';
 
 	const {
 		onSelect,
 		enableTags = false,
 		excludeTargets = [],
+		noRoles = false,
+		allowExact,
 	}: {
-		onSelect(target: AccessTarget): unknown;
+		onSelect(target: string): unknown;
 		enableTags?: boolean;
 		excludeTargets?: string[];
+		noRoles?: boolean;
+		allowExact?: boolean;
 	} = $props();
 
-	type Result = { type: 'user'; value: UserPublic; target: string } | { type: 'role' | 'tag'; value: string; target: string };
-
+	type Result = { type: 'user'; value: UserPublic; target: string } | { type: 'role' | 'tag' | 'exact'; value: string; target: string };
 	let results = $state<Result[]>([]);
 	let value = $state<string>();
 	let gotError = $state<boolean>(false);
@@ -30,8 +33,9 @@
 		try {
 			const users = await fetchAPI('POST', 'users/discover', value);
 			results = [
+				allowExact && ({ type: 'exact', value, target: value } as const),
 				...users.map(value => ({ type: 'user', value, target: value.id }) as const),
-				{ type: 'role', value, target: '@' + value } as const,
+				!noRoles && ({ type: 'role', value, target: '@' + value } as const),
 				enableTags && ({ type: 'tag', value, target: '#' + value } as const),
 			].filter<Result>(r => !!r);
 		} catch (e) {
@@ -72,6 +76,8 @@
 								><Icon i="hashtag" />{result.value}</span
 							>
 						</span>
+					{:else if result.type == 'exact'}
+						<span class="non-user">{result.value}</span>
 					{/if}
 				</div>
 			{/if}
@@ -119,19 +125,19 @@
 	.result {
 		padding: 0.5em;
 		border-radius: 0.5em;
+
+		.non-user {
+			border-radius: 1em;
+			padding: 0.25em 0.75em;
+			display: inline-flex;
+			align-items: center;
+			gap: 0.25em;
+		}
 	}
 
 	.result:hover {
 		cursor: pointer;
 		background-color: var(--bg-strong);
-	}
-
-	.tag-or-role {
-		border-radius: 1em;
-		padding: 0.25em 0.75em;
-		display: inline-flex;
-		align-items: center;
-		gap: 0.25em;
 	}
 
 	img {
