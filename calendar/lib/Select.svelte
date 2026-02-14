@@ -50,7 +50,7 @@
 				class={[
 					'grid-day',
 					sameMonth(today) && day == today.getDate() && 'today',
-					sameMonth(start) && day >= start.getDate() && day <= end.getDate() && 'selected',
+					sameMonth(start) && day >= start.getDate() && day < end.getDate() && 'selected',
 				]}
 				onclick={() => {
 					start.setFullYear(year);
@@ -58,7 +58,7 @@
 					start.setDate(day - date.getDay());
 					end.setFullYear(year);
 					end.setMonth(month);
-					end.setDate(day - date.getDay() + 6);
+					end.setDate(day - date.getDay() + 7);
 				}}
 			>
 				{day}

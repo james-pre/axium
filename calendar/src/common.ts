@@ -60,7 +60,7 @@ export function getSpanFilter(span: 'week' | 'month', at: Date): EventFilter {
 			const startDay = at.getDate() - at.getDay();
 			return {
 				start: new Date(at.getFullYear(), at.getMonth(), startDay),
-				end: new Date(at.getFullYear(), at.getMonth(), startDay + 6),
+				end: new Date(at.getFullYear(), at.getMonth(), startDay + 7),
 			};
 		}
 		case 'month':
@@ -79,7 +79,7 @@ export const EventInit = z.object({
 	end: z.coerce.date(),
 	isAllDay: z.coerce.boolean(),
 	description: z.string().max(2000).nullish(),
-	attendees: AttendeeInit.array().optional().default([]),
+	attendees: AttendeeInit.array().optional(),
 	// note: recurrences are not support yet
 	recurrence: z.string().nullish(),
 	recurrenceExcludes: z.array(z.string()).nullish(),
