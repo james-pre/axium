@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { fetchAPI } from '@axium/client/requests';
-	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
-	import type { Note } from '@axium/notes/common';
 	import { page } from '$app/state';
+	import { dynamicRows } from '@axium/client/attachments';
 	import { copy } from '@axium/client/clipboard';
+	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
+	import { fetchAPI } from '@axium/client/requests';
+	import type { Note } from '@axium/notes/common';
 	import { download } from 'utilium/dom.js';
 
 	let { note = $bindable(), notes = $bindable(), pageMode = false }: { note: Note; notes?: Note[]; pageMode?: boolean } = $props();
@@ -70,8 +71,7 @@
 		class="editable-text"
 		placeholder="It's a beautiful day outside..."
 		onchange={() => fetchAPI('PATCH', 'notes/:id', note, note.id)}
-		rows={navigator.userAgent.includes('Firefox') && note.content ? Math.max(Math.min(note.content.split('\n').length, 40), 3) : null}
-		>{note.content}</textarea
+		{@attach dynamicRows()}>{note.content}</textarea
 	>
 </div>
 
