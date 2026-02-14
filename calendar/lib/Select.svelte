@@ -6,8 +6,12 @@
 	let { start = $bindable(), end = $bindable() }: Required<EventFilter> = $props();
 
 	const today = new Date();
+	today.setHours(0, 0, 0, 0);
 
 	let view = new SvelteDate(start);
+	$effect(() => {
+		view.setTime(start.getTime());
+	});
 
 	const firstOfMonth = $derived(new Date(view.getFullYear(), view.getMonth(), 1));
 	const firstWeekOfMonth = $derived(weekOfYear(firstOfMonth, true));
@@ -35,7 +39,9 @@
 		{/each}
 		{#each { length: lastOfMonth.getDate() }, i}
 			{@const day = i + 1}
-			{@const date = new Date(view.getFullYear(), view.getMonth(), day)}
+			{@const year = view.getFullYear()}
+			{@const month = view.getMonth()}
+			{@const date = new Date(year, month, day)}
 			{#if date.getDay() == 0 && weekOfYear(date, true) != firstWeekOfMonth}
 				<div class={['w-of-y', weekOfYear(date, true) == weekOfYear(today, true) && 'current']}>{weekOfYear(date, true)}</div>
 			{/if}
@@ -45,6 +51,14 @@
 					sameMonth(today) && day == today.getDate() && 'today',
 					sameMonth(start) && day >= start.getDate() && day <= end.getDate() && 'selected',
 				]}
+				onclick={() => {
+					start.setFullYear(year);
+					start.setMonth(month);
+					start.setDate(day - date.getDay());
+					end.setFullYear(year);
+					end.setMonth(month);
+					end.setDate(day - date.getDay() + 6);
+				}}
 			>
 				{day}
 			</div>

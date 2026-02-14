@@ -1,26 +1,29 @@
 <script lang="ts">
+	import { getCalPermissionsInfo } from '@axium/calendar/common';
 	import * as Calendar from '@axium/calendar/components';
-	import { getCalPermissionsInfo, type EventFilter } from '@axium/calendar/common';
-	import { Icon, FormDialog, Popover, AccessControlDialog } from '@axium/client/components';
+	import { contextMenu } from '@axium/client/attachments';
+	import { AccessControlDialog, FormDialog, Icon, Popover } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
+	import { SvelteDate } from 'svelte/reactivity';
 	const { data } = $props();
 
 	const { user } = data.session;
 
-	let selection = $state<EventFilter>(data.filter);
+	const today = new Date();
+	today.setHours(0, 0, 0, 0);
+
+	let start = new SvelteDate(data.filter.start);
+	let end = new SvelteDate(data.filter.end);
 	let calendars = $state(data.calendars);
 
 	const tz = new Date().toLocaleString('en', { timeStyle: 'long' }).split(' ').slice(-1)[0];
 
 	const span = 'week';
-	const weekDays = $derived.by(function* () {
-		const start = new Date(selection.start);
-		start.setDate(start.getDate() - start.getDay());
-		yield start;
-		for (let i = 1; i < 7; i++) {
-			yield new Date(start.getFullYear(), start.getMonth(), start.getDate() + i);
-		}
-	});
+	const weekDays = $derived(
+		new Array(7)
+			.fill(null)
+			.map((_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() - start.getDay() + i, 0, 0, 0, 0))
+	);
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
@@ -30,8 +33,15 @@
 </svelte:head>
 
 <div id="cal-app">
+	<button class="new-event icon-text" command="show-modal" commandfor="new-event"><Icon i="plus" /> New Event</button>
+	<div class="bar">
+		<button onclick={() => start.setTime(today.getTime())}>Today</button>
+		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+		<button style:display="contents" onclick={() => start.setDate(start.getDate() - 7)}><Icon i="chevron-left" /></button>
+		<button style:display="contents" onclick={() => start.setDate(start.getDate() + 7)}><Icon i="chevron-right" /></button>
+	</div>
 	<div id="cal-list">
-		<Calendar.Select bind:start={selection.start} bind:end={selection.end} />
+		<Calendar.Select bind:start bind:end />
 		<div class="cal-list-header">
 			<h4>My Calendars</h4>
 			<button style:display="contents" command="show-modal" commandfor="add-calendar">
@@ -39,7 +49,14 @@
 			</button>
 		</div>
 		{#each calendars.filter(cal => cal.userId == user.id) as cal (cal.id)}
-			<div class="cal-list-item">
+			<div
+				class="cal-list-item"
+				{@attach contextMenu(
+					{ i: 'pencil', text: 'Rename', action: () => dialogs['rename:' + cal.id].showModal() },
+					{ i: 'user-group', text: 'Share', action: () => dialogs['share:' + cal.id].showModal() },
+					{ i: 'trash', text: 'Delete', action: () => dialogs['delete:' + cal.id].showModal() }
+				)}
+			>
 				<span>{cal.name}</span>
 				<Popover showToggle="hover">
 					<div class="menu-item" onclick={() => dialogs['rename:' + cal.id].showModal()}>
@@ -106,7 +123,7 @@
 					<div class="day">
 						<div class="day-header">
 							<span class="subtle">{day.toLocaleString('en', { weekday: 'short' })}</span>
-							<span>{day.getDate()}</span>
+							<span class={['day-number', today.getTime() == day.getTime() && 'today']}>{day.getDate()}</span>
 						</div>
 					</div>
 				{/each}
@@ -114,6 +131,13 @@
 		{/if}
 	</div>
 </div>
+
+<FormDialog id="new-event" submitText="Create">
+	<div>
+		<label for="name">Name</label>
+		<input name="name" type="text" required />
+	</div>
+</FormDialog>
 
 <FormDialog
 	id="add-calendar"
@@ -129,14 +153,29 @@
 
 <style>
 	:global(body) {
-		top: 4em;
+		top: 5em;
 	}
 
 	#cal-app {
 		display: grid;
+		grid-template-rows: 3em 1fr;
 		grid-template-columns: 15em 1fr;
 		inset: 0;
 		position: absolute;
+	}
+
+	.new-event {
+		margin: 0.5em;
+		background-color: var(--bg-alt);
+		text-align: center;
+		justify-content: center;
+	}
+
+	.bar {
+		display: flex;
+		gap: 1em;
+		align-items: center;
+		font-weight: bold;
 	}
 
 	#cal-list {
@@ -151,6 +190,10 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
+
+			h4 {
+				margin: 0;
+			}
 		}
 	}
 
@@ -158,7 +201,9 @@
 		display: flex;
 		width: 100%;
 		height: 100%;
-		padding-left: 1em;
+		padding: 1em;
+		border-radius: 1em;
+		background-color: var(--bg-menu);
 
 		.hours {
 			display: flex;
@@ -167,6 +212,7 @@
 			text-align: right;
 			justify-content: space-around;
 			overflow-x: visible;
+			margin-top: 5em;
 		}
 
 		.hour {
@@ -202,7 +248,21 @@
 				text-align: center;
 				align-items: center;
 				justify-content: center;
-				gap: 1em;
+				gap: 0.5em;
+
+				.day-number {
+					border-radius: 0.3em;
+					width: 2em;
+					height: 2em;
+					display: inline-flex;
+					align-items: center;
+					justify-content: center;
+
+					&.today {
+						border: 1px solid var(--border-accent);
+						color: var(--fg-accent);
+					}
+				}
 			}
 		}
 	}
