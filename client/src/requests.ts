@@ -42,7 +42,7 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 	const search =
 		method != 'GET' || typeof data != 'object' || data == null || !Object.keys(data).length
 			? ''
-			: '?' + new URLSearchParams(data as Record<string, string>).toString();
+			: '?' + new URLSearchParams(JSON.parse(JSON.stringify(data))).toString();
 
 	if (token) options.headers.Authorization = 'Bearer ' + token;
 
