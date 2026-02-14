@@ -8,6 +8,11 @@
 		border-bottom: 1px solid #8888;
 	}
 	*/
+
+	@media (width < 700px) {
+		width: calc(100% - 2em);
+		min-width: unset;
+	}
 }
 
 .section:last-child {
@@ -81,11 +86,6 @@
 @media (width < 700px) {
 	.inline-button-container {
 		margin-top: 0;
-	}
-
-	.section {
-		width: calc(100% - 2em);
-		min-width: unset;
 	}
 
 	.item:is(.passkey, .session) {

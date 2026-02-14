@@ -18,6 +18,10 @@
 	border-bottom: 1.5px solid var(--fg-accent);
 	position: sticky;
 	top: 0em;
+
+	@media (width < 700px) {
+		display: none;
+	}
 }
 
 .list-item-container {
@@ -56,10 +60,4 @@ p.list-empty {
 .list-item:hover .action {
 	visibility: visible;
 	cursor: pointer;
-}
-
-@media (width < 700px) {
-	.list-header {
-		display: none;
-	}
 }
