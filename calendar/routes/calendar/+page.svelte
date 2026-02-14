@@ -1,11 +1,13 @@
 <script lang="ts">
-	import { getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
+	import type { EventInitFormData } from '@axium/calendar/client';
+	import { getCalPermissionsInfo, weekDaysFor, type EventInit } from '@axium/calendar/common';
 	import * as Calendar from '@axium/calendar/components';
-	import { contextMenu } from '@axium/client/attachments';
-	import { AccessControlDialog, FormDialog, Icon, Popover } from '@axium/client/components';
+	import { contextMenu, dynamicRows } from '@axium/client/attachments';
+	import { AccessControlDialog, FormDialog, Icon, Popover, ZodInput, ZodForm } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { _throw } from 'utilium';
+	import * as z from 'zod';
 	const { data } = $props();
 
 	const { user } = data.session;
@@ -24,6 +26,8 @@
 	const weekDays = $derived(weekDaysFor(start));
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
+
+	let eventInit = $state<EventInit>({} as EventInit);
 </script>
 
 <svelte:head>
@@ -142,10 +146,62 @@
 	</div>
 </div>
 
-<FormDialog id="new-event" submitText="Create">
+<!--
+export const EventInit = z.object({
+	calId: z.uuid(),
+	summary: z.string(),
+	location: z.string().nullish(),
+	start: z.coerce.date(),
+	end: z.coerce.date(),
+	description: z.string().nullish(),
+	attendees: AttendeeInit.array().optional().default([]),
+	// note: recurrences are not support yet
+	recurrence: z.string().nullish(),
+	recurrenceExcludes: z.array(z.string()).nullish(),
+	recurrenceId: z.uuid().nullish(),
+});
+-->
+
+<FormDialog
+	id="new-event"
+	submitText="Create"
+	submit={(data: EventInitFormData) => fetchAPI('PUT', 'calendars/:id/events', { ...data, ...eventInit, attendees: [] }, data.calId)}
+>
+	<input name="summary" type="text" required placeholder="Add title" />
+	<div class="event-times-container">
+		<label for="eventInit.start"><Icon i="clock" /></label>
+		<div class="event-times">
+			<input type="datetime-local" name="start" id="eventInit.start" required />
+			<input type="datetime-local" name="end" id="eventInit.end" required />
+			<div class="event-time-options">
+				<input bind:checked={eventInit.isAllDay} id="eventInit.isAllDay:checkbox" type="checkbox" required />
+				<label for="eventInit.isAllDay:checkbox" class="checkbox">
+					{#if eventInit.isAllDay}<Icon i="check" --size="1.3em" />{/if}
+				</label>
+				<label for="eventInit.isAllDay:checkbox">All day</label>
+				<div class="spacing"></div>
+				<select class="recurrence"></select>
+			</div>
+		</div>
+	</div>
+
 	<div>
-		<label for="name">Name</label>
-		<input name="name" type="text" required />
+		<label for="eventInit.calId"><Icon i="calendar" /></label>
+		<select id="eventInit.calId" name="calId" required bind:value={eventInit.calId}>
+			{#each calendars.filter(cal => cal.userId == user.id || getCalPermissionsInfo(cal, user).perms.edit) as cal}
+				<option value={cal.id}>{cal.name}</option>
+			{/each}
+		</select>
+	</div>
+
+	<div>
+		<label for="eventInit.location"><Icon i="location-dot" /></label>
+		<input name="location" id="eventInit.location" placeholder="Add location" />
+	</div>
+
+	<div>
+		<label for="eventInit.description"><Icon i="block-quote" /></label>
+		<textarea name="description" id="eventInit.description" placeholder="Add description" {@attach dynamicRows()}></textarea>
 	</div>
 </FormDialog>
 
@@ -179,6 +235,49 @@
 		background-color: var(--bg-alt);
 		text-align: center;
 		justify-content: center;
+	}
+
+	:global {
+		#new-event form {
+			width: 25em;
+
+			div:has(label ~ input),
+			div:has(label ~ textarea),
+			div:has(label ~ select),
+			.event-times-container {
+				display: flex;
+				flex-direction: row;
+				gap: 0.5em;
+			}
+
+			div.event-times {
+				display: flex;
+				flex-direction: column;
+				gap: 0.5em;
+				flex-grow: 1;
+			}
+
+			.event-time-options {
+				display: flex;
+				align-items: center;
+				gap: 0.5em;
+
+				.spacing {
+					flex-grow: 1;
+				}
+			}
+
+			input,
+			select,
+			textarea {
+				flex-grow: 1;
+			}
+
+			textarea {
+				padding: 0.5em;
+				font-size: 16px;
+			}
+		}
 	}
 
 	.bar {

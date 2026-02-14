@@ -23,6 +23,7 @@
 						"location": { "type": "text" },
 						"start": { "type": "timestamptz", "required": true },
 						"end": { "type": "timestamptz", "required": true },
+						"isAllDay": { "type": "boolean", "required": true, "default": false },
 						"recurrence": { "type": "text" },
 						"recurrenceExcludes": { "type": "text[]" },
 						"recurrenceId": { "type": "uuid", "references": "events.id", "onDelete": "cascade" }

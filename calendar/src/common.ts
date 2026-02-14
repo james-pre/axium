@@ -73,11 +73,12 @@ export function getSpanFilter(span: 'week' | 'month', at: Date): EventFilter {
 
 export const EventInit = z.object({
 	calId: z.uuid(),
-	summary: z.string(),
-	location: z.string().nullish(),
+	summary: z.string().max(250),
+	location: z.string().max(250).nullish(),
 	start: z.coerce.date(),
 	end: z.coerce.date(),
-	description: z.string().nullish(),
+	isAllDay: z.coerce.boolean(),
+	description: z.string().max(2000).nullish(),
 	attendees: AttendeeInit.array().optional().default([]),
 	// note: recurrences are not support yet
 	recurrence: z.string().nullish(),
@@ -108,10 +109,16 @@ export const Calendar = CalendarInit.extend({
 });
 export interface Calendar extends z.infer<typeof Calendar> {}
 
+export interface CalendarPermissionsInfo {
+	icon: string;
+	list: string;
+	perms: Record<string, boolean>;
+}
+
 export function getCalPermissionsInfo(
 	cal: WithRequired<Calendar, 'acl'>,
 	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>
-): { icon: string; list: string } {
+): CalendarPermissionsInfo {
 	const ac = cal.acl.find(
 		ac =>
 			ac.userId == user.id ||
@@ -122,12 +129,15 @@ export function getCalPermissionsInfo(
 
 	if (!ac) throw new Error('No ACL entry available to show permissions');
 
+	const perms = pickPermissions(ac);
+
 	return {
-		list: Object.entries(pickPermissions(ac))
+		list: Object.entries(perms)
 			.filter(([, v]) => v)
 			.map(([k]) => k)
 			.join(', '),
 		icon: ac.manage ? 'user-gear' : ac.edit ? 'user-pen' : ac.read ? 'user' : 'user-lock',
+		perms,
 	};
 }
 
