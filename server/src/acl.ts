@@ -1,4 +1,4 @@
-import { fromTarget, type AccessControl, type AccessTarget, type UserInternal } from '@axium/core';
+import { fromTarget, type AccessControl, type AccessControllable, type AccessTarget, type UserInternal } from '@axium/core';
 import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Entries, WithRequired } from 'utilium';
@@ -10,7 +10,7 @@ type _TableNames = keyof {
 
 type _TargetNames = keyof db.Schema &
 	keyof {
-		[K in _TableNames as K extends `acl.${infer TB extends keyof db.Schema}` ? TB : never]: null;
+		[K in keyof db.Schema as db.Schema[K] extends AccessControllable ? (`acl.${K}` extends keyof db.Schema ? K : never) : never]: null;
 	};
 
 /**
@@ -60,10 +60,8 @@ export function from<const TB extends TargetName>(
 						if (!opt.user) return allNull;
 
 						const ors = [allNull, eb('userId', '=', opt.user.id)];
-
 						if (opt.user.roles.length) ors.push(eb('role', 'in', opt.user.roles));
 						if (opt.user.tags.length) ors.push(eb('tag', 'in', opt.user.tags));
-
 						return eb.or(ors);
 					})
 				)
@@ -143,4 +141,48 @@ export function listTables(): Record<string, TableName> {
 	}
 
 	return tables;
+}
+
+export interface OptionsForWhere<TB extends TargetName> {
+	itemId?: keyof db.Schema[TB] & string;
+	/** Alias for the item table/value */
+	alias?: string;
+}
+
+/**
+ * Use in a `where` to filter by items a user can access because of an ACL entry.
+ *
+ */
+export function existsIn<const TB extends TargetName, const O extends OptionsForWhere<TB>>(
+	table: TB,
+	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
+	options: O = {} as any
+) {
+	type DB = db.Schema & { [K in O['alias'] extends string ? O['alias'] : never]: db.Schema[TB] };
+	type EB = kysely.ExpressionBuilder<DB, O['alias'] extends string ? O['alias'] & keyof DB : TB>;
+
+	return (eb: EB) =>
+		eb.exists(
+			eb
+				.selectFrom<TableName>(`acl.${table}`)
+				// @ts-expect-error 2349
+				.whereRef('itemId', '=', `${options.alias || `public.${table}`}.${options.itemId || 'id'}`)
+				.where((eb: kysely.ExpressionBuilder<db.Schema, TableName>) => {
+					const ors = [eb('userId', '=', user.id)];
+					if (user.roles.length) ors.push(eb('role', 'in', user.roles));
+					if (user.tags.length) ors.push(eb('tag', 'in', user.tags));
+					return eb.or(ors);
+				})
+		);
+}
+
+/**
+ * Use in a `where` to filter by items a user has access to
+ */
+export function userHasAccess<const TB extends TargetName>(
+	table: TB,
+	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
+	options: OptionsForWhere<TB> = {}
+) {
+	return (eb: kysely.ExpressionBuilder<db.Schema, TB>) => eb.or([eb('userId', '=', user.id as any), existsIn(table, user, options)(eb)]);
 }
