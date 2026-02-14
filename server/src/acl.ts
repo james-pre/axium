@@ -19,9 +19,7 @@ type _TargetNames = keyof db.Schema &
 export type TableName = _TableNames extends never ? keyof db.Schema : _TableNames;
 export type TargetName = _TargetNames extends never ? keyof db.Schema : _TargetNames;
 
-export interface AccessControlInternal extends AccessControl {
-	tag?: string | null;
-}
+export interface AccessControlInternal extends AccessControl {}
 
 export type PermissionsFor<TB extends TableName> = Omit<kysely.Selectable<db.Schema[TB]>, keyof AccessControlInternal | number | symbol>;
 
