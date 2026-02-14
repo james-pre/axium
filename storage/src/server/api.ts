@@ -1,9 +1,9 @@
-import { getConfig, type AsyncResult, type Result, type UserInternal } from '@axium/core';
+import { getConfig, type AsyncResult, type Result } from '@axium/core';
+import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
-import { database, type Schema } from '@axium/server/database';
+import { database } from '@axium/server/database';
 import { error, json, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import type { ExpressionBuilder } from 'kysely';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
@@ -11,7 +11,6 @@ import { batchFormatVersion, StorageItemInit, StorageItemUpdate, syncProtocolVer
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { deleteRecursive, getRecursive, getUserStats, parseItem } from './db.js';
-import { from as aclFrom } from '@axium/server/acl';
 import { checkNewItem, createNewItem, startUpload } from './item.js';
 
 addRoute({
@@ -109,7 +108,7 @@ addRoute({
 
 		const items = await database
 			.selectFrom('storage')
-			.select(aclFrom('storage'))
+			.select(acl.from('storage'))
 			.where('parentId', '=', itemId)
 			.where('trashedAt', 'is', null)
 			.selectAll()
@@ -171,7 +170,7 @@ addRoute({
 
 		const items = await database
 			.selectFrom('storage')
-			.select(aclFrom('storage'))
+			.select(acl.from('storage'))
 			.where('userId', '=', userId)
 			.where('trashedAt', 'is', null)
 			.where('parentId', 'is', null)
@@ -182,23 +181,6 @@ addRoute({
 		return items.map(parseItem);
 	},
 });
-
-function existsInACL(column: 'id' | 'parentId', user: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
-	return (eb: ExpressionBuilder<Schema & { item: Schema['storage'] }, 'item'>) =>
-		eb.exists(
-			eb
-				.selectFrom('acl.storage')
-				.whereRef('itemId', '=', `item.${column}`)
-				.where(eb => {
-					const ors = [eb('userId', '=', user.id)];
-
-					if (user.roles.length) ors.push(eb('role', 'in', user.roles));
-					if (user.tags.length) ors.push(eb('tag', 'in', user.tags));
-
-					return eb.or(ors);
-				})
-		);
-}
 
 addRoute({
 	path: '/api/users/:id/storage/shared',
@@ -211,10 +193,10 @@ addRoute({
 		const items = await database
 			.selectFrom('storage as item')
 			.selectAll('item')
-			.select(aclFrom('storage', { alias: 'item' }) as any)
+			.select(acl.from('storage', { alias: 'item' }) as any)
 			.where('trashedAt', 'is', null)
-			.where(existsInACL('id', user))
-			.where(eb => eb.not(existsInACL('parentId', user)))
+			.where(acl.existsIn('storage', user, { alias: 'item' }))
+			.where(eb => eb.not(acl.existsIn('storage', user, { alias: 'item', itemId: 'parentId' })))
 			.execute()
 			.catch(withError('Could not get storage items'));
 
