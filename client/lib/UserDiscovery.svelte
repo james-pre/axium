@@ -52,7 +52,7 @@
 </script>
 
 <input bind:value type="text" placeholder="Add users and roles" {onchange} onkeyup={onchange} />
-{#if !gotError}
+{#if !gotError && value}
 	<!-- Don't show results when we can't use the discovery API -->
 	<div class="results">
 		{#each results as result}
