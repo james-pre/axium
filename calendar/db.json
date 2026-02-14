@@ -50,7 +50,7 @@
 						"email": { "type": "text", "required": true },
 						"name": { "type": "text" },
 						"userId": { "type": "uuid", "references": "users.id", "onDelete": "cascade" },
-						"status": { "type": "text", "required": true },
+						"status": { "type": "text", "required": true, "default": "needs-action" },
 						"role": { "type": "text" }
 					},
 					"constraints": {
