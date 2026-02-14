@@ -189,7 +189,6 @@ function existsInACL(column: 'id' | 'parentId', user: Pick<UserInternal, 'id' | 
 			eb
 				.selectFrom('acl.storage')
 				.whereRef('itemId', '=', `item.${column}`)
-				.where('userId', '=', user.id)
 				.where(eb => {
 					const ors = [eb('userId', '=', user.id)];
 
