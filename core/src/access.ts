@@ -2,14 +2,16 @@ import * as z from 'zod';
 import { UserPublic } from './user.js';
 import { omit, type Omit } from 'utilium';
 
-export const AccessControl = z.looseObject({
-	itemId: z.uuid(),
-	userId: z.uuid().nullish(),
-	role: z.string().nullish(),
-	tag: z.string().nullish(),
-	user: UserPublic.nullish(),
-	createdAt: z.coerce.date(),
-});
+export const AccessControl = z
+	.object({
+		itemId: z.uuid(),
+		userId: z.uuid().nullish(),
+		role: z.string().nullish(),
+		tag: z.string().nullish(),
+		user: UserPublic.nullish(),
+		createdAt: z.coerce.date(),
+	})
+	.catchall(z.boolean());
 
 export interface AccessControl extends z.infer<typeof AccessControl> {}
 
