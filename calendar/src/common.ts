@@ -19,7 +19,8 @@ export function weekOfYear(date: Date, baseOnWeeks: boolean = false): number {
 	if (baseOnWeeks) {
 		day += new Date(date.getFullYear(), 0, 1).getDay();
 	}
-	return Math.ceil(day / 7);
+	const week = Math.ceil(day / 7);
+	return week > 52 ? week % 52 : week;
 }
 
 export const AttendeeInit = z.object({
