@@ -42,8 +42,9 @@
 			{@const year = view.getFullYear()}
 			{@const month = view.getMonth()}
 			{@const date = new Date(year, month, day)}
-			{#if date.getDay() == 0 && weekOfYear(date, true) != firstWeekOfMonth}
-				<div class={['w-of-y', weekOfYear(date, true) == weekOfYear(today, true) && 'current']}>{weekOfYear(date, true)}</div>
+			{@const WofY = weekOfYear(date, true)}
+			{#if date.getDay() == 0 && WofY != firstWeekOfMonth}
+				<div class={['w-of-y', WofY == weekOfYear(today, true) && 'current']}>{WofY}</div>
 			{/if}
 			<div
 				class={[
@@ -107,8 +108,11 @@
 			}
 
 			&.today {
+				border: 1px solid var(--border-accent);
+			}
+
+			&.selected {
 				color: var(--fg-accent);
-				border-color: var(--border-accent);
 			}
 		}
 
@@ -116,7 +120,7 @@
 		.w-of-y {
 			font-weight: bold;
 			&.current {
-				color: var(--fg-accent);
+				color: var(--fg-strong);
 			}
 		}
 	}

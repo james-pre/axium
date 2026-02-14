@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { getCalPermissionsInfo } from '@axium/calendar/common';
+	import { getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
 	import * as Calendar from '@axium/calendar/components';
 	import { contextMenu } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon, Popover } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import { SvelteDate } from 'svelte/reactivity';
+	import { _throw } from 'utilium';
 	const { data } = $props();
 
 	const { user } = data.session;
@@ -18,12 +19,9 @@
 
 	const tz = new Date().toLocaleString('en', { timeStyle: 'long' }).split(' ').slice(-1)[0];
 
-	const span = 'week';
-	const weekDays = $derived(
-		new Array(7)
-			.fill(null)
-			.map((_, i) => new Date(start.getFullYear(), start.getMonth(), start.getDate() - start.getDay() + i, 0, 0, 0, 0))
-	);
+	const span = $state('week');
+	const spanDays = $derived(span == 'week' ? 7 : _throw('Invalid span value'));
+	const weekDays = $derived(weekDaysFor(start));
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
@@ -37,8 +35,20 @@
 	<div class="bar">
 		<button onclick={() => start.setTime(today.getTime())}>Today</button>
 		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
-		<button style:display="contents" onclick={() => start.setDate(start.getDate() - 7)}><Icon i="chevron-left" /></button>
-		<button style:display="contents" onclick={() => start.setDate(start.getDate() + 7)}><Icon i="chevron-right" /></button>
+		<button
+			style:display="contents"
+			onclick={() => {
+				start.setDate(start.getDate() - spanDays);
+				end.setDate(end.getDate() - spanDays);
+			}}><Icon i="chevron-left" /></button
+		>
+		<button
+			style:display="contents"
+			onclick={() => {
+				start.setDate(start.getDate() + spanDays);
+				end.setDate(end.getDate() + spanDays);
+			}}><Icon i="chevron-right" /></button
+		>
 	</div>
 	<div id="cal-list">
 		<Calendar.Select bind:start bind:end />

@@ -23,6 +23,14 @@ export function weekOfYear(date: Date, baseOnWeeks: boolean = false): number {
 	return week > 52 ? week % 52 : week;
 }
 
+export function weekDaysFor(date: Date): Date[] {
+	const days = [];
+	for (let i = 0; i < 7; i++) {
+		days.push(new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay() + i, 0, 0, 0, 0));
+	}
+	return days;
+}
+
 export const AttendeeInit = z.object({
 	email: z.email(),
 	userId: z.uuid().nullish(),
@@ -52,7 +60,7 @@ export function getSpanFilter(span: 'week' | 'month', at: Date): EventFilter {
 			const startDay = at.getDate() - at.getDay();
 			return {
 				start: new Date(at.getFullYear(), at.getMonth(), startDay),
-				end: new Date(at.getFullYear(), at.getMonth(), startDay + 7),
+				end: new Date(at.getFullYear(), at.getMonth(), startDay + 6),
 			};
 		}
 		case 'month':
