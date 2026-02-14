@@ -25,6 +25,7 @@
 	"exclude": ["node_modules"],
 	"files": [],
 	"references": [
+		{ "path": "./calendar" },
 		{ "path": "./core" },
 		{ "path": "./client" },
 		{ "path": "./notes" },
