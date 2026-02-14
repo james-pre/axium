@@ -1,5 +1,5 @@
 import type { Passkey, Session, UserInternal, VerificationInternal, VerificationRole } from '@axium/core';
-import type { Insertable, Kysely, Selectable } from 'kysely';
+import type { Insertable, Kysely } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit, type WithRequired } from 'utilium';
 import * as acl from './acl.js';
@@ -157,7 +157,7 @@ export async function checkAuthForUser(request: Request, userId: string, sensiti
 
 export interface ItemAuthResult<TB extends acl.TargetName> {
 	fromACL: boolean;
-	item: Selectable<Schema[TB]>;
+	item: acl.WithACL<TB>;
 	user?: UserInternal;
 	session?: SessionInternal;
 }
@@ -171,21 +171,20 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 	const { userId, user } = session ?? {};
 
 	// Note: we need to do casting because of TS limitations with generics
-	const item = await db
+	const item = (await db
 		.selectFrom(itemType as acl.TableName)
 		.selectAll()
 		.where('id', '=', itemId)
 		.$if(!!userId, eb => eb.select(acl.from(itemType, { user })))
-		.$castTo<acl.WithACL<TB>>()
 		.executeTakeFirstOrThrow()
 		.catch(e => {
 			if (e.message.includes('no rows')) error(404, itemType + ' not found');
 			throw e;
-		});
+		})) as acl.WithACL<TB>;
 
 	const result: ItemAuthResult<TB> = {
 		session: session ? omit(session, 'user') : undefined,
-		item: omit(item, 'acl') as any,
+		item,
 		user,
 		fromACL: false,
 	};
