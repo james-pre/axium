@@ -17,8 +17,8 @@ export interface ContextMenuItem {
 /**
  * Attach a context menu to an element with the given actions
  */
-export function contextMenu(...menuItems: (ContextMenuItem | false | null | undefined)[]) {
-	function _attachContextMenu(element: HTMLElement) {
+export function contextMenu(...menuItems: (ContextMenuItem | false | null | undefined)[]): Attachment<HTMLElement> {
+	return function _attachContextMenu(element: HTMLElement) {
 		const menu = document.createElement('div');
 		menu.popover = 'auto';
 		menu.className = 'context-menu';
@@ -88,6 +88,29 @@ export function contextMenu(...menuItems: (ContextMenuItem | false | null | unde
 			for (const icon of mountedIcons) unmount(icon);
 			menu.remove();
 		};
-	}
-	return _attachContextMenu satisfies Attachment<HTMLElement>;
+	};
+}
+
+export function dynamicRows(max: number = 40, min: number = 3): Attachment<HTMLTextAreaElement> {
+	return function _attackDynamicRows(element: HTMLTextAreaElement) {
+		element.style.resize = 'none';
+		// @ts-expect-error field-sizing is not yet in the types
+		element.style.fieldSizing = 'content';
+		element.style.height = 'max-content';
+		element.style.overflowY = 'scroll';
+
+		function update() {
+			if (!element.value) return;
+			element.rows = Math.max(Math.min(element.value.split('\n').length, max), min);
+		}
+
+		if (!navigator.userAgent.includes('Firefox')) return;
+		update();
+		element.addEventListener('input', update);
+		element.addEventListener('keyup', update);
+		return () => {
+			element.removeEventListener('input', update);
+			element.removeEventListener('keyup', update);
+		};
+	};
 }
