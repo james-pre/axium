@@ -69,6 +69,8 @@ button.reset {
 textarea {
 	background: var(--bg-normal);
 	border: 1px solid var(--border-accent);
+	font-family: inherit;
+	font-size: inherit;
 }
 
 input,
