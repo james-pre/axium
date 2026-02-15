@@ -11,11 +11,11 @@
 	}
 </script>
 
-<div {onclick}>
+<div class="Popover" {onclick} style:display="contents">
 	{#if toggle}
 		{@render toggle()}
 	{:else}
-		<span class={['popover-toggle', showToggle == 'hover' && 'toggle-hover']}>
+		<span class={[showToggle == 'hover' && 'toggle-hover']}>
 			<Icon i="ellipsis" />
 		</span>
 	{/if}
@@ -26,12 +26,17 @@
 </div>
 
 <style>
-	.popover-toggle:hover {
-		cursor: pointer;
-	}
+	div.Popover {
+		anchor-scope: --popover;
 
-	.popover-toggle {
-		user-select: none;
+		> :global(:first-child:hover) {
+			cursor: pointer;
+		}
+
+		> :global(:first-child) {
+			user-select: none;
+			anchor-name: --popover;
+		}
 	}
 
 	@media (width > 700px) {
@@ -44,7 +49,8 @@
 		}
 	}
 
-	.popover-toggle + [popover] {
+	:popover-open {
+		position-anchor: --popover;
 		position-try-fallbacks:
 			flip-inline,
 			flip-block,

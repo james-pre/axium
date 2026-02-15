@@ -1,66 +1,78 @@
 <script lang="ts">
-	import type { User } from '@axium/core/user';
-	import { getUserImage } from '@axium/core';
 	import { fetchAPI } from '@axium/client/requests';
+	import { getUserImage } from '@axium/core';
+	import type { UserPublic } from '@axium/core/user';
 	import Icon from './Icon.svelte';
-	import Popover from './Popover.svelte';
 	import Logout from './Logout.svelte';
+	import Popover from './Popover.svelte';
 
-	const { user }: { user: Partial<User> } = $props();
+	const { user }: { user?: UserPublic } = $props();
 </script>
 
-<Popover>
-	{#snippet toggle()}
-		<div style:display="contents">
-			<img src={getUserImage(user)} alt={user.name} />
-			{user.name}
-		</div>
-	{/snippet}
+{#if user}
+	<Popover>
+		{#snippet toggle()}
+			<div class="UserMenu toggle">
+				<img src={getUserImage(user)} alt={user.name} />
+				{user.name}
+			</div>
+		{/snippet}
 
-	<a class="menu-item" href="/account">
-		<Icon i="user" --size="1.5em" />
-		<span>Your Account</span>
-	</a>
-
-	{#if user.isAdmin}
-		<a class="menu-item" href="/admin">
-			<Icon i="gear-complex" --size="1.5em" />
-			<span>Administration</span>
+		<a class="menu-item" href="/account">
+			<Icon i="user" --size="1.5em" />
+			<span>Your Account</span>
 		</a>
-	{/if}
 
-	{#await fetchAPI('GET', 'apps')}
-		<i>Loading...</i>
-	{:then apps}
-		{#each apps as app}
-			<a class="menu-item" href="/{app.id}">
-				{#if app.image}
-					<img src={app.image} alt={app.name} width="1em" height="1em" />
-				{:else if app.icon}
-					<Icon i={app.icon} --size="1.5em" />
-				{:else}
-					<Icon i="image-circle-xmark" --size="1.5em" />
-				{/if}
-				<span>{app.name}</span>
+		{#if user.isAdmin}
+			<a class="menu-item" href="/admin">
+				<Icon i="gear-complex" --size="1.5em" />
+				<span>Administration</span>
 			</a>
-		{:else}
-			<i>No apps available.</i>
-		{/each}
-	{:catch}
-		<i>Couldn't load apps.</i>
-	{/await}
+		{/if}
 
-	<button style:display="contents" command="show-modal" commandfor="logout">
-		<span class="menu-item logout">
+		{#await fetchAPI('GET', 'apps')}
+			<i>Loading...</i>
+		{:then apps}
+			{#each apps as app}
+				<a class="menu-item" href="/{app.id}">
+					{#if app.image}
+						<img src={app.image} alt={app.name} width="1em" height="1em" />
+					{:else if app.icon}
+						<Icon i={app.icon} --size="1.5em" />
+					{:else}
+						<Icon i="image-circle-xmark" --size="1.5em" />
+					{/if}
+					<span>{app.name}</span>
+				</a>
+			{:else}
+				<i>No apps available.</i>
+			{/each}
+		{:catch}
+			<i>Couldn't load apps.</i>
+		{/await}
+
+		<button class="menu-item logout reset" command="show-modal" commandfor="logout">
 			<Icon i="right-from-bracket" --size="1.5em" --fill="hsl(0 33 var(--fg-light))" />
 			<span>Logout</span>
-		</span>
-	</button>
-</Popover>
+		</button>
+	</Popover>
 
-<Logout />
+	<Logout />
+{:else}
+	<div class="UserMenu login">
+		<a href="/login?after={location.pathname}">Login</a>
+	</div>
+{/if}
 
 <style>
+	.UserMenu {
+		border-radius: 0.5em;
+		padding: 0.5em;
+		border: 1px solid var(--border-accent);
+		cursor: pointer;
+		background-color: var(--bg-alt);
+	}
+
 	img {
 		width: 2em;
 		height: 2em;
@@ -69,7 +81,18 @@
 		margin-right: 0.5em;
 	}
 
-	span.logout > span {
+	.logout {
 		color: hsl(0 33 var(--fg-light));
+		font-size: 16px;
+	}
+
+	:global(.UserMenu + div:popover-open) {
+		position: fixed;
+		left: unset;
+		right: anchor(right);
+		top: calc(anchor(bottom) + 0.5em);
+		width: fit-content;
+		height: fit-content;
+		cursor: default;
 	}
 </style>
