@@ -28,7 +28,8 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 	safeMode: boolean = false
 ): Promise<PluginInternal | void> {
 	try {
-		const path = findPackageJSON(specifier, import.meta.resolve(specifier, loadedBy));
+		const base = specifier[0] == '.' || specifier[1] == '/' ? loadedBy : import.meta.resolve(specifier, loadedBy);
+		const path = findPackageJSON(specifier, base);
 		if (!path) throw new Error(`Cannot find package.json for package ${specifier} (from ${loadedBy})`);
 		io.debug(`Loading plugin at ${path} (from ${loadedBy})`);
 
