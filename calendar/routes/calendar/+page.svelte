@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { EventInitFormData } from '@axium/calendar/client';
-	import { getCalPermissionsInfo, weekDaysFor, type Event, type EventInit } from '@axium/calendar/common';
+	import type { Event, EventInit } from '@axium/calendar/common';
+	import { formatEventTimes, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
 	import * as Calendar from '@axium/calendar/components';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
-	import { AccessControlDialog, FormDialog, Icon, Popover } from '@axium/client/components';
-	import UserDiscovery from '@axium/client/components/UserDiscovery';
+	import { AccessControlDialog, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { _throw, type WithRequired } from 'utilium';
@@ -149,14 +149,67 @@
 
 						<div class="day-content">
 							{#each eventsForWeekDays[i] ?? [] as event}
-								{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
-								{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
-								<div class="event" style:top="{start / 14.4}%" style:height="{(end - start) / 14.4}%">
-									<span>{event.summary}</span>
-									<span class="subtle"
-										>{event.start.getHours()}:{event.start.getMinutes()} - {event.end.getHours()}:{event.end.getMinutes()}</span
-									>
-								</div>
+								<Popover>
+									{#snippet toggle()}
+										{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
+										{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
+										<div class="event" style:top="{start / 14.4}%" style:height="{(end - start) / 14.4}%">
+											<span>{event.summary}</span>
+											<span class="subtle">{formatEventTimes(event)}</span>
+										</div>
+									{/snippet}
+
+									<h4>{event.summary}</h4>
+
+									<div>
+										<Icon i="clock" />
+										<span>
+											{#if event.start.getDate() == event.end.getDate()}
+												{event.start.toLocaleDateString()}, {formatEventTimes(event)}
+											{:else if event.isAllDay}
+												{event.start.toLocaleDateString()} - {event.end.toLocaleDateString()}
+											{:else}
+												{event.start.toLocaleString()} - {event.end.toLocaleString()}
+											{/if}
+										</span>
+									</div>
+
+									{#if event.location}
+										<div>
+											<Icon i="location-dot" />
+											<span>{event.location}</span>
+										</div>
+									{/if}
+
+									<div>
+										<Icon i="calendar" />
+										<span>
+											{#if event.calendar}
+												{event.calendar.name}
+											{:else}
+												<i>Unknown Calendar</i>
+											{/if}
+										</span>
+									</div>
+
+									{#if event.attendees.length}
+										<div class="attendees-container">
+											<Icon i="user-group" />
+											<div class="attendees">
+												{#each event.attendees ?? [] as attendee (attendee.email)}
+													<div class="attendee">{attendee.email}</div>
+												{/each}
+											</div>
+										</div>
+									{/if}
+
+									{#if event.description}
+										<div class="description">
+											<Icon i="block-quote" />
+											<span>{event.description}</span>
+										</div>
+									{/if}
+								</Popover>
 							{/each}
 						</div>
 					</div>
@@ -277,26 +330,35 @@
 		justify-content: center;
 	}
 
+	.event-times-container,
+	.attendees-container {
+		display: flex;
+		flex-direction: row;
+		gap: 0.5em;
+	}
+
+	div.event-times,
+	div.attendees {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5em;
+		flex-grow: 1;
+	}
+
+	h4 {
+		margin: 0;
+	}
+
 	:global {
 		#new-event form {
 			width: 25em;
 
 			div:has(label ~ input),
 			div:has(label ~ textarea),
-			div:has(label ~ select),
-			.event-times-container,
-			.attendees-container {
+			div:has(label ~ select) {
 				display: flex;
 				flex-direction: row;
 				gap: 0.5em;
-			}
-
-			div.event-times,
-			div.attendees {
-				display: flex;
-				flex-direction: column;
-				gap: 0.5em;
-				flex-grow: 1;
 			}
 
 			.event-time-options {
@@ -341,10 +403,6 @@
 			display: flex;
 			align-items: center;
 			justify-content: space-between;
-
-			h4 {
-				margin: 0;
-			}
 		}
 	}
 
