@@ -1,7 +1,7 @@
 import { $API, AccessControl, pickPermissions, type UserInternal } from '@axium/core';
+import type { WithRequired } from 'utilium';
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
-import type { WithRequired } from 'utilium';
 
 export function dayOfYear(date: Date): number {
 	const yearStart = new Date(date.getFullYear(), 0, 1);
@@ -94,6 +94,15 @@ export const Event = EventInit.extend({
 });
 export interface Event extends z.infer<typeof Event> {
 	calendar?: Calendar;
+}
+
+const format: Intl.DateTimeFormatOptions = {
+	hour: '2-digit',
+	minute: '2-digit',
+};
+
+export function formatEventTimes(event: Event): string {
+	return `${event.start.toLocaleTimeString('default', format)} - ${event.end.toLocaleTimeString('default', format)}`;
 }
 
 export const CalendarInit = z.object({

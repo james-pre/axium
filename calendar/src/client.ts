@@ -11,6 +11,7 @@ export async function getFullCalendars(userId: string, filter: EventFilter): Pro
 
 	for (const cal of calendars) {
 		cal.events = await fetchAPI('GET', 'calendars/:id/events', filter, cal.id);
+		for (const event of cal.events ?? []) event.calendar = cal;
 	}
 
 	return calendars;
