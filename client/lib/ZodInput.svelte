@@ -62,7 +62,7 @@
 		}
 	}
 
-	function oninput(e: Event) {
+	function onchange(e: Event) {
 		let val;
 
 		try {
@@ -86,13 +86,15 @@
 
 		updateValue(rootValue);
 	}
+
+	const oninput = onchange;
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{label || path}</label>{/if}
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
-		<input {id} {...rest} bind:value {oninput} required={!optional} {defaultValue} class={[error && 'error']} />
+		<input {id} {...rest} bind:value {onchange} {oninput} required={!optional} {defaultValue} class={[error && 'error']} />
 	</div>
 {/snippet}
 
@@ -105,7 +107,7 @@
 {:else if schema.type == 'boolean'}
 	<div class="ZodInput">
 		{#if !noLabel}<label for="{id}:checkbox">{label || path}</label>{/if}
-		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {oninput} required={!optional} />
+		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} />
 		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if value}<Icon i="check" --size="1.3em" />{/if}
 		</label>
@@ -145,7 +147,7 @@
 					<button
 						onclick={e => {
 							value.splice(i, 1);
-							oninput(e);
+							onchange(e);
 						}}
 					>
 						<Icon i="trash" --size="16px" />
@@ -182,7 +184,7 @@
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{label || path}</label>{/if}
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
-		<select {id} {oninput} bind:value required={!optional}>
+		<select {id} {onchange} bind:value required={!optional}>
 			{#each Object.entries(schema.enum) as [key, value]}
 				<option {value} selected={value === value}>{key}</option>
 			{/each}

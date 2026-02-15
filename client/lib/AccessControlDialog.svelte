@@ -73,7 +73,7 @@
 					{@const id = `${item.id}.${getTarget(control)}.${key}`}
 					<span class="icon-text">
 						{#if editable}
-							<input {id} type="checkbox" oninput={update(key)} />
+							<input {id} type="checkbox" onchange={update(key)} />
 							<label for={id} class="checkbox">
 								{#if value}<Icon i="check" --size="1.3em" />{/if}
 							</label>
