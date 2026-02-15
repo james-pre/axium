@@ -149,6 +149,8 @@
 
 <FormDialog
 	id="new-event"
+	clearOnCancel
+	cancel={() => (eventInit = { attendees: [] } as any)}
 	submitText="Create"
 	submit={async (data: EventInitFormData) => {
 		const calendar = calendars.find(cal => cal.id == data.calId);
