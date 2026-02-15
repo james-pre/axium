@@ -129,11 +129,11 @@
 	</div>
 	<div id="cal">
 		<div class="hours subtle">
-			{#each { length: 23 }, i}
+			{#each { length: 24 }, i}
 				{#if !i}
 					<span class="hour">{tz}</span>
 				{:else}
-					<span class="hour">{i + 1}:00</span>
+					<span class="hour">{i}:00</span>
 				{/if}
 			{/each}
 			<span class="hour empty"></span>
@@ -147,13 +147,18 @@
 							<span class={['day-number', today.getTime() == day.getTime() && 'today']}>{day.getDate()}</span>
 						</div>
 
-						{#each eventsForWeekDays[i] ?? [] as event}
-							{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
-							{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
-							<div class="event" style:top="{start / 14.4}%" style:height="{(end - start) / 14.4}%">
-								<span>{event.summary}</span>
-							</div>
-						{/each}
+						<div class="day-content">
+							{#each eventsForWeekDays[i] ?? [] as event}
+								{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
+								{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
+								<div class="event" style:top="{start / 14.4}%" style:height="{(end - start) / 14.4}%">
+									<span>{event.summary}</span>
+									<span class="subtle"
+										>{event.start.getHours()}:{event.start.getMinutes()} - {event.end.getHours()}:{event.end.getMinutes()}</span
+									>
+								</div>
+							{/each}
+						</div>
 					</div>
 				{/each}
 			</div>
@@ -388,6 +393,8 @@
 			width: 100%;
 			height: 100%;
 			border-left: 1px solid var(--border-accent);
+			display: flex;
+			flex-direction: column;
 
 			.day-header {
 				display: flex;
@@ -396,6 +403,8 @@
 				justify-content: center;
 				gap: 0.5em;
 				user-select: none;
+				height: 5em;
+				flex-shrink: 0;
 
 				.day-number {
 					border-radius: 0.3em;
@@ -412,9 +421,14 @@
 				}
 			}
 
+			.day-content {
+				flex-grow: 1;
+				position: relative;
+			}
+
 			.event {
 				width: 100%;
-				position: relative;
+				position: absolute;
 				border-radius: 0.5em;
 				padding: 0.25em;
 				background-color: var(--bg-alt);
@@ -422,6 +436,14 @@
 				flex-direction: column;
 				align-items: flex-start;
 				justify-content: flex-start;
+				container-type: size;
+				overflow: hidden;
+
+				@container (height < 2.5em) {
+					.subtle {
+						display: none;
+					}
+				}
 			}
 		}
 	}

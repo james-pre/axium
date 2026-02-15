@@ -129,11 +129,13 @@ addRoute({
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not create event'));
 
-			const attendees = await tx
-				.insertInto('attendees')
-				.values(attendeesInit.map(a => ({ ...a, eventId: event.id })))
-				.returningAll()
-				.execute();
+			const attendees = attendeesInit.length
+				? await tx
+						.insertInto('attendees')
+						.values(attendeesInit.map(a => ({ ...a, eventId: event.id })))
+						.returningAll()
+						.execute()
+				: [];
 
 			await tx.commit().execute();
 			return Object.assign(event, { attendees, calendar });
