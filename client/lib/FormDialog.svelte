@@ -4,8 +4,9 @@
 	let {
 		children,
 		dialog = $bindable(),
-		submitText = 'Submit',
 		cancel = () => {},
+		clearOnCancel = false,
+		submitText = 'Submit',
 		submit = (data: object): Promise<any> => Promise.resolve(),
 		pageMode = false,
 		submitDanger = false,
@@ -15,10 +16,11 @@
 	}: {
 		children(): any;
 		dialog?: HTMLDialogElement;
+		clearOnCancel?: boolean;
+		/** A callback for when the dialog is canceled */
+		cancel?(): unknown;
 		/** Change the text displayed for the submit button */
 		submitText?: string;
-		/** Basically a callback for when the dialog is canceled */
-		cancel?(): unknown;
 		/** Called on submission, this should do the actual submission */
 		submit?(data: Record<string, FormDataEntryValue>): Promise<any>;
 		/** Whether to display the dialog as a full-page form */
@@ -36,6 +38,7 @@
 
 	function onclose(e: Event) {
 		e.preventDefault();
+		if (clearOnCancel) dialog!.querySelector('form')!.reset();
 		cancel();
 	}
 
