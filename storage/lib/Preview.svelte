@@ -39,7 +39,7 @@
 			{#if others.length}
 				<Popover>
 					{#snippet toggle()}
-						<span class="popover-toggle"><Icon i="caret-down" /></span>
+						<Icon i="caret-down" />
 					{/snippet}
 					{#each others as opener}
 						<a href={opener.openURL(item)} target="_blank">{opener.name}</a>
