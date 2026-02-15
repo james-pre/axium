@@ -25,6 +25,12 @@
 	const span = $state('week');
 	const spanDays = $derived(span == 'week' ? 7 : _throw('Invalid span value'));
 	const weekDays = $derived(weekDaysFor(start));
+	const eventsForWeekDays = $derived(
+		Object.groupBy(
+			data.calendars.flatMap(cal => cal.events ?? []),
+			ev => ev?.start.getDay()
+		)
+	);
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 
@@ -134,12 +140,20 @@
 		</div>
 		{#if span == 'week'}
 			<div class="cal-content week">
-				{#each weekDays as day}
+				{#each weekDays as day, i}
 					<div class="day">
 						<div class="day-header">
 							<span class="subtle">{day.toLocaleString('en', { weekday: 'short' })}</span>
 							<span class={['day-number', today.getTime() == day.getTime() && 'today']}>{day.getDate()}</span>
 						</div>
+
+						{#each eventsForWeekDays[i] ?? [] as event}
+							{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
+							{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
+							<div class="event" style:top="{start / 14.4}%" style:height="{(end - start) / 14.4}%">
+								<span>{event.summary}</span>
+							</div>
+						{/each}
 					</div>
 				{/each}
 			</div>
@@ -381,6 +395,7 @@
 				align-items: center;
 				justify-content: center;
 				gap: 0.5em;
+				user-select: none;
 
 				.day-number {
 					border-radius: 0.3em;
@@ -395,6 +410,18 @@
 						color: var(--fg-accent);
 					}
 				}
+			}
+
+			.event {
+				width: 100%;
+				position: relative;
+				border-radius: 0.5em;
+				padding: 0.25em;
+				background-color: var(--bg-alt);
+				display: flex;
+				flex-direction: column;
+				align-items: flex-start;
+				justify-content: flex-start;
 			}
 		}
 	}
