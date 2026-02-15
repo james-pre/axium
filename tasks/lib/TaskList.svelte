@@ -37,7 +37,7 @@
 			bind:checked={task.completed}
 			id="task-completed#{task.id}"
 			style:display="none"
-			onchange={e => {
+			oninput={e => {
 				task.completed = e.currentTarget.checked;
 				fetchAPI('PATCH', 'tasks/:id', { completed: task.completed }, task.id);
 			}}
@@ -47,7 +47,7 @@
 			name="summary"
 			class="editable-text"
 			bind:value={task.summary}
-			onchange={e => {
+			oninput={e => {
 				task.summary = e.currentTarget.value;
 				fetchAPI('PATCH', 'tasks/:id', { summary: task.summary }, task.id);
 			}}
@@ -81,7 +81,7 @@
 			type="text"
 			bind:value={list.name}
 			class="editable-text"
-			onchange={e => {
+			oninput={e => {
 				list.name = e.currentTarget.value;
 				fetchAPI('PATCH', 'task_lists/:id', { name: list.name }, list.id);
 			}}

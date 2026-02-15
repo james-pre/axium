@@ -24,7 +24,7 @@
 	let value = $state<string>();
 	let gotError = $state<boolean>(false);
 
-	async function onchange() {
+	async function oninput() {
 		if (!value || !value.length) {
 			results = [];
 			return;
@@ -55,7 +55,7 @@
 	}
 </script>
 
-<input bind:value type="text" placeholder="Add users and roles" {onchange} onkeyup={onchange} />
+<input bind:value type="text" placeholder="Add users and roles" {oninput} />
 {#if !gotError && value}
 	<!-- Don't show results when we can't use the discovery API -->
 	<div class="results">

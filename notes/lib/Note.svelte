@@ -20,7 +20,7 @@
 			bind:value={note.title}
 			placeholder="Unnamed Note"
 			class="editable-text"
-			onchange={e => {
+			oninput={e => {
 				note.title = e.currentTarget.value;
 				fetchAPI('PATCH', 'notes/:id', note, note.id);
 			}}
@@ -70,7 +70,7 @@
 		name="content"
 		class="editable-text"
 		placeholder="It's a beautiful day outside..."
-		onchange={() => fetchAPI('PATCH', 'notes/:id', note, note.id)}
+		oninput={() => fetchAPI('PATCH', 'notes/:id', note, note.id)}
 		{@attach dynamicRows()}>{note.content}</textarea
 	>
 </div>
