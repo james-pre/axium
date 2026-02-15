@@ -42,7 +42,7 @@
 	},
 	"peerDependencies": {
 		"@axium/core": ">=0.19.0",
-		"utilium": "^2.3.8",
+		"utilium": "^2.6.3",
 		"zod": "^4.0.5",
 		"svelte": "^5.36.0"
 	},

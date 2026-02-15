@@ -54,6 +54,6 @@
 	},
 	"dependencies": {
 		"patch-package": "^8.0.1",
-		"utilium": "^2.5.3"
+		"utilium": "^2.6.3"
 	}
 }
