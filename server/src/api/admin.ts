@@ -1,6 +1,6 @@
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity, UserAdminChange } from '@axium/core';
-import { errorText, writeJSON } from '@axium/core/node/io';
+import { debug, errorText, writeJSON } from '@axium/core/node/io';
 import { getVersionInfo } from '@axium/core/node/packages';
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -91,6 +91,7 @@ addRoute({
 
 			plugin.config ||= {};
 
+			debug('Updating plugin config:', name);
 			const parsed = await schema.parseAsync(config).catch(e => error(400, errorText(e)));
 			deepAssign(plugin.config, parsed);
 			mkdirSync(dirname(plugin._configPath), { recursive: true });
