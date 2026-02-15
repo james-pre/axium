@@ -188,7 +188,7 @@ export interface ConfigFile extends z.infer<typeof ConfigFile> {}
  * Update the current config
  */
 export function setConfig(other: Config) {
-	deepAssign(config, other);
+	deepAssign(config, other, true);
 	logger.detach(io);
 	if (config.log.console) logger.attach(io, { output: config.log.level });
 	io._setDebugOutput(config.debug);
@@ -277,7 +277,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 
 				try {
 					const data = io.readJSON(configPath, serverConfig.schema.partial());
-					deepAssign(plugin.config, data);
+					deepAssign(plugin.config, data, true);
 					io.debug(`Loaded config for plugin ${plugin.name} from ${configPath}`);
 				} catch (e: any) {
 					io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath}: ${e}`);

@@ -93,7 +93,7 @@ addRoute({
 
 			debug('Updating plugin config:', name);
 			const parsed = await schema.parseAsync(config).catch(e => error(400, errorText(e)));
-			deepAssign(plugin.config, parsed);
+			deepAssign(plugin.config, parsed, true);
 			mkdirSync(dirname(plugin._configPath), { recursive: true });
 			writeJSON(plugin._configPath, plugin.config);
 		}
