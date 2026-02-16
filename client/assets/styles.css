@@ -171,6 +171,11 @@ progress::-moz-progress-bar {
 	background-color: hsl(0 0 var(--fg-light));
 }
 
+::selection,
+::target-text {
+	background-color: var(--bg-accent);
+}
+
 :not(input).error {
 	padding: 1em;
 	border-radius: 0.5em;
