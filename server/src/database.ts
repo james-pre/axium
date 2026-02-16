@@ -928,7 +928,7 @@ function columnFromSchema(column: Column, allowPK: boolean) {
 		else if (column.unique) col = col.nullsNotDistinct();
 		if (column.references) col = col.references(column.references);
 		if (column.onDelete) col = col.onDelete(column.onDelete);
-		if ('default' in column) col = col.defaultTo(sql.raw(column.default));
+		if ('default' in column) col = col.defaultTo(column.default);
 		if (column.check) col = col.check(sql.raw(column.check));
 		return col;
 	};
