@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { EventInitFormData } from '@axium/calendar/client';
-	import type { Event, EventData, EventInit } from '@axium/calendar/common';
-	import { AttendeeInit, dateToLocalISO, formatEventTimes, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
+	import { getEvents, type EventInitFormData } from '@axium/calendar/client';
+	import type { Event, EventData } from '@axium/calendar/common';
+	import { AttendeeInit, dateToInputValue, formatEventTimes, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
 	import * as Calendar from '@axium/calendar/components';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import { SvelteDate } from 'svelte/reactivity';
-	import { _throw, type WithRequired } from 'utilium';
+	import { _throw } from 'utilium';
 	import z from 'zod';
 	const { data } = $props();
 
@@ -19,6 +19,11 @@
 	let start = new SvelteDate(data.filter.start);
 	let end = new SvelteDate(data.filter.end);
 	let calendars = $state(data.calendars);
+	let events = $state<Event[]>([]);
+
+	$effect(() => {
+		getEvents(calendars, { start: new Date(start.getTime()), end: new Date(end.getTime()) }).then(e => (events = e));
+	});
 
 	const tz = new Date().toLocaleString('en', { timeStyle: 'long' }).split(' ').slice(-1)[0];
 
@@ -27,16 +32,25 @@
 	const weekDays = $derived(weekDaysFor(start));
 	const eventsForWeekDays = $derived(
 		Object.groupBy(
-			data.calendars.flatMap(cal => cal.events ?? []),
+			events.filter(
+				e => e.start < new Date(weekDays[6].getFullYear(), weekDays[6].getMonth(), weekDays[6].getDate() + 1) && e.end > weekDays[0]
+			),
 			ev => ev?.start.getDay()
 		)
 	);
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	let eventInit = $state<EventData & { attendees: AttendeeInit[] }>({ attendees: [], recurrenceExcludes: [], recurrenceId: null } as any),
-		eventInitStart = $derived(dateToLocalISO(eventInit.start)),
-		eventInitEnd = $derived(dateToLocalISO(eventInit.end)),
+	let eventInit = $state<EventData & { attendees: AttendeeInit[] }>({
+			attendees: [],
+			recurrenceExcludes: [],
+			recurrenceId: null,
+			start: new Date(today),
+			end: new Date(today),
+			calId: calendars[0]?.id,
+		} as any),
+		eventInitStart = $derived(dateToInputValue(eventInit.start)),
+		eventInitEnd = $derived(dateToInputValue(eventInit.end)),
 		eventEditId = $state<string>(),
 		eventEditCalId = $state<string>();
 </script>
@@ -174,7 +188,12 @@
 											command="show-modal"
 											commandfor="event-init"><Icon i="pencil" /></button
 										>
-										<button class="reset"><Icon i="trash" /></button>
+										<button
+											class="reset"
+											onclick={() => (eventEditId = event.id)}
+											command="show-modal"
+											commandfor="event-delete"><Icon i="trash" /></button
+										>
 										<button class="reset"><Icon i="xmark" /></button>
 									</div>
 
@@ -250,26 +269,16 @@
 		if (!eventEditId) {
 			const event: Event = await fetchAPI('PUT', 'calendars/:id/events', { ...eventInit, sendEmails: false }, eventInit.calId);
 			event.calendar = calendar;
-			calendar.events?.push(event);
+			events.push(event);
 			return;
 		}
 
 		const event: Event = await fetchAPI('PATCH', 'events/:id', { ...eventInit, sendEmails: false }, eventEditId);
 		event.calendar = calendar;
-		if (eventEditCalId == data.calId) {
-			const event = calendar.events?.find(e => e.id == eventEditId);
-			if (!event) console.warn('Could not find event to update');
-			else Object.assign(event, event);
-			return;
-		}
-		const oldCalendar = calendars.find(cal => cal.id == eventEditCalId);
-		if (!oldCalendar?.events) console.warn('Existing calendar does not exist');
-		else {
-			const i = oldCalendar.events.findIndex(e => e.id == event.id);
-			if (i == -1) console.warn('Could not find event in old calendar');
-			else oldCalendar.events.splice(i, 1);
-		}
-		calendar.events?.push(event);
+		const existing = events.find(e => e.id == eventEditId);
+		if (!existing) console.warn('Could not find event to update');
+		else Object.assign(existing, event);
+		return;
 	}}
 >
 	<input name="summary" type="text" required placeholder="Add title" bind:value={eventInit.summary} />
@@ -309,7 +318,7 @@
 	<div>
 		<label for="eventInit.calId"><Icon i="calendar" /></label>
 		<select id="eventInit.calId" name="calId" required bind:value={eventInit.calId}>
-			{#each calendars.filter(cal => cal.userId == user.id || getCalPermissionsInfo(cal, user).perms.edit) as cal}
+			{#each calendars.filter(cal => cal.userId == user.id || getCalPermissionsInfo(cal, user).perms.edit) as cal, i (cal.id)}
 				<option value={cal.id}>{cal.name}</option>
 			{/each}
 		</select>
@@ -354,10 +363,26 @@
 </FormDialog>
 
 <FormDialog
+	id="event-delete"
+	submitText="Delete"
+	submitDanger
+	submit={async () => {
+		if (!eventEditId) throw new Error('No event to delete');
+		await fetchAPI('DELETE', 'events/:id', null, eventEditId);
+		const i = events.findIndex(e => e.id == eventEditId);
+		if (i == -1) console.warn('Could not find event to delete');
+		else events.splice(i, 1);
+		eventEditId = undefined;
+	}}
+>
+	<p>Are you sure you want to delete this event?</p>
+</FormDialog>
+
+<FormDialog
 	id="add-calendar"
 	submitText="Create"
 	submit={(input: { name: string }) =>
-		fetchAPI('PUT', 'users/:id/calendars', input, user.id).then(cal => calendars.push({ ...cal, acl: [], events: [] }))}
+		fetchAPI('PUT', 'users/:id/calendars', input, user.id).then(cal => calendars.push({ ...cal, acl: [] }))}
 >
 	<div>
 		<label for="name">Name</label>

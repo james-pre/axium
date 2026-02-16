@@ -1,9 +1,10 @@
-import { getFullCalendars } from '@axium/calendar/client';
-import { EventFilter, getSpanFilter } from '@axium/calendar/common';
+import { EventFilter, getSpanFilter, type Calendar } from '@axium/calendar/common';
+import { fetchAPI } from '@axium/client/requests';
 import { getCurrentSession } from '@axium/client/user';
 import type { Session, User } from '@axium/core';
 import { redirect } from '@sveltejs/kit';
 import { prettifyError } from 'zod';
+import type { WithRequired } from 'utilium';
 
 export const ssr = false;
 
@@ -24,7 +25,7 @@ export async function load({ parent, url }) {
 		throw prettifyError(e);
 	}
 
-	const calendars = await getFullCalendars(session.userId, filter);
+	const calendars: WithRequired<Calendar, 'acl'>[] = await fetchAPI('GET', 'users/:id/calendars', {}, session.userId);
 
 	return { calendars, session, filter };
 }

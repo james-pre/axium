@@ -31,13 +31,14 @@ export function weekDaysFor(date: Date): Date[] {
 	return days;
 }
 
-export function dateToLocalISO(date?: Date): string | null {
-	if (!date) return null;
-	const [day, time] = date.toISOString().split('T');
-	const [hour, ...rest] = time.slice(0, -1).split(':');
-	const offset = date.getTimezoneOffset() / 60;
-	const localHour = (Number(hour) - offset).toString().padStart(2, '0');
-	return `${day}T${localHour}:${rest.join(':')}`;
+/**
+ * Converts a date to the format expected by `<input type="datetime-local">`
+ */
+export function dateToInputValue(date?: Date): string | null {
+	if (!date?.toISOString) return null;
+	const offset = date.getTimezoneOffset() * 60_000;
+	const localDate = new Date(date.getTime() - offset);
+	return localDate.toISOString().slice(0, -1);
 }
 
 /**

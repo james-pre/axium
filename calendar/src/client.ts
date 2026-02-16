@@ -1,20 +1,18 @@
 import { fetchAPI } from '@axium/client/requests';
-import type { Calendar, Event, EventFilter, EventData } from './common.js';
-import type { WithRequired } from 'utilium';
+import type { Calendar, Event, EventData, EventFilter } from './common.js';
 
-export interface FullCalendar extends WithRequired<Calendar, 'acl'> {
-	events?: Event[];
-}
-
-export async function getFullCalendars(userId: string, filter: EventFilter): Promise<FullCalendar[]> {
-	const calendars: FullCalendar[] = await fetchAPI('GET', 'users/:id/calendars', {}, userId);
+export async function getEvents(calendars: Calendar[], filter: EventFilter): Promise<Event[]> {
+	const events: Event[] = [];
 
 	for (const cal of calendars) {
-		cal.events = await fetchAPI('GET', 'calendars/:id/events', filter, cal.id);
-		for (const event of cal.events ?? []) event.calendar = cal;
+		const calEvents: Event[] = await fetchAPI('GET', 'calendars/:id/events', filter, cal.id);
+		for (const event of calEvents) {
+			event.calendar = cal;
+			events.push(event);
+		}
 	}
 
-	return calendars;
+	return events;
 }
 
 export interface EventInitFormData extends Record<Exclude<keyof EventData, 'attendees' | 'recurrenceExcludes'>, string> {}
