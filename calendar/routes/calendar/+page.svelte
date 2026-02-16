@@ -45,8 +45,6 @@
 			attendees: [],
 			recurrenceExcludes: [],
 			recurrenceId: null,
-			start: new Date(today),
-			end: new Date(today),
 			calId: calendars[0]?.id,
 		} as any),
 		eventInitStart = $derived(dateToInputValue(eventInit.start)),
@@ -197,7 +195,7 @@
 										<button class="reset"><Icon i="xmark" /></button>
 									</div>
 
-									<h4>{event.summary}</h4>
+									<h3>{event.summary}</h3>
 
 									<div>
 										<Icon i="clock" />
@@ -437,6 +435,7 @@
 		flex-grow: 1;
 	}
 
+	h3,
 	h4 {
 		margin: 0;
 	}
@@ -545,7 +544,7 @@
 				justify-content: center;
 				gap: 0.5em;
 				user-select: none;
-				height: 5em;
+				height: 5.9em;
 				flex-shrink: 0;
 
 				.day-number {
@@ -587,15 +586,20 @@
 					}
 				}
 
-				:global(& + :popover-open .event-actions) {
-					display: flex;
-					align-items: center;
-					justify-content: flex-end;
-					gap: 0.25em;
+				:global(& + :popover-open) {
+					gap: 0.75em;
+					padding: 1em;
 
-					button {
-						padding: 0.5em;
-						border-radius: 0.5em;
+					.event-actions {
+						display: flex;
+						align-items: center;
+						justify-content: flex-end;
+						gap: 0.25em;
+
+						button {
+							padding: 0.5em;
+							border-radius: 0.5em;
+						}
 					}
 				}
 			}

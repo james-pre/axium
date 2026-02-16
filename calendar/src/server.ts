@@ -8,8 +8,8 @@ import { sql, type AliasedRawBuilder, type ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
 import type schema from '../db.json';
-import type { Attendee, AttendeeStatus, Calendar, Event } from './common.js';
-import { CalendarInit, EventInit, EventFilter } from './common.js';
+import type { AttendeeStatus, Calendar, Event } from './common.js';
+import { Attendee, CalendarInit, EventFilter, EventInit } from './common.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -120,17 +120,18 @@ addRoute({
 				.insertInto('events')
 				.values({ ...init, calId: id })
 				.returningAll()
-				.returning(sql<Attendee[]>`'[]'::jsonb`.as('attendees'))
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not create event'));
 
-			const attendees = attendeesInit.length
-				? await tx
-						.insertInto('attendees')
-						.values(attendeesInit.map(a => ({ ...a, eventId: event.id })))
-						.returningAll()
-						.execute()
-				: [];
+			const attendees = Attendee.array().parse(
+				attendeesInit.length
+					? await tx
+							.insertInto('attendees')
+							.values(attendeesInit.map(a => ({ ...a, eventId: event.id })))
+							.returningAll()
+							.execute()
+					: []
+			);
 
 			await tx.commit().execute();
 			return Object.assign(event, { attendees, calendar });
