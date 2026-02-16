@@ -570,7 +570,7 @@
 			}
 
 			.event {
-				width: 100%;
+				width: calc(100% - 0.5em);
 				position: absolute;
 				border-radius: 0.5em;
 				padding: 0.25em;
