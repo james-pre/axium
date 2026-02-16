@@ -165,7 +165,7 @@
 
 						<div class="day-content">
 							{#each eventsForWeekDays[i] ?? [] as event}
-								<Popover>
+								<Popover id="event-popover:{event.id}" onclick={e => e.stopPropagation()}>
 									{#snippet toggle()}
 										{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
 										{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
@@ -192,7 +192,9 @@
 											command="show-modal"
 											commandfor="event-delete"><Icon i="trash" /></button
 										>
-										<button class="reset"><Icon i="xmark" /></button>
+										<button class="reset" command="hide-popover" commandfor="event-popover:{event.id}"
+											><Icon i="xmark" /></button
+										>
 									</div>
 
 									<h3>{event.summary}</h3>
@@ -316,7 +318,7 @@
 	<div>
 		<label for="eventInit.calId"><Icon i="calendar" /></label>
 		<select id="eventInit.calId" name="calId" required bind:value={eventInit.calId}>
-			{#each calendars.filter(cal => cal.userId == user.id || getCalPermissionsInfo(cal, user).perms.edit) as cal, i (cal.id)}
+			{#each calendars.filter(cal => cal.userId == user.id || getCalPermissionsInfo(cal, user).perms.edit) as cal (cal.id)}
 				<option value={cal.id}>{cal.name}</option>
 			{/each}
 		</select>
