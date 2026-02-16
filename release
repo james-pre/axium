@@ -5,7 +5,7 @@ set -euo pipefail
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
 root="$(realpath "$script_dir")"
 
-packages=("client" "core" "notes" "server" "storage" "tasks")
+packages=("calendar" "client" "core" "notes" "server" "storage" "tasks")
 
 sub="${1:-help}"
 
