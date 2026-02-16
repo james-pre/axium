@@ -61,7 +61,6 @@
 	<button class="event-init icon-text" command="show-modal" commandfor="event-init"><Icon i="plus" /> New Event</button>
 	<div class="bar">
 		<button onclick={() => start.setTime(today.getTime())}>Today</button>
-		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
 		<button
 			style:display="contents"
 			onclick={() => {
@@ -76,6 +75,7 @@
 				end.setDate(end.getDate() + spanDays);
 			}}><Icon i="chevron-right" /></button
 		>
+		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
 	</div>
 	<div id="cal-list">
 		<Calendar.Select bind:start bind:end />
@@ -190,7 +190,7 @@
 											class="reset"
 											onclick={() => (eventEditId = event.id)}
 											command="show-modal"
-											commandfor="event-delete"><Icon i="trash" /></button
+											commandfor="event-delete"><Icon i="trash-can" /></button
 										>
 										<button class="reset" command="hide-popover" commandfor="event-popover:{event.id}"
 											><Icon i="xmark" /></button
