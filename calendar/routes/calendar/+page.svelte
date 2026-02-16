@@ -13,8 +13,9 @@
 
 	const { user } = data.session;
 
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
+	const now = new SvelteDate();
+	setInterval(() => now.setTime(Date.now()), 60_000);
+	const today = $derived(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
 
 	let start = new SvelteDate(data.filter.start);
 	let end = new SvelteDate(data.filter.end);
@@ -249,6 +250,10 @@
 									{/if}
 								</Popover>
 							{/each}
+
+							{#if today.getTime() == day.getTime()}
+								<div class="now" style:top="{(now.getHours() * 60 + now.getMinutes()) / 14.4}%"></div>
+							{/if}
 						</div>
 					</div>
 				{/each}
@@ -567,6 +572,25 @@
 			.day-content {
 				flex-grow: 1;
 				position: relative;
+
+				.now {
+					position: absolute;
+					width: 100%;
+					border-bottom: 1px solid hsl(0 33 var(--fg-light));
+					z-index: 9;
+					pointer-events: none;
+
+					&::before {
+						content: '';
+						position: absolute;
+						left: -0.25em;
+						top: -0.25em;
+						width: 0.5em;
+						height: 0.5em;
+						border-radius: 50%;
+						background-color: hsl(0 33 var(--fg-light));
+					}
+				}
 			}
 
 			.event {
