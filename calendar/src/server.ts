@@ -9,7 +9,7 @@ import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
 import type schema from '../db.json';
 import type { Attendee, AttendeeStatus, Calendar, Event } from './common.js';
-import { CalendarInit, EventFilter, EventInit } from './common.js';
+import { CalendarInit, EventInit, EventFilter } from './common.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -110,14 +110,9 @@ addRoute({
 		return events;
 	},
 	async PUT(request: Request, { id }): AsyncResult<'PUT', 'calendars/:id/events'> {
-		const init = await parseBody(request, EventInit);
+		const { attendees: attendeesInit = [], sendEmails, recurrenceUpdateAll, ...init } = await parseBody(request, EventInit);
 
 		const { item: calendar } = await authRequestForItem(request, 'calendars', id, { edit: true });
-
-		const { attendees: attendeesInit = [] } = init;
-		delete init.attendees;
-
-		if (attendeesInit.length > 100) throw error(400, 'Too many attendees');
 
 		const tx = await database.startTransaction().execute();
 		try {
@@ -167,7 +162,7 @@ addRoute({
 		return event;
 	},
 	async PATCH(request: Request, { id }): AsyncResult<'PATCH', 'events/:id'> {
-		const body = await parseBody(request, EventInit);
+		const { attendees: attendeesInit = [], sendEmails, recurrenceUpdateAll, ...init } = await parseBody(request, EventInit);
 
 		const { calId } = await database
 			.selectFrom('events')
@@ -177,14 +172,14 @@ addRoute({
 			.catch(withError('Event does not exist', 404));
 
 		await authRequestForItem(request, 'calendars', calId, { edit: true });
-		if (calId != body.calId) await authRequestForItem(request, 'calendars', body.calId, { edit: true });
+		if (calId != init.calId) await authRequestForItem(request, 'calendars', init.calId, { edit: true });
 
 		const tx = await database.startTransaction().execute();
 
 		try {
 			const event = await tx
 				.updateTable('events')
-				.set(body)
+				.set(init)
 				.where('id', '=', id)
 				.returningAll()
 				.returning(withAttendees)
@@ -192,13 +187,28 @@ addRoute({
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not update event'));
 
-			if (calId != body.calId) {
+			if (calId != init.calId) {
 				await tx
 					.updateTable('events')
-					.set({ calId: body.calId })
+					.set({ calId: init.calId })
 					.where('recurrenceId', '=', id)
 					.execute()
 					.catch(withError('Failed to update calendar for dependent events'));
+			}
+
+			const attendeeInitMap = new Map(attendeesInit.map(a => [a.email, a]));
+
+			for (const attendee of event.attendees) {
+				const userInit = attendee.userId && attendeeInitMap.get(attendee.userId);
+				const init = attendeeInitMap.get(attendee.email);
+
+				if (!userInit && !init) continue;
+
+				/**
+				 * @todo update attendees
+				 * Need to handle:
+				 * - Changing name
+				 */
 			}
 
 			await tx.commit().execute();

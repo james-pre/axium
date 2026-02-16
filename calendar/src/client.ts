@@ -1,5 +1,5 @@
 import { fetchAPI } from '@axium/client/requests';
-import type { Calendar, Event, EventFilter, EventInit } from './common.js';
+import type { Calendar, Event, EventFilter, EventData } from './common.js';
 import type { WithRequired } from 'utilium';
 
 export interface FullCalendar extends WithRequired<Calendar, 'acl'> {
@@ -17,4 +17,4 @@ export async function getFullCalendars(userId: string, filter: EventFilter): Pro
 	return calendars;
 }
 
-export interface EventInitFormData extends Record<Exclude<keyof EventInit, 'attendees' | 'recurrenceExcludes'>, string> {}
+export interface EventInitFormData extends Record<Exclude<keyof EventData, 'attendees' | 'recurrenceExcludes'>, string> {}

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { EventInitFormData } from '@axium/calendar/client';
-	import type { Event, EventInit } from '@axium/calendar/common';
-	import { formatEventTimes, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
+	import type { Event, EventData, EventInit } from '@axium/calendar/common';
+	import { AttendeeInit, dateToLocalISO, formatEventTimes, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
 	import * as Calendar from '@axium/calendar/components';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
@@ -34,7 +34,11 @@
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	let eventInit = $state<WithRequired<EventInit, 'attendees'>>({ attendees: [] } as any);
+	let eventInit = $state<EventData & { attendees: AttendeeInit[] }>({ attendees: [], recurrenceExcludes: [], recurrenceId: null } as any),
+		eventInitStart = $derived(dateToLocalISO(eventInit.start)),
+		eventInitEnd = $derived(dateToLocalISO(eventInit.end)),
+		eventEditId = $state<string>(),
+		eventEditCalId = $state<string>();
 </script>
 
 <svelte:head>
@@ -42,7 +46,7 @@
 </svelte:head>
 
 <div id="cal-app">
-	<button class="new-event icon-text" command="show-modal" commandfor="new-event"><Icon i="plus" /> New Event</button>
+	<button class="event-init icon-text" command="show-modal" commandfor="event-init"><Icon i="plus" /> New Event</button>
 	<div class="bar">
 		<button onclick={() => start.setTime(today.getTime())}>Today</button>
 		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
@@ -159,6 +163,21 @@
 										</div>
 									{/snippet}
 
+									<div class="event-actions">
+										<button
+											class="reset"
+											onclick={() => {
+												eventEditId = event.id;
+												eventEditCalId = event.calId;
+												eventInit = event;
+											}}
+											command="show-modal"
+											commandfor="event-init"><Icon i="pencil" /></button
+										>
+										<button class="reset"><Icon i="trash" /></button>
+										<button class="reset"><Icon i="xmark" /></button>
+									</div>
+
 									<h4>{event.summary}</h4>
 
 									<div>
@@ -220,29 +239,59 @@
 </div>
 
 <FormDialog
-	id="new-event"
+	id="event-init"
 	clearOnCancel
-	cancel={() => (eventInit = { attendees: [] } as any)}
-	submitText="Create"
+	cancel={() => (eventInit = {} as any)}
+	submitText={eventEditId ? 'Update' : 'Create'}
 	submit={async (data: EventInitFormData) => {
-		const calendar = calendars.find(cal => cal.id == data.calId);
+		Object.assign(eventInit, data);
+		const calendar = calendars.find(cal => cal.id == eventInit.calId);
 		if (!calendar) throw 'Invalid calendar';
-		const event: Event = await fetchAPI(
-			'PUT',
-			'calendars/:id/events',
-			{ ...data, ...eventInit, recurrenceExcludes: [], recurrenceId: null },
-			data.calId
-		);
+		if (!eventEditId) {
+			const event: Event = await fetchAPI('PUT', 'calendars/:id/events', { ...eventInit, sendEmails: false }, eventInit.calId);
+			event.calendar = calendar;
+			calendar.events?.push(event);
+			return;
+		}
+
+		const event: Event = await fetchAPI('PATCH', 'events/:id', { ...eventInit, sendEmails: false }, eventEditId);
 		event.calendar = calendar;
+		if (eventEditCalId == data.calId) {
+			const event = calendar.events?.find(e => e.id == eventEditId);
+			if (!event) console.warn('Could not find event to update');
+			else Object.assign(event, event);
+			return;
+		}
+		const oldCalendar = calendars.find(cal => cal.id == eventEditCalId);
+		if (!oldCalendar?.events) console.warn('Existing calendar does not exist');
+		else {
+			const i = oldCalendar.events.findIndex(e => e.id == event.id);
+			if (i == -1) console.warn('Could not find event in old calendar');
+			else oldCalendar.events.splice(i, 1);
+		}
 		calendar.events?.push(event);
 	}}
 >
-	<input name="summary" type="text" required placeholder="Add title" />
+	<input name="summary" type="text" required placeholder="Add title" bind:value={eventInit.summary} />
 	<div class="event-times-container">
 		<label for="eventInit.start"><Icon i="clock" /></label>
 		<div class="event-times">
-			<input type="datetime-local" name="start" id="eventInit.start" required />
-			<input type="datetime-local" name="end" id="eventInit.end" required />
+			<input
+				type="datetime-local"
+				name="start"
+				id="eventInit.start"
+				bind:value={eventInitStart}
+				onchange={e => (eventInit.start = new Date(e.currentTarget.value))}
+				required
+			/>
+			<input
+				type="datetime-local"
+				name="end"
+				id="eventInit.end"
+				bind:value={eventInitEnd}
+				onchange={e => (eventInit.end = new Date(e.currentTarget.value))}
+				required
+			/>
 			<div class="event-time-options">
 				<input bind:checked={eventInit.isAllDay} id="eventInit.isAllDay:checkbox" type="checkbox" />
 				<label for="eventInit.isAllDay:checkbox" class="checkbox">
@@ -289,12 +338,18 @@
 
 	<div>
 		<label for="eventInit.location"><Icon i="location-dot" /></label>
-		<input name="location" id="eventInit.location" placeholder="Add location" />
+		<input name="location" id="eventInit.location" placeholder="Add location" bind:value={eventInit.location} />
 	</div>
 
 	<div>
 		<label for="eventInit.description"><Icon i="block-quote" /></label>
-		<textarea name="description" id="eventInit.description" placeholder="Add description" {@attach dynamicRows()}></textarea>
+		<textarea
+			name="description"
+			id="eventInit.description"
+			placeholder="Add description"
+			bind:value={eventInit.description}
+			{@attach dynamicRows()}
+		></textarea>
 	</div>
 </FormDialog>
 
@@ -323,15 +378,27 @@
 		position: absolute;
 	}
 
-	.new-event {
+	button.event-init {
 		margin: 0.5em;
 		background-color: var(--bg-alt);
 		text-align: center;
 		justify-content: center;
 	}
 
-	.event-times-container,
-	.attendees-container {
+	:global {
+		form {
+			div:has(label ~ input),
+			div:has(label ~ textarea),
+			div:has(label ~ select) {
+				display: flex;
+				flex-direction: row;
+				gap: 0.5em;
+			}
+		}
+	}
+
+	div.event-times-container,
+	div.attendees-container {
 		display: flex;
 		flex-direction: row;
 		gap: 0.5em;
@@ -350,16 +417,8 @@
 	}
 
 	:global {
-		#new-event form {
+		#event-init form {
 			width: 25em;
-
-			div:has(label ~ input),
-			div:has(label ~ textarea),
-			div:has(label ~ select) {
-				display: flex;
-				flex-direction: row;
-				gap: 0.5em;
-			}
 
 			.event-time-options {
 				display: flex;
@@ -500,6 +559,18 @@
 				@container (height < 2.5em) {
 					.subtle {
 						display: none;
+					}
+				}
+
+				:global(& + :popover-open .event-actions) {
+					display: flex;
+					align-items: center;
+					justify-content: flex-end;
+					gap: 0.25em;
+
+					button {
+						padding: 0.5em;
+						border-radius: 0.5em;
 					}
 				}
 			}

@@ -31,6 +31,21 @@ export function weekDaysFor(date: Date): Date[] {
 	return days;
 }
 
+export function dateToLocalISO(date?: Date): string | null {
+	if (!date) return null;
+	const [day, time] = date.toISOString().split('T');
+	const [hour, ...rest] = time.slice(0, -1).split(':');
+	const offset = date.getTimezoneOffset() / 60;
+	const localHour = (Number(hour) - offset).toString().padStart(2, '0');
+	return `${day}T${localHour}:${rest.join(':')}`;
+}
+
+/**
+ * @todo this feels like a mess:
+ * - Want to support "external" attendees where no associated user exists (no userId), email makes sense for the "key"
+ * - For users, we want to use the userId as the "key"
+ * - Need to check for uniqueness server-side
+ */
 export const AttendeeInit = z.object({
 	email: z.email(),
 	userId: z.uuid().nullish(),
@@ -71,7 +86,7 @@ export function getSpanFilter(span: 'week' | 'month', at: Date): EventFilter {
 	}
 }
 
-export const EventInit = z.object({
+export const EventData = z.object({
 	calId: z.uuid(),
 	summary: z.string().max(250),
 	location: z.string().max(250).nullish(),
@@ -79,15 +94,22 @@ export const EventInit = z.object({
 	end: z.coerce.date(),
 	isAllDay: z.coerce.boolean(),
 	description: z.string().max(2000).nullish(),
-	attendees: AttendeeInit.array().optional(),
 	// note: recurrences are not support yet
-	recurrence: z.string().nullish(),
-	recurrenceExcludes: z.array(z.string()).nullish(),
+	recurrence: z.string().max(1000).nullish(),
+	recurrenceExcludes: z.string().max(100).array().max(100).nullish(),
 	recurrenceId: z.uuid().nullish(),
+});
+export interface EventData extends z.infer<typeof EventData> {}
+
+export const EventInit = EventData.extend({
+	attendees: AttendeeInit.array().max(100),
+	sendEmails: z.boolean(),
+	/** Whether to update all recurring events (true) or just subsequent ones (false). Only valid when changing a recurring event. */
+	recurrenceUpdateAll: z.boolean().optional(),
 });
 export interface EventInit extends z.infer<typeof EventInit> {}
 
-export const Event = EventInit.extend({
+export const Event = EventData.extend({
 	id: z.uuid(),
 	created: z.coerce.date(),
 	attendees: Attendee.array(),
