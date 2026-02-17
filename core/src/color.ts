@@ -45,7 +45,7 @@ export function decodeColor(color: string): string {
 
 	if (flags & ColorFlags.Adaptive) {
 		const [h, s, l] = hexToHSL(hex);
-		return `hsl(${Math.round(h * 360)} ${Math.round(s * 100)} calc(var(--bg-light, ${Math.round(l * 100)}) + (var(--light-step, 7) * 2)))`;
+		return `hsl(${Math.round(h * 360)} ${Math.round(s * 100)} calc(var(--bg-light, ${Math.round(l * 100)}) + var(--light-step, 7)))`;
 	}
 
 	return `#${hex}`;
