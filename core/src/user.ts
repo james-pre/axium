@@ -1,7 +1,7 @@
 import * as z from 'zod';
 import { Preferences } from './preferences.js';
 import { PasskeyRegistration } from './passkeys.js';
-import { colorHash } from './color.js';
+import { colorHashRGB } from './color.js';
 import { pick } from 'utilium';
 
 export const User = z.object({
@@ -74,7 +74,7 @@ export interface UserAdminChange extends z.infer<typeof UserAdminChange> {
 export function getUserImage(user: Partial<User>): string {
 	if (user.image) return user.image;
 
-	const color = colorHash(user.name ?? '\0');
+	const color = colorHashRGB(user.name ?? '\0');
 
 	return `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" style="background-color:${color};display:flex;align-items:center;justify-content:center;">
 		<text x="23" y="28" style="font-family:sans-serif;font-weight:bold;" fill="white">${(user.name ?? '?').replaceAll(/\W/g, '')[0]}</text>
