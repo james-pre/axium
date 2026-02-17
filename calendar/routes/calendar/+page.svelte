@@ -208,7 +208,7 @@
 													i: 'file-export',
 													text: 'Export .ics',
 													action: () => download(event.summary + '.ics', eventToICS(event)),
-												}
+												},
 												{
 													i: 'trash-can',
 													text: 'Delete',
