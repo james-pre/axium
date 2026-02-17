@@ -52,10 +52,20 @@ form {
 
 input,
 button,
-select {
-	border-radius: 0.5em;
+select,
+textarea {
 	border: 1px solid var(--border-accent);
 	background-color: var(--bg-normal);
+	font-family: inherit;
+	font-size: inherit;
+	color: hsl(0 0 var(--fg-light));
+	accent-color: hsl(0 0 var(--fg-light));
+}
+
+input,
+button,
+select {
+	border-radius: 0.5em;
 	padding: 0.5em 1em;
 }
 
@@ -64,13 +74,6 @@ button.reset {
 	border: none;
 	background-color: unset;
 	padding: unset;
-}
-
-textarea {
-	background: var(--bg-normal);
-	border: 1px solid var(--border-accent);
-	font-family: inherit;
-	font-size: inherit;
 }
 
 input,
