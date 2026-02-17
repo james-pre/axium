@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { getEvents, type EventInitFormData } from '@axium/calendar/client';
-	import type { Event, EventData } from '@axium/calendar/common';
+	import type { Calendar, Event, EventData } from '@axium/calendar/common';
 	import { AttendeeInit, dateToInputValue, formatEventTimes, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
-	import * as Calendar from '@axium/calendar/components';
+	import * as Cal from '@axium/calendar/components';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
-	import { AccessControlDialog, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
+	import { AccessControlDialog, ColorPicker, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
+	import { colorHashHex, encodeColor, decodeColor } from '@axium/core/color';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { _throw } from 'utilium';
 	import z from 'zod';
@@ -23,6 +24,7 @@
 	let events = $state<Event[]>([]);
 
 	$effect(() => {
+		for (const cal of calendars) cal.color ||= encodeColor(colorHashHex(cal.name));
 		getEvents(calendars, { start: new Date(start.getTime()), end: new Date(end.getTime()) }).then(e => (events = e));
 	});
 
@@ -42,16 +44,20 @@
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	let eventInit = $state<EventData & { attendees: AttendeeInit[] }>({
-			attendees: [],
-			recurrenceExcludes: [],
-			recurrenceId: null,
-			calId: calendars[0]?.id,
-		} as any),
+	const defaultEventInit = {
+		attendees: [],
+		recurrenceExcludes: [],
+		recurrenceId: null,
+		calId: calendars[0]?.id,
+	} as any;
+
+	let eventInit = $state<EventData & { attendees: AttendeeInit[]; calendar?: Calendar }>(defaultEventInit),
 		eventInitStart = $derived(dateToInputValue(eventInit.start)),
 		eventInitEnd = $derived(dateToInputValue(eventInit.end)),
 		eventEditId = $state<string>(),
 		eventEditCalId = $state<string>();
+
+	const defaultEventColor = $derived((eventInit.calendar || calendars[0])?.color || encodeColor(colorHashHex(user.name)));
 </script>
 
 <svelte:head>
@@ -79,7 +85,7 @@
 		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
 	</div>
 	<div id="cal-list">
-		<Calendar.Select bind:start bind:end />
+		<Cal.Select bind:start bind:end />
 		<div class="cal-list-header">
 			<h4>My Calendars</h4>
 			<button style:display="contents" command="show-modal" commandfor="add-calendar">
@@ -170,7 +176,16 @@
 									{#snippet toggle()}
 										{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
 										{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
-										<div class="event" style:top="{start / 14.4}%" style:height="{(end - start) / 14.4}%">
+										<div
+											class="event"
+											style:top="{start / 14.4}%"
+											style:height="{(end - start) / 14.4}%"
+											style="--event-color:{decodeColor(
+												event.color ||
+													event.calendar!.color ||
+													encodeColor(colorHashHex(event.calendar!.name), true)
+											)}"
+										>
 											<span>{event.summary}</span>
 											<span class="subtle">{formatEventTimes(event)}</span>
 										</div>
@@ -265,7 +280,7 @@
 <FormDialog
 	id="event-init"
 	clearOnCancel
-	cancel={() => (eventInit = {} as any)}
+	cancel={() => (eventInit = defaultEventInit)}
 	submitText={eventEditId ? 'Update' : 'Create'}
 	submit={async (data: EventInitFormData) => {
 		Object.assign(eventInit, data);
@@ -327,6 +342,7 @@
 				<option value={cal.id}>{cal.name}</option>
 			{/each}
 		</select>
+		<ColorPicker bind:value={eventInit.color} defaultValue={defaultEventColor} />
 	</div>
 
 	<div class="attendees-container">
@@ -598,7 +614,7 @@
 				position: absolute;
 				border-radius: 0.5em;
 				padding: 0.25em;
-				background-color: var(--bg-alt);
+				background-color: var(--event-color, var(--bg-alt));
 				display: flex;
 				flex-direction: column;
 				align-items: flex-start;

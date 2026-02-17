@@ -67,6 +67,21 @@
 				"attendees:eventId",
 				"attendees:userId"
 			]
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"calendars": {
+					"add_columns": {
+						"color": { "type": "integer" }
+					}
+				},
+				"events": {
+					"add_columns": {
+						"color": { "type": "integer" }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["calendars", "events", "acl.calendars"],

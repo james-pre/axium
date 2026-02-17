@@ -2,6 +2,7 @@ import { $API, AccessControl, pickPermissions, type UserInternal } from '@axium/
 import type { WithRequired } from 'utilium';
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
+import { Color } from '@axium/core/color';
 
 export function dayOfYear(date: Date): number {
 	const yearStart = new Date(date.getFullYear(), 0, 1);
@@ -95,6 +96,7 @@ export const EventData = z.object({
 	end: z.coerce.date(),
 	isAllDay: z.coerce.boolean(),
 	description: z.string().max(2000).nullish(),
+	color: Color.nullish(),
 	// note: recurrences are not support yet
 	recurrence: z.string().max(1000).nullish(),
 	recurrenceExcludes: z.string().max(100).array().max(100).nullish(),
@@ -137,6 +139,7 @@ export const Calendar = CalendarInit.extend({
 	id: z.uuid(),
 	userId: z.uuid(),
 	created: z.coerce.date(),
+	color: Color.nullish(),
 	acl: AccessControl.array().optional(),
 });
 export interface Calendar extends z.infer<typeof Calendar> {}

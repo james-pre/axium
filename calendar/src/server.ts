@@ -15,31 +15,47 @@ declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
 }
 
+function withEncoded<T>(value: Omit<T, 'color'> & { color?: number | null }): T {
+	return (
+		value.color === undefined || value.color === null
+			? value
+			: Object.assign(value, { color: value.color.toString(16).padStart(8, '0') })
+	) as T;
+}
+
+function withDecoded<T>(value: T & { color?: string | null }): Omit<T, 'color'> & { color?: number | null } {
+	return (value.color === undefined || value.color === null ? value : Object.assign(value, { color: parseInt(value.color, 16) })) as any;
+}
+
 addRoute({
 	path: '/api/users/:id/calendars',
 	params: { id: z.uuid() },
 	async GET(request: Request, { id: userId }): AsyncResult<'GET', 'users/:id/calendars'> {
 		const { user } = await checkAuthForUser(request, userId);
 
-		return await database
+		const result = await database
 			.selectFrom('calendars')
 			.selectAll()
 			.select(aclFrom('calendars'))
 			.where(userHasAccess('calendars', user))
 			.execute()
 			.catch(withError('Could not get calendars'));
+
+		return result.map(c => withEncoded(c));
 	},
 	async PUT(request: Request, { id: userId }): AsyncResult<'PUT', 'users/:id/calendars'> {
 		const init = await parseBody(request, CalendarInit);
 
 		await checkAuthForUser(request, userId);
 
-		return await database
-			.insertInto('calendars')
-			.values({ ...init, userId })
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not create calendar'));
+		return withEncoded(
+			await database
+				.insertInto('calendars')
+				.values({ ...init, userId })
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not create calendar'))
+		);
 	},
 });
 
@@ -48,30 +64,34 @@ addRoute({
 	params: { id: z.uuid() },
 	async GET(request: Request, { id }): AsyncResult<'GET', 'calendars/:id'> {
 		const { item } = await authRequestForItem(request, 'calendars', id, { read: true });
-		return item;
+		return withEncoded(item);
 	},
 	async PATCH(request: Request, { id }): AsyncResult<'PATCH', 'calendars/:id'> {
 		const body = await parseBody(request, CalendarInit);
 
 		await authRequestForItem(request, 'calendars', id, { edit: true });
 
-		return await database
-			.updateTable('calendars')
-			.set(body)
-			.where('id', '=', id)
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not update calendar'));
+		return withEncoded(
+			await database
+				.updateTable('calendars')
+				.set(body)
+				.where('id', '=', id)
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not update calendar'))
+		);
 	},
 	async DELETE(request: Request, { id }): AsyncResult<'DELETE', 'calendars/:id'> {
 		await authRequestForItem(request, 'calendars', id, { manage: true });
 
-		return await database
-			.deleteFrom('calendars')
-			.where('id', '=', id)
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not delete calendar'));
+		return withEncoded(
+			await database
+				.deleteFrom('calendars')
+				.where('id', '=', id)
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not delete calendar'))
+		);
 	},
 });
 
@@ -103,9 +123,10 @@ addRoute({
 			.where(sql<boolean>`(${sql.ref('start')}, ${sql.ref('end')}) OVERLAPS (${sql.val(filter.start)}, ${sql.val(filter.end)})`)
 			.limit(1000)
 			.execute()
+			.then(result => result.map<Event>(withEncoded))
 			.catch(withError('Could not get events'));
 
-		for (const event of events) event.calendar = calendar;
+		for (const event of events) event.calendar = withEncoded(calendar);
 
 		return events;
 	},
@@ -118,7 +139,7 @@ addRoute({
 		try {
 			const event = await tx
 				.insertInto('events')
-				.values({ ...init, calId: id })
+				.values({ ...withDecoded(init), calId: id })
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not create event'));
@@ -134,7 +155,11 @@ addRoute({
 			);
 
 			await tx.commit().execute();
-			return Object.assign(event, { attendees, calendar });
+			return Object.assign(event, {
+				attendees,
+				calendar: withEncoded(calendar),
+				color: event.color?.toString(16)?.padStart(8, '0'),
+			});
 		} catch (e) {
 			await tx.rollback().execute();
 			throw e;
@@ -160,7 +185,7 @@ addRoute({
 		if (event.calendar.userId != userId && event.attendees.every(a => a.userId != userId))
 			error(403, 'You do not have access to this event');
 
-		return event;
+		return withEncoded(event);
 	},
 	async PATCH(request: Request, { id }): AsyncResult<'PATCH', 'events/:id'> {
 		const { attendees: attendeesInit = [], sendEmails, recurrenceUpdateAll, ...init } = await parseBody(request, EventInit);
@@ -180,7 +205,7 @@ addRoute({
 		try {
 			const event = await tx
 				.updateTable('events')
-				.set(init)
+				.set(withDecoded(init))
 				.where('id', '=', id)
 				.returningAll()
 				.returning(withAttendees)
@@ -213,7 +238,7 @@ addRoute({
 			}
 
 			await tx.commit().execute();
-			return event;
+			return withEncoded(event);
 		} catch (e) {
 			await tx.rollback().execute();
 			throw e;
@@ -241,7 +266,7 @@ addRoute({
 				.executeTakeFirstOrThrow();
 
 			await tx.commit().execute();
-			return event;
+			return withEncoded(event);
 		} catch (e) {
 			await tx.rollback().execute();
 			throw e;
