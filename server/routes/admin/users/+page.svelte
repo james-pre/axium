@@ -3,7 +3,7 @@
 	import { fetchAPI } from '@axium/client/requests';
 	import '@axium/client/styles/list';
 	import type { VerificationInternal } from '@axium/core';
-	import { colorHash } from '@axium/core/color';
+	import { colorHashRGB } from '@axium/core/color';
 
 	const { data } = $props();
 	let users = $state(data.users);
@@ -18,7 +18,7 @@
 
 <h2>Users</h2>
 
-{#snippet attr(i: string, text: string, color: string = colorHash(text))}
+{#snippet attr(i: string, text: string, color: string = colorHashRGB(text))}
 	<span class="attribute" style:background-color={color}><Icon {i} />{text}</span>
 {/snippet}
 

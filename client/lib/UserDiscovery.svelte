@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { fetchAPI } from '@axium/client/requests';
 	import { getUserImage, type UserPublic } from '@axium/core';
-	import { colorHash } from '@axium/core/color';
+	import { colorHashRGB } from '@axium/core/color';
 	import { errorText } from '@axium/core/io';
 	import Icon from './Icon.svelte';
 
@@ -66,13 +66,13 @@
 						<span><img src={getUserImage(result.value)} alt={result.value.name} />{result.value.name}</span>
 					{:else if result.type == 'role'}
 						<span>
-							<span class="icon-text tag-or-role" style:background-color={colorHash(result.value)}
+							<span class="icon-text tag-or-role" style:background-color={colorHashRGB(result.value)}
 								><Icon i="at" />{result.value}</span
 							>
 						</span>
 					{:else if result.type == 'tag'}
 						<span>
-							<span class="icon-text tag-or-role" style:background-color={colorHash(result.value)}
+							<span class="icon-text tag-or-role" style:background-color={colorHashRGB(result.value)}
 								><Icon i="hashtag" />{result.value}</span
 							>
 						</span>
