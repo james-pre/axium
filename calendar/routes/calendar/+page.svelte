@@ -1,7 +1,14 @@
 <script lang="ts">
 	import { getEvents, type EventInitFormData } from '@axium/calendar/client';
 	import type { Calendar, Event, EventData } from '@axium/calendar/common';
-	import { AttendeeInit, dateToInputValue, formatEventTimes, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
+	import {
+		AttendeeInit,
+		dateToInputValue,
+		eventToICS,
+		formatEventTimes,
+		getCalPermissionsInfo,
+		weekDaysFor,
+	} from '@axium/calendar/common';
 	import * as Cal from '@axium/calendar/components';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, ColorPicker, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
@@ -9,6 +16,7 @@
 	import { colorHashHex, encodeColor, decodeColor } from '@axium/core/color';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { _throw } from 'utilium';
+	import { download } from 'utilium/dom.js';
 	import z from 'zod';
 	const { data } = $props();
 
@@ -185,6 +193,26 @@
 													event.calendar!.color ||
 													encodeColor(colorHashHex(event.calendar!.name), true)
 											)}"
+											{@attach contextMenu(
+												{
+													i: 'pencil',
+													text: 'Edit',
+													action: () => {
+														eventEditId = event.id;
+														eventEditCalId = event.calId;
+														eventInit = event;
+														document.querySelector<HTMLDialogElement>('#event-init')!.showModal();
+													},
+												},
+												{
+													i: 'trash-can',
+													text: 'Delete',
+													action: () => {
+														eventEditId = event.id;
+														document.querySelector<HTMLDialogElement>('#event-delete')!.showModal();
+													},
+												}
+											)}
 										>
 											<span>{event.summary}</span>
 											<span class="subtle">{formatEventTimes(event)}</span>
@@ -207,6 +235,9 @@
 											onclick={() => (eventEditId = event.id)}
 											command="show-modal"
 											commandfor="event-delete"><Icon i="trash-can" /></button
+										>
+										<button class="reset" onclick={() => download(event.summary + '.ics', eventToICS(event))}
+											><Icon i="file-export" /></button
 										>
 										<button class="reset" command="hide-popover" commandfor="event-popover:{event.id}"
 											><Icon i="xmark" /></button

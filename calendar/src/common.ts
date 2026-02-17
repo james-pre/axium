@@ -206,7 +206,11 @@ declare module '@axium/core/api' {
 Object.assign($API, CalendarAPI);
 
 function formatDate(date: Date): string {
-	return date.toUTCString().replaceAll('-', '').replaceAll(':', '');
+	return date
+		.toISOString()
+		.replaceAll('-', '')
+		.replaceAll(':', '')
+		.replace(/\.\d+Z$/, 'Z');
 }
 
 export function eventToICS(event: Event): string {
@@ -214,6 +218,7 @@ export function eventToICS(event: Event): string {
 		'BEGIN:VCALENDAR',
 		'VERSION:2.0',
 		`PRODID:-//Axium//Calendar ${$pkg.version}//EN`,
+		'CALSCALE:GREGORIAN',
 		'BEGIN:VEVENT',
 		'UID:' + event.id,
 		'DTSTAMP:' + formatDate(new Date()),
