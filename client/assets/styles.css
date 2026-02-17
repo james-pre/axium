@@ -57,7 +57,6 @@ textarea {
 	border: 1px solid var(--border-accent);
 	background-color: var(--bg-normal);
 	font-family: inherit;
-	font-size: inherit;
 	color: hsl(0 0 var(--fg-light));
 	accent-color: hsl(0 0 var(--fg-light));
 }
