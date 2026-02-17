@@ -205,6 +205,11 @@
 													},
 												},
 												{
+													i: 'file-export',
+													text: 'Export .ics',
+													action: () => download(event.summary + '.ics', eventToICS(event)),
+												}
+												{
 													i: 'trash-can',
 													text: 'Delete',
 													action: () => {
@@ -230,14 +235,14 @@
 											command="show-modal"
 											commandfor="event-init"><Icon i="pencil" /></button
 										>
+										<button class="reset" onclick={() => download(event.summary + '.ics', eventToICS(event))}
+											><Icon i="file-export" /></button
+										>
 										<button
 											class="reset"
 											onclick={() => (eventEditId = event.id)}
 											command="show-modal"
 											commandfor="event-delete"><Icon i="trash-can" /></button
-										>
-										<button class="reset" onclick={() => download(event.summary + '.ics', eventToICS(event))}
-											><Icon i="file-export" /></button
 										>
 										<button class="reset" command="hide-popover" commandfor="event-popover:{event.id}"
 											><Icon i="xmark" /></button
