@@ -1,6 +1,6 @@
 {
 	"$schema": "../server/schemas/db.json",
-	"format": 0,
+	"format": 1,
 	"versions": [
 		{
 			"delta": false,
@@ -58,15 +58,15 @@
 					}
 				}
 			},
-			"indexes": [
-				"calendars:userId",
-				"acl.calendars:userId",
-				"acl.calendars:itemId",
-				"events:calId",
-				"events:recurrenceId",
-				"attendees:eventId",
-				"attendees:userId"
-			]
+			"indexes": {
+				"calendars_userId": { "on": "calendars", "columns": ["userId"] },
+				"acl_calendars_userId": { "on": "acl.calendars", "columns": ["userId"] },
+				"acl_calendars_itemId": { "on": "acl.calendars", "columns": ["itemId"] },
+				"events_calId": { "on": "events", "columns": ["calId"] },
+				"events_recurrenceId": { "on": "events", "columns": ["recurrenceId"] },
+				"attendees_eventId": { "on": "attendees", "columns": ["eventId"] },
+				"attendees_userId": { "on": "attendees", "columns": ["userId"] }
+			}
 		},
 		{
 			"delta": true,

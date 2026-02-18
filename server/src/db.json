@@ -1,6 +1,6 @@
 {
 	"$schema": "../schemas/db.json",
-	"format": 0,
+	"format": 1,
 	"versions": [
 		{
 			"delta": false,
@@ -64,7 +64,9 @@
 					}
 				}
 			},
-			"indexes": ["sessions:id", "passkeys:userId"]
+			"indexes": {
+				"passkeys_userId": { "on": "passkeys", "columns": ["userId"] }
+			}
 		},
 		{
 			"delta": true,

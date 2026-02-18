@@ -1,6 +1,6 @@
 {
 	"$schema": "../server/schemas/db.json",
-	"format": 0,
+	"format": 1,
 	"versions": [
 		{
 			"delta": false,
@@ -39,7 +39,13 @@
 					}
 				}
 			},
-			"indexes": ["task_lists:userId", "acl.task_lists:userId", "acl.task_lists:itemId", "tasks:listId", "tasks:parentId"]
+			"indexes": {
+				"task_lists_userId": { "on": "task_lists", "columns": ["userId"] },
+				"acl_task_lists_userId": { "on": "acl.task_lists", "columns": ["userId"] },
+				"acl_task_lists_itemId": { "on": "acl.task_lists", "columns": ["itemId"] },
+				"tasks_listId": { "on": "tasks", "columns": ["listId"] },
+				"tasks_parentId": { "on": "tasks", "columns": ["parentId"] }
+			}
 		},
 		{
 			"delta": true,

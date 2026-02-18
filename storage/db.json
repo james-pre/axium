@@ -1,6 +1,6 @@
 {
 	"$schema": "../server/schemas/db.json",
-	"format": 0,
+	"format": 1,
 	"versions": [
 		{
 			"delta": false,
@@ -34,7 +34,12 @@
 					}
 				}
 			},
-			"indexes": ["storage:userId", "storage:parentId", "acl.storage:userId", "acl.storage:itemId"]
+			"indexes": {
+				"storage_userId": { "on": "storage", "columns": ["userId"] },
+				"storage_parentId": { "on": "storage", "columns": ["parentId"] },
+				"acl_storage_userId": { "on": "acl.storage", "columns": ["userId"] },
+				"acl_storage_itemId": { "on": "acl.storage", "columns": ["itemId"] }
+			}
 		},
 		{
 			"delta": true,

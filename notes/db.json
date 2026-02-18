@@ -1,6 +1,6 @@
 {
 	"$schema": "../server/schemas/db.json",
-	"format": 0,
+	"format": 1,
 	"versions": [
 		{
 			"delta": false,
@@ -29,7 +29,11 @@
 					}
 				}
 			},
-			"indexes": ["notes:userId", "acl.notes:userId", "acl.notes:itemId"]
+			"indexes": {
+				"notes_userId": { "on": "notes", "columns": ["userId"] },
+				"acl_notes_userId": { "on": "acl.notes", "columns": ["userId"] },
+				"acl_notes_itemId": { "on": "acl.notes", "columns": ["itemId"] }
+			}
 		},
 		{
 			"delta": true,
