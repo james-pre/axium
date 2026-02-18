@@ -113,7 +113,7 @@ const axiumDB = program.command('db').alias('database').description('Manage the 
 async function dbInitTables() {
 	const info = db.getUpgradeInfo();
 	const schema = db.getFullSchema({ exclude: Object.keys(info.current) });
-	const delta = db.computeDelta({ tables: {}, indexes: [] }, schema);
+	const delta = db.computeDelta({ tables: {}, indexes: {} }, schema);
 	if (db.deltaIsEmpty(delta)) return;
 	for (const text of db.displayDelta(delta)) console.log(text);
 	await rlConfirm();
@@ -448,6 +448,14 @@ axiumDB
 		}
 	});
 
+axiumDB
+	.command('export-sql')
+	.description('Export the DB schema as SQL')
+	.action(() => {
+		const schema = db.getFullSchema();
+		console.log(db.schemaToSQL(schema));
+	});
+
 const axiumConfig = program
 	.command('config')
 	.description('Manage the configuration')
@@ -587,7 +595,7 @@ axiumPlugin
 		const exclude = Object.keys(info.current);
 		if (exclude.includes(plugin.name)) io.exit('Plugin is already initialized (database)');
 		const schema = db.getFullSchema({ exclude });
-		const delta = db.computeDelta({ tables: {}, indexes: [] }, schema);
+		const delta = db.computeDelta({ tables: {}, indexes: {} }, schema);
 		if (db.deltaIsEmpty(delta)) {
 			io.info('Plugin does not define any database schema.');
 			return;

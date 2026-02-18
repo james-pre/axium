@@ -344,17 +344,15 @@ export const Table = z.strictObject({
 });
 export interface Table extends z.infer<typeof Table> {}
 
-export const IndexString = z.templateLiteral([z.string(), ':', z.string()]);
-export type IndexString = z.infer<typeof IndexString>;
-
-export function parseIndex(value: IndexString): { table: string; column: string } {
-	const [table, column] = value.split(':');
-	return { table, column };
-}
+export const Index = z.strictObject({
+	on: z.string(),
+	columns: z.string().array(),
+});
+export interface Index extends z.infer<typeof Index> {}
 
 export const SchemaDecl = z.strictObject({
 	tables: z.record(z.string(), Table),
-	indexes: IndexString.array().optional().default([]),
+	indexes: z.record(z.string(), Index),
 });
 export interface SchemaDecl extends z.infer<typeof SchemaDecl> {}
 
@@ -379,13 +377,13 @@ export const VersionDelta = z.strictObject({
 	add_tables: z.record(z.string(), Table).optional().default({}),
 	drop_tables: z.string().array().optional().default([]),
 	alter_tables: z.record(z.string(), TableDelta).optional().default({}),
-	add_indexes: IndexString.array().optional().default([]),
-	drop_indexes: IndexString.array().optional().default([]),
+	add_indexes: z.record(z.string(), Index).optional().default({}),
+	drop_indexes: z.string().array().optional().default([]),
 });
 export interface VersionDelta extends z.infer<typeof VersionDelta> {}
 
 export const SchemaFile = z.object({
-	format: z.literal(0),
+	format: z.literal(1),
 	versions: z.discriminatedUnion('delta', [SchemaDecl.extend({ delta: z.literal(false) }), VersionDelta]).array(),
 	/** List of tables to wipe */
 	wipe: z.string().array().optional().default([]),
@@ -459,14 +457,16 @@ export type ApplyDeltaToSchema<S extends z.input<typeof SchemaDecl>, D extends z
 			? ApplyTableDelta<S['tables'][K], (D['alter_tables'] & {})[K & keyof D['alter_tables']]>
 			: S['tables'][K];
 	} & (D extends { add_tables: infer A } ? A : {});
-	indexes: D extends { add_indexes: infer Add; drop_indexes: infer Drop }
-		? [...Filter<Drop extends readonly any[] ? Drop[number] : never, S['indexes'] & {}>, ...(Add extends readonly any[] ? Add : [])]
-		: S['indexes'];
+	indexes: {
+		[K in keyof S['indexes'] as K extends (D extends { drop_indexes: any[] } ? D['drop_indexes'][number] : never)
+			? never
+			: K]: S['indexes'][K];
+	};
 };
 
 type ResolveVersions<
 	V extends readonly any[],
-	Current extends z.input<typeof SchemaDecl> = { tables: {}; indexes: [] },
+	Current extends z.input<typeof SchemaDecl> = { tables: {}; indexes: {} },
 > = V extends readonly [
 	infer Head extends z.input<typeof VersionDelta> | (z.input<typeof SchemaDecl> & { delta: false }),
 	...infer Tail extends (z.input<typeof VersionDelta> | (z.input<typeof SchemaDecl> & { delta: false }))[],
@@ -571,14 +571,14 @@ export interface Schema extends Omit<RawDB, 'users' | 'verifications' | 'passkey
  * Get the active schema
  */
 export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl & { versions: Record<string, number> } {
-	const fullSchema: SchemaDecl & { versions: Record<string, number> } = { tables: {}, indexes: [], versions: {} };
+	const fullSchema: SchemaDecl & { versions: Record<string, number> } = { tables: {}, indexes: {}, versions: {} };
 
 	for (const [pluginName, file] of getSchemaFiles()) {
 		if (opt.exclude?.includes(pluginName)) continue;
 
 		file.latest ??= file.versions.length - 1;
 
-		let currentSchema: SchemaDecl = { tables: {}, indexes: [] };
+		let currentSchema: SchemaDecl = { tables: {}, indexes: {} };
 
 		fullSchema.versions[pluginName] = file.latest;
 		for (const [version, schema] of file.versions.entries()) {
@@ -599,13 +599,41 @@ export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl & { 
 			fullSchema.tables[name] = currentSchema.tables[name];
 		}
 
-		for (const index of currentSchema.indexes) {
-			if (fullSchema.indexes.includes(index)) throw 'Duplicate index in database schema: ' + index;
-			fullSchema.indexes.push(index);
+		for (const index of Object.keys(currentSchema.indexes)) {
+			if (fullSchema.indexes[index]) throw 'Duplicate index in database schema: ' + index;
+			fullSchema.indexes[index] = currentSchema.indexes[index];
 		}
 	}
 
 	return fullSchema;
+}
+
+export function schemaToSQL(schema: SchemaDecl): string {
+	let code = '';
+
+	for (const [tableName, table] of Object.entries(schema.tables)) {
+		let query = database.schema.createTable(tableName);
+
+		const columns = Object.entries(table.columns);
+		const pkColumns = columns.filter(([, column]) => column.primary).map(([name, column]) => ({ name, ...column }));
+		const needsSpecialConstraint = pkColumns.length > 1 || pkColumns.some(col => !col.required);
+		for (const [colName, column] of columns) {
+			query = query.addColumn(colName, sql.raw(column.type), columnFromSchema(column, !needsSpecialConstraint));
+		}
+		if (needsSpecialConstraint) {
+			query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns.map(col => col.name) as any);
+		}
+
+		code += query.compile().sql + ';\n';
+	}
+
+	for (const [indexName, index] of Object.entries(schema.indexes)) {
+		const query = database.schema.createIndex(indexName).on(index.on).columns(index.columns).compile().sql;
+
+		code += query + ';\n';
+	}
+
+	return code;
 }
 
 const schemaToIntrospected = {
@@ -691,6 +719,16 @@ export function applyDeltaToSchema(schema: SchemaDecl, delta: VersionDelta): voi
 		if (tableName in schema.tables) applyTableDeltaToSchema(schema.tables[tableName], tableDelta);
 		else throw `can't modify table ${tableName} because it does not exist`;
 	}
+
+	for (const indexName of delta.drop_indexes) {
+		if (indexName in schema.indexes) delete schema.indexes[indexName];
+		else throw `can't drop index ${indexName} because it does not exist`;
+	}
+
+	for (const [indexName, index] of Object.entries(delta.add_indexes)) {
+		if (indexName in schema.indexes) throw `can't add index ${indexName} because it already exists`;
+		else schema.indexes[indexName] = index;
+	}
 }
 
 export function validateDelta(delta: VersionDelta): void {
@@ -721,8 +759,8 @@ export function validateDelta(delta: VersionDelta): void {
 export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 	const fromTables = new Set(Object.keys(from.tables));
 	const toTables = new Set(Object.keys(to.tables));
-	const fromIndexes = new Set(from.indexes);
-	const toIndexes = new Set(to.indexes);
+	const fromIndexes = new Set(Object.keys(from.indexes));
+	const toIndexes = new Set(Object.keys(to.indexes));
 
 	const add_tables = Object.fromEntries(
 		toTables
@@ -786,13 +824,20 @@ export function computeDelta(from: SchemaDecl, to: SchemaDecl): VersionDelta {
 		};
 	}
 
+	const add_indexes = Object.fromEntries(
+		toIndexes
+			.difference(fromIndexes)
+			.keys()
+			.map(name => [name, to.indexes[name]])
+	);
+
 	return {
 		delta: true,
 		add_tables,
 		drop_tables: Array.from(fromTables.difference(toTables)),
 		alter_tables,
 		drop_indexes: Array.from(fromIndexes.difference(toIndexes)),
-		add_indexes: Array.from(toIndexes.difference(fromIndexes)),
+		add_indexes,
 	};
 }
 
@@ -800,8 +845,8 @@ export function collapseDeltas(deltas: VersionDelta[]): VersionDelta {
 	const add_tables: Record<string, Table> = {},
 		drop_tables: string[] = [],
 		alter_tables: Record<string, TableDelta> = {},
-		add_indexes: IndexString[] = [],
-		drop_indexes: IndexString[] = [];
+		add_indexes: Record<string, Index> = {},
+		drop_indexes: string[] = [];
 
 	for (const delta of deltas) {
 		validateDelta(delta);
@@ -828,20 +873,20 @@ export function collapseDeltas(deltas: VersionDelta[]): VersionDelta {
 			else drop_tables.push(table);
 		}
 
+		for (const index of delta.drop_indexes) {
+			if (index in add_indexes) delete add_indexes[index];
+			else drop_indexes.push(index);
+		}
+
 		for (const [name, table] of Object.entries(delta.add_tables)) {
 			if (drop_tables.includes(name)) throw `Can't add and drop table "${name}" in the same change`;
 			if (name in alter_tables) throw `Can't add and modify table "${name}" in the same change`;
 			add_tables[name] = table;
 		}
 
-		for (const index of delta.add_indexes) {
-			if (drop_indexes.includes(index)) throw `Can't add and drop index "${index}" in the same change`;
-			add_indexes.push(index);
-		}
-
-		for (const index of delta.drop_indexes) {
-			if (add_indexes.includes(index)) throw `Can't add and drop index "${index}" in the same change`;
-			drop_indexes.push(index);
+		for (const [name, index] of Object.entries(delta.add_indexes)) {
+			if (drop_indexes.includes(name)) throw `Can't add and drop index "${name}" in the same change`;
+			add_indexes[name] = index;
 		}
 	}
 
@@ -909,14 +954,14 @@ export function* displayDelta(delta: VersionDelta): Generator<string> {
 	}
 
 	const indexes = [
-		...delta.add_indexes.map(raw => ({ op: '+' as const, ...parseIndex(raw) })),
-		...delta.drop_indexes.map(raw => ({ op: '-' as const, ...parseIndex(raw) })),
+		...Object.keys(delta.add_indexes).map(name => ({ op: '+' as const, name })),
+		...delta.drop_indexes.map(name => ({ op: '-' as const, name })),
 	];
 
-	indexes.sort((a, b) => a.table.localeCompare(b.table) || a.column.localeCompare(b.column));
+	indexes.sort((a, b) => a.name.localeCompare(b.name));
 
 	for (const index of indexes) {
-		yield styleText(deltaColors[index.op], `${index.op} index on ${index.table}.${index.column}`);
+		yield styleText(deltaColors[index.op], `${index.op} index ${index.name}`);
 	}
 }
 
@@ -1012,6 +1057,18 @@ export async function applyDelta(delta: VersionDelta, forceAbort: boolean = fals
 				}
 			}
 
+			io.done();
+		}
+
+		for (const [indexName, index] of Object.entries(delta.add_indexes)) {
+			io.start('Adding index ' + indexName);
+			await tx.schema.createIndex(indexName).on(index.on).columns(index.columns).execute();
+			io.done();
+		}
+
+		for (const index of delta.drop_indexes) {
+			io.start('Dropping index ' + index);
+			await tx.schema.dropIndex(index).execute();
 			io.done();
 		}
 
