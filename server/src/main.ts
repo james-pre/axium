@@ -7,7 +7,7 @@ import { io, outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins, runIntegrations } from '@axium/core/plugins';
 import { Argument, Option, program } from 'commander';
 import { allLogLevels } from 'logzen';
-import { createWriteStream } from 'node:fs';
+import { createWriteStream, type WriteStream } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
@@ -449,11 +449,19 @@ axiumDB
 	});
 
 axiumDB
-	.command('export-sql')
-	.description('Export the DB schema as SQL')
-	.action(() => {
+	.command('export-schema')
+	.description('Export the DB schema')
+	.addOption(new Option('-f, --format <format>', 'Output format').choices(['sql', 'graph']).default('sql'))
+	.option('-o, --output <file>', 'Output file path')
+	.action(opt => {
 		const schema = db.getFullSchema();
-		console.log(db.schemaToSQL(schema));
+
+		const it = opt.format == 'sql' ? db.schemaToSQL(schema) : db.schemaToGraph(schema);
+		const out = opt.output ? createWriteStream(opt.output) : process.stdout;
+
+		for (const data of it) out.write(data);
+
+		if (opt.output) (out as WriteStream).close();
 	});
 
 const axiumConfig = program

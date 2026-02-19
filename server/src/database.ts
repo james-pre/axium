@@ -608,9 +608,7 @@ export function getFullSchema(opt: { exclude?: string[] } = {}): SchemaDecl & { 
 	return fullSchema;
 }
 
-export function schemaToSQL(schema: SchemaDecl): string {
-	let code = '';
-
+export function* schemaToSQL(schema: SchemaDecl): Generator<string> {
 	for (const [tableName, table] of Object.entries(schema.tables)) {
 		let query = database.schema.createTable(tableName);
 
@@ -624,16 +622,93 @@ export function schemaToSQL(schema: SchemaDecl): string {
 			query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns.map(col => col.name) as any);
 		}
 
-		code += query.compile().sql + ';\n';
+		yield query.compile().sql + ';\n';
 	}
 
 	for (const [indexName, index] of Object.entries(schema.indexes)) {
 		const query = database.schema.createIndex(indexName).on(index.on).columns(index.columns).compile().sql;
 
-		code += query + ';\n';
+		yield query + ';\n';
+	}
+}
+
+export function* schemaToGraph(schema: SchemaDecl): Generator<string> {
+	const esc = (s: string) => s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
+	const nodeId = (table: string) => table.replaceAll('.', '__');
+
+	const edges: { fromTable: string; fromCol: string; toTable: string; toCol: string }[] = [];
+
+	yield `digraph schema {
+	graph [
+		bgcolor="#111111",
+		overlap=false,
+		pad=0.5,
+		concentrate=true,
+		nodesep=1.0,
+		rankdir=LR,
+		size="16,9!",
+		ratio="fill"
+	];
+	node [color="#c6c5fe",
+		fontcolor="#c6c5fe",
+		fontname=monospace,
+		fontsize="14px",
+		height=0,
+		label="\N",
+		shape=plain,
+		style=rounded
+	];
+	edge [color="#757575"];	
+	`;
+
+	for (const [tableName, table] of Object.entries(schema.tables)) {
+		const id = nodeId(tableName);
+
+		for (const constraint of Object.values(table.constraints)) {
+			if (constraint.type !== 'foreign_key') continue;
+			for (let i = 0; i < constraint.on.length; i++) {
+				edges.push({
+					fromTable: tableName,
+					fromCol: constraint.on[i],
+					toTable: constraint.target,
+					toCol: constraint.references[i],
+				});
+			}
+		}
+
+		yield `\t${id} [label=<\n`;
+		yield '\t\t<TABLE BORDER="1" CELLBORDER="0" CELLSPACING="0" CELLPADDING="4">\n';
+		yield `\t\t\t<TR><TD COLSPAN="3" BGCOLOR="#44C2C4"><B>${esc(tableName)}</B></TD></TR>\n`;
+
+		for (const [colName, column] of Object.entries(table.columns)) {
+			const nullable = !column.required ? '?' : '';
+			const typeText = esc(column.type) + nullable;
+
+			let label = `${esc(colName)}: ${column.references ? `<I>${typeText}</I>` : typeText}`;
+			if (column.primary) label = `<B>${label}</B>`;
+
+			if (column.references) {
+				const [toTable, toCol] = column.references.split('.');
+				edges.push({ fromTable: tableName, fromCol: colName, toTable, toCol });
+			}
+
+			yield `\t\t\t<TR><TD PORT="${esc(colName)}_l" WIDTH="2"></TD><TD ALIGN="LEFT">${label}</TD><TD PORT="${esc(colName)}_r" WIDTH="2"></TD></TR>\n`;
+		}
+
+		yield '\t\t</TABLE>\n\t>];\n\n';
 	}
 
-	return code;
+	for (const { fromTable, fromCol, toTable, toCol } of edges) {
+		if (fromTable != toTable) {
+			yield `\t${nodeId(fromTable)}:${fromCol}_r -> ${nodeId(toTable)}:${toCol}_l;\n`;
+			continue;
+		}
+
+		const id = nodeId(fromTable);
+		yield `\t${id}:${fromCol}_l:w -> ${id}:${toCol}_l:w [constraint=false];\n`;
+	}
+
+	yield '}\n';
 }
 
 const schemaToIntrospected = {
