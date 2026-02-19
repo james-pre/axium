@@ -7,6 +7,7 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
 import type schema from '../db.json';
 import { TaskInit, TaskListInit, TaskListUpdate, type Task } from './common.js';
+import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}

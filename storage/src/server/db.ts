@@ -1,5 +1,6 @@
 import { getConfig } from '@axium/core';
-import { database, type FromSchemaFile, type Schema } from '@axium/server/database';
+import { database, type Schema } from '@axium/server/database';
+import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { withError } from '@axium/server/requests';
 import type { Selectable } from 'kysely';
 import { unlinkSync } from 'node:fs';
