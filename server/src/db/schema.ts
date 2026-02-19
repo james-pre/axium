@@ -183,7 +183,7 @@ export function* toSQL(schema: SchemaDecl): Generator<string> {
 			query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns.map(col => col.name) as any);
 		}
 
-		yield query.compile().sql + ';\n';
+		yield query.compile().sql.replace('(', '(\n\t').replaceAll(', ', ',\n\t').replace(/\)$/, '\n);\n');
 	}
 
 	for (const [indexName, index] of Object.entries(schema.indexes)) {
