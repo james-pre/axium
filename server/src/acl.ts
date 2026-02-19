@@ -134,7 +134,7 @@ export function check<const TB extends TableName>(
 export function listTables(): Record<string, TableName> {
 	const tables: Record<string, TableName> = {};
 
-	for (const [, file] of db.getSchemaFiles()) {
+	for (const [, file] of db.schema.getFiles()) {
 		Object.assign(tables, file.acl_tables || {});
 	}
 

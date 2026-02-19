@@ -112,13 +112,13 @@ const axiumDB = program.command('db').alias('database').description('Manage the 
 
 async function dbInitTables() {
 	const info = db.getUpgradeInfo();
-	const schema = db.getFullSchema({ exclude: Object.keys(info.current) });
-	const delta = db.computeDelta({ tables: {}, indexes: {} }, schema);
-	if (db.deltaIsEmpty(delta)) return;
-	for (const text of db.displayDelta(delta)) console.log(text);
+	const schema = db.schema.getFull({ exclude: Object.keys(info.current) });
+	const delta = db.delta.compute({ tables: {}, indexes: {} }, schema);
+	if (db.delta.isEmpty(delta)) return;
+	for (const text of db.delta.display(delta)) console.log(text);
 	await rlConfirm();
 	await using _ = db.connect();
-	await db.applyDelta(delta);
+	await db.delta.apply(delta);
 	Object.assign(info.current, schema.versions);
 	db.setUpgradeInfo(info);
 }
@@ -190,7 +190,7 @@ axiumDB
 	.action(async opt => {
 		const tables = new Map<keyof db.Schema, string>();
 
-		for (const [plugin, schema] of db.getSchemaFiles()) {
+		for (const [plugin, schema] of db.schema.getFiles()) {
 			for (const table of schema.wipe as (keyof db.Schema)[]) {
 				const maybePlugin = tables.get(table);
 				tables.set(table, maybePlugin ? `${maybePlugin}, ${plugin}` : plugin);
@@ -261,7 +261,7 @@ axiumDB
 		io.start('Resolving database schemas');
 		let schema;
 		try {
-			schema = db.getFullSchema();
+			schema = db.schema.getFull();
 			io.done();
 		} catch (e: any) {
 			io.exit(e);
@@ -298,7 +298,7 @@ axiumDB
 	.option('-j, --json', 'values are JSON encoded')
 	.action(opt => {
 		try {
-			const schema = z.toJSONSchema(db.SchemaFile, { io: 'input' });
+			const schema = z.toJSONSchema(db.schema.SchemaFile, { io: 'input' });
 			console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
 		} catch (e: any) {
 			io.exit(e);
@@ -312,7 +312,7 @@ axiumDB
 	.description('Upgrade the database to the latest version')
 	.option('--abort', 'Rollback changes instead of committing them')
 	.action(async function axium_db_upgrade(opt) {
-		const deltas: db.VersionDelta[] = [];
+		const deltas: db.delta.Version[] = [];
 
 		const info = db.getUpgradeInfo();
 
@@ -321,7 +321,7 @@ axiumDB
 		const from: Record<string, number> = {},
 			to: Record<string, number> = {};
 
-		for (const [name, schema] of db.getSchemaFiles()) {
+		for (const [name, schema] of db.schema.getFiles()) {
 			if (!(name in info.current)) io.exit('Plugin is not initialized: ' + name);
 
 			const currentVersion = info.current[name];
@@ -341,11 +341,11 @@ axiumDB
 
 			for (const [i, v] of versions.toReversed().entries()) {
 				if (v.delta || v == v0) continue;
-				versions = [db.computeDelta(v0, v), ...versions.slice(-i)];
+				versions = [db.delta.compute(v0, v), ...versions.slice(-i)];
 				break;
 			}
 
-			const delta = db.collapseDeltas(versions as db.VersionDelta[]);
+			const delta = db.delta.collapse(versions as db.delta.Version[]);
 
 			deltas.push(delta);
 
@@ -354,8 +354,8 @@ axiumDB
 				name,
 				styleText('dim', currentVersion.toString() + '->') + styleText('blueBright', target.toString()) + ':'
 			);
-			if (!db.deltaIsEmpty(delta)) empty = false;
-			for (const text of db.displayDelta(delta)) console.log(text);
+			if (!db.delta.isEmpty(delta)) empty = false;
+			for (const text of db.delta.display(delta)) console.log(text);
 		}
 
 		if (empty) {
@@ -370,9 +370,9 @@ axiumDB
 		await rlConfirm();
 
 		io.start('Computing delta');
-		let delta: db.VersionDelta;
+		let delta: db.delta.Version;
 		try {
-			delta = db.collapseDeltas(deltas);
+			delta = db.delta.collapse(deltas);
 			io.done();
 		} catch (e: any) {
 			io.exit(e);
@@ -380,14 +380,14 @@ axiumDB
 
 		io.start('Validating delta');
 		try {
-			db.validateDelta(delta);
+			db.delta.validate(delta);
 			io.done();
 		} catch (e: any) {
 			io.exit(e);
 		}
 
 		console.log('Applying delta.');
-		await db.applyDelta(delta, opt.abort).catch(io.exit);
+		await db.delta.apply(delta, opt.abort).catch(io.exit);
 
 		info.upgrades.push({ timestamp: new Date(), from, to });
 		db.setUpgradeInfo(info);
@@ -425,7 +425,7 @@ axiumDB
 			{ name: 'Name', current: 'Current', latest: 'Latest', available: 'Available' },
 		];
 
-		for (const [name, file] of db.getSchemaFiles()) {
+		for (const [name, file] of db.schema.getFiles()) {
 			const available = (file.versions.length - 1).toString();
 			const latest = (file.latest ?? available).toString();
 			const current = currentVersions[name]?.toString();
@@ -454,9 +454,9 @@ axiumDB
 	.addOption(new Option('-f, --format <format>', 'Output format').choices(['sql', 'graph']).default('sql'))
 	.option('-o, --output <file>', 'Output file path')
 	.action(opt => {
-		const schema = db.getFullSchema();
+		const schema = db.schema.getFull();
 
-		const it = opt.format == 'sql' ? db.schemaToSQL(schema) : db.schemaToGraph(schema);
+		const it = opt.format == 'sql' ? db.schema.toSQL(schema) : db.schema.toGraph(schema);
 		const out = opt.output ? createWriteStream(opt.output) : process.stdout;
 
 		for (const data of it) out.write(data);
@@ -602,15 +602,15 @@ axiumPlugin
 		const info = db.getUpgradeInfo();
 		const exclude = Object.keys(info.current);
 		if (exclude.includes(plugin.name)) io.exit('Plugin is already initialized (database)');
-		const schema = db.getFullSchema({ exclude });
-		const delta = db.computeDelta({ tables: {}, indexes: {} }, schema);
-		if (db.deltaIsEmpty(delta)) {
+		const schema = db.schema.getFull({ exclude });
+		const delta = db.delta.compute({ tables: {}, indexes: {} }, schema);
+		if (db.delta.isEmpty(delta)) {
 			io.info('Plugin does not define any database schema.');
 			return;
 		}
-		for (const text of db.displayDelta(delta)) console.log(text);
+		for (const text of db.delta.display(delta)) console.log(text);
 		await rlConfirm();
-		await db.applyDelta(delta);
+		await db.delta.apply(delta);
 		Object.assign(info.current, schema.versions);
 		db.setUpgradeInfo(info);
 	});
