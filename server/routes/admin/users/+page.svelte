@@ -13,7 +13,7 @@
 </script>
 
 <svelte:head>
-	<title>Admin - Users</title>
+	<title>Admin — Users</title>
 </svelte:head>
 
 <h2>Users</h2>
