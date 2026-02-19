@@ -293,7 +293,7 @@ axiumDB
 	.action(db.rotatePassword);
 
 axiumDB
-	.command('schema')
+	.command('json-schema')
 	.description('Get the JSON schema for the database configuration file')
 	.option('-j, --json', 'values are JSON encoded')
 	.action(opt => {
