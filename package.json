@@ -29,7 +29,8 @@
 		"build": "tsc -b && for pkg in server storage calendar notes tasks; do (cd $pkg && vite build >/dev/null 2>&1); done",
 		"watch": "tsc -b -w",
 		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build",
-		"postinstall": "patch-package"
+		"postinstall": "patch-package",
+		"wc-source": "wc -l $(git ls-files | grep -v package-lock.json | grep -v client/assets/icons | grep -v LICENSE.md) | sort -h"
 	},
 	"workspaces": [
 		"calendar",
