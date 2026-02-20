@@ -33,14 +33,6 @@
 	const span = $state('week');
 	const spanDays = $derived(span == 'week' ? 7 : _throw('Invalid span value'));
 	const weekDays = $derived(weekDaysFor(start));
-	const eventsForWeekDays = $derived(
-		Object.groupBy(
-			events.filter(
-				e => e.start < new Date(weekDays[6].getFullYear(), weekDays[6].getMonth(), weekDays[6].getDate() + 1) && e.end > weekDays[0]
-			),
-			ev => ev.start.getDay()
-		)
-	);
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 
@@ -162,6 +154,14 @@
 			<span class="hour empty"></span>
 		</div>
 		{#if span == 'week'}
+			{@const eventsForWeekDays = Object.groupBy(
+				events.filter(
+					e =>
+						e.start < new Date(weekDays[6].getFullYear(), weekDays[6].getMonth(), weekDays[6].getDate() + 1) &&
+						e.end > weekDays[0]
+				),
+				ev => ev.start.getDay()
+			)}
 			<div class="cal-content week">
 				{#each weekDays as day, i}
 					<div class="day">
