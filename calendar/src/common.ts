@@ -205,7 +205,10 @@ declare module '@axium/core/api' {
 
 Object.assign($API, CalendarAPI);
 
-function formatDate(date: Date): string {
+/**
+ * Convert a `Date` to an iCalendar datetime
+ */
+export function toDateTime(date: Date): string {
 	return date
 		.toISOString()
 		.replaceAll('-', '')
@@ -221,9 +224,9 @@ export function eventToICS(event: Event): string {
 		'CALSCALE:GREGORIAN',
 		'BEGIN:VEVENT',
 		'UID:' + event.id,
-		'DTSTAMP:' + formatDate(new Date()),
-		'DTSTART:' + formatDate(event.start),
-		'DTEND:' + formatDate(event.end),
+		'DTSTAMP:' + toDateTime(new Date()),
+		'DTSTART:' + toDateTime(event.start),
+		'DTEND:' + toDateTime(event.end),
 		'SUMMARY:' + event.summary,
 	];
 

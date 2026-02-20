@@ -121,7 +121,12 @@ addRoute({
 			.selectAll()
 			.select(withAttendees)
 			.where('calId', '=', id)
-			.where(sql<boolean>`(${sql.ref('start')}, ${sql.ref('end')}) OVERLAPS (${sql.val(filter.start)}, ${sql.val(filter.end)})`)
+			.where(eb =>
+				eb.or([
+					sql<boolean>`(${sql.ref('start')}, ${sql.ref('end')}) OVERLAPS (${sql.val(filter.start)}, ${sql.val(filter.end)})`,
+					eb.and([eb('start', '>', filter.start), eb('recurrence', '!=', null)]),
+				])
+			)
 			.limit(1000)
 			.execute()
 			.then(result => result.map<Event>(withEncoded))

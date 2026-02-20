@@ -1,5 +1,5 @@
 import { fetchAPI } from '@axium/client/requests';
-import type { Calendar, Event, EventData, EventFilter } from './common.js';
+import type { AttendeeInit, Calendar, Event, EventData, EventFilter } from './common.js';
 
 export async function getEvents(calendars: Calendar[], filter: EventFilter): Promise<Event[]> {
 	const events: Event[] = [];
@@ -16,3 +16,8 @@ export async function getEvents(calendars: Calendar[], filter: EventFilter): Pro
 }
 
 export interface EventInitFormData extends Record<Exclude<keyof EventData, 'attendees' | 'recurrenceExcludes'>, string> {}
+
+export interface EventInitProp extends EventData {
+	attendees: AttendeeInit[];
+	calendar?: Calendar;
+}
