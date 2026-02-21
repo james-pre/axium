@@ -517,43 +517,6 @@
 					}
 				}
 			}
-
-			.event {
-				width: calc(100% - 0.5em);
-				position: absolute;
-				border-radius: 0.5em;
-				padding: 0.25em;
-				background-color: var(--event-color, var(--bg-alt));
-				display: flex;
-				flex-direction: column;
-				align-items: flex-start;
-				justify-content: flex-start;
-				container-type: size;
-				overflow: hidden;
-
-				@container (height < 2.5em) {
-					.subtle {
-						display: none;
-					}
-				}
-
-				:global(& + :popover-open) {
-					gap: 0.75em;
-					padding: 1em;
-
-					.event-actions {
-						display: flex;
-						align-items: center;
-						justify-content: flex-end;
-						gap: 0.25em;
-
-						button {
-							padding: 0.5em;
-							border-radius: 0.5em;
-						}
-					}
-				}
-			}
 		}
 	}
 </style>

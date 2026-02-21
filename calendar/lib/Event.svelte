@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { type EventInitProp } from '@axium/calendar/client';
+	import type { EventInitProp } from '@axium/calendar/client';
 	import type { Event } from '@axium/calendar/common';
 	import { eventToICS, formatEventTimes } from '@axium/calendar/common';
 	import { contextMenu } from '@axium/client/attachments';
@@ -27,7 +27,7 @@
 		{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
 		{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
 		<div
-			class="event"
+			class="Event"
 			style:top="{start / 14.4}%"
 			style:height="{(end - start) / 14.4}%"
 			style="--event-color:{decodeColor(
@@ -133,3 +133,42 @@
 		</div>
 	{/if}
 </Popover>
+
+<style>
+	.Event {
+		width: calc(100% - 0.5em);
+		position: absolute;
+		border-radius: 0.5em;
+		padding: 0.25em;
+		background-color: var(--event-color, var(--bg-alt));
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		justify-content: flex-start;
+		container-type: size;
+		overflow: hidden;
+
+		@container (height < 2.5em) {
+			.subtle {
+				display: none;
+			}
+		}
+
+		:global(& + :popover-open) {
+			gap: 0.75em;
+			padding: 1em;
+
+			.event-actions {
+				display: flex;
+				align-items: center;
+				justify-content: flex-end;
+				gap: 0.25em;
+
+				button {
+					padding: 0.5em;
+					border-radius: 0.5em;
+				}
+			}
+		}
+	}
+</style>
