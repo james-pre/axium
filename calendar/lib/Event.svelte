@@ -1,10 +1,11 @@
 <script lang="ts">
 	import type { EventInitProp } from '@axium/calendar/client';
 	import type { Event } from '@axium/calendar/common';
-	import { eventToICS, formatEventTimes } from '@axium/calendar/common';
+	import { eventToICS, formatEventTimes, toRRuleDate } from '@axium/calendar/common';
 	import { contextMenu } from '@axium/client/attachments';
 	import { Icon, Popover } from '@axium/client/components';
 	import { colorHashHex, decodeColor, encodeColor } from '@axium/core/color';
+	import { rrulestr } from 'rrule';
 	import { download } from 'utilium/dom.js';
 
 	let {
@@ -22,6 +23,10 @@
 	} = $props();
 
 	const id = $props.id();
+
+	const recurrence = $derived(
+		!event.recurrence ? '' : rrulestr('RRULE:' + event.recurrence, { dtstart: toRRuleDate(event.start) }).toText()
+	);
 </script>
 
 <Popover {id} onclick={e => e.stopPropagation()}>
@@ -98,6 +103,13 @@
 			{/if}
 		</span>
 	</div>
+
+	{#if event.recurrence}
+		<div>
+			<Icon i="arrows-rotate" />
+			<span>{recurrence}</span>
+		</div>
+	{/if}
 
 	{#if event.location}
 		<div>

@@ -71,11 +71,11 @@
 		events
 			.filter(ev => ev.recurrence)
 			.map(ev => {
-				const rrule = rrulestr('RRULE:' + ev.recurrence, { dtstart: toRRuleDate(ev.start) });
-				const recurrences = rrule
+				const rule = rrulestr('RRULE:' + ev.recurrence, { dtstart: toRRuleDate(ev.start) });
+				const recurrences = rule
 					.between(toRRuleDate(new Date(start.getTime())), toRRuleDate(new Date(end.getTime())), true)
 					.map(fromRRuleDate);
-				return { ...ev, rrule, recurrences };
+				return { ...ev, rule, recurrences };
 			})
 	);
 
