@@ -16,8 +16,8 @@
 	}: {
 		event: Event;
 		eventInit: EventInitProp;
-		eventEditId: string;
-		eventEditCalId: string;
+		eventEditId?: string;
+		eventEditCalId?: string;
 		initData?: Event;
 	} = $props();
 
