@@ -1,6 +1,6 @@
 {
 	"name": "@axium/calendar",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Calendar for Axium",
 	"funding": {
