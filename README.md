@@ -73,6 +73,10 @@ It is similar to the cloud storage offered by large tech companies.
 Unlike widely-used solutions, you can self-host it and always have full control over your data.
 This plugin includes the Files app along with significant code infrastructure for managing files.
 
+#### @axium/calendar
+
+A calendar app for managing events. Still a work in progress.
+
 #### @axium/tasks
 
 Create to-do lists with ease. The tasks plugins adds the Tasks app and APIs to Axium.
