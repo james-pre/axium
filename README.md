@@ -12,7 +12,7 @@ At the moment Axium only runs on Linux systems.
 
 Make sure postgresql and Node.js are installed and set up. For postgres make sure to run `postgresql-setup --initdb`.
 
-Then, install Axium and any plugins you want. Note that you may want to link the axium CLI executable to `/usr/local/bin` so you can use it from anywhere and don't need to prefix commands with `npx`.
+Then, install Axium and any plugins you want. Note that you may want to link the `axium` executable to `/usr/local/bin` so you can use it from anywhere and don't need to prefix commands with `npx`.
 
 By default, Axium does not come with a home page. You can enable a testing/debug home page by setting `debug_home` to `true` in the configuration.
 
