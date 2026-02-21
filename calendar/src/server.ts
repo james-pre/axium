@@ -124,7 +124,7 @@ addRoute({
 			.where(eb =>
 				eb.or([
 					sql<boolean>`(${sql.ref('start')}, ${sql.ref('end')}) OVERLAPS (${sql.val(filter.start)}, ${sql.val(filter.end)})`,
-					eb.and([eb('start', '>', filter.start), eb('recurrence', '!=', null)]),
+					eb.and([eb('recurrence', 'is not', null), eb('recurrence', '!=', '')]), // @todo try to figure out a way to only select events we know recur during the filter
 				])
 			)
 			.limit(1000)
