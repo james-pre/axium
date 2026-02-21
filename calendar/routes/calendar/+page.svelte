@@ -3,9 +3,11 @@
 	import type { Event } from '@axium/calendar/common';
 	import {
 		dateToInputValue,
+		fromRRuleDate,
 		getCalPermissionsInfo,
 		longWeekDay,
 		toByDay,
+		toRRuleDate,
 		weekDayOfMonth,
 		weekDaysFor,
 		withOrdinalSuffix,
@@ -69,8 +71,11 @@
 		events
 			.filter(ev => ev.recurrence)
 			.map(ev => {
-				const rrule = rrulestr('RRULE:' + ev.recurrence, { dtstart: ev.start });
-				return Object.assign(ev, { rrule, recurrences: rrule.between(start, end, true) });
+				const rrule = rrulestr('RRULE:' + ev.recurrence, { dtstart: toRRuleDate(ev.start) });
+				const recurrences = rrule
+					.between(toRRuleDate(new Date(start.getTime())), toRRuleDate(new Date(end.getTime())), true)
+					.map(fromRRuleDate);
+				return { ...ev, rrule, recurrences };
 			})
 	);
 

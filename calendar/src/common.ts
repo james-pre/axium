@@ -14,6 +14,14 @@ export function withOrdinalSuffix(val: number): string {
 	return val + 'th';
 }
 
+export function toRRuleDate(date: Date) {
+	return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes()));
+}
+
+export function fromRRuleDate(d: Date) {
+	return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
+}
+
 export function dayOfYear(date: Date): number {
 	const yearStart = new Date(date.getFullYear(), 0, 1);
 	return Math.round((date.getTime() - yearStart.getTime()) / 86400000 + 1);
