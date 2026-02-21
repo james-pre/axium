@@ -42,6 +42,7 @@
 		"utilium": "^2.7.0"
 	},
 	"dependencies": {
+		"rrule": "^2.8.1",
 		"zod": "^4.0.5"
 	},
 	"axium": {

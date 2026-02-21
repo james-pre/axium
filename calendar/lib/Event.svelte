@@ -12,11 +12,13 @@
 		eventEditId = $bindable(),
 		eventEditCalId = $bindable(),
 		eventInit = $bindable(),
+		initData = event,
 	}: {
 		event: Event;
 		eventInit: EventInitProp;
 		eventEditId: string;
 		eventEditCalId: string;
+		initData?: Event;
 	} = $props();
 
 	const id = $props.id();
@@ -40,7 +42,7 @@
 					action: () => {
 						eventEditId = event.id;
 						eventEditCalId = event.calId;
-						eventInit = event;
+						eventInit = initData;
 						document.querySelector<HTMLDialogElement>('#event-init')!.showModal();
 					},
 				},
@@ -70,7 +72,7 @@
 			onclick={() => {
 				eventEditId = event.id;
 				eventEditCalId = event.calId;
-				eventInit = event;
+				eventInit = initData;
 			}}
 			command="show-modal"
 			commandfor="event-init"><Icon i="pencil" /></button

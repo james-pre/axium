@@ -4,6 +4,16 @@ import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { Color } from '@axium/core/color';
 
+export function withOrdinalSuffix(val: number): string {
+	const tens = val % 10,
+		hundreds = val % 100;
+
+	if (tens == 1 && hundreds != 11) return val + 'st';
+	if (tens == 2 && hundreds != 12) return val + 'nd';
+	if (tens == 3 && hundreds != 13) return val + 'rd';
+	return val + 'th';
+}
+
 export function dayOfYear(date: Date): number {
 	const yearStart = new Date(date.getFullYear(), 0, 1);
 	return Math.round((date.getTime() - yearStart.getTime()) / 86400000 + 1);
@@ -30,6 +40,15 @@ export function weekDaysFor(date: Date): Date[] {
 		days.push(new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay() + i, 0, 0, 0, 0));
 	}
 	return days;
+}
+
+export function longWeekDay(date: Date): string {
+	return date.toLocaleString('default', { weekday: 'long' });
+}
+
+export function weekDayOfMonth(date: Date): string {
+	const weekOfMonth = Math.ceil(date.getDate() / 7);
+	return `${withOrdinalSuffix(weekOfMonth)} ${longWeekDay(date)}`;
 }
 
 /**
@@ -214,6 +233,11 @@ export function toDateTime(date: Date): string {
 		.replaceAll('-', '')
 		.replaceAll(':', '')
 		.replace(/\.\d+Z$/, 'Z');
+}
+
+/** e.g. `FR`, `SA` */
+export function toByDay(date: Date): string {
+	return date.toLocaleString('en', { weekday: 'short' }).slice(0, 2).toUpperCase();
 }
 
 export function eventToICS(event: Event): string {

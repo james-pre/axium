@@ -1,22 +1,36 @@
 <script lang="ts">
 	import { getEvents, type EventInitFormData, type EventInitProp } from '@axium/calendar/client';
 	import type { Event } from '@axium/calendar/common';
-	import { dateToInputValue, getCalPermissionsInfo, weekDaysFor } from '@axium/calendar/common';
+	import {
+		dateToInputValue,
+		getCalPermissionsInfo,
+		longWeekDay,
+		toByDay,
+		weekDayOfMonth,
+		weekDaysFor,
+		withOrdinalSuffix,
+	} from '@axium/calendar/common';
 	import * as Cal from '@axium/calendar/components';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, ColorPicker, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import { colorHashHex, encodeColor } from '@axium/core/color';
+	import { rrulestr } from 'rrule';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { _throw } from 'utilium';
-	import z from 'zod';
+	import * as z from 'zod';
+
 	const { data } = $props();
 
 	const { user } = data.session;
 
 	const now = new SvelteDate();
+	now.setMilliseconds(0);
 	setInterval(() => now.setTime(Date.now()), 60_000);
 	const today = $derived(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
+	const defaultStart = $derived(
+		new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0, 0)
+	);
 
 	let start = new SvelteDate(data.filter.start);
 	let end = new SvelteDate(data.filter.end);
@@ -36,18 +50,29 @@
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	const defaultEventInit = {
+	const defaultEventInit = $derived<any>({
 		attendees: [],
 		recurrenceExcludes: [],
 		recurrenceId: null,
 		calId: calendars[0]?.id,
-	} as any;
+		start: new Date(defaultStart),
+		end: new Date(defaultStart.getTime() + 3600_000),
+	});
 
 	let eventInit = $state<EventInitProp>(defaultEventInit),
 		eventInitStart = $derived(dateToInputValue(eventInit.start)),
 		eventInitEnd = $derived(dateToInputValue(eventInit.end)),
 		eventEditId = $state<string>(),
 		eventEditCalId = $state<string>();
+
+	const recurringEvents = $derived(
+		events
+			.filter(ev => ev.recurrence)
+			.map(ev => {
+				const rrule = rrulestr('RRULE:' + ev.recurrence, { dtstart: ev.start });
+				return Object.assign(ev, { rrule, recurrences: rrule.between(start, end, true) });
+			})
+	);
 
 	const defaultEventColor = $derived((eventInit.calendar || calendars[0])?.color || encodeColor(colorHashHex(user.name)));
 </script>
@@ -172,7 +197,13 @@
 
 						<div class="day-content">
 							{#each eventsForWeekDays[i] ?? [] as event}
-								<Cal.Event {event} bind:eventEditId bind:eventEditCalId bind:eventInit />
+								<Cal.Event bind:eventEditId bind:eventEditCalId bind:eventInit {event} />
+							{/each}
+
+							{#each recurringEvents.flatMap(ev => ev.recurrences
+									.filter(r => r.getFullYear() == day.getFullYear() && r.getMonth() == day.getMonth() && r.getDate() == day.getDate())
+									.map( r => [ev, { ...ev, start: r, end: new Date(r.getTime() + ev.end.getTime() - ev.start.getTime()) }] )) as [initData, event]}
+								<Cal.Event bind:eventEditId bind:eventEditCalId bind:eventInit {event} {initData} />
 							{/each}
 
 							{#if today.getTime() == day.getTime()}
@@ -237,8 +268,22 @@
 				</label>
 				<label for="eventInit.isAllDay:checkbox">All day</label>
 				<div class="spacing"></div>
-				<select class="recurrence">
-					<!-- @todo -->
+				<select name="recurrence" bind:value={eventInit.recurrence}>
+					<option value="">Does not repeat</option>
+					<option value="FREQ=DAILY">Every day</option>
+					<option value="FREQ=WEEKLY;BYDAY={toByDay(eventInit.start)}">
+						Every week on {longWeekDay(eventInit.start)}
+					</option>
+					<option value="FREQ=MONTHLY;BYDAY={Math.ceil(eventInit.start.getDate() / 7) + toByDay(eventInit.start)}"
+						>Every month on the {weekDayOfMonth(eventInit.start)}
+					</option>
+					<option value="FREQ=MONTHLY;BYMONTHDAY={eventInit.start.getDate()}">
+						Every month on the {withOrdinalSuffix(eventInit.start.getDate())}
+					</option>
+					<option value="FREQ=YEARLY;BYMONTH={eventInit.start.getMonth()};BYMONTHDAY={eventInit.start.getDate()}">
+						Every year on {eventInit.start.toLocaleDateString('default', { month: 'long', day: 'numeric' })}
+					</option>
+					<!-- @todo <option value="">Custom</option> -->
 				</select>
 			</div>
 		</div>
@@ -374,15 +419,18 @@
 
 	:global {
 		#event-init form {
-			width: 25em;
-
 			.event-time-options {
 				display: flex;
 				align-items: center;
 				gap: 0.5em;
 
-				.spacing {
-					flex-grow: 1;
+				.spacing,
+				select {
+					flex: auto;
+				}
+
+				label {
+					flex: none;
 				}
 			}
 
