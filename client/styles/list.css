@@ -18,8 +18,10 @@
 	border-bottom: 1.5px solid var(--fg-accent);
 	position: sticky;
 	top: 0em;
+}
 
-	@media (width < 700px) {
+@media (width < 700px) {
+	.list-header {
 		display: none;
 	}
 }
