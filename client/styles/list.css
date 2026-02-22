@@ -13,16 +13,14 @@
 	padding: 0.5em;
 }
 
-.list-header {
+div.list-header {
 	font-weight: bold;
 	border-bottom: 1.5px solid var(--fg-accent);
 	position: sticky;
 	top: 0em;
-}
 
-@media (width < 700px) {
-	.list-header {
-		display: none;
+	@media (width < 700px) {
+		display: none !important;
 	}
 }
 
