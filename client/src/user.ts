@@ -73,14 +73,19 @@ function _checkId(userId: string): void {
 	}
 }
 
-export async function userInfo(userId: string): Promise<UserPublic & Partial<User>> {
+const userCache = new Map<string, UserPublic & Partial<User>>();
+
+export async function userInfo(userId: string, noCache: boolean = false): Promise<UserPublic & Partial<User>> {
 	_checkId(userId);
-	return await fetchAPI('GET', 'users/:id', {}, userId);
+	const cached = userCache.get(userId);
+	if (!noCache && cached) return cached;
+	const result = await fetchAPI('GET', 'users/:id', {}, userId);
+	userCache.set(userId, result);
+	return result;
 }
 
 export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>): Promise<User> {
 	_checkId(userId);
-
 	return await fetchAPI('PATCH', 'users/:id', data, userId);
 }
 
