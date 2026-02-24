@@ -151,7 +151,13 @@ addRoute({
 		await checkAuthForUser(request, userId);
 
 		const [items, stats, limits] = await Promise.all([
-			database.selectFrom('storage').where('userId', '=', userId).where('trashedAt', 'is', null).selectAll().execute(),
+			database
+				.selectFrom('storage')
+				.selectAll()
+				.select(acl.from('storage'))
+				.where('userId', '=', userId)
+				.where('trashedAt', 'is', null)
+				.execute(),
 			getUserStats(userId),
 			getLimits(userId),
 		]).catch(withError('Could not fetch data'));
@@ -170,11 +176,11 @@ addRoute({
 
 		const items = await database
 			.selectFrom('storage')
+			.selectAll()
 			.select(acl.from('storage'))
 			.where('userId', '=', userId)
 			.where('trashedAt', 'is', null)
 			.where('parentId', 'is', null)
-			.selectAll()
 			.execute()
 			.catch(withError('Could not get storage items'));
 
@@ -214,9 +220,9 @@ addRoute({
 
 		const items = await database
 			.selectFrom('storage')
+			.selectAll()
 			.where('userId', '=', userId)
 			.where('trashedAt', 'is not', null)
-			.selectAll()
 			.execute()
 			.catch(withError('Could not get trash'));
 
