@@ -52,10 +52,15 @@ type ZodPrefComposite =
 export type ZodPref = ZodPrefComposite | z.ZodObject<Readonly<Record<string, ZodPrefComposite>>>;
 
 /**
+ * Zod registry for attaching translation keys to schemas
+ */
+export const localeKeys = z.registry<{ key: string }>();
+
+/**
  * @internal
  */
 export let Preferences = z.object({
-	debug: z.boolean().default(false),
+	debug: z.boolean().default(false).register(localeKeys, { key: 'debug' }),
 });
 
 /**

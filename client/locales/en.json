@@ -1,0 +1,13 @@
+{
+	"component": {
+		"AccessControlDialog": {
+			"title": "Permissions",
+			"named_title": "Permissions for {name}"
+		}
+	},
+	"preference": {
+		"debug": {
+			"label": "Debug mode"
+		}
+	}
+}

@@ -26,6 +26,7 @@
 		"assets",
 		"dist",
 		"lib",
+		"locales",
 		"styles",
 		"axium-client.service"
 	],
@@ -43,9 +44,9 @@
 	},
 	"peerDependencies": {
 		"@axium/core": ">=0.20.3",
-		"utilium": "^2.6.3",
-		"zod": "^4.0.5",
-		"svelte": "^5.36.0"
+		"svelte": "^5.36.0",
+		"utilium": "^2.8.0",
+		"zod": "^4.0.5"
 	},
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.1.0",
