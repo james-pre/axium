@@ -15,6 +15,15 @@ export function setPrefix(value: string): void {
 	prefix = value;
 }
 
+let userAgent: string | null = null;
+
+/**
+ * Only for use on non-browser clients, e.g. Node.js
+ */
+export function useUserAgent(ua: string | null) {
+	userAgent = ua;
+}
+
 export async function fetchAPI<const E extends Endpoint, const M extends keyof $API[E] & RequestMethod>(
 	method: M,
 	endpoint: E,
@@ -45,6 +54,7 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 			: '?' + new URLSearchParams(JSON.parse(JSON.stringify(data))).toString();
 
 	if (token) options.headers.Authorization = 'Bearer ' + token;
+	if (userAgent) options.headers['User-Agent'] = userAgent;
 
 	const parts = [];
 

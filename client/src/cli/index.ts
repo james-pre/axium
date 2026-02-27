@@ -11,14 +11,17 @@ import { styleText } from 'node:util';
 import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { config, resolveServerURL } from '../config.js';
-import { prefix, setPrefix, setToken } from '../requests.js';
+import { prefix, setPrefix, setToken, useUserAgent } from '../requests.js';
 import { getCurrentSession, logout } from '../user.js';
 import { loadConfig, saveConfig, updateCache } from './config.js';
+import { capitalize } from 'utilium';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) || process.argv.includes('--debug');
 
 if (debug) io._setDebugOutput(true);
+
+useUserAgent(`Axium-Client/${$pkg.version} (${capitalize(process.platform)}; ${process.arch})`);
 
 await loadConfig(safe);
 
