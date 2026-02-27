@@ -36,6 +36,7 @@
 	"text/csv": "file-csv",
 	"text/html": "code",
 	"text/javascript": "brands/square-js",
+	"text/markdown": "brands/markdown",
 	"text/plain": "file-lines",
 	"text/rust": "brands/rust",
 	"text/x-go": "brands/golang",
