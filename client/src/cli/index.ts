@@ -21,7 +21,8 @@ const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase
 
 if (debug) io._setDebugOutput(true);
 
-useUserAgent(`Axium-Client/${$pkg.version} (${capitalize(process.platform)}; ${process.arch})`);
+const clientUA = `Axium Client/${$pkg.version} (${capitalize(process.platform)}; ${process.arch})`;
+useUserAgent(clientUA);
 
 await loadConfig(safe);
 
@@ -120,7 +121,7 @@ program
 
 		const port = await serverReady.promise;
 
-		const authURL = new URL('/login/client?port=' + port, url).href;
+		const authURL = new URL(`/login/client?port=${port}&client=${encodeURIComponent(clientUA)}`, url).href;
 		console.log('Authenticate by visiting this URL in your browser: ' + styleText('underline', authURL));
 
 		const { token } = await sessionReady.promise.catch(e => io.exit('Failed to obtain session: ' + e, 6));

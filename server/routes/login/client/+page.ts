@@ -13,12 +13,14 @@ export async function load({ parent, url }: Omit<PageLoadEvent, 'parent'> & { pa
 	const port = parseInt(url.searchParams.get('port') ?? '!');
 	const localCallback = new URL('http://localhost');
 
+	const client = url.searchParams.get('client') ?? '';
+
 	let options,
 		error: string | null = null;
 	try {
 		if (Number.isNaN(port)) throw new Error('Invalid port number provided by local client');
 		localCallback.port = port.toString();
-		options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'client_login' }, session.userId);
+		options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'client_login', client }, session.userId);
 	} catch (e: any) {
 		error = e.message;
 	}

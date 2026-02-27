@@ -93,7 +93,10 @@ export const UserRegistration = z.object({
 	response: PasskeyRegistration,
 });
 
-export const UserAuthOptions = z.object({ type: z.literal(['login', 'action', 'client_login']) });
+export const UserAuthOptions = z.object({
+	type: z.literal(['login', 'action', 'client_login']),
+	client: z.string().max(200).optional(),
+});
 
 export type UserAuthOptions = z.infer<typeof UserAuthOptions>;
 

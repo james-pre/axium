@@ -25,6 +25,7 @@ import { addRoute } from '../routes.js';
 interface UserAuth {
 	data: string;
 	type: UserAuthOptions['type'];
+	client?: string;
 }
 
 const challenges = new Map<string, UserAuth>();
@@ -137,7 +138,7 @@ addRoute({
 	path: '/api/users/:id/auth',
 	params,
 	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/auth'> {
-		const { type } = await parseBody(request, UserAuthOptions);
+		const { type, client } = await parseBody(request, UserAuthOptions);
 
 		const user = await getUser(userId).catch(withError('User does not exist', 404));
 
@@ -152,7 +153,7 @@ addRoute({
 			allowCredentials: passkeys.map(passkey => pick(passkey, 'id', 'transports')),
 		});
 
-		challenges.set(userId, { data: options.challenge, type });
+		challenges.set(userId, { data: options.challenge, type, client });
 
 		return options;
 	},
@@ -161,7 +162,7 @@ addRoute({
 
 		const auth = challenges.get(userId);
 		if (!auth) error(404, 'No challenge');
-		const { data: expectedChallenge, type } = auth;
+		const { data: expectedChallenge, type, client } = auth;
 		challenges.delete(userId);
 
 		const passkey = await getPasskey(response.id).catch(withError('Passkey does not exist', 404));
@@ -184,8 +185,7 @@ addRoute({
 			case 'login':
 				return await createSessionData(userId, request);
 			case 'client_login':
-				/** @todo tag in DB so users can manage easier */
-				return await createSessionData(userId, request, { noCookie: true });
+				return await createSessionData(userId, request, { noCookie: true, clientUA: client });
 			case 'action':
 				if ((Date.now() - passkey.createdAt.getTime()) / 60_000 < config.auth.passkey_probation)
 					error(403, 'You can not authorize sensitive actions with a newly created passkey');

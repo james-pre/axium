@@ -104,8 +104,8 @@ const uaParserExtension = {
 	browser: [[/(axium[- ]client)\/([\d.]+)/i], ['name', 'version']],
 };
 
-export async function getPrettyUA(request: Request): Promise<string | null> {
-	const uaString = request.headers.get('User-Agent') || '';
+export async function getPrettyUA(request: Request, uaOverride?: string): Promise<string | null> {
+	const uaString = uaOverride || request.headers.get('User-Agent') || '';
 
 	try {
 		const { UAParser } = await import('ua-parser-js');
@@ -125,14 +125,15 @@ export async function getPrettyUA(request: Request): Promise<string | null> {
 export interface CreateSessionOptions {
 	elevated?: boolean;
 	noCookie?: boolean;
+	clientUA?: string;
 }
 
 export async function createSessionData(
 	userId: string,
 	request: Request,
-	{ elevated = false, noCookie }: CreateSessionOptions = {}
+	{ elevated = false, noCookie, clientUA }: CreateSessionOptions = {}
 ): Promise<Response> {
-	const name = await getPrettyUA(request);
+	const name = await getPrettyUA(request, clientUA);
 
 	const { token, expires } = await createSession(userId, name, elevated);
 
