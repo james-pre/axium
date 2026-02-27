@@ -77,7 +77,7 @@ async function POST(request: Request) {
 		backedUp: registrationInfo.credentialBackedUp,
 	}).catch(withError('Failed to create passkey', 500));
 
-	return await createSessionData(userId);
+	return await createSessionData(userId, request);
 }
 
 addRoute({

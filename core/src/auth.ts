@@ -3,6 +3,7 @@ import * as z from 'zod';
 export const Session = z.object({
 	id: z.uuid(),
 	userId: z.uuid(),
+	name: z.string().nullish(),
 	expires: z.coerce.date(),
 	created: z.coerce.date(),
 	elevated: z.boolean(),

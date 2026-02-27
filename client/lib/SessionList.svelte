@@ -15,7 +15,7 @@
 {#each sessions as session}
 	<div class="item session">
 		<p>
-			{session.id.slice(0, 4)}...{session.id.slice(-4)}
+			{session.name ?? `${session.id.slice(0, 4)}...${session.id.slice(-4)}`}
 			{#if session.id == currentSession?.id}
 				<span class="current">Current</span>
 			{/if}

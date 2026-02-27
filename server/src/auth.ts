@@ -23,10 +23,11 @@ export interface SessionInternal extends Session {
 const in30days = () => new Date(Date.now() + 2592000000);
 const in10minutes = () => new Date(Date.now() + 600000);
 
-export async function createSession(userId: string, elevated: boolean = false) {
+export async function createSession(userId: string, name: string | null, elevated: boolean = false) {
 	const session: SessionInternal = {
 		id: randomUUID(),
 		userId,
+		name,
 		token: randomBytes(64).toString('base64'),
 		expires: elevated ? in10minutes() : in30days(),
 		elevated,

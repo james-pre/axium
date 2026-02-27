@@ -77,6 +77,16 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"sessions": {
+					"add_columns": {
+						"name": { "type": "text" }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]

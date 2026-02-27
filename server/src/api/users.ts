@@ -182,15 +182,15 @@ addRoute({
 
 		switch (type) {
 			case 'login':
-				return await createSessionData(userId);
+				return await createSessionData(userId, request);
 			case 'client_login':
 				/** @todo tag in DB so users can manage easier */
-				return await createSessionData(userId, { noCookie: true });
+				return await createSessionData(userId, request, { noCookie: true });
 			case 'action':
 				if ((Date.now() - passkey.createdAt.getTime()) / 60_000 < config.auth.passkey_probation)
 					error(403, 'You can not authorize sensitive actions with a newly created passkey');
 
-				return await createSessionData(userId, { elevated: true });
+				return await createSessionData(userId, request, { elevated: true });
 		}
 	},
 });
@@ -344,6 +344,6 @@ addRoute({
 
 		await useVerification('login', userId, token).catch(withError('Invalid or expired verification token', 400));
 
-		return await createSessionData(userId);
+		return await createSessionData(userId, request);
 	},
 });

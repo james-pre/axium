@@ -66,5 +66,8 @@
 	"devDependencies": {
 		"@sveltejs/adapter-node": "^5.2.12",
 		"vite-plugin-mkcert": "^1.17.8"
+	},
+	"optionalDependencies": {
+		"ua-parser-js": "^2.0.9"
 	}
 }

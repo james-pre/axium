@@ -100,13 +100,41 @@ export function getToken(request: Request, sensitive: boolean = false): string |
 	}
 }
 
+const uaParserExtension = {
+	browser: [[/(axium[- ]client)\/([\d.]+)/i], ['name', 'version']],
+};
+
+export async function getPrettyUA(request: Request): Promise<string | null> {
+	const uaString = request.headers.get('User-Agent') || '';
+
+	try {
+		const { UAParser } = await import('ua-parser-js');
+		const ua = UAParser(uaString, uaParserExtension);
+		return [
+			ua.browser.name,
+			ua.browser.name == 'Axium-Client' ? ua.browser.version : ua.browser.major,
+			ua.os.name && ' on ' + ua.os.name,
+		]
+			.filter(p => p)
+			.join(' ');
+	} catch {
+		return null;
+	}
+}
+
 export interface CreateSessionOptions {
 	elevated?: boolean;
 	noCookie?: boolean;
 }
 
-export async function createSessionData(userId: string, { elevated = false, noCookie }: CreateSessionOptions = {}): Promise<Response> {
-	const { token, expires } = await createSession(userId, elevated);
+export async function createSessionData(
+	userId: string,
+	request: Request,
+	{ elevated = false, noCookie }: CreateSessionOptions = {}
+): Promise<Response> {
+	const name = await getPrettyUA(request);
+
+	const { token, expires } = await createSession(userId, name, elevated);
 
 	const response = json({ userId, token: elevated ? '[[redacted:elevated]]' : token }, { status: 201 });
 
