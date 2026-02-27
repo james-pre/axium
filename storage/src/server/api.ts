@@ -56,7 +56,7 @@ addRoute({
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/item/:id'> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true });
+		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		return parseItem(item);
 	},
@@ -65,7 +65,7 @@ addRoute({
 
 		const body = await parseBody(request, StorageItemUpdate);
 
-		await authRequestForItem(request, 'storage', itemId, { manage: true });
+		await authRequestForItem(request, 'storage', itemId, { manage: true }, true);
 
 		const values: Partial<Pick<StorageItemMetadata, 'trashedAt' | 'userId' | 'name'>> = {};
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
@@ -87,7 +87,7 @@ addRoute({
 	async DELETE(request, { id: itemId }): AsyncResult<'DELETE', 'storage/item/:id'> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const auth = await authRequestForItem(request, 'storage', itemId, { manage: true });
+		const auth = await authRequestForItem(request, 'storage', itemId, { manage: true }, true);
 		const item = parseItem(auth.item);
 
 		await deleteRecursive(item.type != 'inode/directory', itemId);
@@ -102,7 +102,7 @@ addRoute({
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id'> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true });
+		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 
@@ -124,7 +124,7 @@ addRoute({
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id/recursive'> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true });
+		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
 

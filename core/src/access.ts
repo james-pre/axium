@@ -37,6 +37,7 @@ export function pickPermissions<T extends AccessControl & object>(
 
 export interface AccessControllable {
 	userId: string;
+	parentId?: string | null;
 	acl?: AccessControl[];
 }
 

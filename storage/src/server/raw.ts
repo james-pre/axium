@@ -104,7 +104,7 @@ addRoute({
 	async GET(request, { id: itemId }) {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true });
+		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
@@ -154,7 +154,7 @@ addRoute({
 	async POST(request, { id: itemId }) {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
-		const { item, session } = await authRequestForItem(request, 'storage', itemId, { write: true });
+		const { item, session } = await authRequestForItem(request, 'storage', itemId, { write: true }, true);
 
 		if (item.immutable) error(405, 'Item is immutable');
 		if (item.type == 'inode/directory') error(409, 'Directories do not have content');

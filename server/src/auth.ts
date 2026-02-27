@@ -166,7 +166,8 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 	itemType: TB,
 	itemId: string,
 	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
-	session?: SessionAndUser | null
+	session?: SessionAndUser | null,
+	recursive: boolean = false
 ): Promise<ItemAuthResult<TB>> {
 	const { userId, user } = session ?? {};
 
@@ -196,12 +197,33 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	result.fromACL = true;
 
-	if (!item.acl || !item.acl.length) error(403, 'Item is not shared with you');
+	let current = item;
 
-	const missing = Array.from(acl.check(item.acl, permissions));
-	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
+	for (let i = 0; i < 25; i++) {
+		try {
+			if (!current.acl || !current.acl.length) error(403, 'Item is not shared with you');
 
-	return result;
+			const missing = Array.from(acl.check(current.acl, permissions));
+			if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
+
+			return result;
+		} catch (e) {
+			if (!current.parentId || !recursive) throw e;
+
+			current = (await db
+				.selectFrom(itemType as acl.TableName)
+				.selectAll()
+				.where('id', '=', current.parentId)
+				.$if(!!userId, eb => eb.select(acl.from(itemType, { user })))
+				.executeTakeFirstOrThrow()
+				.catch(e => {
+					if (e.message.includes('no rows')) error(404, itemType + ' not found');
+					throw e;
+				})) as acl.WithACL<TB>;
+		}
+	}
+
+	error(403, 'You do not have permissions for any of the last 25 parent items');
 }
 
 /**
@@ -212,12 +234,13 @@ export async function authRequestForItem<const TB extends acl.TargetName>(
 	request: Request,
 	itemType: TB,
 	itemId: string,
-	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>
+	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
+	recursive: boolean = false
 ): Promise<ItemAuthResult<TB>> {
 	const token = getToken(request, false);
 	if (!token) error(401, 'Missing token');
 
 	const session = await getSessionAndUser(token).catch(() => null);
 
-	return await authSessionForItem(itemType, itemId, permissions, session);
+	return await authSessionForItem(itemType, itemId, permissions, session, recursive);
 }
