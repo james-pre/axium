@@ -5,7 +5,7 @@ import type { StorageItemMetadata } from '@axium/storage/common';
 export const ssr = false;
 
 export async function load({ params }: PageLoadEvent) {
-	const item = await getItemMetadata(params.id);
+	const item = await getItemMetadata(params.id, { parents: true });
 
 	let items: StorageItemMetadata[] | undefined;
 

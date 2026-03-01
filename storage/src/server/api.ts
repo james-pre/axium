@@ -2,15 +2,15 @@ import { getConfig, type AsyncResult, type Result } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
-import { error, json, parseBody, withError } from '@axium/server/requests';
+import { error, json, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
-import { batchFormatVersion, StorageItemInit, StorageItemUpdate, syncProtocolVersion } from '../common.js';
+import { batchFormatVersion, GetItemOptions, StorageItemInit, StorageItemUpdate, syncProtocolVersion } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { deleteRecursive, getRecursive, getUserStats, parseItem } from './db.js';
+import { deleteRecursive, getParents, getRecursive, getUserStats, parseItem } from './db.js';
 import { checkNewItem, createNewItem, startUpload } from './item.js';
 
 addRoute({
@@ -56,9 +56,15 @@ addRoute({
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/item/:id'> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
+		const options = parseSearch(request, GetItemOptions);
+
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
-		return parseItem(item);
+		const result = parseItem(item);
+
+		if (options.parents) result.parents = await getParents(itemId);
+
+		return result;
 	},
 	async PATCH(request, { id: itemId }): AsyncResult<'PATCH', 'storage/item/:id'> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');

@@ -14,6 +14,13 @@ export const StorageItemUpdate = z
 
 export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 
+export const GetItemOptions = z
+	.object({
+		parents: z.union([z.boolean(), z.stringbool()]),
+	})
+	.partial();
+export interface GetItemOptions extends z.infer<typeof GetItemOptions> {}
+
 export const StorageItemMetadata = z.object({
 	createdAt: z.coerce.date(),
 	dataURL: z.string(),
@@ -30,6 +37,7 @@ export const StorageItemMetadata = z.object({
 	type: z.string(),
 	metadata: z.record(z.string(), z.unknown()),
 	acl: AccessControl.array().optional(),
+	parents: z.object({ id: z.uuid(), name: z.string() }).array().optional(),
 });
 
 export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> extends z.infer<
@@ -197,7 +205,7 @@ const StorageAPI = {
 		POST: [StorageBatchUpdate.array(), StorageItemMetadata.array()],
 	},
 	'storage/item/:id': {
-		GET: StorageItemMetadata,
+		GET: [GetItemOptions, StorageItemMetadata],
 		DELETE: StorageItemMetadata,
 		PATCH: [StorageItemUpdate, StorageItemMetadata],
 	},

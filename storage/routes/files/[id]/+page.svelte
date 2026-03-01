@@ -43,6 +43,11 @@
 				(!a.userId && !a.role && !a.tag)
 		)?.manage as boolean | undefined) ?? true}
 	/>
+	{#if item.parents}
+		<p class="parents" data-sveltekit-reload>
+			{#each item.parents as { id, name } (id)}<a href="/files/{id}">{name}</a>{/each}
+		</p>
+	{/if}
 	{#if item.type == 'inode/directory'}
 		{#snippet action(i: string, text: string, handler: (e: Event) => unknown)}
 			<button
@@ -122,5 +127,10 @@
 		display: flex;
 		gap: 1em;
 		align-items: center;
+	}
+
+	.parents a::before {
+		content: ' / ';
+		color: #888;
 	}
 </style>

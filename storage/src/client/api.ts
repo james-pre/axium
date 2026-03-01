@@ -1,7 +1,7 @@
 import { fetchAPI, prefix, token } from '@axium/client/requests';
 import { blake2b } from 'blakejs';
 import { prettifyError } from 'zod';
-import type { StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.js';
+import type { GetItemOptions, StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 
@@ -161,8 +161,8 @@ export async function updateItem(fileId: string, data: Blob): Promise<StorageIte
 	}
 }
 
-export async function getItemMetadata(fileId: string): Promise<StorageItemMetadata> {
-	return await fetchAPI('GET', 'storage/item/:id', undefined, fileId);
+export async function getItemMetadata(fileId: string, options: GetItemOptions = {}): Promise<StorageItemMetadata> {
+	return await fetchAPI('GET', 'storage/item/:id', options, fileId);
 }
 
 /** Gets the metadata for all items in a directory. */

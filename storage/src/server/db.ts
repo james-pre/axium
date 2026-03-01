@@ -93,6 +93,30 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 	for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
 }
 
+export async function getParents(itemId: string): Promise<{ id: string; name: string }[]> {
+	const rows = await database
+		.withRecursive('parents', qb =>
+			qb
+				.selectFrom('storage')
+				.select(['id', 'name', 'parentId'])
+				.select(eb => eb.lit(0).as('depth'))
+				.where('id', '=', itemId)
+				.unionAll(
+					qb
+						.selectFrom('storage as s')
+						.innerJoin('parents as p', 's.id', 'p.parentId')
+						.select(['s.id', 's.name', 's.parentId'])
+						.select(eb => eb(eb.ref('p.depth'), '+', eb.lit(1)).as('depth'))
+				)
+		)
+		.selectFrom('parents')
+		.select(['name', 'id'])
+		.orderBy('depth', 'desc')
+		.execute();
+
+	return rows;
+}
+
 export async function getTotalUse(): Promise<bigint> {
 	const { size } = await database
 		.selectFrom('storage')
