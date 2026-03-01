@@ -2,6 +2,7 @@ import { getConfig, type AsyncResult, type Result } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
+import type { Schema as DBSchema } from '@axium/server/database';
 import { error, json, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { pick } from 'utilium';
@@ -205,7 +206,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage as item')
 			.selectAll('item')
-			.select(acl.from('storage', { alias: 'item' }) as any)
+			.select(acl.from<'storage', DBSchema & { item: DBSchema['storage'] }>('storage', { alias: 'item' }))
 			.where('trashedAt', 'is', null)
 			.where(acl.existsIn('storage', user, { alias: 'item' }))
 			.where(eb => eb.not(acl.existsIn('storage', user, { alias: 'item', itemId: 'parentId' })))
