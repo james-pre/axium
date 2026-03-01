@@ -21,7 +21,7 @@ export default defineConfig(
 		rules: {
 			'no-useless-escape': 'warn',
 			'no-unreachable': 'warn',
-			'no-fallthrough': 'warn',
+			'no-fallthrough': 'off',
 			'no-empty': 'warn',
 			'no-case-declarations': 'warn',
 			'prefer-const': 'warn',
