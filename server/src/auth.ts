@@ -1,5 +1,5 @@
 import type { Passkey, Session, UserInternal, VerificationInternal, VerificationRole } from '@axium/core';
-import type { Insertable, Kysely } from 'kysely';
+import type { Insertable, Kysely, SelectQueryBuilder } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit, type WithRequired } from 'utilium';
 import * as acl from './acl.js';
@@ -174,10 +174,10 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	// Note: we need to do casting because of TS limitations with generics
 	const item = (await db
-		.selectFrom(itemType as acl.TableName)
+		.selectFrom<acl.TargetName>(itemType)
 		.selectAll()
 		.where('id', '=', itemId)
-		.$if(!!userId, eb => eb.select(acl.from(itemType, { user })))
+		.select(acl.from(itemType, { user }))
 		.executeTakeFirstOrThrow()
 		.catch(e => {
 			if (e.message.includes('no rows')) error(404, itemType + ' not found');
@@ -198,33 +198,55 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	result.fromACL = true;
 
-	let current = item;
-
-	for (let i = 0; i < 25; i++) {
-		try {
-			if (!current.acl || !current.acl.length) error(403, 'Item is not shared with you');
-
-			const missing = Array.from(acl.check(current.acl, permissions));
-			if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
-
-			return result;
-		} catch (e) {
-			if (!current.parentId || !recursive) throw e;
-
-			current = (await db
-				.selectFrom(itemType as acl.TableName)
-				.selectAll()
-				.where('id', '=', current.parentId)
-				.$if(!!userId, eb => eb.select(acl.from(itemType, { user })))
-				.executeTakeFirstOrThrow()
-				.catch(e => {
-					if (e.message.includes('no rows')) error(404, itemType + ' not found');
-					throw e;
-				})) as acl.WithACL<TB>;
-		}
+	interface DB_QC extends Schema {
+		parents: Record<string, any>;
+		$implicit$: acl.DBAccessControllable;
 	}
 
-	error(403, 'You do not have permissions for any of the last 25 parent items');
+	interface DB_Union extends Schema {
+		parents: Record<string, any>;
+		item: acl.DBAccessControllable;
+		p: Record<string, any>;
+	}
+
+	const matchingControls = recursive
+		? await db
+				.withRecursive('parents', qc =>
+					(qc.selectFrom<acl.TargetName>(itemType) as SelectQueryBuilder<DB_QC, '$implicit$', any>)
+						.select(['id', 'parentId'])
+						.$castTo<acl.DBAccessControllable>()
+						.select(acl.from<TB, DB_QC>(itemType, { user }))
+						.select(eb => eb.lit(0).as('depth'))
+						.where('id', '=', itemId)
+						.unionAll(
+							(qc.selectFrom(`${itemType} as item`) as SelectQueryBuilder<DB_Union, acl.TargetName | 'item', any>)
+								.select(['item.id', 'item.parentId'])
+								.innerJoin('parents as p', 'item.id', 'p.parentId')
+								.select(eb => eb(eb.ref('p.depth'), '+', eb.lit(1)).as('depth'))
+								.select(acl.from<TB, DB_Union>(itemType, { user, alias: 'item' }))
+						)
+				)
+				.selectFrom('parents')
+				.select('acl')
+				.execute()
+				.then(parents => parents.flatMap(p => p.acl))
+				.catch(e => {
+					if (!(e instanceof Error)) throw e;
+					switch (e.message) {
+						case 'column "parentId" does not exist':
+							error(500, `${itemType} does not support recursive ACLs`);
+						default:
+							throw e;
+					}
+				})
+		: item.acl;
+
+	if (!matchingControls.length) error(403, 'Item is not shared with you');
+
+	const missing = Array.from(acl.check(matchingControls, permissions));
+	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
+
+	return result;
 }
 
 /**

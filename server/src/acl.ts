@@ -4,13 +4,21 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Entries, WithRequired } from 'utilium';
 import * as db from './database.js';
 
+export interface DBAccessControllable extends Omit<AccessControllable, 'id'> {
+	id: string | kysely.Generated<string>;
+}
+
 type _TableNames = keyof {
 	[K in keyof db.Schema as db.Schema[K] extends db.DBAccessControl ? K : never]: null;
 };
 
 type _TargetNames = keyof db.Schema &
 	keyof {
-		[K in keyof db.Schema as db.Schema[K] extends AccessControllable ? (`acl.${K}` extends keyof db.Schema ? K : never) : never]: null;
+		[K in keyof db.Schema as db.Schema[K] extends DBAccessControllable
+			? `acl.${K}` extends keyof db.Schema
+				? K
+				: never
+			: never]: null;
 	};
 
 /**
@@ -39,34 +47,37 @@ export interface ACLSelectionOptions {
 	alias?: string;
 }
 
+/** Match ACL entries, optionally selecting for a given user-like object */
+export function match(user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
+	return function (eb: kysely.ExpressionBuilder<db.Schema, any>) {
+		const allNull = eb.and([eb('userId', 'is', null), eb('role', 'is', null), eb('tag', 'is', null)]);
+
+		if (!user) return allNull;
+
+		const ors = [allNull, eb('userId', '=', user.id)];
+		if (user.roles.length) ors.push(eb('role', 'in', user.roles));
+		if (user.tags.length) ors.push(eb('tag', 'in', user.tags));
+		return eb.or(ors);
+	};
+}
+
 /**
  * Helper to select all access controls for a given table, including the user information.
  * Optionally filter for the entries applicable to a specific user.
  * This includes entries matching the user's ID, roles, or tags along with the "public" entry where all three "target" columns are null.
  */
-export function from<const TB extends TargetName>(
+export function from<const TB extends TargetName, const DB = db.Schema>(
 	table: TB,
 	opt: ACLSelectionOptions = {}
-): (eb: kysely.ExpressionBuilder<db.Schema, any>) => kysely.AliasedRawBuilder<Result<`acl.${TB}`>[], 'acl'> {
-	return (eb: kysely.ExpressionBuilder<db.Schema, any>) =>
+): (eb: kysely.ExpressionBuilder<DB, any>) => kysely.AliasedRawBuilder<Result<`acl.${TB}`>[], 'acl'> {
+	return (eb: kysely.ExpressionBuilder<DB, any>) =>
 		jsonArrayFrom(
-			eb
+			(eb as kysely.ExpressionBuilder<db.Schema, any>)
 				.selectFrom(`acl.${table} as _acl`)
 				.selectAll()
 				.$if(!opt.user, qb => qb.select(db.userFromId))
 				.whereRef('_acl.itemId', '=', `${opt.alias || table}.id` as any)
-				.$if(!!opt.user, qb =>
-					qb.where(eb => {
-						const allNull = eb.and([eb('userId', 'is', null), eb('role', 'is', null), eb('tag', 'is', null)]);
-
-						if (!opt.user) return allNull;
-
-						const ors = [allNull, eb('userId', '=', opt.user.id)];
-						if (opt.user.roles.length) ors.push(eb('role', 'in', opt.user.roles));
-						if (opt.user.tags.length) ors.push(eb('tag', 'in', opt.user.tags));
-						return eb.or(ors);
-					})
-				)
+				.where(match(opt.user))
 		)
 			.$castTo<Result<`acl.${TB}`>[]>()
 			.as('acl');
@@ -117,6 +128,7 @@ export async function add<const TB extends TableName>(table: TB, itemId: string,
 		.executeTakeFirstOrThrow();
 }
 
+/** Check an ACL against a set of permissions. */
 export function check<const TB extends TableName>(
 	acl: Result<TB>[],
 	permissions: Partial<PermissionsFor<TB>>
@@ -169,12 +181,7 @@ export function existsIn<const TB extends TargetName, const O extends OptionsFor
 				.selectFrom<TableName>(`acl.${table}`)
 				// @ts-expect-error 2349
 				.whereRef('itemId', '=', `${options.alias || `public.${table}`}.${options.itemId || 'id'}`)
-				.where((eb: kysely.ExpressionBuilder<db.Schema, TableName>) => {
-					const ors = [eb('userId', '=', user.id)];
-					if (user.roles.length) ors.push(eb('role', 'in', user.roles));
-					if (user.tags.length) ors.push(eb('tag', 'in', user.tags));
-					return eb.or(ors);
-				})
+				.where(match(user))
 		);
 }
 
