@@ -30,6 +30,7 @@
 		"axium-client.service"
 	],
 	"exports": {
+		"./package.json": "./package.json",
 		".": "./dist/index.js",
 		"./*": "./dist/*.js",
 		"./components": "./lib/index.js",
