@@ -68,7 +68,7 @@
 	.UserMenu {
 		border-radius: 0.5em;
 		padding: 0.5em;
-		border: 1px solid var(--border-accent);
+		border: var(--border-accent);
 		cursor: pointer;
 		background-color: var(--bg-alt);
 	}

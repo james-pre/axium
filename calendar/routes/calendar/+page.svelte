@@ -502,7 +502,7 @@
 			position: absolute;
 			left: calc(100% - 0.5em);
 			width: calc(100vw - 22em);
-			border-bottom: 1px solid var(--border-accent);
+			border-bottom: var(--border-accent);
 			top: 50%;
 			z-index: 0;
 			pointer-events: none;
@@ -518,7 +518,7 @@
 		.day {
 			width: 100%;
 			height: 100%;
-			border-left: 1px solid var(--border-accent);
+			border-left: var(--border-accent);
 			display: flex;
 			flex-direction: column;
 
@@ -541,7 +541,7 @@
 					justify-content: center;
 
 					&.today {
-						border: 1px solid var(--border-accent);
+						border: var(--border-accent);
 						color: var(--fg-accent);
 					}
 				}

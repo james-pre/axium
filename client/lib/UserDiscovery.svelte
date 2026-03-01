@@ -114,7 +114,7 @@
 		background-color: var(--bg-accent);
 		border-radius: 0.25em 0.25em 0.75em 0.75em;
 		padding: 1em;
-		border: 1px solid var(--border-accent);
+		border: var(--border-accent);
 		align-items: stretch;
 
 		i {

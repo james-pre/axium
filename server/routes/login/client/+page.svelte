@@ -67,6 +67,6 @@
 
 	#local-login {
 		background-color: var(--bg-menu);
-		border: 1px solid var(--border-accent);
+		border: var(--border-accent);
 	}
 </style>

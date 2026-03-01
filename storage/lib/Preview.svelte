@@ -176,7 +176,7 @@
 
 	.openers {
 		padding: 1em;
-		border: 1px solid var(--border-accent);
+		border: var(--border-accent);
 		border-radius: 1em;
 		height: 2em;
 		anchor-name: --preview-openers;
@@ -232,7 +232,7 @@
 					padding: 1em;
 					flex: 1 1 0;
 					border-radius: 1em;
-					border: 1px solid var(--border-accent);
+					border: var(--border-accent);
 					padding: 1em;
 					justify-content: center;
 					display: flex;

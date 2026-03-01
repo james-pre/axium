@@ -119,7 +119,7 @@
 		padding: 1em 2em;
 
 		&:not(.public) {
-			border-bottom: 1px solid var(--border-accent);
+			border-bottom: var(--border-accent);
 		}
 	}
 </style>

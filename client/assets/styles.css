@@ -54,7 +54,7 @@ input,
 button,
 select,
 textarea {
-	border: 1px solid var(--border-accent);
+	border: var(--border-accent);
 	background-color: var(--bg-normal);
 	font-family: inherit;
 	color: hsl(0 0 var(--fg-light));
@@ -84,7 +84,7 @@ label.checkbox {
 	cursor: pointer;
 	width: 1.5em;
 	height: 1.5em;
-	border: 1px solid var(--border-accent);
+	border: var(--border-accent);
 	border-radius: 0.5em;
 	display: inline-flex;
 	justify-content: center;
@@ -101,7 +101,7 @@ select,
 }
 
 ::picker(select) {
-	border: 1px solid var(--border-accent);
+	border: var(--border-accent);
 	padding: 1em;
 	border-radius: 0.5em;
 	background-color: var(--bg-menu);
@@ -158,7 +158,7 @@ progress {
 	border-radius: 0.5em;
 	overflow: hidden;
 	background-color: var(--bg-normal);
-	border: 1px solid var(--border-accent);
+	border: var(--border-accent);
 }
 
 progress::-webkit-progress-bar {
@@ -321,7 +321,7 @@ h6 {
 
 	.mobile-button {
 		border-radius: 0.5em;
-		border: 1px solid var(--border-accent);
+		border: var(--border-accent);
 		background-color: var(--bg-normal);
 		padding: 0.5em 1em;
 		cursor: pointer;

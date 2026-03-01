@@ -87,7 +87,7 @@
 		gap: 0.25em;
 
 		border-radius: 0.5em;
-		border: 1px solid var(--border-accent);
+		border: var(--border-accent);
 		background-color: var(--bg-normal);
 		padding: 0.25em 0.75em;
 	}
