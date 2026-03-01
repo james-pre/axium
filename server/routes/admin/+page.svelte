@@ -33,8 +33,8 @@
 
 <p>
 	{data.auditEvents
-		.filter(count => count)
-		.map((count, severity) => `${count} ${Severity[severity].toUpperCase()} events`)
+		.map((count, severity) => count && `${count} ${Severity[severity].toUpperCase()} events`)
+		.filter(v => v)
 		.join(', ')}.
 </p>
 
