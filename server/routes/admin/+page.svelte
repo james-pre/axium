@@ -1,9 +1,11 @@
-<script>
+<script lang="ts">
 	import { Version } from '@axium/client/components';
 	import { Severity } from '@axium/core';
-	import { capitalize } from 'utilium';
+	import { getPackage } from '@axium/core/packages';
+	import { _throw, capitalize } from 'utilium';
 
 	const { data } = $props();
+	const packages = ['server', 'core', 'client'] as const;
 </script>
 
 <svelte:head>
@@ -12,9 +14,11 @@
 
 <h2>Administration</h2>
 
-{#each ['server', 'core', 'client'] as name}
-	{@const info = data.versions[name]}
-	<p>Axium {capitalize(name)} <Version v={info.version} latest={info.latest} /></p>
+{#each packages as name}
+	<p>
+		Axium {capitalize(name)}
+		<Version v={data.versions[name]} latest={getPackage('@axium/' + name).then(pkg => pkg?._latest || _throw(null))} />
+	</p>
 {/each}
 
 <h3><a href="/admin/users">Users</a></h3>

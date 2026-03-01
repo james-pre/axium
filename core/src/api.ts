@@ -33,7 +33,11 @@ export const AdminSummary = z.object({
 	auditEvents: z.tuple(Array(Severity.Debug + 1).fill(z.int().nonnegative()) as Tuple<z.ZodNumber, Add<typeof Severity.Debug, 1>>),
 	configFiles: z.int().nonnegative(),
 	plugins: z.int().nonnegative(),
-	versions: z.record(z.literal(['core', 'server', 'client']), PackageVersionInfo),
+	versions: z.object({
+		core: z.string(),
+		client: z.string(),
+		server: z.string(),
+	}),
 });
 
 /**
@@ -119,13 +123,7 @@ const _API = {
 		}),
 	},
 	'admin/plugins': {
-		GET: z
-			.looseObject({
-				...PluginInternal.omit({ _hooks: true, _client: true }).shape,
-				...PackageVersionInfo.shape,
-				config: z.record(z.string(), z.any()).optional(),
-			})
-			.array(),
+		GET: PluginInternal.omit({ _hooks: true, _client: true }).array(),
 		POST: [PluginUpdate, z.object({})],
 	},
 	'admin/audit/events': {

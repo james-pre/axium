@@ -1,13 +1,15 @@
+import client from '@axium/client/package.json' with { type: 'json' };
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity, UserAdminChange } from '@axium/core';
 import { debug, errorText, writeJSON } from '@axium/core/node/io';
-import { getVersionInfo } from '@axium/core/node/packages';
+import core from '@axium/core/package.json' with { type: 'json' };
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path/posix';
 import { deepAssign, omit, type Add, type Tuple } from 'utilium';
 import * as z from 'zod';
+import $pkg from '../../package.json' with { type: 'json' };
 import { audit, events, getEvents } from '../audit.js';
 import { createVerification, requireSession, type SessionAndUser } from '../auth.js';
 import { config, type Config } from '../config.js';
@@ -48,9 +50,9 @@ addRoute({
 			configFiles: config.files.size,
 			plugins: plugins.size,
 			versions: {
-				server: await getVersionInfo('@axium/server'),
-				core: await getVersionInfo('@axium/core'),
-				client: await getVersionInfo('@axium/client'),
+				server: $pkg.version,
+				core: core.version,
+				client: client.version,
 			},
 		};
 	},
@@ -60,17 +62,7 @@ addRoute({
 	path: '/api/admin/plugins',
 	async GET(req): AsyncResult<'GET', 'admin/plugins'> {
 		await assertAdmin(this, req);
-
-		return await Array.fromAsync(
-			plugins
-				.values()
-				.map(async p =>
-					Object.assign(
-						omit(p, '_hooks', '_client'),
-						p.update_checks ? await getVersionInfo(p.specifier, p.loadedBy) : { latest: null }
-					)
-				)
-		);
+		return await Array.fromAsync(plugins.values().map(p => omit(p, '_hooks', '_client')));
 	},
 	async POST(req): AsyncResult<'POST', 'admin/plugins'> {
 		await assertAdmin(this, req);
