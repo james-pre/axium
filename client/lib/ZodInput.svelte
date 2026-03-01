@@ -81,7 +81,7 @@
 		if (defaultValue == val) {
 			const parts = path.split('.');
 			const prop = parts.pop()!;
-			delete getByString<Record<string, any>>(rootValue, parts.join('.'))[prop];
+			delete getByString<Record<string, any>>(rootValue, parts.join('.'))![prop];
 		} else setByString(rootValue, path, val);
 
 		updateValue(rootValue);
