@@ -32,9 +32,9 @@
 <h3><a href="/admin/audit">Audit Log</a></h3>
 
 <p>
-	{Object.entries(data.auditEvents)
-		.filter(([, count]) => count)
-		.map(([severity, count]) => `${count} ${Severity[severity].toUpperCase()} events`)
+	{data.auditEvents
+		.filter(count => count)
+		.map((count, severity) => `${count} ${Severity[severity].toUpperCase()} events`)
 		.join(', ')}.
 </p>
 
