@@ -212,7 +212,7 @@ input.error {
 }
 
 .danger {
-	border: 1px solid hsl(0 50 var(--fg-light));
+	border: var(--border-error);
 	background-color: hsl(0 20 calc(var(--bg-light) + var(--light-step)));
 	color: hsl(0 33 var(--fg-light));
 	accent-color: hsl(0 33 var(--fg-light));
