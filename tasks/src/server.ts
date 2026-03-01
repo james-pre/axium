@@ -23,16 +23,15 @@ addRoute({
 			.selectFrom('task_lists')
 			.selectAll()
 			.select(eb =>
-				jsonArrayFrom<Task>(eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'task_lists.id')).as('tasks')
+				jsonArrayFrom(eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'task_lists.id'))
+					.$castTo<Task[]>()
+					.as('tasks')
 			)
 			.where('userId', '=', userId)
 			.execute()
 			.catch(withError('Could not get task lists'));
 
-		return lists.map(list => ({
-			...list,
-			tasks: list.tasks.map(t => ({ ...t, created: new Date(t.created), due: t.due ? new Date(t.due) : null })),
-		}));
+		return lists;
 	},
 	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/task_lists'> {
 		const init = await parseBody(request, TaskListInit);

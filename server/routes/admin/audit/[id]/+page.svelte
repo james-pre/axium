@@ -23,7 +23,7 @@
 <p>{event.name}</p>
 
 <h4>Timestamp</h4>
-<p>{new Date(event.timestamp).toLocaleString()}</p>
+<p>{event.timestamp.toLocaleString()}</p>
 
 <h4>Source</h4>
 <p>{event.source}</p>
