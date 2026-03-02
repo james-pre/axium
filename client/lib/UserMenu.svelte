@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fetchAPI } from '@axium/client/requests';
+	import { fetchAPI, text } from '@axium/client';
 	import { getUserImage } from '@axium/core';
 	import type { UserPublic } from '@axium/core/user';
 	import Icon from './Icon.svelte';
@@ -20,18 +20,18 @@
 
 		<a class="menu-item" href="/account">
 			<Icon i="user" --size="1.5em" />
-			<span>Your Account</span>
+			<span>{text('component.UserMenu.account')}</span>
 		</a>
 
 		{#if user.isAdmin}
 			<a class="menu-item" href="/admin">
 				<Icon i="gear-complex" --size="1.5em" />
-				<span>Administration</span>
+				<span>{text('component.UserMenu.admin')}</span>
 			</a>
 		{/if}
 
 		{#await fetchAPI('GET', 'apps')}
-			<i>Loading...</i>
+			<i>{text('generic.loading')}</i>
 		{:then apps}
 			{#each apps as app}
 				<a class="menu-item" href="/{app.id}">
@@ -45,15 +45,15 @@
 					<span>{app.name}</span>
 				</a>
 			{:else}
-				<i>No apps available.</i>
+				<i>{text('component.AppMenu.none')}</i>
 			{/each}
 		{:catch}
-			<i>Couldn't load apps.</i>
+			<i>{text('component.AppMenu.failed')}</i>
 		{/await}
 
 		<button class="menu-item logout reset" command="show-modal" commandfor="logout">
 			<Icon i="right-from-bracket" --size="1.5em" --fill="hsl(0 33 var(--fg-light))" />
-			<span>Logout</span>
+			<span>{text('generic.logout')}</span>
 		</button>
 	</Popover>
 

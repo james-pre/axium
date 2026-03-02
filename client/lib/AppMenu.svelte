@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client/locales';
 	import { fetchAPI } from '@axium/client/requests';
 	import Icon from './Icon.svelte';
 	import Popover from './Popover.svelte';
@@ -12,7 +13,7 @@
 	{/snippet}
 
 	{#await fetchAPI('GET', 'apps')}
-		<i>Loading...</i>
+		<i>{text('generic.loading')}</i>
 	{:then apps}
 		{#each apps as app}
 			<a class="menu-item" href="/{app.id}">
@@ -23,12 +24,12 @@
 				{:else}
 					<Icon i="image-circle-xmark" --size="1.5em" />
 				{/if}
-				<span>{app.name}</span>
+				<span>{text('app_name.' + app.id, { $default: app.name })}</span>
 			</a>
 		{:else}
-			<i>No apps available.</i>
+			<i>{text('component.AppMenu.none')}</i>
 		{/each}
 	{:catch}
-		<i>Couldn't load apps.</i>
+		<i>{text('component.AppMenu.failed')}</i>
 	{/await}
 </Popover>

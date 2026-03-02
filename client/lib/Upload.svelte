@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { forMime } from '@axium/core/icons';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
@@ -45,7 +46,7 @@
 				<Icon i="cloud-arrow-up" />
 			{/if}
 		{:else}
-			<Icon i="upload" /> Upload
+			<Icon i="upload" /> {text('component.Upload.upload')}
 		{/each}
 	</label>
 

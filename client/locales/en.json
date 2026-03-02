@@ -1,13 +1,70 @@
 {
 	"component": {
 		"AccessControlDialog": {
+			"owner": "Owner",
 			"title": "Permissions",
-			"named_title": "Permissions for {name}"
+			"named_title": "Permissions for <strong>{name}</strong>"
+		},
+		"AppMenu": {
+			"none": "No apps available.",
+			"failed": "Couldn't load apps."
+		},
+		"Login": {
+			"email": "Email",
+			"register": "Register instead",
+			"submit": "Login"
+		},
+		"Logout": {
+			"question": "Are you sure you want to log out?",
+			"submit": "Log Out",
+			"back": "Take me back"
+		},
+		"Register": {
+			"name": "Display Name",
+			"email": "Email",
+			"login": "Login instead"
+		},
+		"SessionList": {
+			"current": "Current",
+			"elevated": "Elevated",
+			"created": "Created {date}",
+			"expires": "Expires {date}",
+			"logout_single": "Are you sure you want to log out this session?",
+			"logout_all_question": "Are you sure you want to log out all sessions?",
+			"logout_all_trigger": "Logout All",
+			"logout_all_submit": "Logout All Sessions"
+		},
+		"Upload": {
+			"upload": "Upload"
+		},
+		"UserCard": {
+			"you": "(You)"
+		},
+		"UserDiscovery": {
+			"placeholder": "Add users and roles",
+			"no_results": "No results"
+		},
+		"UserMenu": {
+			"account": "Your Account",
+			"admin": "Administration"
+		},
+		"Version": {
+			"error": "Latest unknown",
+			"latest": "Latest",
+			"upgrade": "<span class=\"version\">{latest}</span> available"
+		},
+		"ZodInput": {
+			"invalid_type": "Invalid input type: {type}"
 		}
 	},
+	"generic": {
+		"cancel": "Cancel",
+		"done": "Done",
+		"loading": "Loading...",
+		"logout": "Logout",
+		"unknown": "Unknown"
+	},
 	"preference": {
-		"debug": {
-			"label": "Debug mode"
-		}
+		"debug": "Debug mode"
 	}
 }

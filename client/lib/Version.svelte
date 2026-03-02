@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { error } from '@axium/core/io';
 	import { lt as ltVersion } from 'semver';
 
@@ -13,13 +14,13 @@
 	{#await _latest then latest}
 		<span class="latest">
 			{#if ltVersion(v, latest)}
-				<span class="version">{latest}</span> available
+				{@html text('component.Version.upgrade', { $html: true, latest })}
 			{:else}
-				Latest
+				{text('component.Version.latest')}
 			{/if}
 		</span>
 	{:catch}
-		<span class="latest error">Latest unknown</span>
+		<span class="latest error">{text('component.Version.error')}</span>
 	{/await}
 {/if}
 

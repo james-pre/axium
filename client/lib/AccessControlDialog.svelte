@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { addToACL, getACL, updateACL } from '@axium/client/access';
-	import { userInfo } from '@axium/client/user';
+	import { addToACL, getACL, text, updateACL, userInfo } from '@axium/client';
 	import type { AccessControllable, AccessTarget, User } from '@axium/core';
-	import { getTarget, pickPermissions } from '@axium/core/access';
+	import { getTarget, pickPermissions } from '@axium/core';
 	import { errorText } from '@axium/core/io';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
@@ -30,9 +29,9 @@
 
 <dialog bind:this={dialog} {...rest}>
 	{#if item.name}
-		<h3>Permissions for <strong>{item.name}</strong></h3>
+		<h3>{@html text('component.AccessControlDialog.named_title', { $html: true, name: item.name })}</h3>
 	{:else}
-		<h3>Permissions</h3>
+		<h3>{text('component.AccessControlDialog.title')}</h3>
 	{/if}
 
 	{#if error}
@@ -45,7 +44,7 @@
 		{:else if item}
 			{#await userInfo(item.userId) then user}<UserCard {user} />{/await}
 		{/if}
-		<span>Owner</span>
+		<span>{text('component.AccessControlDialog.owner')}</span>
 	</div>
 
 	{#each acl as control}
@@ -66,7 +65,7 @@
 					<span>{control.role}</span>
 				</span>
 			{:else}
-				<i>Unknown</i>
+				<i>{text('generic.unknown')}</i>
 			{/if}
 			<div class="permissions">
 				{#each Object.entries(pickPermissions(control) as Record<string, boolean>) as [key, value]}
@@ -90,7 +89,7 @@
 	<UserDiscovery {onSelect} excludeTargets={acl.map(getTarget)} />
 
 	<div>
-		<button class="done" onclick={() => dialog!.close()}>Done</button>
+		<button class="done" onclick={() => dialog!.close()}>{text('generic.done')}</button>
 	</div>
 </dialog>
 

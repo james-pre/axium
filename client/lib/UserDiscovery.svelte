@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { fetchAPI } from '@axium/client/requests';
 	import { getUserImage, type UserPublic } from '@axium/core';
 	import { colorHashRGB } from '@axium/core/color';
@@ -55,7 +56,7 @@
 	}
 </script>
 
-<input bind:value type="text" placeholder="Add users and roles" {oninput} />
+<input bind:value type="text" placeholder={text('component.UserDiscovery.placeholder')} {oninput} />
 {#if !gotError && value}
 	<!-- Don't show results when we can't use the discovery API -->
 	<div class="results">
@@ -82,7 +83,7 @@
 				</div>
 			{/if}
 		{:else}
-			<i>No results</i>
+			<i>{text('component.UserDiscovery.no_results')}</i>
 		{/each}
 	</div>
 {/if}

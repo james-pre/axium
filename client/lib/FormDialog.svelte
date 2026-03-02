@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
 
 	let {
@@ -72,7 +73,7 @@
 			{@render submitButton()}
 		{:else}
 			<div class="actions">
-				<button type="button" onclick={() => dialog!.close()}>Cancel</button>
+				<button type="button" onclick={() => dialog!.close()}>{text('generic.cancel')}</button>
 				{@render submitButton()}
 			</div>
 		{/if}

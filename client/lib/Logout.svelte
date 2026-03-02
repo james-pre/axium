@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { logoutCurrentSession } from '@axium/client/user';
+	import { logoutCurrentSession, text } from '@axium/client';
 	import FormDialog from './FormDialog.svelte';
 
 	let { fullPage = false }: { fullPage?: boolean } = $props();
@@ -8,10 +8,10 @@
 <FormDialog
 	pageMode={fullPage}
 	id="logout"
-	submitText="Log Out"
+	submitText={text('generic.logout')}
 	submit={() => logoutCurrentSession().then(() => (window.location.href = '/'))}
 >
-	<p>Are you sure you want to log out?</p>
+	<p>{text('component.Logout.question')}</p>
 	{#if fullPage}
 		<button
 			command="close"
@@ -19,7 +19,7 @@
 			onclick={e => {
 				e.preventDefault();
 				history.back();
-			}}>Take me back</button
+			}}>{text('component.Logout.back')}</button
 		>
 	{/if}
 </FormDialog>

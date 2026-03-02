@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { register } from '@axium/client/user';
+	import { register, text } from '@axium/client';
 	import FormDialog from './FormDialog.svelte';
 	import authRedirect from './auth_redirect.js';
 
@@ -14,17 +14,17 @@
 
 <FormDialog bind:dialog submitText="Register" {submit} pageMode={fullPage}>
 	<div>
-		<label for="name">Display Name</label>
+		<label for="name">{text('component.Register.name')}</label>
 		<input name="name" type="text" required />
 	</div>
 	<div>
-		<label for="email">Email</label>
+		<label for="email">{text('component.Register.email')}</label>
 		<input name="email" type="email" required />
 	</div>
 	{#snippet footer()}
 		{#if fullPage}
 			<div class="footer">
-				<a href="/login">Login instead</a>
+				<a href="/login">{text('component.Register.login')}</a>
 			</div>
 		{/if}
 	{/snippet}

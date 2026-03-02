@@ -1,10 +1,12 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import type { ZodPref } from '@axium/core';
+	import { zKeys } from '@axium/core/locales';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
+	import { prettifyError } from 'zod';
 	import Icon from './Icon.svelte';
 	import ZodInput from './ZodInput.svelte';
-	import { prettifyError } from 'zod';
 
 	interface Props {
 		idPrefix?: string;
@@ -18,17 +20,10 @@
 		updateValue(value: any): void;
 	}
 
-	let {
-		rootValue = $bindable(),
-		label,
-		path,
-		schema,
-		optional = false,
-		defaultValue,
-		idPrefix,
-		updateValue,
-		noLabel = false,
-	}: Props = $props();
+	let { rootValue = $bindable(), ...props }: Props = $props();
+
+	let { label, path, schema, optional, defaultValue, idPrefix, updateValue, noLabel } = props;
+
 	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
 
 	let value = $state<any>(getByString(rootValue, path));
@@ -88,11 +83,13 @@
 	}
 
 	const oninput = onchange;
+
+	const labelText = $derived(zKeys.has(props.schema) ? text(zKeys.get(props.schema)!.key) : label || path);
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
 	<div class="ZodInput">
-		{#if !noLabel}<label for={id}>{label || path}</label>{/if}
+		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
 		<input {id} {...rest} bind:value {onchange} {oninput} required={!optional} {defaultValue} class={[error && 'error']} />
 	</div>
@@ -106,7 +103,7 @@
 	{@render _in({ type: 'number', min: Number(schema.minValue), max: Number(schema.maxValue), step: 1 })}
 {:else if schema.type == 'boolean'}
 	<div class="ZodInput">
-		{#if !noLabel}<label for="{id}:checkbox">{label || path}</label>{/if}
+		{#if !noLabel}<label for="{id}:checkbox">{labelText}</label>{/if}
 		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} />
 		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if value}<Icon i="check" --size="1.3em" />{/if}
@@ -122,7 +119,7 @@
 	<!-- todo -->
 {:else if schema.type == 'literal'}
 	<div class="ZodInput">
-		<label for={id}>{label || path}</label>
+		<label for={id}>{labelText}</label>
 		<select bind:value {id} {oninput} required={!optional}>
 			{#each schema.values as value}
 				<option {value} selected={value === value}>{value}</option>
@@ -132,13 +129,13 @@
 {:else if schema.type == 'template_literal'}
 	<!-- todo -->
 {:else if schema.type == 'default'}
-	<ZodInput bind:rootValue {updateValue} {idPrefix} {path} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
 {:else if schema.type == 'nullable' || schema.type == 'optional'}
 	<!-- defaults are handled differently -->
-	<ZodInput bind:rootValue {updateValue} {idPrefix} {path} {defaultValue} schema={schema.def.innerType} optional={true} />
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} optional={true} />
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
-		{#if !noLabel}<label for={id}>{label || path}</label>{/if}
+		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
 		<div class="ZodInput-array">
 			{#each value, i}
@@ -164,25 +161,25 @@
 		{#each Object.keys(value) as key}
 			<div class="ZodInput-record-entry">
 				{#if !noLabel}<label for={id}>{key}</label>{/if}
-				<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{key}" schema={schema.valueType} />
+				<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{key}" schema={schema.valueType} />
 			</div>
 		{/each}
 	</div>
 {:else if schema.type == 'object'}
 	<!-- <div class="ZodInput-object"> -->
 	{#each Object.entries(schema.shape) as [key, value]}
-		<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{key}" schema={value} />
+		<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{key}" schema={value} />
 	{/each}
 	<!-- </div> -->
 {:else if schema.type == 'tuple'}
 	<div class="ZodInput-tuple" data-rest={schema.def.rest}>
 		{#each schema.def.items as item, i}
-			<ZodInput bind:rootValue {updateValue} {idPrefix} {defaultValue} path="{path}.{i}" schema={item} />
+			<ZodInput bind:rootValue {updateValue} {idPrefix} defaultValue={defaultValue?.[i]} path="{path}.{i}" schema={item} />
 		{/each}
 	</div>
 {:else if schema.type == 'enum'}
 	<div class="ZodInput">
-		{#if !noLabel}<label for={id}>{label || path}</label>{/if}
+		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
 		<select {id} {onchange} bind:value required={!optional}>
 			{#each Object.entries(schema.enum) as [key, value]}
@@ -192,7 +189,7 @@
 	</div>
 {:else}
 	<!-- No idea how to render this -->
-	<i class="error-text">Invalid preference type: {JSON.stringify((schema as ZodPref)?.def?.type)}</i>
+	<i class="error-text">{text('component.ZodInput.invalid_type', { type: JSON.stringify((schema as ZodPref)?.def?.type) })}</i>
 {/if}
 
 <style>

@@ -1,6 +1,7 @@
 <script lang="ts">
-	import type { User } from '@axium/core/user';
+	import { text } from '@axium/client';
 	import { getUserImage } from '@axium/core';
+	import type { User } from '@axium/core/user';
 
 	const {
 		user,
@@ -27,7 +28,7 @@
 	{/if}
 	{user.name}
 	{#if self && you}
-		<span class="subtle">(You)</span>
+		<span class="subtle">{text('component.UserCard.you')}</span>
 	{/if}
 </a>
 
