@@ -86,12 +86,12 @@ export function text<const K extends string = FlattenKeys<Locale>>(key: K, ...ar
 
 	if (!text) {
 		error('Missing translation for key: ' + key);
-		text = `[missing translation ${key}]`;
+		text = `?${key}?`;
 	}
 
 	if (typeof text == 'object') {
 		error('Invalid translation key: ' + key);
-		text = values.$default || `[invalid translation: ${key}]`;
+		text = values.$default || `!${key}!`;
 	}
 
 	return text.replaceAll(localeReplacement, (_, name) => {
