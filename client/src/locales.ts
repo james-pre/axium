@@ -1,4 +1,4 @@
-import { error, info, warn } from '@axium/core/io';
+import { debug, error, info, warn } from '@axium/core/io';
 import type { FlattenKeys, GetByString, Split, UnionToIntersection } from 'utilium';
 import { deepAssign, getByString } from 'utilium';
 import en from '../locales/en.json' with { type: 'json' };
@@ -13,7 +13,7 @@ export function extendLocale(locale: string, data: object) {
 	if (!loadedLocales[locale]) {
 		info('Adding new locale (no built-in): ' + locale);
 		loadedLocales[locale] = {};
-	}
+	} else debug('Extending locale: ' + locale);
 	deepAssign(loadedLocales[locale], data);
 }
 
