@@ -1,6 +1,6 @@
+import { zKeys } from './locales.js';
 import * as z from 'zod';
 
-/** @internal Used so we can narrow using `type` and get access to type-specific properties (e.g. `ZodNumber.minValue`) */
 type StringFormatTypes =
 	| z.ZodGUID
 	| z.ZodUUID
@@ -52,15 +52,10 @@ type ZodPrefComposite =
 export type ZodPref = ZodPrefComposite | z.ZodObject<Readonly<Record<string, ZodPrefComposite>>>;
 
 /**
- * Zod registry for attaching translation keys to schemas
- */
-export const localeKeys = z.registry<{ key: string }>();
-
-/**
  * @internal
  */
 export let Preferences = z.object({
-	debug: z.boolean().default(false).register(localeKeys, { key: 'debug' }),
+	debug: z.boolean().default(false).register(zKeys, { key: 'preference.debug' }),
 });
 
 /**
