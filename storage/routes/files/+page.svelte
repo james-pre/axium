@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { Add, List } from '@axium/storage/components';
 
 	const { data } = $props();
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>Files</title>
+	<title>{text('page.files.title')}</title>
 </svelte:head>
 
 <List appMode bind:items user={data.session?.user} />

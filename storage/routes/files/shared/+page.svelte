@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { List } from '@axium/storage/components';
 
 	const { data } = $props();
@@ -6,7 +7,7 @@
 </script>
 
 <svelte:head>
-	<title>Files - Shared With You</title>
+	<title>{text('page.files.shared.title')}</title>
 </svelte:head>
 
-<List appMode bind:items emptyText="No items have been shared with you." user={data.session?.user} />
+<List appMode bind:items emptyText={text('page.files.shared.empty')} user={data.session?.user} />

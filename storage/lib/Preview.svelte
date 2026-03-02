@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { FormDialog, Icon, Popover } from '@axium/client/components';
 	import type { AccessControllable } from '@axium/core';
 	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
@@ -35,7 +36,7 @@
 	{#if itemOpeners.length}
 		{@const [first, ...others] = itemOpeners}
 		<div class="openers">
-			<span>Open with <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
+			<span>{text('storage.Preview.open_with')} <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
 			{#if others.length}
 				<Popover>
 					{#snippet toggle()}
@@ -79,20 +80,20 @@
 	{:else if item.type == 'application/pdf'}
 		<object data={item.dataURL} type="application/pdf" width="100%" height="100%">
 			<embed src={item.dataURL} type="application/pdf" width="100%" height="100%" />
-			<p>PDF not displayed? <a href={item.dataURL} download={item.name}>Download</a></p>
+			<a href={item.dataURL} download={item.name}>{text('storage.Preview.pdf_fallback_download')}</a>
 		</object>
 	{:else if item.type.startsWith('text/')}
 		{#await downloadItem(item.id).then(b => b.text())}
 			<div class="full-fill no-preview">
 				<Icon i="cloud-arrow-down" --size="50px" />
-				<span>Loading</span>
+				<span>{text('storage.Preview.loading')}</span>
 			</div>
 		{:then content}
 			<pre class="full-fill preview-text">{content}</pre>
 		{:catch}
 			<div class="full-fill no-preview">
 				<Icon i="cloud-exclamation" --size="50px" />
-				<span>Error loading preview. You might not have permission to view this file.</span>
+				<span>{text('storage.Preview.error_loading')}</span>
 			</div>
 		{/await}
 	{:else if previews.has(item.type)}
@@ -100,39 +101,39 @@
 	{:else}
 		<div class="full-fill no-preview">
 			<Icon i="eye-slash" --size="50px" />
-			<span>Preview not available</span>
+			<span>{text('storage.Preview.preview_unavailable')}</span>
 		</div>
 	{/if}
 </div>
 
 <FormDialog
 	bind:dialog={dialogs.rename}
-	submitText="Rename"
+	submitText={text('storage.generic.rename')}
 	submit={async (data: { name: string }) => {
 		await updateItemMetadata(item.id, data);
 		item.name = data.name;
 	}}
 >
 	<div>
-		<label for="name">Name</label>
+		<label for="name">{text('storage.generic.name')}</label>
 		<input name="name" type="text" required value={item.name} />
 	</div>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.trash}
-	submitText="Trash"
+	submitText={text('storage.generic.trash')}
 	submitDanger
 	submit={async () => {
-		if (!item) throw 'No item is selected';
+		if (!item) throw text('storage.generic.no_item');
 		await updateItemMetadata(item.id, { trash: true });
 		onDelete();
 	}}
 >
-	<p>Are you sure you want to trash this?</p>
+	<p>{text('storage.Preview.trash_confirm')}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.download}
-	submitText="Download"
+	submitText={text('storage.generic.download')}
 	submit={async () => {
 		if (item!.type == 'inode/directory') {
 			/** @todo ZIP support */
@@ -141,7 +142,7 @@
 		} else open(item!.dataURL, '_blank');
 	}}
 >
-	<p>Are you sure you want to download this?</p>
+	<p>{text('storage.Preview.download_confirm')}</p>
 </FormDialog>
 
 <style>

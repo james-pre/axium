@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import { Add, List, Preview } from '@axium/storage/components';
 	import type { PageProps } from './$types';
@@ -17,18 +18,19 @@
 </script>
 
 <svelte:head>
-	<title>Files — {item.name}</title>
+	<title>{text('page.files.detail_title', { name: item.name })}</title>
 </svelte:head>
 
 {#if item.trashedAt}
-	<p>This item is trashed</p>
+	<p>{text('page.files.trashed')}</p>
 	<button
 		onclick={async e => {
 			e.preventDefault();
 			await updateItemMetadata(item.id, { trash: false });
 		}}
 	>
-		<Icon i="trash-can-undo" /> Restore
+		<Icon i="trash-can-undo" />
+		{text('page.files.restore')}
 	</button>
 {:else}
 	<AccessControlDialog
@@ -63,12 +65,12 @@
 		{/snippet}
 
 		<div class="folder-actions">
-			{@render action('folder-arrow-up', 'Back', () => (location.href = parentHref))}
-			{@render action('pencil', 'Rename', () => dialogs.rename.showModal())}
-			{@render action('user-group', 'Share', () => shareDialog.showModal())}
-			{@render action('download', 'Download', () => dialogs.download.showModal())}
-			{@render action('link-horizontal', 'Copy Link', () => copyShortURL(item))}
-			{@render action('trash', 'Trash', () => dialogs.trash.showModal())}
+			{@render action('folder-arrow-up', text('page.files.back'), () => (location.href = parentHref))}
+			{@render action('pencil', text('page.files.rename'), () => dialogs.rename.showModal())}
+			{@render action('user-group', text('page.files.share'), () => shareDialog.showModal())}
+			{@render action('download', text('page.files.download'), () => dialogs.download.showModal())}
+			{@render action('link-horizontal', text('page.files.copy_link'), () => copyShortURL(item))}
+			{@render action('trash', text('page.files.trash'), () => dialogs.trash.showModal())}
 		</div>
 
 		<List appMode bind:items user={data.session?.user} />
@@ -76,38 +78,38 @@
 
 		<FormDialog
 			bind:dialog={dialogs.rename}
-			submitText="Rename"
+			submitText={text('page.files.rename_submit')}
 			submit={async (data: { name: string }) => {
 				await updateItemMetadata(item.id, data);
 				item.name = data.name;
 			}}
 		>
 			<div>
-				<label for="name">Name</label>
+				<label for="name">{text('storage.generic.name')}</label>
 				<input name="name" type="text" required value={item.name} />
 			</div>
 		</FormDialog>
 		<FormDialog
 			bind:dialog={dialogs.trash}
-			submitText="Trash"
+			submitText={text('page.files.trash')}
 			submitDanger
 			submit={async () => {
 				await updateItemMetadata(item.id, { trash: true });
 				location.href = parentHref;
 			}}
 		>
-			<p>Are you sure you want to trash this folder?</p>
+			<p>{text('page.files.trash_folder_confirm')}</p>
 		</FormDialog>
 		<FormDialog
 			bind:dialog={dialogs.download}
-			submitText="Download"
+			submitText={text('page.files.download')}
 			submit={async () => {
 				/** @todo ZIP support */
 				const children = await getDirectoryMetadata(item.id);
 				for (const child of children) open(child.dataURL, '_blank');
 			}}
 		>
-			<p>Are you sure you want to download this folder?</p>
+			<p>{text('page.files.download_folder_confirm')}</p>
 		</FormDialog>
 	{:else}
 		<div class="preview-container">

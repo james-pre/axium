@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import { formatBytes } from '@axium/core/format';
@@ -13,6 +14,11 @@
 
 	let activeIndex = $state<number>(-1);
 	const activeItem = $derived(activeIndex == -1 ? null : items[activeIndex]);
+	const activeItemName = $derived(
+		activeItem?.name
+			? `<strong>${activeItem.name.length > 23 ? activeItem.name.slice(0, 20) + '...' : activeItem.name}</strong>`
+			: 'this'
+	);
 
 	function action(index: number, dialog: () => HTMLDialogElement) {
 		return (e: Event) => {
@@ -25,15 +31,15 @@
 </script>
 
 <svelte:head>
-	<title>Files - Trash</title>
+	<title>{text('page.files.trash_page.title')}</title>
 </svelte:head>
 
 <div class="list">
 	<div class="list-item list-header">
 		<span></span>
-		<span>Name</span>
-		<span>Last Modified</span>
-		<span>Size</span>
+		<span>{text('storage.generic.name')}</span>
+		<span>{text('page.files.trash_page.last_modified')}</span>
+		<span>{text('storage.List.size')}</span>
 	</div>
 	{#each items as item, i (item.id)}
 		<div class="list-item">
@@ -49,39 +55,33 @@
 			</span>
 		</div>
 	{:else}
-		<p class="list-empty">Trash is empty.</p>
+		<p class="list-empty">{text('page.files.trash_page.empty')}</p>
 	{/each}
 </div>
 
-{#snippet _name()}
-	{#if activeItem?.name}<strong>{activeItem.name.length > 23 ? activeItem.name.slice(0, 20) + '...' : activeItem.name}</strong>
-	{:else}this
-	{/if}
-{/snippet}
-
 <FormDialog
 	bind:dialog={restoreDialog}
-	submitText="Restore"
+	submitText={text('page.files.trash_page.restore')}
 	submit={async () => {
-		if (!activeItem) throw 'No item is selected';
+		if (!activeItem) throw text('storage.generic.no_item');
 		await updateItemMetadata(activeItem.id, { trash: false });
 		items.splice(activeIndex, 1);
 	}}
 >
-	<p>Restore {@render _name()}?</p>
+	<p>{@html text('page.files.trash_page.restore_confirm', { $html: true, name: activeItemName })}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={deleteDialog}
-	submitText="Delete"
+	submitText={text('page.files.trash_page.delete')}
 	submitDanger
 	submit={async () => {
-		if (!activeItem) throw 'No item is selected';
+		if (!activeItem) throw text('storage.generic.no_item');
 		await deleteItem(activeItem.id);
 		items.splice(activeIndex, 1);
 	}}
 >
 	<p>
-		Are you sure you want to permanently delete {@render _name()}?
+		{@html text('page.files.trash_page.delete_confirm', { $html: true, name: activeItemName })}
 	</p>
 </FormDialog>
 

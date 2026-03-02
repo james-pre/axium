@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { NumberBar } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import { formatBytes } from '@axium/core/format';
@@ -10,15 +11,19 @@
 	let items = $state(data.info.items.filter(i => i.type != 'inode/directory').sort((a, b) => Math.sign(b.size - a.size)));
 	const usedBytes = $state(data.info.usedBytes);
 
-	let barText = $derived(`Using ${formatBytes(usedBytes)} ${limits.user_size ? 'of ' + formatBytes(limits.user_size * 1_000_000) : ''}`);
+	let barText = $derived(
+		limits.user_size
+			? text('page.files.usage.bar_text', { used: formatBytes(usedBytes), total: formatBytes(limits.user_size * 1_000_000) })
+			: text('page.files.usage.bar_text_unlimited', { used: formatBytes(usedBytes) })
+	);
 </script>
 
 <svelte:head>
-	<title>Your Storage Usage</title>
+	<title>{text('page.files.usage.title')}</title>
 </svelte:head>
 
-<h2>Storage Usage</h2>
+<h2>{text('page.files.usage.heading')}</h2>
 
 <p><NumberBar max={limits.user_size * 1_000_000} value={usedBytes} text={barText} /></p>
 
-<List bind:items emptyText="You have not uploaded any files yet." user={data.session?.user} />
+<List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} />

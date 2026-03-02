@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import SidebarItem from './SidebarItem.svelte';
 	import { items as sb_items, getDirectory } from '@axium/storage/sidebar';
@@ -15,12 +16,12 @@
 
 <div id="StorageSidebar">
 	{#await typeof root == 'string' ? getDirectory(root, items) : root}
-		<i>Loading...</i>
+		<i>{text('generic.loading')}</i>
 	{:then}
 		{#each items as _, i (_.id)}
 			<SidebarItem bind:item={items[i]} bind:items />
 		{:else}
-			<i>No files yet</i>
+			<i>{text('storage.Sidebar.no_files')}</i>
 		{/each}
 	{:catch error}
 		<i class="error-text">{error.message}</i>

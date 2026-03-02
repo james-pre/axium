@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { formatBytes } from '@axium/core/format';
 	import { NumberBar } from '@axium/client/components';
 	import { getUserStats } from '@axium/storage/client';
@@ -8,7 +9,7 @@
 </script>
 
 {#if !info && !userId}
-	<p>Log in to see storage usage.</p>
+	<p>{text('storage.Usage.login_prompt')}</p>
 {:else}
 	{#await info || getUserStats(userId!) then info}
 		<p>
@@ -23,7 +24,7 @@
 			</a>
 		</p>
 	{:catch error}
-		<p>Couldn't load your uploads.</p>
+		<p>{text('storage.Usage.error')}</p>
 		<p>{error.message}</p>
 	{/await}
 {/if}

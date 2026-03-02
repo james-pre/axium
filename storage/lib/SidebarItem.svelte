@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { page } from '$app/state';
 	import { copy } from '@axium/client/clipboard';
 	import { FormDialog, Icon } from '@axium/client/components';
@@ -51,9 +52,13 @@
 	}
 
 	let children = $state<StorageItemMetadata[]>([]);
+
+	const itemName = $derived(
+		item.name ? `<strong>${item.name.length > 23 ? item.name.slice(0, 20) + '...' : item.name}</strong>` : 'this'
+	);
 </script>
 
-{#snippet action(name: string, i: string, text: string)}
+{#snippet action(name: string, i: string, label: string)}
 	<div
 		onclick={e => {
 			e.stopPropagation();
@@ -63,16 +68,8 @@
 		class="action icon-text"
 	>
 		<Icon {i} --size="14px" />
-		{text}
+		{label}
 	</div>
-{/snippet}
-
-{#snippet _itemName()}
-	{#if item.name}
-		<strong>{item.name.length > 23 ? item.name.slice(0, 20) + '...' : item.name}</strong>
-	{:else}
-		this
-	{/if}
 {/snippet}
 
 {#if item.type == 'inode/directory'}
@@ -83,7 +80,7 @@
 		</summary>
 		<div>
 			{#await getDirectory(item.id, children)}
-				<i>Loading...</i>
+				<i>{text('generic.loading')}</i>
 			{:then}
 				{#each children as _, i (_.id)}
 					<SidebarItem bind:item={children[i]} bind:items={children} />
@@ -101,35 +98,35 @@
 {/if}
 
 <div popover bind:this={popover}>
-	{@render action('rename', 'pen', 'Rename')}
-	{@render action('delete', 'trash', 'Delete')}
+	{@render action('rename', 'pen', text('storage.generic.rename'))}
+	{@render action('delete', 'trash', text('storage.SidebarItem.delete'))}
 	{#if item.type == 'cas_item'}
-		{@render action('download', 'download', 'Download')}
+		{@render action('download', 'download', text('storage.generic.download'))}
 	{/if}
 	{#if page.data.session?.user.preferences.debug}
 		<div class="action icon-text" onclick={() => copy('text/plain', item.id)}>
 			<Icon i="copy" --size="14px" />
-			Copy ID
+			{text('storage.generic.copy_id')}
 		</div>
 	{/if}
 </div>
 
 <FormDialog
 	bind:dialog={dialogs.rename}
-	submitText="Rename"
+	submitText={text('storage.generic.rename')}
 	submit={async (data: { name: string }) => {
 		await updateItemMetadata(item.id, data);
 		item.name = data.name;
 	}}
 >
 	<div>
-		<label for="name">Name</label>
+		<label for="name">{text('storage.generic.name')}</label>
 		<input name="name" type="text" required value={item.name} />
 	</div>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.delete}
-	submitText="Delete"
+	submitText={text('storage.SidebarItem.delete')}
 	submitDanger
 	submit={async () => {
 		await deleteItem(item.id);
@@ -137,18 +134,18 @@
 		if (index !== -1) items.splice(index, 1);
 	}}
 >
-	<p>Are you sure you want to delete {@render _itemName()}?</p>
+	<p>{@html text('storage.SidebarItem.delete_confirm', { $html: true, name: itemName })}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.download}
-	submitText="Download"
+	submitText={text('storage.generic.download')}
 	submit={async () => {
 		open(item.dataURL, '_blank');
 	}}
 >
 	<p>
-		We are not responsible for the contents of this file. <br />
-		Are you sure you want to download {@render _itemName()}?
+		{text('storage.SidebarItem.download_disclaimer')} <br />
+		{@html text('storage.generic.download_confirm', { $html: true, name: itemName })}
 	</p>
 </FormDialog>
 

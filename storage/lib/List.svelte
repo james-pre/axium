@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { contextMenu } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
@@ -14,12 +15,17 @@
 	let {
 		items = $bindable(),
 		appMode,
-		emptyText = 'Folder is empty.',
+		emptyText = text('storage.List.empty'),
 		user,
 	}: { appMode?: boolean; items: (StorageItemMetadata & AccessControllable)[]; emptyText?: string; user?: UserPublic } = $props();
 
 	let activeIndex = $state<number>(0);
 	const activeItem = $derived(items[activeIndex]);
+	const activeItemName = $derived(
+		activeItem?.name
+			? `<strong>${activeItem.name.length > 23 ? activeItem.name.slice(0, 20) + '...' : activeItem.name}</strong>`
+			: 'this'
+	);
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
 
@@ -35,20 +41,12 @@
 	</span>
 {/snippet}
 
-{#snippet _itemName()}
-	{#if activeItem?.name}
-		<strong>{activeItem.name.length > 23 ? activeItem.name.slice(0, 20) + '...' : activeItem.name}</strong>
-	{:else}
-		this
-	{/if}
-{/snippet}
-
 <div class="list">
 	<div class="list-item list-header">
 		<span></span>
-		<span>Name</span>
-		<span>Last Modified</span>
-		<span>Size</span>
+		<span>{text('storage.generic.name')}</span>
+		<span>{text('storage.List.last_modified')}</span>
+		<span>{text('storage.List.size')}</span>
 	</div>
 	{#each items as item, i (item.id)}
 		<div
@@ -61,12 +59,20 @@
 				else items = await getDirectoryMetadata(item.id);
 			}}
 			{@attach contextMenu(
-				{ i: 'pencil', text: 'Rename', action: () => ((activeIndex = i), dialogs.rename.showModal()) },
-				{ i: 'user-group', text: 'Share', action: () => ((activeIndex = i), dialogs['share:' + item.id].showModal()) },
-				{ i: 'download', text: 'Download', action: () => ((activeIndex = i), dialogs.download.showModal()) },
-				{ i: 'link-horizontal', text: 'Copy Link', action: () => ((activeIndex = i), copyShortURL(item)) },
-				{ i: 'trash', text: 'Trash', action: () => ((activeIndex = i), dialogs.trash.showModal()) },
-				user?.preferences?.debug && { i: 'hashtag', text: 'Copy ID', action: () => copy('text/plain', item.id) }
+				{ i: 'pencil', text: text('storage.generic.rename'), action: () => ((activeIndex = i), dialogs.rename.showModal()) },
+				{
+					i: 'user-group',
+					text: text('storage.List.share'),
+					action: () => ((activeIndex = i), dialogs['share:' + item.id].showModal()),
+				},
+				{ i: 'download', text: text('storage.generic.download'), action: () => ((activeIndex = i), dialogs.download.showModal()) },
+				{ i: 'link-horizontal', text: text('storage.List.copy_link'), action: () => ((activeIndex = i), copyShortURL(item)) },
+				{ i: 'trash', text: text('storage.generic.trash'), action: () => ((activeIndex = i), dialogs.trash.showModal()) },
+				user?.preferences?.debug && {
+					i: 'hashtag',
+					text: text('storage.generic.copy_id'),
+					action: () => copy('text/plain', item.id),
+				}
 			)}
 		>
 			<dfn class="type" title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
@@ -118,33 +124,33 @@
 
 <FormDialog
 	bind:dialog={dialogs.rename}
-	submitText="Rename"
+	submitText={text('storage.generic.rename')}
 	submit={async (data: { name: string }) => {
-		if (!activeItem) throw 'No item is selected';
+		if (!activeItem) throw text('storage.generic.no_item');
 		await updateItemMetadata(activeItem.id, data);
 		activeItem.name = data.name;
 	}}
 >
 	<div>
-		<label for="name">Name</label>
+		<label for="name">{text('storage.generic.name')}</label>
 		<input name="name" type="text" required value={activeItem?.name} />
 	</div>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.trash}
-	submitText="Trash"
+	submitText={text('storage.generic.trash')}
 	submitDanger
 	submit={async () => {
-		if (!activeItem) throw 'No item is selected';
+		if (!activeItem) throw text('storage.generic.no_item');
 		await updateItemMetadata(activeItem.id, { trash: true });
 		items.splice(activeIndex, 1);
 	}}
 >
-	<p>Are you sure you want to trash {@render _itemName()}?</p>
+	<p>{@html text('storage.List.trash_confirm', { $html: true, name: activeItemName })}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.download}
-	submitText="Download"
+	submitText={text('storage.generic.download')}
 	submit={async () => {
 		if (activeItem!.type == 'inode/directory') {
 			/** @todo ZIP support */
@@ -153,7 +159,7 @@
 		} else open(activeItem!.dataURL, '_blank');
 	}}
 >
-	<p>Are you sure you want to download {@render _itemName()}?</p>
+	<p>{@html text('storage.generic.download_confirm', { $html: true, name: activeItemName })}</p>
 </FormDialog>
 
 <style>

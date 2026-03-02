@@ -1,0 +1,96 @@
+{
+	"app_name": {
+		"files": "Files"
+	},
+	"page": {
+		"files": {
+			"title": "Files",
+			"detail_title": "Files — {name}",
+			"trashed": "This item is trashed",
+			"restore": "Restore",
+			"back": "Back",
+			"rename": "Rename",
+			"share": "Share",
+			"download": "Download",
+			"copy_link": "Copy Link",
+			"trash": "Trash",
+			"rename_submit": "Rename",
+			"trash_folder_confirm": "Are you sure you want to trash this folder?",
+			"download_folder_confirm": "Are you sure you want to download this folder?",
+			"shared": {
+				"title": "Files - Shared With You",
+				"empty": "No items have been shared with you."
+			},
+			"tab": {
+				"files": "Files",
+				"trash": "Trash",
+				"shared": "Shared"
+			},
+			"trash_page": {
+				"title": "Files — Trash",
+				"empty": "Trash is empty.",
+				"last_modified": "Last Modified",
+				"restore": "Restore",
+				"restore_confirm": "Restore {name}?",
+				"delete": "Delete",
+				"delete_confirm": "Are you sure you want to permanently delete {name}?"
+			},
+			"usage": {
+				"title": "Your Storage Usage",
+				"heading": "Storage Usage",
+				"bar_text": "Using {used} of {total}",
+				"bar_text_unlimited": "Using {used}",
+				"empty": "You have not uploaded any files yet."
+			}
+		}
+	},
+	"storage": {
+		"generic": {
+			"copy_id": "Copy ID",
+			"download": "Download",
+			"download_confirm": "Are you sure you want to download {name}?",
+			"name": "Name",
+			"no_item": "No item is selected",
+			"rename": "Rename",
+			"trash": "Trash"
+		},
+		"Add": {
+			"content": "Content",
+			"create": "Create",
+			"new_folder": "New Folder",
+			"plain_text": "Plain Text",
+			"text": "Add",
+			"upload": "Upload",
+			"url": "URL"
+		},
+		"List": {
+			"copy_link": "Copy Link",
+			"empty": "Folder is empty.",
+			"last_modified": "Last Modified",
+			"share": "Share",
+			"size": "Size",
+			"trash_confirm": "Are you sure you want to trash {name}?"
+		},
+		"Preview": {
+			"download_confirm": "Are you sure you want to download this?",
+			"error_loading": "Error loading preview. You might not have permission to view this file.",
+			"loading": "Loading",
+			"open_with": "Open with",
+			"pdf_fallback_download": "PDF couldn't be previewed. Click here to download.",
+			"preview_unavailable": "Preview not available",
+			"trash_confirm": "Are you sure you want to trash this?"
+		},
+		"Sidebar": {
+			"no_files": "No files yet"
+		},
+		"SidebarItem": {
+			"delete": "Delete",
+			"delete_confirm": "Are you sure you want to delete {name}?",
+			"download_disclaimer": "We are not responsible for the contents of this file."
+		},
+		"Usage": {
+			"error": "Couldn't load your uploads.",
+			"login_prompt": "Log in to see storage usage."
+		}
+	}
+}
