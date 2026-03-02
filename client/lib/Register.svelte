@@ -12,7 +12,7 @@
 	}
 </script>
 
-<FormDialog bind:dialog submitText="Register" {submit} pageMode={fullPage}>
+<FormDialog bind:dialog submitText={text('generic.register')} {submit} pageMode={fullPage}>
 	<div>
 		<label for="name">{text('component.Register.name')}</label>
 		<input name="name" type="text" required />

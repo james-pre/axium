@@ -1,13 +1,13 @@
 {
 	"component": {
 		"AccessControlDialog": {
+			"named_title": "Permissions for <strong>{name}</strong>",
 			"owner": "Owner",
-			"title": "Permissions",
-			"named_title": "Permissions for <strong>{name}</strong>"
+			"title": "Permissions"
 		},
 		"AppMenu": {
-			"none": "No apps available.",
-			"failed": "Couldn't load apps."
+			"failed": "Couldn't load apps.",
+			"none": "No apps available."
 		},
 		"Login": {
 			"email": "Email",
@@ -15,24 +15,23 @@
 			"submit": "Login"
 		},
 		"Logout": {
-			"question": "Are you sure you want to log out?",
-			"submit": "Log Out",
-			"back": "Take me back"
+			"back": "Take me back",
+			"question": "Are you sure you want to log out?"
 		},
 		"Register": {
-			"name": "Display Name",
 			"email": "Email",
-			"login": "Login instead"
+			"login": "Login instead",
+			"name": "Display Name"
 		},
 		"SessionList": {
+			"created": "Created {date}",
 			"current": "Current",
 			"elevated": "Elevated",
-			"created": "Created {date}",
 			"expires": "Expires {date}",
-			"logout_single": "Are you sure you want to log out this session?",
 			"logout_all_question": "Are you sure you want to log out all sessions?",
+			"logout_all_submit": "Logout All Sessions",
 			"logout_all_trigger": "Logout All",
-			"logout_all_submit": "Logout All Sessions"
+			"logout_single": "Are you sure you want to log out this session?"
 		},
 		"Upload": {
 			"upload": "Upload"
@@ -41,8 +40,8 @@
 			"you": "(You)"
 		},
 		"UserDiscovery": {
-			"placeholder": "Add users and roles",
-			"no_results": "No results"
+			"no_results": "No results",
+			"placeholder": "Add users and roles"
 		},
 		"UserMenu": {
 			"account": "Your Account",
@@ -58,11 +57,51 @@
 		}
 	},
 	"generic": {
+		"action_irreversible": "This action can't be undone.",
 		"cancel": "Cancel",
+		"change": "Change",
 		"done": "Done",
+		"email": "Email",
 		"loading": "Loading...",
 		"logout": "Logout",
-		"unknown": "Unknown"
+		"register": "Register",
+		"unknown": "Unknown",
+		"unnamed": "Unnamed",
+		"username": "Name"
+	},
+	"page": {
+		"account": {
+			"delete_account": "Delete Account",
+			"delete_account_confirm": "Are you sure you want to delete your account?",
+			"edit_email": "Email Address",
+			"edit_name": "What do you want to be called?",
+			"email_verified_on": "Email verified on {date}",
+			"greeting": "Welcome, {name}",
+			"passkeys": {
+				"backed_up": "This passkey is backed up",
+				"create": "Create",
+				"created": "Created {date}",
+				"delete": "Delete",
+				"delete_confirm": "Are you sure you want to delete this passkey?",
+				"edit_name": "Passkey Name",
+				"min_one": "You must have at least one passkey",
+				"multi_device": "Multiple devices",
+				"name_type_error": "Passkey name must be a string",
+				"not_backed_up": "This passkey is not backed up",
+				"rename": "Rename",
+				"single_device": "Single device",
+				"title": "Passkeys"
+			},
+			"personal_info": "Personal Information",
+			"preferences": "Preferences",
+			"profile_alt": "User profile",
+			"sessions": "Sessions",
+			"title": "Your Account",
+			"user_id": "User ID",
+			"user_id_hint": "This is your UUID. It can't be changed.",
+			"verification_sent": "Verification email sent",
+			"verify": "Verify"
+		}
 	},
 	"preference": {
 		"debug": "Debug mode"
