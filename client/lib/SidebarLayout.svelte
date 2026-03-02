@@ -15,8 +15,7 @@
 <div class="sidebar-container">
 	<div class="sidebar">
 		{#each tabs as { href, name, icon: i, active }}
-			<a {href} class={['item', 'icon-text', active && 'active']}><Icon {i} /> <span class="sidebar-text">{capitalize(name)}</span></a
-			>
+			<a {href} class={['item', 'icon-text', active && 'active']}><Icon {i} /> <span class="sidebar-text">{name}</span></a>
 		{/each}
 
 		{#if bottom}
