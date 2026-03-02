@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { Version } from '@axium/client/components';
 	import { Severity } from '@axium/core';
 	import { getPackage } from '@axium/core/packages';
@@ -9,10 +10,10 @@
 </script>
 
 <svelte:head>
-	<title>Admin — Dashboard</title>
+	<title>{text('page.admin.dashboard.title')}</title>
 </svelte:head>
 
-<h2>Administration</h2>
+<h2>{text('page.admin.heading')}</h2>
 
 {#each packages as name}
 	<p>
@@ -21,19 +22,19 @@
 	</p>
 {/each}
 
-<h3><a href="/admin/users">Users</a></h3>
+<h3><a href="/admin/users">{text('page.admin.dashboard.users_link')}</a></h3>
 
-<p>{data.users} users, {data.sessions} sessions, {data.passkeys} passkeys.</p>
+<p>{text('page.admin.dashboard.stats', { users: data.users, sessions: data.sessions, passkeys: data.passkeys })}</p>
 
-<h3><a href="/admin/config">Configuration</a></h3>
+<h3><a href="/admin/config">{text('page.admin.dashboard.config_link')}</a></h3>
 
-<p>{data.configFiles} files loaded.</p>
+<p>{text('page.admin.dashboard.config_files', { count: data.configFiles })}</p>
 
-<h3><a href="/admin/plugins">Plugins</a></h3>
+<h3><a href="/admin/plugins">{text('page.admin.dashboard.plugins_link')}</a></h3>
 
-<p>{data.plugins} plugins loaded.</p>
+<p>{text('page.admin.dashboard.plugins_loaded', { count: data.plugins })}</p>
 
-<h3><a href="/admin/audit">Audit Log</a></h3>
+<h3><a href="/admin/audit">{text('page.admin.audit.heading')}</a></h3>
 
 <p>
 	{data.auditEvents

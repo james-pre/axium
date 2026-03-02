@@ -16,7 +16,7 @@
 	}
 </script>
 
-<FormDialog bind:dialog submitText={text('component.Login.submit')} {submit} pageMode={fullPage}>
+<FormDialog bind:dialog submitText={text('generic.login')} {submit} pageMode={fullPage}>
 	<div>
 		<label for="email">{text('component.Login.email')}</label>
 		<input name="email" type="email" required />

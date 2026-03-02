@@ -1,16 +1,17 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	const { data } = $props();
 </script>
 
 <svelte:head>
-	<title>Admin — Configuration</title>
+	<title>{text('page.admin.config.title')}</title>
 </svelte:head>
 
-<h2>Active Configuration</h2>
+<h2>{text('page.admin.config.active')}</h2>
 
 <pre>{JSON.stringify(data.config, null, 4)}</pre>
 
-<h2 id="files">Loaded Files</h2>
+<h2 id="files">{text('page.admin.config.loaded_files')}</h2>
 
 {#each Object.entries(data.files) as [path, config]}
 	<details>

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import Icon from '@axium/client/components/Icon';
 	import { fetchAPI } from '@axium/client/requests';
 	import { startAuthentication } from '@simplewebauthn/browser';
@@ -28,7 +29,7 @@
 </script>
 
 <svelte:head>
-	<title>Local Client Login</title>
+	<title>{text('page.login.client.title')}</title>
 </svelte:head>
 
 {#if error}
@@ -36,15 +37,15 @@
 {:else if authDone}
 	<div class="center success">
 		<h1><Icon i="check" /></h1>
-		<p>Login successful! You can close this tab.</p>
+		<p>{text('page.login.client.success')}</p>
 	</div>
 {:else}
 	<div id="local-login" class="center">
-		<h2>Local Client Login</h2>
-		<p>Are you sure you want to log in to this local client?</p>
+		<h2>{text('page.login.client.title')}</h2>
+		<p>{text('page.login.client.confirm')}</p>
 		<div>
-			<button>Cancel</button>
-			<button class="danger" {onclick}>Authorize</button>
+			<button>{text('generic.cancel')}</button>
+			<button class="danger" {onclick}>{text('page.login.client.authorize')}</button>
 		</div>
 	</div>
 {/if}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { Version, ZodForm } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import { serverConfigs } from '@axium/core';
@@ -9,10 +10,10 @@
 </script>
 
 <svelte:head>
-	<title>Admin — Plugins</title>
+	<title>{text('page.admin.plugins.title')}</title>
 </svelte:head>
 
-<h2>Plugins</h2>
+<h2>{text('page.admin.plugins.heading')}</h2>
 
 {#each data.plugins as plugin}
 	{@const cfg = serverConfigs.get(plugin.name)}
@@ -24,7 +25,7 @@
 			/>
 		</h3>
 		<p>
-			<strong>Loaded from</strong>
+			<strong>{text('page.admin.plugins.loaded_from')}</strong>
 			{#if plugin.path.endsWith('/package.json')}
 				<span class="path plugin-path">{plugin.path.slice(0, -13)}</span>
 			{:else}
@@ -35,18 +36,18 @@
 				<a class="path" href="/admin/config#{plugin.loadedBy}">{plugin.loadedBy}</a>
 			{/if}
 		</p>
-		<p><strong>Author:</strong> {plugin.author}</p>
+		<p><strong>{text('page.admin.plugins.author')}</strong> {plugin.author}</p>
 		<p class="apps">
-			<strong>Provided apps:</strong>
+			<strong>{text('page.admin.plugins.provided_apps')}</strong>
 			{#if plugin.apps?.length}
 				{#each plugin.apps as app, i}
 					<a href="/{app.id}">{app.name}</a>{i != plugin.apps.length - 1 ? ', ' : ''}
 				{/each}
-			{:else}<i>None</i>{/if}
+			{:else}<i>{text('generic.none')}</i>{/if}
 		</p>
 		<p>{plugin.description}</p>
 		{#if cfg && plugin.config}
-			<h4>Configuration</h4>
+			<h4>{text('page.admin.plugins.configuration')}</h4>
 			{@const { schema, labels } = cfg}
 			<ZodForm
 				rootValue={plugin.config}
@@ -58,7 +59,7 @@
 		{/if}
 	</div>
 {:else}
-	<i>No plugins loaded.</i>
+	<i>{text('page.admin.plugins.none')}</i>
 {/each}
 
 <style>

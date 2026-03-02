@@ -1,9 +1,10 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	const { data } = $props();
 </script>
 
 <svelte:head>
-	<title>Login Failed</title>
+	<title>{text('page.login.failed')}</title>
 </svelte:head>
 
 <div class="error center">

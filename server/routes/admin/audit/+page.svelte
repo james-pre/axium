@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import './styles.css';
@@ -9,14 +10,14 @@
 </script>
 
 <svelte:head>
-	<title>Admin — Audit Log</title>
+	<title>{text('page.admin.audit.title')}</title>
 </svelte:head>
 
-<h2>Audit Log</h2>
+<h2>{text('page.admin.audit.heading')}</h2>
 
 {#if data.filterError}
 	<div class="error">
-		<strong>Invalid Filter:</strong>
+		<strong>{text('page.admin.audit.invalid_filter')}</strong>
 		{#each data.filterError.split('\n') as line}
 			<p>{line}</p>
 		{/each}
@@ -24,10 +25,10 @@
 {/if}
 
 <form id="filter" method="dialog">
-	<h4>Filters</h4>
+	<h4>{text('page.admin.audit.filters')}</h4>
 
 	<div class="filter-field">
-		<span>Minimum Severity:</span>
+		<span>{text('page.admin.audit.filter.severity')}</span>
 		<select name="severity" value={data.filter.severity}>
 			{#each severityNames as value}
 				<option {value} selected={value == 'info'}>{capitalize(value)}</option>
@@ -36,25 +37,25 @@
 	</div>
 
 	<div class="filter-field">
-		<span>Since:</span>
+		<span>{text('page.admin.audit.filter.since')}</span>
 		<input type="date" name="since" value={data.filter.since} />
 	</div>
 
 	<div class="filter-field">
-		<span>Until:</span>
+		<span>{text('page.admin.audit.filter.until')}</span>
 		<input type="date" name="until" value={data.filter.until} />
 	</div>
 
 	<div class="filter-field">
-		<span>Tags:</span>
+		<span>{text('page.admin.audit.filter.tags')}</span>
 		<input type="text" name="tags" value={data.filter.tags} />
 	</div>
 
 	<div class="filter-field">
-		<span>Event Name:</span>
+		<span>{text('page.admin.audit.filter.event')}</span>
 		{#if data.configured}
 			<select name="event">
-				<option value="">Any</option>
+				<option value="">{text('page.admin.audit.any')}</option>
 				{#each data.configured.name as name}
 					<option value={name} selected={data.filter.event == name}>{name}</option>
 				{/each}
@@ -65,10 +66,10 @@
 	</div>
 
 	<div class="filter-field">
-		<span>Source:</span>
+		<span>{text('page.admin.audit.filter.source')}</span>
 		{#if data.configured}
 			<select name="source">
-				<option value="">Any</option>
+				<option value="">{text('page.admin.audit.any')}</option>
 				{#each data.configured.source as source}
 					<option value={source} selected={data.filter.source == source}>{source}</option>
 				{/each}
@@ -79,7 +80,7 @@
 	</div>
 
 	<div class="filter-field">
-		<span>User UUID:</span>
+		<span>{text('page.admin.audit.filter.user')}</span>
 		<input type="text" name="user" size="36" value={data.filter.user} />
 	</div>
 
@@ -112,14 +113,14 @@
 					}
 				}
 				location.search = params ? '?' + params.toString() : '';
-			}}>Apply</button
+			}}>{text('page.admin.audit.apply')}</button
 		>
 		<button
 			class="inline-button"
 			onclick={e => {
 				e.preventDefault();
 				location.search = '';
-			}}>Reset</button
+			}}>{text('page.admin.audit.reset')}</button
 		>
 	</div>
 </form>
@@ -127,12 +128,12 @@
 <div class="list-container">
 	<div class="list">
 		<div class="list-item list-header">
-			<span>Timestamp</span>
-			<span>Severity</span>
-			<span>Source</span>
-			<span>Name</span>
-			<span>Tags</span>
-			<span>User</span>
+			<span>{text('page.admin.audit.timestamp')}</span>
+			<span>{text('page.admin.audit.severity')}</span>
+			<span>{text('page.admin.audit.source')}</span>
+			<span>{text('page.admin.audit.name')}</span>
+			<span>{text('page.admin.audit.tags')}</span>
+			<span>{text('page.admin.audit.user')}</span>
 		</div>
 
 		{#each data.events as event}
@@ -148,12 +149,12 @@
 						{#if event.userId === data.session?.userId}<span class="subtle">(You)</span>{/if}
 					</a>
 				{:else}
-					<i>Unknown</i>
+					<i>{text('generic.unknown')}</i>
 				{/if}
 				<a href="/admin/audit/{event.id}"><Icon i="chevron-right" /></a>
 			</div>
 		{:else}
-			<p class="list-empty">No audit log events found</p>
+			<p class="list-empty">{text('page.admin.audit.no_events')}</p>
 		{/each}
 	</div>
 </div>

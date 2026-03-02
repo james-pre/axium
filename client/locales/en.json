@@ -11,8 +11,7 @@
 		},
 		"Login": {
 			"email": "Email",
-			"register": "Register instead",
-			"submit": "Login"
+			"register": "Register instead"
 		},
 		"Logout": {
 			"back": "Take me back",
@@ -60,14 +59,23 @@
 		"action_irreversible": "This action can't be undone.",
 		"cancel": "Cancel",
 		"change": "Change",
+		"create": "Create",
+		"delete": "Delete",
 		"done": "Done",
 		"email": "Email",
 		"loading": "Loading...",
+		"login": "Login",
 		"logout": "Logout",
+		"no": "No",
+		"none": "None",
+		"ok": "Okay",
+		"preferences": "Preferences",
 		"register": "Register",
+		"sessions": "Sessions",
 		"unknown": "Unknown",
 		"unnamed": "Unnamed",
-		"username": "Name"
+		"username": "Name",
+		"yes": "Yes"
 	},
 	"page": {
 		"account": {
@@ -101,6 +109,102 @@
 			"user_id_hint": "This is your UUID. It can't be changed.",
 			"verification_sent": "Verification email sent",
 			"verify": "Verify"
+		},
+		"admin": {
+			"heading": "Administration",
+			"audit": {
+				"any": "Any",
+				"apply": "Apply",
+				"error_stack": "Error Stack",
+				"event_heading": "Audit Event",
+				"event_title": "Admin — Audit Log Event #{id}",
+				"extra_data": "Extra Data",
+				"filter": {
+					"event": "Event Name:",
+					"severity": "Minimum Severity:",
+					"since": "Since:",
+					"source": "Source:",
+					"tags": "Tags:",
+					"until": "Until:",
+					"user": "User UUID:"
+				},
+				"filters": "Filters",
+				"heading": "Audit Log",
+				"invalid_filter": "Invalid Filter:",
+				"name": "Name",
+				"no_events": "No audit log events found",
+				"reset": "Reset",
+				"severity": "Severity",
+				"source": "Source",
+				"tags": "Tags",
+				"timestamp": "Timestamp",
+				"title": "Admin — Audit Log",
+				"user": "User",
+				"uuid": "UUID"
+			},
+			"config": {
+				"active": "Active Configuration",
+				"loaded_files": "Loaded Files",
+				"title": "Admin — Configuration"
+			},
+			"dashboard": {
+				"audit_link": "Audit Log",
+				"config_files": "{count} files loaded.",
+				"config_link": "Configuration",
+				"plugins_link": "Plugins",
+				"plugins_loaded": "{count} plugins loaded.",
+				"stats": "{users} users, {sessions} sessions, {passkeys} passkeys.",
+				"title": "Admin — Dashboard",
+				"users_link": "Users"
+			},
+			"plugins": {
+				"author": "Author:",
+				"configuration": "Configuration",
+				"heading": "Plugins",
+				"loaded_from": "Loaded from",
+				"none": "No plugins loaded.",
+				"provided_apps": "Provided apps:",
+				"title": "Admin — Plugins"
+			},
+			"users": {
+				"admin_tag": "Admin",
+				"administrator": "Administrator",
+				"attributes": "Attributes",
+				"audit": "Audit",
+				"back": "Back to all users",
+				"create": "Create User",
+				"created_title": "New User Created",
+				"created_url": "They can log in using this URL:",
+				"default_image": "Default",
+				"delete_confirm": "Are you sure you want to delete this user?",
+				"delete_user": "Delete User",
+				"display_name": "Display Name",
+				"email_not_verified": "not verified",
+				"email_verified": "verified {date}",
+				"heading": "Users",
+				"manage": "Manage",
+				"manage_heading": "User Management",
+				"manage_title": "Admin — User Management",
+				"none": "No users!",
+				"profile_image": "Profile Image",
+				"registered": "Registered",
+				"roles": "Roles",
+				"suspend": "Suspend",
+				"suspended": "Suspended",
+				"tags": "Tags",
+				"title": "Admin — Users",
+				"unsuspend": "Unsuspend",
+				"uuid": "UUID"
+			}
+		},
+		"login": {
+			"client": {
+				"authorize": "Authorize",
+				"confirm": "Are you sure you want to log in to this local client?",
+				"success": "Login successful! You can close this tab.",
+				"title": "Local Client Login"
+			},
+			"failed": "Login Failed"
 		}
 	},
 	"preference": {

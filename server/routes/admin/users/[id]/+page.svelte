@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { ClipboardCopy, FormDialog, Icon, SessionList, ZodForm, ZodInput } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import '@axium/client/styles/account';
@@ -19,108 +20,110 @@
 </script>
 
 <svelte:head>
-	<title>Admin — User Management</title>
+	<title>{text('page.admin.users.manage_title')}</title>
 </svelte:head>
 
 <a href="/admin/users">
 	<button class="icon-text">
-		<Icon i="up-left" /> Back to all users
+		<Icon i="up-left" />
+		{text('page.admin.users.back')}
 	</button>
 </a>
 
-<h2>User Management</h2>
+<h2>{text('page.admin.users.manage_heading')}</h2>
 
 <div id="info" class="section main">
 	<div class="item info">
-		<p>UUID</p>
+		<p>{text('page.admin.users.uuid')}</p>
 		<p>{user.id}</p>
 		<ClipboardCopy value={user.id} --size="16px" />
 	</div>
 
 	<div class="item info">
-		<p>Display Name</p>
+		<p>{text('page.admin.users.display_name')}</p>
 		<p>{user.name}</p>
 		<ClipboardCopy value={user.name} --size="16px" />
 	</div>
 
 	<div class="item info">
-		<p>Email</p>
+		<p>{text('generic.email')}</p>
 		<p>
 			<a href="mailto:{user.email}">{user.email}</a>, {user.emailVerified
-				? 'verified ' + user.emailVerified.toLocaleString()
-				: 'not verified'}
+				? text('page.admin.users.email_verified', { date: user.emailVerified.toLocaleString() })
+				: text('page.admin.users.email_not_verified')}
 		</p>
 		<ClipboardCopy value={user.email} --size="16px" />
 	</div>
 
 	<div class="item info">
-		<p>Registered</p>
+		<p>{text('page.admin.users.registered')}</p>
 		<p>{formatDateRange(user.registeredAt)}</p>
 		<ClipboardCopy value={user.registeredAt.toISOString()} --size="16px" />
 	</div>
 	<div class="item info">
-		<p>Administrator</p>
+		<p>{text('page.admin.users.administrator')}</p>
 		{#if user.isAdmin}
-			<strong>Yes</strong>
+			<strong>{text('generic.yes')}</strong>
 		{:else}
-			<p>No</p>
+			<p>{text('generic.no')}</p>
 		{/if}
 		<p></p>
 	</div>
 	<div class="item info">
-		<p>Suspended</p>
+		<p>{text('page.admin.users.suspended')}</p>
 		{#if user.isSuspended}
-			<strong>Yes</strong>
+			<strong>{text('generic.yes')}</strong>
 		{:else}
-			<p>No</p>
+			<p>{text('generic.no')}</p>
 		{/if}
 		<button
 			onclick={async () => {
 				const { isSuspended } = await fetchAPI('PATCH', 'admin/users', { isSuspended: !user.isSuspended, id: user.id });
 				user.isSuspended = isSuspended;
-			}}>{user.isSuspended ? 'Unsuspend' : 'Suspend'}</button
+			}}>{user.isSuspended ? text('page.admin.users.unsuspend') : text('page.admin.users.suspend')}</button
 		>
 	</div>
 	<div class="item info">
-		<p>Profile Image</p>
+		<p>{text('page.admin.users.profile_image')}</p>
 		{#if user.image}
 			<a href={user.image} target="_blank" rel="noopener noreferrer">{user.image}</a>
 			<ClipboardCopy value={user.image} --size="16px" />
 		{:else}
-			<i>Default</i>
+			<i>{text('page.admin.users.default_image')}</i>
 			<p></p>
 		{/if}
 	</div>
 	<div class="item info">
-		<p>Roles</p>
+		<p>{text('page.admin.users.roles')}</p>
 		<ZodInput bind:rootValue={user} path="roles" schema={User.shape.roles} {updateValue} noLabel />
 	</div>
 	<div class="item info">
-		<p>Tags</p>
+		<p>{text('page.admin.users.tags')}</p>
 		<ZodInput bind:rootValue={user} path="tags" schema={User.shape.tags} {updateValue} noLabel />
 	</div>
 
 	<button class="inline-button icon-text danger" command="show-modal" commandfor="delete-user">
-		<Icon i="trash" /> Delete User
+		<Icon i="trash" />
+		{text('page.admin.users.delete_user')}
 	</button>
 
 	<FormDialog
 		id="delete-user"
 		submit={() => deleteUser(user.id, session?.userId).then(() => (window.location.href = '/admin/users'))}
-		submitText="Delete User"
+		submitText={text('page.admin.users.delete_user')}
 		submitDanger
 	>
-		<p>Are you sure you want to delete this user?<br />This action can't be undone.</p>
+		<p>{text('page.admin.users.delete_confirm')}<br />{text('generic.action_irreversible')}</p>
 	</FormDialog>
 </div>
 
 <div id="sessions" class="section main">
-	<h3>Sessions</h3>
+	<h3>{text('generic.sessions')}</h3>
 	<SessionList {sessions} {user} />
 </div>
 
 <div id="preferences" class="section main">
-	<h3>Preferences</h3>
+	<h3>{text('generic.preferences')}</h3>
 	<ZodForm
 		bind:rootValue={user.preferences}
 		schema={Preferences}
