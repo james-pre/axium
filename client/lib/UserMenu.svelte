@@ -42,7 +42,7 @@
 					{:else}
 						<Icon i="image-circle-xmark" --size="1.5em" />
 					{/if}
-					<span>{app.name}</span>
+					<span>{text('app_name.' + app.id, { $default: app.name })}</span>
 				</a>
 			{:else}
 				<i>{text('component.AppMenu.none')}</i>
