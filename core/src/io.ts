@@ -41,11 +41,11 @@ export function useProgress(io: ProgressIO) {
 
 // User-facing messaging
 
-export let debug: (...args: any[]) => void;
-export let log: (...args: any[]) => void;
-export let info: (...args: any[]) => void;
-export let warn: (...args: any[]) => void;
-export let error: (...args: any[]) => void;
+export let debug: (...args: any[]) => void = console.debug;
+export let log: (...args: any[]) => void = console.log;
+export let info: (...args: any[]) => void = console.info;
+export let warn: (...args: any[]) => void = console.warn;
+export let error: (...args: any[]) => void = console.error;
 
 export interface ConsoleLike {
 	debug(...args: any[]): void;
