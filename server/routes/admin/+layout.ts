@@ -12,7 +12,7 @@ export async function load({
 	let { session } = (await parent?.()) ?? { session: null };
 
 	const tabs = [
-		{ name: 'dashboard', href: '/admin', icon: 'gauge', active: route.id.endsWith('/admin') },
+		{ name: text('page.admin.tab.dashboard'), href: '/admin', icon: 'gauge', active: route.id.endsWith('/admin') },
 		{
 			name: text('page.admin.tab.users'),
 			href: '/admin/users',

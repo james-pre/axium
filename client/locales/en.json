@@ -129,6 +129,7 @@
 					"user": "User UUID:"
 				},
 				"tab": {
+					"dashboard": "Dashboard",
 					"users": "Users",
 					"config": "Configuration",
 					"plugins": "Plugins",
