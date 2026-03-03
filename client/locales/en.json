@@ -112,6 +112,13 @@
 		},
 		"admin": {
 			"heading": "Administration",
+			"tab": {
+				"dashboard": "Dashboard",
+				"users": "Users",
+				"config": "Configuration",
+				"plugins": "Plugins",
+				"audit": "Audit Log"
+			},
 			"audit": {
 				"any": "Any",
 				"apply": "Apply",
@@ -127,13 +134,6 @@
 					"tags": "Tags:",
 					"until": "Until:",
 					"user": "User UUID:"
-				},
-				"tab": {
-					"dashboard": "Dashboard",
-					"users": "Users",
-					"config": "Configuration",
-					"plugins": "Plugins",
-					"audit": "Audit Log"
 				},
 				"filters": "Filters",
 				"heading": "Audit Log",

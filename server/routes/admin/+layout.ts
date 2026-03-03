@@ -1,7 +1,6 @@
-import { getCurrentSession } from '@axium/client/user';
+import { getCurrentSession, text } from '@axium/client';
 import type { Session, User } from '@axium/core';
 import type { LayoutLoadEvent, LayoutRouteId } from './$types';
-import { text } from '@axium/client';
 
 export const ssr = false;
 
