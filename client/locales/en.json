@@ -128,6 +128,12 @@
 					"until": "Until:",
 					"user": "User UUID:"
 				},
+				"tab": {
+					"users": "Users",
+					"config": "Configuration",
+					"plugins": "Plugins",
+					"audit": "Audit Log"
+				},
 				"filters": "Filters",
 				"heading": "Audit Log",
 				"invalid_filter": "Invalid Filter:",
