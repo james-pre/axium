@@ -62,7 +62,7 @@ addRoute({
 			.selectFrom('storage')
 			.selectAll()
 			.where('id', 'in', [...deletedIds, ...Object.keys(header.metadata), ...changedIds])
-			.select(acl.from('storage', { user }))
+			.select(acl.from('storage', { filterByUser: user }))
 			.$castTo<acl.WithACL<'storage'>>()
 			.execute()
 			.catch(withError('Item(s) not found', 404));
