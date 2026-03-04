@@ -67,15 +67,11 @@
 						<span><img src={getUserImage(result.value)} alt={result.value.name} />{result.value.name}</span>
 					{:else if result.type == 'role'}
 						<span>
-							<span class="icon-text tag-or-role" style:background-color={colorHashRGB(result.value)}
-								><Icon i="at" />{result.value}</span
-							>
+							<span class="icon-text non-user"><Icon i="at" />{result.value}</span>
 						</span>
 					{:else if result.type == 'tag'}
 						<span>
-							<span class="icon-text tag-or-role" style:background-color={colorHashRGB(result.value)}
-								><Icon i="hashtag" />{result.value}</span
-							>
+							<span class="icon-text non-user"><Icon i="hashtag" />{result.value}</span>
 						</span>
 					{:else if result.type == 'exact'}
 						<span class="non-user">{result.value}</span>
