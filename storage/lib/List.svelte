@@ -90,21 +90,21 @@
 			>
 				{@render action('rename', 'pencil', i)}
 				{@render action('share:' + item.id, 'user-group', i)}
-				<AccessControlDialog
-					bind:dialog={dialogs['share:' + item.id]}
-					{item}
-					itemType="storage"
-					editable={(item.acl?.find(
-						a =>
-							a.userId == user?.id ||
-							(a.role && user?.roles.includes(a.role)) ||
-							(a.tag && user?.tags?.includes(a.tag)) ||
-							(!a.userId && !a.role && !a.tag)
-					)?.manage as boolean | undefined) ?? true}
-				/>
 				{@render action('download', 'download', i)}
 				{@render action('trash', 'trash', i)}
 			</div>
+			<AccessControlDialog
+				bind:dialog={dialogs['share:' + item.id]}
+				{item}
+				itemType="storage"
+				editable={(item.acl?.find(
+					a =>
+						a.userId == user?.id ||
+						(a.role && user?.roles.includes(a.role)) ||
+						(a.tag && user?.tags?.includes(a.tag)) ||
+						(!a.userId && !a.role && !a.tag)
+				)?.manage as boolean | undefined) ?? true}
+			/>
 		</div>
 	{:else}
 		<p class="list-empty">{emptyText}</p>
