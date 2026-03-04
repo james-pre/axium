@@ -7,7 +7,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
-	import { copyShortURL } from '@axium/storage/client/frontend';
+	import { copyShortURL, formatItemName } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
 	import { copy } from '@axium/client/clipboard';
@@ -21,11 +21,7 @@
 
 	let activeIndex = $state<number>(0);
 	const activeItem = $derived(items[activeIndex]);
-	const activeItemName = $derived(
-		activeItem?.name
-			? `<strong>${activeItem.name.length > 23 ? activeItem.name.slice(0, 20) + '...' : activeItem.name}</strong>`
-			: 'this'
-	);
+	const activeItemName = $derived(formatItemName(activeItem));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 </script>
 

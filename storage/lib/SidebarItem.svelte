@@ -8,6 +8,7 @@
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
 	import SidebarItem from './SidebarItem.svelte';
+	import { formatItemName } from '@axium/storage/client/frontend';
 
 	let {
 		item = $bindable(),
@@ -53,9 +54,7 @@
 
 	let children = $state<StorageItemMetadata[]>([]);
 
-	const itemName = $derived(
-		item.name ? `<strong>${item.name.length > 23 ? item.name.slice(0, 20) + '...' : item.name}</strong>` : 'this'
-	);
+	const itemName = $derived(formatItemName(item));
 </script>
 
 {#snippet action(name: string, i: string, label: string)}

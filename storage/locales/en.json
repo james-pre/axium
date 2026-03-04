@@ -50,6 +50,7 @@
 			"download": "Download",
 			"download_confirm": "Are you sure you want to download {name}?",
 			"name": "Name",
+			"no_name_in_dialog": "this",
 			"no_item": "No item is selected",
 			"rename": "Rename",
 			"trash": "Trash"

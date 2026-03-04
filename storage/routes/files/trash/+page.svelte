@@ -6,6 +6,7 @@
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import type { PageProps } from './$types';
+	import { formatItemName } from '@axium/storage/client/frontend';
 
 	const { data }: PageProps = $props();
 	let items = $state(data.items);
@@ -14,11 +15,7 @@
 
 	let activeIndex = $state<number>(-1);
 	const activeItem = $derived(activeIndex == -1 ? null : items[activeIndex]);
-	const activeItemName = $derived(
-		activeItem?.name
-			? `<strong>${activeItem.name.length > 23 ? activeItem.name.slice(0, 20) + '...' : activeItem.name}</strong>`
-			: 'this'
-	);
+	const activeItemName = $derived(formatItemName(activeItem));
 
 	function action(index: number, dialog: () => HTMLDialogElement) {
 		return (e: Event) => {
