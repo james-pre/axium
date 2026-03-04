@@ -27,25 +27,15 @@ type _TargetNames = keyof db.Schema &
 export type TableName = _TableNames extends never ? keyof db.Schema : _TableNames;
 export type TargetName = _TargetNames extends never ? keyof db.Schema : _TargetNames;
 
-export interface AccessControlInternal extends AccessControl {}
+export type PermissionsFor<TB extends TableName> = Omit<kysely.Selectable<db.Schema[TB]>, keyof AccessControl | number | symbol>;
 
-export type PermissionsFor<TB extends TableName> = Omit<kysely.Selectable<db.Schema[TB]>, keyof AccessControlInternal | number | symbol>;
-
-export type Result<TB extends TableName> = AccessControlInternal & PermissionsFor<TB>;
+export type Result<TB extends TableName> = AccessControl & PermissionsFor<TB>;
 
 export type WithACL<TB extends TargetName> = kysely.Selectable<db.Schema[TB]> & {
 	userId: string;
 	parentId?: string | null;
 	acl: Result<`acl.${TB}`>[];
 };
-
-export interface ACLSelectionOptions {
-	/** If specified, filters by user UUID */
-	user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>;
-
-	/** Instead of using the `id` from `table`, use the `id` from this instead */
-	alias?: string;
-}
 
 /** Match ACL entries, optionally selecting for a given user-like object */
 export function match(user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
@@ -59,6 +49,23 @@ export function match(user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
 		if (user.tags.length) ors.push(eb('tag', 'in', user.tags));
 		return eb.or(ors);
 	};
+}
+
+export function controlMatchesUser(control: AccessControl, user: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
+	return (
+		(!control.role && !control.tag && !control.userId) ||
+		control.userId === user.id ||
+		(control.role && user.roles.includes(control.role)) ||
+		(control.tag && user.tags.includes(control.tag))
+	);
+}
+
+export interface ACLSelectionOptions {
+	/** Instead of using the `id` from `table`, use the `id` from this instead */
+	alias?: string;
+
+	/** If set, only ACLs that match the provided info will be selected. */
+	filterByUser?: Pick<UserInternal, 'id' | 'roles' | 'tags'>;
 }
 
 /**
@@ -75,9 +82,9 @@ export function from<const TB extends TargetName, const DB = db.Schema>(
 			(eb as kysely.ExpressionBuilder<db.Schema, any>)
 				.selectFrom(`acl.${table} as _acl`)
 				.selectAll()
-				.$if(!opt.user, qb => qb.select(db.userFromId))
+				.select(db.userFromId)
 				.whereRef('_acl.itemId', '=', `${opt.alias || table}.id` as any)
-				.where(match(opt.user))
+				.$if(!!opt.filterByUser, qb => qb.where(match(opt.filterByUser)))
 		)
 			.$castTo<Result<`acl.${TB}`>[]>()
 			.as('acl');
@@ -89,7 +96,7 @@ export async function get<const TB extends TableName>(table: TB, itemId: string)
 		.where('itemId', '=', itemId)
 		.selectAll()
 		.select(db.userFromId)
-		.$castTo<WithRequired<AccessControlInternal & kysely.Selectable<db.Schema[TB]>, 'user'>>()
+		.$castTo<WithRequired<AccessControl & kysely.Selectable<db.Schema[TB]>, 'user'>>()
 		.execute();
 }
 
@@ -105,7 +112,7 @@ export async function update<const TB extends TableName>(
 		.where('itemId', '=', itemId)
 		.where(eb => eb.and(fromTarget(target)))
 		.returningAll()
-		.$castTo<AccessControlInternal & kysely.Selectable<db.Schema[TB]>>()
+		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
 		.executeTakeFirstOrThrow();
 }
 
@@ -115,7 +122,7 @@ export async function remove<const TB extends TableName>(table: TB, itemId: stri
 		.where('itemId', '=', itemId)
 		.where(eb => eb.and(fromTarget(target)))
 		.returningAll()
-		.$castTo<AccessControlInternal & kysely.Selectable<db.Schema[TB]>>()
+		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
 		.executeTakeFirstOrThrow();
 }
 
@@ -124,7 +131,7 @@ export async function add<const TB extends TableName>(table: TB, itemId: string,
 		.insertInto<TableName>(table)
 		.values({ itemId, ...fromTarget(target) })
 		.returningAll()
-		.$castTo<AccessControlInternal & kysely.Selectable<db.Schema[TB]>>()
+		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
 		.executeTakeFirstOrThrow();
 }
 

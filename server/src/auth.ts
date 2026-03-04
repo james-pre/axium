@@ -177,7 +177,7 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 		.selectFrom<acl.TargetName>(itemType)
 		.selectAll()
 		.where('id', '=', itemId)
-		.select(acl.from(itemType, { user }))
+		.select(acl.from(itemType))
 		.executeTakeFirstOrThrow()
 		.catch(e => {
 			if (e.message.includes('no rows')) error(404, itemType + ' not found');
@@ -209,20 +209,20 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 		p: Record<string, any>;
 	}
 
-	const matchingControls = recursive
+	const controls = recursive
 		? await db
 				.withRecursive('parents', qc =>
 					(qc.selectFrom<acl.TargetName>(itemType) as SelectQueryBuilder<DB_QC, '$implicit$', any>)
 						.select(['id', 'parentId'])
 						.$castTo<acl.DBAccessControllable>()
-						.select(acl.from<TB, DB_QC>(itemType, { user }))
+						.select(acl.from<TB, DB_QC>(itemType))
 						.select(eb => eb.lit(0).as('depth'))
 						.where('id', '=', itemId)
 						.unionAll(
 							(qc.selectFrom(`${itemType} as item`) as SelectQueryBuilder<DB_Union, acl.TargetName | 'item', any>)
 								.select(['item.id', 'item.parentId'])
 								.innerJoin('parents as p', 'item.id', 'p.parentId')
-								.select(acl.from<TB, DB_Union>(itemType, { user, alias: 'item' }))
+								.select(acl.from<TB, DB_Union>(itemType, { alias: 'item', filterByUser: user }))
 								.select(eb => eb(eb.ref('p.depth'), '+', eb.lit(1)).as('depth'))
 						)
 				)
@@ -241,9 +241,11 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 				})
 		: item.acl;
 
-	if (!matchingControls.length) error(403, 'Item is not shared with you');
+	const matching = controls.filter(c => acl.controlMatchesUser(c, user));
 
-	const missing = Array.from(acl.check(matchingControls, permissions));
+	if (!matching.length) error(403, 'Item is not shared with you');
+
+	const missing = Array.from(acl.check(matching, permissions));
 	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
 
 	return result;
