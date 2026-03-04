@@ -6,8 +6,8 @@ export const AccessControl = z
 	.object({
 		itemId: z.uuid(),
 		userId: z.uuid().nullish(),
-		role: z.string().nullish(),
-		tag: z.string().nullish(),
+		role: z.string().nonempty().nullish(),
+		tag: z.string().nonempty().nullish(),
 		user: UserPublic.nullish(),
 		createdAt: z.coerce.date(),
 	})
