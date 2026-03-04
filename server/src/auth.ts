@@ -166,7 +166,7 @@ export interface ItemAuthResult<TB extends acl.TargetName> {
 export async function authSessionForItem<const TB extends acl.TargetName>(
 	itemType: TB,
 	itemId: string,
-	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
+	permissions: Partial<acl.PermissionsFor<`acl.${TB}`> & { $or: boolean }>,
 	session?: SessionAndUser | null,
 	recursive: boolean = false
 ): Promise<ItemAuthResult<TB>> {
@@ -243,7 +243,7 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	if (!matchingControls.length) error(403, 'Item is not shared with you');
 
-	const missing = Array.from(acl.check(matchingControls, permissions));
+	const missing = Array.from(acl.check(matchingControls, permissions, permissions.$or));
 	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
 
 	return result;
@@ -257,7 +257,7 @@ export async function authRequestForItem<const TB extends acl.TargetName>(
 	request: Request,
 	itemType: TB,
 	itemId: string,
-	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
+	permissions: Partial<acl.PermissionsFor<`acl.${TB}`> & { $or: boolean }>,
 	recursive: boolean = false
 ): Promise<ItemAuthResult<TB>> {
 	const token = getToken(request, false);

@@ -131,7 +131,9 @@ export async function add<const TB extends TableName>(table: TB, itemId: string,
 /** Check an ACL against a set of permissions. */
 export function check<const TB extends TableName>(
 	acl: Result<TB>[],
-	permissions: Partial<PermissionsFor<TB>>
+	permissions: Partial<PermissionsFor<TB>>,
+	/** Whether the permission will be checked using OR (true) or AND (false, default) */
+	useOR: boolean = false
 ): Set<keyof PermissionsFor<TB>> {
 	const allowed = new Set<keyof PermissionsFor<TB>>();
 	const all = new Set(Object.keys(permissions) as (keyof PermissionsFor<TB>)[]);
@@ -140,7 +142,9 @@ export function check<const TB extends TableName>(
 	for (const control of acl) {
 		for (const [key, needed] of entries) {
 			const value = control[key];
-			if (value === needed) allowed.add(key);
+			if (value !== needed) continue;
+			if (useOR) return new Set();
+			else allowed.add(key);
 		}
 	}
 
