@@ -49,10 +49,8 @@ export function contextMenu(...menuItems: (ContextMenuItem | false | null | unde
 		let _forcePopover = false;
 
 		element.oncontextmenu = (e: MouseEvent) => {
-			let node = e.target as HTMLElement | null;
-			while (node && node !== element) {
+			for (let node = e.target as HTMLElement | null; node && node !== element; node = node.parentElement) {
 				if (node instanceof HTMLDialogElement || (node.popover && node !== menu)) return;
-				node = node.parentElement;
 			}
 
 			e.preventDefault();
