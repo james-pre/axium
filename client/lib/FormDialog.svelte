@@ -62,7 +62,7 @@
 	<button type="submit" class={['submit', submitDanger && 'danger']}>{submitText}</button>
 {/snippet}
 
-<dialog bind:this={dialog} {onclose} {...rest}>
+<dialog bind:this={dialog} {onclose} {...rest} onclick={e => e.stopPropagation()}>
 	{@render header?.()}
 	<form {onsubmit} class="main" method="dialog">
 		{#if error}

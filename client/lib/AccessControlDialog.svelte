@@ -27,7 +27,7 @@
 	}
 </script>
 
-<dialog bind:this={dialog} {...rest}>
+<dialog bind:this={dialog} {...rest} onclick={e => e.stopPropagation()}>
 	{#if item.name}
 		<h3>{@html text('component.AccessControlDialog.named_title', { $html: true, name: item.name })}</h3>
 	{:else}

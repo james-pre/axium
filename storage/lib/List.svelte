@@ -111,7 +111,7 @@
 	{/each}
 </div>
 
-<dialog bind:this={dialogs.preview} class="preview">
+<dialog bind:this={dialogs.preview} class="preview" onclick={e => e.stopPropagation()}>
 	{#if activeItem}
 		<Preview
 			item={activeItem}
