@@ -79,7 +79,7 @@
 						{:else}
 							<Icon i={value ? 'check' : 'xmark'} />
 						{/if}
-						<span>{key}</span>
+						<span>{text(`permission.${itemType}.${key}`, { $default: key })}</span>
 					</span>
 				{/each}
 			</div>

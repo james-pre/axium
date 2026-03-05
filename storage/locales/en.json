@@ -44,6 +44,15 @@
 			}
 		}
 	},
+	"permission": {
+		"storage": {
+			"read": "Read",
+			"download": "Download",
+			"write": "Write",
+			"comment": "Comment",
+			"manage": "Manage"
+		}
+	},
 	"storage": {
 		"generic": {
 			"copy_id": "Copy ID",
