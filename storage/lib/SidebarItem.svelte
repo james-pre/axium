@@ -85,7 +85,7 @@
 					<SidebarItem bind:item={children[i]} bind:items={children} />
 				{/each}
 			{:catch error}
-				<i class="error-text">{error.message}</i>
+				<i class="error">{error.message}</i>
 			{/await}
 		</div>
 	</details>
