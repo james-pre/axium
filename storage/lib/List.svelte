@@ -10,7 +10,7 @@
 	import { copyShortURL, formatItemName } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
-	import { copy } from '@axium/client/clipboard';
+	import { copy } from '@axium/client/gui';
 
 	let {
 		items = $bindable(),

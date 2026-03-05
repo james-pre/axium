@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { page } from '$app/state';
-	import { copy } from '@axium/client/clipboard';
+	import { copy } from '@axium/client/gui';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import * as icon from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';

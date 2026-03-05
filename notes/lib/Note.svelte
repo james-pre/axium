@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { dynamicRows } from '@axium/client/attachments';
-	import { copy } from '@axium/client/clipboard';
+	import { copy } from '@axium/client/gui';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import type { Note } from '@axium/notes/common';
