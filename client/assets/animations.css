@@ -16,9 +16,21 @@
 	}
 }
 
-:root {
-	--A-zoom: zoom 0.25s cubic-bezier(0.35, 1.55, 0.65, 1);
-	--A-fade: fade 0.25s ease-out;
+@keyframes slide-up {
+	from {
+		translate: 0 var(--A-slide-amount, 100%);
+	}
+	to {
+		translate: 0 0;
+	}
+}
+
+@media not (prefers-reduced-motion) {
+	:root {
+		--A-zoom: zoom 0.25s cubic-bezier(0.35, 1.55, 0.65, 1);
+		--A-fade: fade 0.25s ease-out;
+		--A-slide-up: slide-up 0.25s ease;
+	}
 }
 
 dialog[open] {
