@@ -35,12 +35,20 @@ html {
 	--bg-accent: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
 	--bg-alt: hsl(var(--hue) 5 calc(var(--bg-light) + var(--light-step)));
 	--bg-strong: hsl(var(--hue) 20 calc(var(--bg-light) + var(--light-step)));
+
 	--bg-error: hsl(0 40 var(--bg-light-status));
+	--bg-warning: hsl(60 40 var(--bg-light-status));
 	--bg-success: hsl(120 40 var(--bg-light-status));
+
 	--fg-accent: hsl(var(--hue) 15 var(--fg-light));
 	--fg-strong: hsl(var(--hue) 25 calc(var(--fg-light) - var(--light-step)));
+
 	--fg-error: hsl(0 50 calc(var(--fg-light) - var(--light-step)));
+	--fg-warning: hsl(60 50 calc(var(--fg-light) - var(--light-step)));
+
 	--border-accent: 1px solid hsl(var(--hue) 10 calc(var(--bg-light) + (var(--light-step) * 3)));
+
 	--border-error: 1px solid hsl(0 50 var(--fg-light));
+	--border-warning: 1px solid hsl(60 50 var(--fg-light));
 	--border-success: 1px solid hsl(120 50 var(--fg-light));
 }
