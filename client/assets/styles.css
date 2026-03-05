@@ -190,12 +190,21 @@ div.error {
 	padding: 1em;
 	border-radius: 0.5em;
 	background-color: var(--bg-error);
+	border: var(--border-error);
 }
 
-.success {
+div.warning {
+	padding: 1em;
+	border-radius: 0.5em;
+	background-color: var(--bg-warning);
+	border: var(--border-warning);
+}
+
+div.success {
 	padding: 1em;
 	border-radius: 0.5em;
 	background-color: var(--bg-success);
+	border: var(--border-success);
 }
 
 .subtle {
@@ -334,7 +343,7 @@ h6 {
 	}
 
 	.mobile-button:hover {
-		background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
+		background-color: var(--bg-accent);
 	}
 
 	.mobile-float-left {
