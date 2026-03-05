@@ -2,7 +2,7 @@
 	import { fade } from 'svelte/transition';
 	import { wait } from 'utilium';
 	import Icon from './Icon.svelte';
-	import * as clip from '@axium/client/clipboard';
+	import * as clip from '@axium/client/gui';
 
 	const { value, type = 'text/plain' }: { value: BlobPart; type?: string } = $props();
 
