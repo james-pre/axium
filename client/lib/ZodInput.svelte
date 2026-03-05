@@ -90,7 +90,7 @@
 {#snippet _in(rest: HTMLInputAttributes)}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
-		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
+		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<input {id} {...rest} bind:value {onchange} {oninput} required={!optional} {defaultValue} class={[error && 'error']} />
 	</div>
 {/snippet}
@@ -136,7 +136,7 @@
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
-		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
+		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<div class="ZodInput-array">
 			{#each value, i}
 				<div class="ZodInput-element">
@@ -180,7 +180,7 @@
 {:else if schema.type == 'enum'}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
-		{#if error}<span class="ZodInput-error error-text">{error}</span>{/if}
+		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<select {id} {onchange} bind:value required={!optional}>
 			{#each Object.entries(schema.enum) as [key, value]}
 				<option {value} selected={value === value}>{key}</option>
@@ -189,7 +189,7 @@
 	</div>
 {:else}
 	<!-- No idea how to render this -->
-	<i class="error-text">{text('component.ZodInput.invalid_type', { type: JSON.stringify((schema as ZodPref)?.def?.type) })}</i>
+	<i class="error">{text('component.ZodInput.invalid_type', { type: JSON.stringify((schema as ZodPref)?.def?.type) })}</i>
 {/if}
 
 <style>
@@ -198,6 +198,7 @@
 		position-anchor: --zod-input;
 		bottom: calc(anchor(top) - 0.3em);
 		left: anchor(left);
+		color: var(--fg-error);
 	}
 
 	.ZodInput {

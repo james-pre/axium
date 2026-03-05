@@ -39,6 +39,8 @@ html {
 	--bg-success: hsl(120 40 var(--bg-light-status));
 	--fg-accent: hsl(var(--hue) 15 var(--fg-light));
 	--fg-strong: hsl(var(--hue) 25 calc(var(--fg-light) - var(--light-step)));
+	--fg-error: hsl(0 50 calc(var(--fg-light) - var(--light-step)));
 	--border-accent: 1px solid hsl(var(--hue) 10 calc(var(--bg-light) + (var(--light-step) * 3)));
 	--border-error: 1px solid hsl(0 50 var(--fg-light));
+	--border-success: 1px solid hsl(120 50 var(--fg-light));
 }

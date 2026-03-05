@@ -178,18 +178,18 @@ progress::-moz-progress-bar {
 	background-color: var(--bg-accent);
 }
 
-:not(input).error {
-	padding: 1em;
-	border-radius: 0.5em;
-	background-color: var(--bg-error);
-}
-
-.error-text {
-	color: hsl(0 50 50%);
+:is(p, span, i).error {
+	color: var(--fg-error);
 }
 
 input.error {
-	border: 1px solid var(--bg-error);
+	border: var(--border-error);
+}
+
+div.error {
+	padding: 1em;
+	border-radius: 0.5em;
+	background-color: var(--bg-error);
 }
 
 .success {
