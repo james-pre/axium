@@ -1,8 +1,9 @@
 <script lang="ts">
-	import { addToACL, getACL, text, updateACL, userInfo } from '@axium/client';
+	import { addToACL, getACL, removeFromACL, text, updateACL, userInfo } from '@axium/client';
 	import type { AccessControllable, AccessTarget, User } from '@axium/core';
 	import { getTarget, pickPermissions } from '@axium/core';
 	import { errorText } from '@axium/core/io';
+	import { toastStatus } from './toast.js';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
 	import UserCard from './UserCard.svelte';
@@ -38,16 +39,16 @@
 		<div class="error">{error}</div>
 	{/if}
 
-	<div class="AccessControl">
+	<div class="AccessControl text">
 		{#if item.user}
 			<UserCard user={item.user} />
 		{:else if item}
-			{#await userInfo(item.userId) then user}<UserCard {user} />{/await}
+			{#await userInfo(item.userId) then user}<UserCard {user} />{:catch}<i>{text('generic.unknown')}</i>{/await}
 		{/if}
 		<span>{text('component.AccessControlDialog.owner')}</span>
 	</div>
 
-	{#each acl as control}
+	{#each acl as control, i (control.userId || control.role || control.tag)}
 		{@const update = (key: string) => async (e: Event & { currentTarget: HTMLInputElement }) => {
 			try {
 				const updated = await updateACL(itemType, item.id, getTarget(control), { [key]: e.currentTarget.checked });
@@ -57,16 +58,36 @@
 			}
 		}}
 		<div class="AccessControl">
-			{#if control.user}
-				<UserCard user={control.user} />
-			{:else if control.role}
-				<span class="icon-text">
-					<Icon i="at" />
-					<span>{control.role}</span>
-				</span>
-			{:else}
-				<i>{text('generic.unknown')}</i>
-			{/if}
+			<div class="target">
+				{#if control.user}
+					<UserCard user={control.user} />
+				{:else if control.role}
+					<span class="icon-text">
+						<Icon i="at" />
+						<span>{control.role}</span>
+					</span>
+				{:else if control.tag}
+					<span class="icon-text">
+						<Icon i="hashtag" />
+						<span>{control.tag}</span>
+					</span>
+				{:else}
+					<i>{text('generic.unknown')}</i>
+				{/if}
+				{#if editable}
+					<button
+						class="icon-text danger"
+						onclick={() =>
+							toastStatus(
+								removeFromACL(itemType, item.id, getTarget(control)).then(() => acl.splice(i, 1)),
+								text('component.AccessControlDialog.toast_removed')
+							)}
+					>
+						<Icon i="user-minus" />
+						<span>{text('component.AccessControlDialog.remove')}</span>
+					</button>
+				{/if}
+			</div>
 			<div class="permissions">
 				{#each Object.entries(pickPermissions(control) as Record<string, boolean>) as [key, value]}
 					{@const id = `${item.id}.${getTarget(control)}.${key}`}
@@ -113,12 +134,23 @@
 	.AccessControl {
 		display: grid;
 		gap: 1em;
-		grid-template-columns: 1fr 10em;
-		min-width: 30em;
+		grid-template-columns: 1fr 1fr;
 		padding: 1em 2em;
+		border-bottom: var(--border-accent);
 
-		&:not(.public) {
-			border-bottom: var(--border-accent);
+		&.text {
+			align-items: center;
+		}
+
+		.target {
+			display: flex;
+			flex-direction: column;
+			justify-content: space-around;
+			gap: 1em;
+		}
+
+		@media (width > 700px) {
+			min-width: 30em;
 		}
 	}
 </style>

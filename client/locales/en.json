@@ -3,7 +3,9 @@
 		"AccessControlDialog": {
 			"named_title": "Permissions for <strong>{name}</strong>",
 			"owner": "Owner",
-			"title": "Permissions"
+			"title": "Permissions",
+			"remove": "Remove",
+			"toast_removed": "Removed access"
 		},
 		"AppMenu": {
 			"failed": "Couldn't load apps.",
