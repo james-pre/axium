@@ -33,10 +33,15 @@
 	}
 }
 
-dialog[open] {
+dialog:open {
 	animation: var(--A-zoom);
 }
 
-dialog[open]::backdrop {
+dialog:open::backdrop {
 	animation: var(--A-fade);
+}
+
+.toast {
+	--A-slide-amount: 100px;
+	animation: var(--A-slide-up);
 }
