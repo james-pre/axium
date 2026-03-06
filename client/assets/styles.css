@@ -68,11 +68,23 @@ select {
 	padding: 0.5em 1em;
 }
 
+button {
+	cursor: pointer;
+
+	&:hover {
+		background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
+	}
+}
+
 button.reset {
 	border-radius: unset;
 	border: none;
 	background-color: unset;
 	padding: unset;
+
+	&:hover {
+		background-color: unset;
+	}
 }
 
 input,
@@ -114,14 +126,6 @@ option {
 
 option:hover {
 	background-color: var(--bg-alt);
-}
-
-button {
-	cursor: pointer;
-}
-
-button:not(.reset):hover {
-	background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
 }
 
 code,
