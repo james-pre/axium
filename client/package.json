@@ -37,6 +37,7 @@
 		"./*": "./dist/*.js",
 		"./components": "./lib/index.js",
 		"./components/*": "./lib/*.svelte",
+		"./toast/*": "./lib/toast.js",
 		"./attachments": "./lib/attachments.js",
 		"./styles/*": "./styles/*.css"
 	},
