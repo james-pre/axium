@@ -73,6 +73,15 @@ export function linkRoutes(options: LinkOptions = {}) {
 	}
 }
 
+const hooksBuiltin = `
+import { errorText } from '@axium/core/io';
+
+export function handleError({ error, status }) {
+	console.error(error);
+	return { message: errorText(error), status: error.status || status };
+}
+`;
+
 export function writePluginHooks() {
 	const hooksPath = join(import.meta.dirname, '../.hooks.js');
 	io.start('Writing web client hooks for plugins');
@@ -82,6 +91,7 @@ export function writePluginHooks() {
 		const specifier = relative(resolve(import.meta.dirname, '..'), resolve(plugin.dirname, plugin.server.web_client_hooks));
 		hooks += `import '${specifier}';\n`;
 	}
+	hooks += hooksBuiltin;
 	writeFileSync(hooksPath, hooks, 'utf8');
 	io.done();
 	io.debug('Wrote', hooksPath);

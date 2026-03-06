@@ -76,7 +76,7 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 
 	const json: any = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
 
-	if (!response.ok) throw new Error(json.message);
+	if (!response.ok) throw Object.assign(new Error(json.message), { status: response.status });
 
 	if (typeof json == 'object' && json != null && '_warnings' in json) {
 		for (const warning of json._warnings) console.warn('[API]', warning);
