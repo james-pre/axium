@@ -142,7 +142,7 @@
 		items.splice(activeIndex, 1);
 	}}
 >
-	<p>{@html text('storage.List.trash_confirm', { $html: true, name: activeItemName })}</p>
+	<p>{text('storage.List.trash_confirm', { name: activeItemName })}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.download}
@@ -155,7 +155,7 @@
 		} else open(activeItem!.dataURL, '_blank');
 	}}
 >
-	<p>{@html text('storage.generic.download_confirm', { $html: true, name: activeItemName })}</p>
+	<p>{text('storage.generic.download_confirm', { name: activeItemName })}</p>
 </FormDialog>
 
 <style>

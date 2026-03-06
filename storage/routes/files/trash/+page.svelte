@@ -65,7 +65,7 @@
 		items.splice(activeIndex, 1);
 	}}
 >
-	<p>{@html text('page.files.trash_page.restore_confirm', { $html: true, name: activeItemName })}</p>
+	<p>{text('page.files.trash_page.restore_confirm', { name: activeItemName })}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={deleteDialog}
@@ -78,7 +78,7 @@
 	}}
 >
 	<p>
-		{@html text('page.files.trash_page.delete_confirm', { $html: true, name: activeItemName })}
+		{text('page.files.trash_page.delete_confirm', { name: activeItemName })}
 	</p>
 </FormDialog>
 

@@ -133,7 +133,7 @@
 		if (index !== -1) items.splice(index, 1);
 	}}
 >
-	<p>{@html text('storage.SidebarItem.delete_confirm', { $html: true, name: itemName })}</p>
+	<p>{text('storage.SidebarItem.delete_confirm', { name: itemName })}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.download}
@@ -144,7 +144,7 @@
 >
 	<p>
 		{text('storage.SidebarItem.download_disclaimer')} <br />
-		{@html text('storage.generic.download_confirm', { $html: true, name: itemName })}
+		{text('storage.generic.download_confirm', { name: itemName })}
 	</p>
 </FormDialog>
 

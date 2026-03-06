@@ -13,5 +13,5 @@ export function copyShortURL(item: StorageItemMetadata): Promise<void> {
  */
 export function formatItemName(item?: { name?: string | null } | null) {
 	if (!item?.name) return text('storage.generic.no_name_in_dialog');
-	return `<strong>${item.name.length > 23 ? item.name.slice(0, 20) + '...' : item.name}</strong>`;
+	return item.name.length > 23 ? item.name.slice(0, 20) + '...' : item.name;
 }
