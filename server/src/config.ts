@@ -108,7 +108,7 @@ export const defaultConfig: DeepRequired<Config> = {
 	audit: {
 		allow_raw: false,
 		retention: 30,
-		min_severity: 'error',
+		min_severity: 'notice',
 		auto_suspend: 'critical',
 	},
 	auth: {
