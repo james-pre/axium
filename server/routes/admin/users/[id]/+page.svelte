@@ -1,9 +1,8 @@
 <script lang="ts">
-	import { text } from '@axium/client';
+	import { deleteUser, fetchAPI, text } from '@axium/client';
 	import { ClipboardCopy, FormDialog, Icon, SessionList, ZodForm, ZodInput } from '@axium/client/components';
-	import { fetchAPI } from '@axium/client/requests';
+	import { toast } from '@axium/client/toast';
 	import '@axium/client/styles/account';
-	import { deleteUser } from '@axium/client/user';
 	import { preferenceLabels, Preferences, User } from '@axium/core';
 	import { formatDateRange } from '@axium/core/format';
 
@@ -78,8 +77,13 @@
 		{/if}
 		<button
 			onclick={async () => {
-				const { isSuspended } = await fetchAPI('PATCH', 'admin/users', { isSuspended: !user.isSuspended, id: user.id });
-				user.isSuspended = isSuspended;
+				try {
+					const { isSuspended } = await fetchAPI('PATCH', 'admin/users', { isSuspended: !user.isSuspended, id: user.id });
+					user.isSuspended = isSuspended;
+					await toast('success', text(`page.admin.toast.${isSuspended ? 'suspended' : 'unsuspended'}`));
+				} catch (e) {
+					await toast('error', e);
+				}
 			}}>{user.isSuspended ? text('page.admin.users.unsuspend') : text('page.admin.users.suspend')}</button
 		>
 	</div>

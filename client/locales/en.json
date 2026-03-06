@@ -122,6 +122,10 @@
 				"plugins": "Plugins",
 				"audit": "Audit Log"
 			},
+			"toast": {
+				"suspended": "User suspended",
+				"unsuspended": "User un-suspended"
+			},
 			"audit": {
 				"any": "Any",
 				"apply": "Apply",
