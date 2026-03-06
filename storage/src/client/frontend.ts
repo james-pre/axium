@@ -1,5 +1,5 @@
 import type { StorageItemMetadata } from '@axium/storage/common';
-import { copy } from '@axium/client/clipboard';
+import { copy } from '@axium/client/gui';
 import { encodeUUID, type UUID } from 'utilium';
 import { text } from '@axium/client';
 
