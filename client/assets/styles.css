@@ -120,7 +120,7 @@ button {
 	cursor: pointer;
 }
 
-button:hover {
+button:not(.reset):hover {
 	background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
 }
 
@@ -336,6 +336,10 @@ div.toast {
 	width: max-content;
 	padding: 0.4em 0.8em;
 	border-radius: 0.5em;
+
+	&:hover {
+		animation-play-state: paused;
+	}
 
 	&.plain,
 	&.info {

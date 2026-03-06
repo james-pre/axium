@@ -7,6 +7,8 @@ export function hasAnimation(element: HTMLElement) {
 	return !!animationName && animationName !== 'none';
 }
 
+const pending = new WeakMap<HTMLElement, Promise<void>>();
+
 export function onAnimationEnd(element: HTMLElement): Promise<void> {
 	if (!hasAnimation(element)) return Promise.resolve();
 	const { promise, resolve } = Promise.withResolvers<void>();
@@ -17,7 +19,10 @@ export function onAnimationEnd(element: HTMLElement): Promise<void> {
 
 /** Waits for an animation to complete on an element, after any other animations. */
 export async function animate(element: HTMLElement, animation: string): Promise<void> {
-	await onAnimationEnd(element);
+	await pending.get(element);
 	element.style.animation = animation;
-	await onAnimationEnd(element);
+	const ended = onAnimationEnd(element);
+	pending.set(element, ended);
+	await ended;
+	if (pending.get(element) === ended) pending.delete(element);
 }

@@ -1,13 +1,8 @@
-import { errorText } from '@axium/core/io';
+import { debug, errorText } from '@axium/core/io';
 import { text } from '@axium/client/locales';
+import { animate } from '@axium/client/gui';
 import Icon from './Icon.svelte';
 import { mount } from 'svelte';
-
-/**
- * How many seconds to show toasts for.
- * @todo Consider using a GUI config somewhere, which maybe the user could change in the future?
- */
-const toastDuration = 5;
 
 const list = document.querySelector<HTMLDivElement>('#toasts')!;
 
@@ -21,24 +16,57 @@ const toastIcons = {
 /** Used to determine icon and styling */
 export type ToastType = 'plain' | keyof typeof toastIcons;
 
-export function toast(type: ToastType, message: any): Promise<void> {
+const durationMultiplier = {
+	warning: 1.25,
+	error: 1.5,
+} as Record<ToastType, number>;
+
+export async function toast(type: ToastType, message: any): Promise<void> {
+	const text = errorText(message);
+
 	const toast = document.createElement('div');
 	toast.classList.add('toast', 'icon-text', type);
 	if (type != 'plain') mount(Icon, { target: toast, props: { i: toastIcons[type] } });
 
 	const span = document.createElement('span');
-	span.textContent = errorText(message);
+	span.textContent = text;
 	toast.appendChild(span);
+
 	list.appendChild(toast);
 
-	const { promise, resolve } = Promise.withResolvers<void>();
-
-	setTimeout(() => {
+	async function dismiss() {
+		debug('Toast dismissed');
+		await animate(toast, 'var(--A-slide-out-right)');
 		toast.remove();
-		resolve();
-	}, toastDuration * 1000);
+	}
 
-	return promise;
+	let persisted = false;
+
+	function persist() {
+		debug('Toast persisted');
+		persisted = true;
+		toast.onclick = null;
+		toast.style.animation = 'none';
+		toast.style.opacity = '1';
+
+		const button = document.createElement('button');
+		button.classList.add('reset');
+		button.onclick = dismiss;
+		mount(Icon, { target: button, props: { i: 'xmark-large' } });
+		toast.appendChild(button);
+	}
+
+	if (message && message instanceof Error) return persist();
+
+	/**
+	 * @see https://ux.stackexchange.com/a/85898
+	 */
+	const duration = Math.min(Math.max(text.length * 50 * (durationMultiplier[type] || 1), 2000), 7000);
+
+	toast.onclick = persist;
+	await animate(toast, `fade-subtle ${duration}ms ease reverse forwards`);
+	if (!persisted) await dismiss();
+	else debug('Toast not auto-dismissed due to persistence');
 }
 
 export async function toastStatus(promise: Promise<unknown>, successMessage: string = text('generic.success')): Promise<void> {
