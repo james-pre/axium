@@ -1,6 +1,6 @@
 import { debug, errorText } from '@axium/core/io';
 import { text } from '@axium/client/locales';
-import { animate } from '@axium/client/gui';
+import { animate, onAnimationEnd } from '@axium/client/gui';
 import Icon from './Icon.svelte';
 import { mount } from 'svelte';
 
@@ -55,6 +55,8 @@ export async function toast(type: ToastType, message: any): Promise<void> {
 		mount(Icon, { target: button, props: { i: 'xmark-large' } });
 		toast.appendChild(button);
 	}
+
+	await onAnimationEnd(toast);
 
 	if (message && message instanceof Error) return persist();
 
