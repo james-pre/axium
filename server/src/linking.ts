@@ -78,7 +78,7 @@ import { errorText } from '@axium/core/io';
 
 export function handleError({ error, status }) {
 	console.error(error);
-	return { message: errorText(error), status: error.status || status };
+	return { message: errorText(error), stack: error.stack, status: error.status || status };
 }
 `;
 
