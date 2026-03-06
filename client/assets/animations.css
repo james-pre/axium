@@ -16,6 +16,15 @@
 	}
 }
 
+@keyframes fade-subtle {
+	from {
+		opacity: 0.75;
+	}
+	to {
+		opacity: 1;
+	}
+}
+
 @keyframes slide-up {
 	from {
 		translate: 0 var(--A-slide-amount, 100%);
@@ -25,11 +34,24 @@
 	}
 }
 
+@keyframes slide-right {
+	from {
+		translate: 0 0;
+	}
+	to {
+		translate: var(--A-slide-amount, 100%) 0;
+	}
+}
+
 @media not (prefers-reduced-motion) {
 	:root {
+		/* CSS variables to make using the animations easier.
+		Prefixed with `A-` to avoid namespace pollution. */
 		--A-zoom: zoom 0.25s cubic-bezier(0.35, 1.55, 0.65, 1);
 		--A-fade: fade 0.25s ease-out;
 		--A-slide-up: slide-up 0.25s ease;
+		--A-slide-right: slide-right 0.25s ease;
+		--A-slide-out-right: slide-right 0.25s ease forwards, var(--A-fade) reverse forwards;
 	}
 }
 
