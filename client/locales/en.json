@@ -124,7 +124,8 @@
 			},
 			"toast": {
 				"suspended": "User suspended",
-				"unsuspended": "User un-suspended"
+				"unsuspended": "User un-suspended",
+				"user_updated": "User updated"
 			},
 			"audit": {
 				"any": "Any",

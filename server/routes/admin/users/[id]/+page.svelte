@@ -13,8 +13,13 @@
 	let sessions = $state(user.sessions);
 
 	async function updateValue(val: User) {
-		const result = await fetchAPI('PATCH', 'admin/users', val);
-		Object.assign(user, result);
+		try {
+			const result = await fetchAPI('PATCH', 'admin/users', val);
+			Object.assign(user, result);
+			toast('success', text('page.admin.toast.user_updated'));
+		} catch (e) {
+			toast('error', e);
+		}
 	}
 </script>
 
