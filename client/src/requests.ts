@@ -62,14 +62,16 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 		parts.push(value);
 	}
 
-	const url = new URL(prefix + parts.join('/'));
+	let url = prefix + parts.join('/');
 
 	if (method !== 'GET' && method !== 'HEAD') options.body = JSON.stringify(data);
 
-	if (method == 'GET' && typeof data == 'object' && data != null) {
+	if (method == 'GET' && typeof data == 'object' && data != null && Object.keys(data).length) {
+		const search = new URLSearchParams();
 		for (const [key, value] of Object.entries(data)) {
-			url.searchParams.set(key, JSON.stringify(value));
+			search.set(key, JSON.stringify(value));
 		}
+		url += '?' + search.toString();
 	}
 
 	const response = await fetch(url, options);
