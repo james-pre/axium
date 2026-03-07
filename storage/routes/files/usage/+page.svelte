@@ -1,14 +1,13 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { NumberBar } from '@axium/client/components';
-	import '@axium/client/styles/list';
 	import { formatBytes } from '@axium/core/format';
 	import { List } from '@axium/storage/components';
 
 	const { data } = $props();
 	const { limits } = data.info;
 
-	let items = $state(data.info.items.filter(i => i.type != 'inode/directory').sort((a, b) => Math.sign(b.size - a.size)));
+	let items = $state(data.info.items.filter(i => i.type != 'inode/directory'));
 	const usedBytes = $state(data.info.usedBytes);
 
 	let barText = $derived(
