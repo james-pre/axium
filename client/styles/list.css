@@ -17,6 +17,7 @@ div.list-header {
 	font-weight: bold;
 	border-bottom: 1.5px solid var(--fg-accent);
 	position: sticky;
+	background-color: var(--bg-normal);
 	top: 0em;
 
 	@media (width < 700px) {
