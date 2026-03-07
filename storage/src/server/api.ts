@@ -173,6 +173,7 @@ addRoute({
 				.select(acl.from('storage'))
 				.where('userId', '=', userId)
 				.where('trashedAt', 'is', null)
+				.limit(250)
 				.$if(!!sort, qb => qb.orderBy(sort!.by, sort!.descending ? 'desc' : 'asc'))
 				.execute(),
 			getUserStats(userId),
