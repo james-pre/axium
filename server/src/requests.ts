@@ -82,7 +82,15 @@ export async function parseBody<const Schema extends z.ZodType>(request: Request
 
 export function parseSearch<const Schema extends z.ZodType>(request: Request, schema: Schema): z.infer<Schema> {
 	const url = new URL(request.url);
-	const searchParams = Object.fromEntries(url.searchParams.entries());
+	const searchParams = Object.fromEntries(
+		url.searchParams.entries().map(([k, v]) => {
+			try {
+				return [k, JSON.parse(v)];
+			} catch {
+				error(400, 'Invalid query parameter: ' + k);
+			}
+		})
+	);
 
 	try {
 		return schema.parse(searchParams);
