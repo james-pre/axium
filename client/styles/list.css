@@ -1,16 +1,9 @@
-.list-container {
-	overflow-x: hidden;
-	overflow-y: scroll;
-
-	.list {
-		height: 100%;
-	}
-}
-
 .list {
 	display: flex;
 	flex-direction: column;
-	padding: 0.5em;
+	height: 100%;
+	overflow-x: hidden;
+	overflow-y: scroll;
 }
 
 div.list-header {
