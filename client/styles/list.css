@@ -37,6 +37,7 @@ div.list-header {
 	padding: 0.5em;
 	overflow: hidden;
 	text-wrap: nowrap;
+	flex: 0 0 auto;
 }
 
 .list-item:not(.list-header, :first-child) {
