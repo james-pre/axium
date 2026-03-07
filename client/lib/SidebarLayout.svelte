@@ -1,21 +1,31 @@
 <script lang="ts">
 	import Icon from './Icon.svelte';
-	import { capitalize } from 'utilium';
 
 	interface Tab {
 		href: string;
 		name: string;
 		icon: string;
 		active: boolean;
+		mobile?: false;
 	}
 
-	let { children, tabs, bottom }: { children(): any; tabs: Tab[]; bottom?(): any } = $props();
+	interface MobileTab {
+		href: string;
+		icon: string;
+		active: boolean;
+		mobile: true;
+	}
+
+	let { children, tabs, bottom }: { children(): any; tabs: (Tab | MobileTab)[]; bottom?(): any } = $props();
 </script>
 
 <div class="sidebar-container">
 	<div class="sidebar">
-		{#each tabs as { href, name, icon: i, active }}
-			<a {href} class={['item', 'icon-text', active && 'active']}><Icon {i} /> <span class="sidebar-text">{name}</span></a>
+		{#each tabs as tab}
+			<a href={tab.href} class={['item', 'icon-text', tab.active && 'active', tab.mobile && 'mobile-only']}>
+				<Icon i={tab.icon} />
+				{#if !tab.mobile}<span class="sidebar-text">{tab.name}</span>{/if}
+			</a>
 		{/each}
 
 		{#if bottom}
@@ -105,5 +115,10 @@
 
 	.sidebar-bottom {
 		margin-top: auto;
+		margin-left: 1em;
+
+		@media (width < 700px) {
+			display: none;
+		}
 	}
 </style>
