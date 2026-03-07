@@ -1,7 +1,7 @@
 import { fetchAPI, prefix, token } from '@axium/client/requests';
 import { blake2b } from 'blakejs';
 import { prettifyError } from 'zod';
-import type { GetItemOptions, StorageItemUpdate, UserStorage, UserStorageInfo } from '../common.js';
+import type { GetItemOptions, StorageItemUpdate, UserStorage, UserStorageInfo, UserStorageOptions } from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 
@@ -188,8 +188,8 @@ export async function deleteItem(fileId: string): Promise<StorageItemMetadata> {
 	return await fetchAPI('DELETE', 'storage/item/:id', undefined, fileId);
 }
 
-export async function getUserStorage(userId: string): Promise<UserStorage> {
-	return await fetchAPI('GET', 'users/:id/storage', undefined, userId);
+export async function getUserStorage(userId: string, options: UserStorageOptions = {}): Promise<UserStorage> {
+	return await fetchAPI('GET', 'users/:id/storage', options, userId);
 }
 
 export async function getUserStats(userId: string): Promise<UserStorageInfo> {

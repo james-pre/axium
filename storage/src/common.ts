@@ -91,7 +91,9 @@ export const UserStorageOptions = z
 	.object({
 		sort: StorageItemSorting,
 	})
-	.partial();
+	.partial()
+	.default({});
+export interface UserStorageOptions extends z.infer<typeof UserStorageOptions> {}
 
 /**
  * Formats:
