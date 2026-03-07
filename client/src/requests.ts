@@ -47,12 +47,6 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 			throw prettifyError(e);
 		}
 
-	if (method !== 'GET' && method !== 'HEAD') options.body = JSON.stringify(data);
-	const search =
-		method != 'GET' || typeof data != 'object' || data == null || !Object.keys(data).length
-			? ''
-			: '?' + new URLSearchParams(JSON.parse(JSON.stringify(data))).toString();
-
 	if (token) options.headers.Authorization = 'Bearer ' + token;
 	if (userAgent) options.headers['User-Agent'] = userAgent;
 
@@ -68,7 +62,17 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 		parts.push(value);
 	}
 
-	const response = await fetch(prefix + parts.join('/') + search, options);
+	const url = new URL(prefix + parts.join('/'));
+
+	if (method !== 'GET' && method !== 'HEAD') options.body = JSON.stringify(data);
+
+	if (method == 'GET' && typeof data == 'object' && data != null) {
+		for (const [key, value] of Object.entries(data)) {
+			url.searchParams.set(key, JSON.stringify(value));
+		}
+	}
+
+	const response = await fetch(url, options);
 
 	if (!response.headers.get('Content-Type')?.includes('application/json')) {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
