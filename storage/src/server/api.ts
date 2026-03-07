@@ -8,7 +8,14 @@ import { addRoute } from '@axium/server/routes';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
-import { batchFormatVersion, GetItemOptions, StorageItemInit, StorageItemUpdate, syncProtocolVersion } from '../common.js';
+import {
+	batchFormatVersion,
+	GetItemOptions,
+	StorageItemInit,
+	StorageItemUpdate,
+	syncProtocolVersion,
+	UserStorageOptions,
+} from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { deleteRecursive, getParents, getRecursive, getUserStats, parseItem } from './db.js';
@@ -155,6 +162,8 @@ addRoute({
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage'> {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
+		const { sort } = parseSearch(request, UserStorageOptions);
+
 		await checkAuthForUser(request, userId);
 
 		const [items, stats, limits] = await Promise.all([
@@ -164,6 +173,7 @@ addRoute({
 				.select(acl.from('storage'))
 				.where('userId', '=', userId)
 				.where('trashedAt', 'is', null)
+				.$if(!!sort, qb => qb.orderBy(sort!.by, sort!.descending ? 'desc' : 'asc'))
 				.execute(),
 			getUserStats(userId),
 			getLimits(userId),

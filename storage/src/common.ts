@@ -16,7 +16,7 @@ export type StorageItemUpdate = z.infer<typeof StorageItemUpdate>;
 
 export const GetItemOptions = z
 	.object({
-		parents: z.union([z.boolean(), z.stringbool()]),
+		parents: z.boolean(),
 	})
 	.partial();
 export interface GetItemOptions extends z.infer<typeof GetItemOptions> {}
@@ -45,6 +45,11 @@ export interface StorageItemMetadata<T extends Record<string, unknown> = Record<
 > {
 	metadata: T;
 }
+
+export const StorageItemSorting = z.object({
+	descending: z.boolean().optional(),
+	by: z.literal(['createdAt', 'modifiedAt', 'name', 'size'] satisfies (keyof StorageItemMetadata)[]),
+});
 
 export const syncProtocolVersion = 0;
 
@@ -81,6 +86,12 @@ export const UserStorage = z.object({
 });
 
 export interface UserStorage extends z.infer<typeof UserStorage> {}
+
+export const UserStorageOptions = z
+	.object({
+		sort: StorageItemSorting,
+	})
+	.partial();
 
 /**
  * Formats:
@@ -183,7 +194,7 @@ export type UploadInitResult = z.infer<typeof UploadInitResult>;
 const StorageAPI = {
 	'users/:id/storage': {
 		OPTIONS: UserStorageInfo,
-		GET: UserStorage,
+		GET: [UserStorageOptions, UserStorage],
 	},
 	'users/:id/storage/root': {
 		GET: StorageItemMetadata.array(),
