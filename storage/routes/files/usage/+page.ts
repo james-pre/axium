@@ -8,7 +8,7 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/files/usage');
 
-	const info = await getUserStorage(session.userId);
+	const info = await getUserStorage(session.userId, { sort: { by: 'size', descending: true } });
 
 	return { info };
 }
