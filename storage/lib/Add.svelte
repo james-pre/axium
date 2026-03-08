@@ -38,7 +38,6 @@
 	<span class="menu-item" onclick={() => uploadDialog.showModal()}><Icon i="upload" />{text('storage.Add.upload')}</span>
 	{@render _item('inode/directory', text('storage.Add.new_folder'))}
 	{@render _item('text/plain', text('storage.Add.plain_text'))}
-	{@render _item('text/x-uri', text('storage.Add.url'), true)}
 </Popover>
 
 <FormDialog
