@@ -12,7 +12,7 @@ export function formatBytes(bytes: bigint): string {
 	const units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
 	const i = bytes == 0n ? 0 : Math.floor((bytes.toString(10).length - 1) / 3);
-	const value = Number(bytes == 0n ? 0n : bytes / 1000n ** BigInt(i));
+	const value = bytes == 0n ? 0 : Number(bytes / 1000n ** BigInt(i));
 
 	return `${Number.isInteger(value) ? value : value.toFixed(2)} ${units[i]}`;
 }
