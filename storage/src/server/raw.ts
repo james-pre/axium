@@ -5,7 +5,7 @@ import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { closeSync, openSync, readFileSync, readSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
+import { closeSync, copyFileSync, openSync, readSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
@@ -100,7 +100,7 @@ addRoute({
 				renameSync(upload.file, path);
 			} catch (e: any) {
 				if (e.code != 'EXDEV') throw e;
-				writeFileSync(path, readFileSync(upload.file));
+				copyFileSync(upload.file, path);
 			}
 		});
 
