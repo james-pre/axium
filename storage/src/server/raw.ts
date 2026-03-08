@@ -40,7 +40,7 @@ addRoute({
 
 		const name = request.headers.get('x-name')!; // checked in `checkNewItem`
 		const parentId = request.headers.get('x-parent');
-		const size = Number(request.headers.get('x-size'));
+		const size = BigInt(request.headers.get('x-size') || -1);
 		const type = request.headers.get('content-type') || 'application/octet-stream';
 
 		const content = await request.bytes();
@@ -67,25 +67,25 @@ addRoute({
 
 		const upload = await requireUpload(request);
 
-		const size = Number(request.headers.get('content-length'));
+		const size = BigInt(request.headers.get('content-length') || -1);
 
-		if (Number.isNaN(size)) error(411, 'Missing or invalid content length');
+		if (size < 0n) error(411, 'Missing or invalid content length');
 
 		if (upload.uploadedBytes + size > upload.init.size) error(413, 'Upload exceeds allowed size');
 
 		const content = await request.bytes();
 
-		if (content.byteLength != size) {
+		if (content.byteLength != Number(size)) {
 			await audit('storage_size_mismatch', upload.userId, { item: null });
 			error(400, `Content length mismatch: expected ${size}, got ${content.byteLength}`);
 		}
 
-		const offset = Number(request.headers.get('x-offset'));
+		const offset = BigInt(request.headers.get('x-offset') || -1);
 		if (offset != upload.uploadedBytes) error(400, `Expected offset ${upload.uploadedBytes} but got ${offset}`);
 
 		writeSync(upload.fd, content); // opened with 'a', this appends
 		upload.hash.update(content);
-		upload.uploadedBytes += size;
+		upload.uploadedBytes += BigInt(size);
 
 		if (upload.uploadedBytes != upload.init.size) return new Response(null, { status: 204 });
 
@@ -131,17 +131,17 @@ addRoute({
 		using _ = { [Symbol.dispose]: () => closeSync(fd) };
 
 		let start = 0,
-			end = item.size - 1,
-			length = item.size;
+			end = Number(item.size - 1n),
+			length = Number(item.size);
 
 		if (range) {
-			const [_start, _end = item.size - 1] = range
+			const [_start, _end = end] = range
 				.replace(/bytes=/, '')
 				.split('-')
 				.map(val => (val && Number.isSafeInteger(parseInt(val)) ? parseInt(val) : undefined));
 
-			start = typeof _start == 'number' ? _start : item.size - _end;
-			end = typeof _start == 'number' ? _end : item.size - 1;
+			start = typeof _start == 'number' ? _start : Number(item.size) - _end;
+			end = typeof _start == 'number' ? _end : end;
 			length = end - start + 1;
 		}
 
@@ -157,7 +157,7 @@ addRoute({
 		readSync(fd, content, 0, length, start);
 
 		return new Response(content, {
-			status: length == item.size ? 200 : 206,
+			status: BigInt(length) == item.size ? 200 : 206,
 			headers: {
 				'Content-Range': `bytes ${start}-${end}/${item.size}`,
 				'Accept-Ranges': 'bytes',
@@ -190,7 +190,8 @@ addRoute({
 			withError('Could not fetch usage and/or limits')
 		);
 
-		if (limits.user_size && (usage.usedBytes + size - item.size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
+		if (limits.user_size && (usage.usedBytes + BigInt(size) - item.size) / 1_000_000n >= limits.user_size)
+			error(413, 'Not enough space');
 
 		if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
@@ -209,7 +210,7 @@ addRoute({
 			const result = await tx
 				.updateTable('storage')
 				.where('id', '=', itemId)
-				.set({ size, modifiedAt: new Date(), hash })
+				.set({ size: BigInt(size), modifiedAt: new Date(), hash })
 				.returningAll()
 				.executeTakeFirstOrThrow();
 

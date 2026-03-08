@@ -28,7 +28,7 @@ cli.command('usage')
 		const { limits, itemCount, usedBytes } = await api.getUserStats(session().userId);
 
 		console.log(`Items: ${itemCount} ${limits.user_items ? ' / ' + limits.user_items : ''}`);
-		console.log(`Space: ${formatBytes(usedBytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000) : ''}`);
+		console.log(`Space: ${formatBytes(usedBytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000n) : ''}`);
 	});
 
 cli.command('ls')

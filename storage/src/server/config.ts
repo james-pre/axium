@@ -75,7 +75,7 @@ export async function getLimits(userId?: string): Promise<StorageLimits> {
 		limits = structuredClone(getConfig('@axium/storage').limits);
 	}
 
-	limits.user_size ||= Number(await _unlimitedLimit());
+	limits.user_size ||= await _unlimitedLimit();
 
 	return limits;
 }

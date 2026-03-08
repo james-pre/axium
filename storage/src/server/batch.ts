@@ -29,8 +29,8 @@ addRoute({
 		const batchHeaderSize = Number(req.headers.get('x-batch-header-size'));
 		if (!Number.isSafeInteger(batchHeaderSize) || batchHeaderSize < 2) error(400, 'Invalid or missing header, X-Batch-Header-Size');
 
-		const size = Number(req.headers.get('content-length'));
-		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
+		const size = BigInt(req.headers.get('content-length') || '-1');
+		if (size < 0n) error(411, 'Missing or invalid content length header');
 
 		const raw = await req.bytes();
 
@@ -87,7 +87,10 @@ addRoute({
 			error(403, 'Missing permission for item: ' + item.id);
 		}
 
-		if (limits.user_size && (usage.usedBytes + size - items.reduce((sum, item) => sum + item.size, 0)) / 1_000_000 >= limits.user_size)
+		if (
+			limits.user_size &&
+			(usage.usedBytes + size - items.reduce((sum, item) => sum + item.size, 0n)) / 1_000_000n >= limits.user_size
+		)
 			error(413, 'Not enough space');
 
 		const tx = await database.startTransaction().execute();
@@ -102,7 +105,7 @@ addRoute({
 				const result = await tx
 					.updateTable('storage')
 					.where('id', '=', itemId)
-					.set({ size, modifiedAt: new Date(), hash })
+					.set({ size: BigInt(size), modifiedAt: new Date(), hash })
 					.returningAll()
 					.executeTakeFirstOrThrow();
 

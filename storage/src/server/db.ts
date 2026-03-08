@@ -39,16 +39,17 @@ export async function getUserStats(userId: string): Promise<StorageStats> {
 		.where('userId', '=', userId)
 		.select(eb => [
 			eb.fn.countAll<number>().as('itemCount'),
-			eb.fn.sum<number>('size').as('usedBytes'),
+			eb.fn.sum('size').as('usedBytes'),
 			eb.fn.max('modifiedAt').as('lastModified'),
 			eb.fn.max('trashedAt').as('lastTrashed'),
 		])
 		.executeTakeFirstOrThrow();
 
-	result.usedBytes = Number(result.usedBytes || 0);
-	result.itemCount = Number(result.itemCount);
-
-	return result;
+	return {
+		...result,
+		usedBytes: BigInt(result.usedBytes || 0n),
+		itemCount: Number(result.itemCount),
+	};
 }
 
 export async function get(itemId: string): Promise<StorageItemMetadata> {

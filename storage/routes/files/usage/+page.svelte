@@ -12,7 +12,7 @@
 
 	let barText = $derived(
 		limits.user_size
-			? text('page.files.usage.bar_text', { used: formatBytes(usedBytes), total: formatBytes(limits.user_size * 1_000_000) })
+			? text('page.files.usage.bar_text', { used: formatBytes(usedBytes), total: formatBytes(limits.user_size * 1_000_000n) })
 			: text('page.files.usage.bar_text_unlimited', { used: formatBytes(usedBytes) })
 	);
 </script>
@@ -23,6 +23,6 @@
 
 <h2>{text('page.files.usage.heading')}</h2>
 
-<p><NumberBar max={limits.user_size * 1_000_000} value={usedBytes} text={barText} /></p>
+<p><NumberBar max={limits.user_size * 1_000_000n} value={usedBytes} text={barText} /></p>
 
 <List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} />

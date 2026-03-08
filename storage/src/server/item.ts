@@ -47,11 +47,11 @@ export async function checkNewItem(init: StorageItemInit, session: SessionAndUse
 
 	if (parentId) await authSessionForItem('storage', parentId, { write: true }, session);
 
-	if (Number.isNaN(size)) error(411, 'Missing or invalid content length');
+	if (BigInt(size) < 0n) error(411, 'Missing or invalid content length');
 
 	if (limits.user_items && usage.itemCount >= limits.user_items) error(409, 'Too many items');
 
-	if (limits.user_size && (usage.usedBytes + size) / 1_000_000 >= limits.user_size) error(413, 'Not enough space');
+	if (limits.user_size && (usage.usedBytes + size) / 1_000_000n >= limits.user_size) error(413, 'Not enough space');
 
 	if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
 
@@ -135,7 +135,7 @@ export interface UploadInfo {
 	file: string;
 	fd: number;
 	hash: Hash;
-	uploadedBytes: number;
+	uploadedBytes: bigint;
 	sessionId: string;
 	userId: string;
 	init: StorageItemInit;
@@ -167,7 +167,7 @@ export function startUpload(init: StorageItemInit, session: Session): string {
 		hash: createHash('BLAKE2b512'),
 		file,
 		fd,
-		uploadedBytes: 0,
+		uploadedBytes: 0n,
 		sessionId: session.id,
 		userId: session.userId,
 		init,

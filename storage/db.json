@@ -89,6 +89,16 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"storage": {
+					"alter_columns": {
+						"size": { "type": "bigint" }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["storage", "acl.storage"],

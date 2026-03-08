@@ -18,7 +18,7 @@ cli.command('usage')
 			.select(eb => eb.fn.sum('size').as('size'))
 			.executeTakeFirstOrThrow();
 
-		console.log(`${items} items totaling ${formatBytes(Number(size))}`);
+		console.log(`${items} items totaling ${formatBytes(BigInt(size))}`);
 	});
 
 const _byteSize = (msg: string) => (v: string) => parseByteSize(v) ?? io.exit(msg);
@@ -55,7 +55,7 @@ cli.command('query')
 		}
 		let validMinSize = false;
 		if (opt.minSize !== undefined) {
-			if (opt.minSize == 0) io.warn('Minimum size of 0 has no effect, ignoring.');
+			if (opt.minSize == 0n) io.warn('Minimum size of 0 has no effect, ignoring.');
 			else {
 				query = query.where('size', '>=', opt.minSize);
 				validMinSize = true;

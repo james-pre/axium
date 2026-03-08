@@ -16,7 +16,7 @@ export async function statusText(): Promise<string> {
 	const { storage: items } = await count('storage');
 	const size = await getTotalUse();
 
-	return `${items} items totaling ${formatBytes(Number(size))}`;
+	return `${items} items totaling ${formatBytes(size)}`;
 }
 
 export async function clean(opt: OpOptions) {

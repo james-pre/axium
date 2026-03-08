@@ -32,7 +32,7 @@ export const StorageItemMetadata = z.object({
 	name: z.string(),
 	userId: z.uuid(),
 	parentId: z.uuid().nullable(),
-	size: z.int().nonnegative(),
+	size: z.coerce.bigint().nonnegative(),
 	trashedAt: z.coerce.date().nullable(),
 	type: z.string(),
 	metadata: z.record(z.string(), z.unknown()),
@@ -60,13 +60,13 @@ export const StorageLimits = z.object({
 	/** Maximum number of items per user */
 	user_items: z.int().nonnegative(),
 	/** The maximum storage size per user in MB */
-	user_size: z.int().nonnegative(),
+	user_size: z.coerce.bigint().nonnegative(),
 });
 
 export interface StorageLimits extends z.infer<typeof StorageLimits> {}
 
 export const StorageStats = z.object({
-	usedBytes: z.int().nonnegative(),
+	usedBytes: z.coerce.bigint().nonnegative(),
 	itemCount: z.int().nonnegative(),
 	lastModified: z.coerce.date(),
 	lastTrashed: z.coerce.date().nullable(),
@@ -172,7 +172,7 @@ setServerConfig('@axium/storage', StorageConfig);
 
 export const StorageItemInit = z.object({
 	name: z.string(),
-	size: z.int().nonnegative(),
+	size: z.coerce.bigint().nonnegative(),
 	type: z.string(),
 	parentId: z.uuid().nullish(),
 	hash: z.hex().nullish(),
