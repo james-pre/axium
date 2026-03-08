@@ -108,7 +108,7 @@
 		overflow-y: scroll;
 
 		@media (width < 700px) {
-			padding-bottom: 4em;
+			padding-bottom: 5em;
 			grid-column: 1;
 		}
 	}
