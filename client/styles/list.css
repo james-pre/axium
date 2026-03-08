@@ -1,7 +1,19 @@
+div:has(> .list) {
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	overflow-y: hidden;
+
+	> :where(button),
+	> .Popover > :where(button) {
+		align-self: flex-start;
+	}
+}
+
 .list {
 	display: flex;
 	flex-direction: column;
-	height: 100%;
+	min-height: 0;
 	overflow-x: hidden;
 	overflow-y: scroll;
 }
