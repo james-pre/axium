@@ -5,8 +5,9 @@ import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { closeSync, copyFileSync, openSync, readSync, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
+import { copyFileSync, createReadStream, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
 import { join } from 'node:path/posix';
+import { Readable } from 'node:stream';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
@@ -127,9 +128,6 @@ addRoute({
 		const path = join(getConfig('@axium/storage').data, item.id);
 		const range = request.headers.get('range');
 
-		const fd = openSync(path, 'r');
-		using _ = { [Symbol.dispose]: () => closeSync(fd) };
-
 		let start = 0,
 			end = Number(item.size - 1n),
 			length = Number(item.size);
@@ -152,9 +150,7 @@ addRoute({
 			});
 		}
 
-		const content = new Uint8Array(length);
-
-		readSync(fd, content, 0, length, start);
+		const content = Readable.toWeb(createReadStream(path, { start, end })) as ReadableStream;
 
 		return new Response(content, {
 			status: BigInt(length) == item.size ? 200 : 206,
