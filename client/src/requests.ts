@@ -3,6 +3,11 @@ import { $API } from '@axium/core/api';
 import type { RequestMethod } from '@axium/core/requests';
 import { prettifyError } from 'zod';
 
+// @ts-expect-error 2339
+BigInt.prototype.toJSON = function (this: bigint) {
+	return Number(this);
+};
+
 export let token: string | null = null;
 
 export function setToken(value: string | null): void {

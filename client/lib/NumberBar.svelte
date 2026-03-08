@@ -1,10 +1,18 @@
 <script lang="ts">
-	const { min = 0, max, value, text } = $props();
+	interface Props<T extends number | bigint> {
+		min?: T;
+		max: T;
+		value: T;
+		text: string;
+	}
+
+	const { min: _min, max, value, text }: Props<any> = $props();
+	let min: typeof value = _min || typeof value == 'bigint' ? 0n : 0;
 </script>
 
 <div class="Bar">
 	{#if max}
-		<div class="fill" style="width: {((value - min) / (max - min)) * 100}%"></div>
+		<div class="fill" style="width: {((value - min) / (max - min)) * ((typeof value == 'bigint' ? 100n : 100) as typeof value)}%"></div>
 	{/if}
 	{#if text}<span class="text">{text}</span>{/if}
 </div>
