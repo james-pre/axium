@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
+	import { closeOnBackGesture } from '@axium/client/attachments';
 	import { FormDialog, Icon, URLText } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import '@axium/client/styles/list';
@@ -48,7 +49,7 @@
 	</div>
 </FormDialog>
 
-<dialog bind:this={createdUserDialog} id="created-user-verification">
+<dialog bind:this={createdUserDialog} id="created-user-verification" {@attach closeOnBackGesture}>
 	<h3>{text('page.admin.users.created_title')}</h3>
 
 	<p>{text('page.admin.users.created_url')}</p>

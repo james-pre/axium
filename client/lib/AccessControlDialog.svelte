@@ -3,11 +3,12 @@
 	import type { AccessControllable, AccessTarget, User } from '@axium/core';
 	import { getTarget, pickPermissions } from '@axium/core';
 	import { errorText } from '@axium/core/io';
-	import { toastStatus } from './toast.js';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
 	import UserCard from './UserCard.svelte';
 	import UserDiscovery from './UserDiscovery.svelte';
+	import { closeOnBackGesture } from './attachments.js';
+	import { toastStatus } from './toast.js';
 
 	interface Props extends HTMLDialogAttributes {
 		editable: boolean;
@@ -28,7 +29,7 @@
 	}
 </script>
 
-<dialog bind:this={dialog} {...rest} onclick={e => e.stopPropagation()}>
+<dialog bind:this={dialog} {...rest} onclick={e => e.stopPropagation()} {@attach closeOnBackGesture}>
 	{#if item.name}
 		<h3>{@html text('component.AccessControlDialog.named_title', { $html: true, name: item.name })}</h3>
 	{:else}

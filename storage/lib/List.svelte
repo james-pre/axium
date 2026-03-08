@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { contextMenu } from '@axium/client/attachments';
+	import { closeOnBackGesture, contextMenu } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
+	import { copy } from '@axium/client/gui';
 	import '@axium/client/styles/list';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
@@ -10,7 +11,6 @@
 	import { copyShortURL, formatItemName } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
-	import { copy } from '@axium/client/gui';
 
 	let {
 		items = $bindable(),
@@ -107,7 +107,7 @@
 	{/each}
 </div>
 
-<dialog bind:this={dialogs.preview} class="preview" onclick={e => e.stopPropagation()}>
+<dialog bind:this={dialogs.preview} class="preview" onclick={e => e.stopPropagation()} {@attach closeOnBackGesture}>
 	{#if activeItem}
 		<Preview
 			item={activeItem}
