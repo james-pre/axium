@@ -32,7 +32,7 @@
 
 <Popover>
 	{#snippet toggle()}
-		<button class="icon-text"><Icon i="plus" />{text('storage.Add.text')}</button>
+		<button class="icon-text StorageAdd"><Icon i="plus" />{text('storage.Add.text')}</button>
 	{/snippet}
 
 	<span class="menu-item" onclick={() => uploadDialog.showModal()}><Icon i="upload" />{text('storage.Add.upload')}</span>
