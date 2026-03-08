@@ -7,9 +7,10 @@
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
+	import { errorText } from '@axium/core/io';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { copyShortURL, formatItemName } from '@axium/storage/client/frontend';
-	import type { StorageItemMetadata } from '@axium/storage/common';
+	import { StorageItemSorting, type StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
 
 	let {
@@ -23,6 +24,31 @@
 	const activeItem = $derived(items[activeIndex]);
 	const activeItemName = $derived(formatItemName(activeItem));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
+
+	const search = new URLSearchParams(location.search);
+	let sort = $state<StorageItemSorting | null>();
+	try {
+		sort = StorageItemSorting.parse({
+			by: search.get('sortBy'),
+			descending: search.has('descending'),
+		});
+	} catch (e) {
+		console.log('Ignoring invalid sorting parameters', errorText(e));
+	}
+
+	const sortedItems = $derived(
+		items
+			.map((item, i) => [item, i] as const)
+			.toSorted(
+				sort
+					? ([_a], [_b]) => {
+							const [a, b] = sort?.descending ? [_b, _a] : [_a, _b];
+							// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
+							return sort.by == 'name' ? a.name.localeCompare(b.name) : a[sort.by] - b[sort.by];
+						}
+					: undefined
+			)
+	);
 </script>
 
 {#snippet action(name: string, icon: string, i: number, preview: boolean = false)}
@@ -40,11 +66,19 @@
 <div class="list">
 	<div class="list-item list-header">
 		<span></span>
-		<span>{text('storage.generic.name')}</span>
-		<span>{text('storage.List.last_modified')}</span>
-		<span>{text('storage.List.size')}</span>
+		{#each [['name', 'storage.generic.name'], ['modifiedAt', 'storage.List.last_modified'], ['size', 'storage.List.size']] as const as [key, translation]}
+			<span
+				class="header-column"
+				onclick={() => (sort = sort?.descending === false ? null : { by: key, descending: !sort?.descending })}
+			>
+				{#if sort?.by == key}
+					<Icon i="sort-{sort.descending ? 'down' : 'up'}" />
+				{/if}
+				<span>{text(translation)}</span>
+			</span>
+		{/each}
 	</div>
-	{#each items as item, i (item.id)}
+	{#each sortedItems as [item, i] (item.id)}
 		<div
 			class="list-item"
 			onclick={async () => {
@@ -165,6 +199,15 @@
 
 	.list-item {
 		grid-template-columns: 1em 4fr 15em 5em repeat(4, 1em);
+	}
+
+	.header-column {
+		display: inline-flex;
+		align-items: center;
+
+		&:hover {
+			cursor: pointer;
+		}
 	}
 
 	@media (width < 700px) {

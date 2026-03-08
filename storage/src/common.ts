@@ -50,6 +50,7 @@ export const StorageItemSorting = z.object({
 	descending: z.boolean().optional(),
 	by: z.literal(['createdAt', 'modifiedAt', 'name', 'size'] satisfies (keyof StorageItemMetadata)[]),
 });
+export interface StorageItemSorting extends z.infer<typeof StorageItemSorting> {}
 
 export const syncProtocolVersion = 0;
 
