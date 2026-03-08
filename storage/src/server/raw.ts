@@ -14,6 +14,22 @@ import { getLimits } from './config.js';
 import { getUserStats, parseItem } from './db.js';
 import { checkNewItem, createNewItem, requireUpload } from './item.js';
 
+function contentDispositionFor(name: string) {
+	const fallback =
+		name
+			.replace(/[\r\n]/g, '')
+			.replace(/[^\x20-\x7E]/g, '_')
+			.trim()
+			.replace(/[\\"]/g, '\\$&') || 'download';
+
+	const encoded = encodeURIComponent(name.replace(/[\r\n]/g, '')).replace(
+		/['()*]/g,
+		char => '%' + char.charCodeAt(0).toString(16).toUpperCase()
+	);
+
+	return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+}
+
 addRoute({
 	path: '/raw/storage',
 	async PUT(request): Promise<StorageItemMetadata> {
@@ -147,7 +163,7 @@ addRoute({
 				'Accept-Ranges': 'bytes',
 				'Content-Length': String(length),
 				'Content-Type': item.type,
-				'Content-Disposition': `attachment; filename="${item.name}"`,
+				'Content-Disposition': contentDispositionFor(item.name),
 			},
 		});
 	},
