@@ -131,8 +131,12 @@
 		align-items: center;
 	}
 
-	.parents a::before {
-		content: ' / ';
-		color: #888;
+	.parents {
+		margin-top: 0;
+
+		a::before {
+			content: ' / ';
+			color: #888;
+		}
 	}
 </style>
