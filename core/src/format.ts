@@ -8,12 +8,11 @@ export function formatDateRange(date: Date): string {
 	return `${date.toLocaleString()} (${rawDays >= 0 ? `in ${daysText} day${plural}` : `${daysText} day${plural} ago`})`;
 }
 
-export function formatBytes(bytes: number): string {
+export function formatBytes(bytes: bigint): string {
 	const units = ['B', 'KB', 'MB', 'GB', 'TB'];
 
-	const i = bytes == 0 ? 0 : Math.floor(Math.log10(bytes) / 3);
-
-	const value = bytes == 0 ? 0 : bytes / Math.pow(1000, i);
+	const i = bytes == 0n ? 0 : Math.floor((bytes.toString(10).length - 1) / 3);
+	const value = Number(bytes == 0n ? 0n : bytes / 1000n ** BigInt(i));
 
 	return `${Number.isInteger(value) ? value : value.toFixed(2)} ${units[i]}`;
 }
