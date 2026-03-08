@@ -70,11 +70,11 @@
 </div>
 <div class="preview-content">
 	{#if item.type.startsWith('image/')}
-		<img src={item.dataURL} alt={item.name} width="100%" />
+		<img src={item.dataURL} alt={item.name} />
 	{:else if item.type.startsWith('audio/')}
 		<audio src={item.dataURL} controls></audio>
 	{:else if item.type.startsWith('video/')}
-		<video src={item.dataURL} controls width="100%">
+		<video src={item.dataURL} controls>
 			<track kind="captions" />
 		</video>
 	{:else if item.type == 'application/pdf'}
@@ -195,7 +195,12 @@
 
 	.preview-content {
 		position: absolute;
-		inset: 3em 10em 0;
+		inset: 3em 10em 1em;
+		display: flex;
+		text-align: center;
+		align-items: center;
+		justify-content: center;
+		flex-direction: column;
 
 		.full-fill {
 			position: absolute;
@@ -210,6 +215,12 @@
 			line-height: 1.6;
 			background-color: var(--bg-menu);
 			font-family: monospace;
+		}
+
+		img,
+		video {
+			max-width: 100%;
+			max-height: 100%;
 		}
 	}
 
