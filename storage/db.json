@@ -79,6 +79,16 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"storage": {
+					"add_constraints": {
+						"unique_name_parentId": { "type": "unique", "on": ["name", "parentId"] }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["storage", "acl.storage"],

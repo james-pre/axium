@@ -107,6 +107,12 @@ export async function createNewItem(
 				})
 				.returningAll()
 				.executeTakeFirstOrThrow()
+				.catch(e => {
+					if (!(e instanceof Error)) throw e;
+					if (e.message.includes('unique_name_parentId') && e.message.includes('duplicate'))
+						error(409, 'A file with that name already exists in this folder.');
+					throw e;
+				})
 		);
 
 		const path = join(dataDir, item.id);
