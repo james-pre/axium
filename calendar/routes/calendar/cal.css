@@ -224,7 +224,7 @@ div.attendees {
 		inset: 3em 0 0;
 		z-index: 10;
 		background-color: var(--bg-menu);
-		font-size: clamp(0.95rem, 0.5rem + 3cqw, 1.35rem);
+		font-size: clamp(0.95rem, 0.75rem + 2.5cqw, 1.35rem);
 		translate: -100% 0;
 		opacity: 0;
 		visibility: hidden;
