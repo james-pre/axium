@@ -19,7 +19,7 @@
 	const sameMonth = (d: Date) => view.getFullYear() == d.getFullYear() && view.getMonth() == d.getMonth();
 </script>
 
-<div class="CaldendarSelect">
+<div class="CalendarSelect">
 	<div class="bar">
 		<span class="label">{view.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
 		<button style:display="contents" onclick={() => view.setMonth(view.getMonth() - 1)}><Icon i="chevron-left" /></button>
@@ -70,8 +70,7 @@
 <style>
 	.CalendarSelect {
 		display: flex;
-		align-items: center;
-		justify-content: space-between;
+		flex-direction: column;
 	}
 
 	.bar {
@@ -122,6 +121,25 @@
 			&.current {
 				color: var(--fg-strong);
 			}
+		}
+	}
+
+	@media (width < 700px) {
+		.CalendarSelect {
+			width: 100%;
+		}
+
+		.month-grid {
+			width: 100%;
+			grid-template-columns: repeat(8, minmax(0, 1fr));
+			grid-template-rows: repeat(7, minmax(0, 1fr));
+		}
+
+		.month-grid > div {
+			width: 100%;
+			aspect-ratio: 1;
+			height: auto;
+			min-width: 0;
 		}
 	}
 </style>
