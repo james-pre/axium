@@ -120,7 +120,7 @@
 		<button class="reset mobile-only day-number today" onclick={() => start.setTime(today.getTime())}>{today.getDate()}</button>
 		<button class="reset mobile-only icon-text" command="show-modal" commandfor="event-init"><Icon i="plus" /></button>
 	</div>
-	<div id="cal-sidebar" class="mobile-hide" bind:this={calSidebar}>
+	<div id="cal-sidebar" bind:this={calSidebar}>
 		<Cal.Select bind:start bind:end />
 		<div class="cal-sidebar-header">
 			<h4>My Calendars</h4>

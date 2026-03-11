@@ -96,6 +96,7 @@ div.attendees {
 	gap: 1em;
 	grid-column: 1;
 	padding: 1em;
+	border-radius: 1em;
 
 	.cal-sidebar-header,
 	.cal-sidebar-item {
@@ -217,19 +218,38 @@ div.attendees {
 		grid-template-columns: 1fr;
 	}
 
-	#cal-sidebar:focus-within {
-		display: flex;
-	}
+	#cal-sidebar {
+		container-type: inline-size;
+		position: absolute;
+		inset: 3em 0 0;
+		z-index: 10;
+		background-color: var(--bg-menu);
+		font-size: clamp(0.95rem, 0.5rem + 3cqw, 1.35rem);
+		translate: -100% 0;
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
 
-	#cal-sidebar:focus-within + #cal {
-		display: none;
-	}
+		.CalendarSelect {
+			width: 100%;
+		}
 
-	#cal-sidebar.active {
-		display: flex;
-	}
+		&.active {
+			translate: 0 0;
+			opacity: 1;
+			visibility: visible;
+			pointer-events: auto;
+		}
 
-	#cal-sidebar.active + #cal {
-		display: none;
+		@media not (prefers-reduced-motion) {
+			transition:
+				translate 0.25s ease,
+				opacity 0.25s ease,
+				visibility 0s linear 0.25s;
+
+			&.active {
+				transition-delay: 0s;
+			}
+		}
 	}
 }
