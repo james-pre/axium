@@ -360,7 +360,7 @@ div.toast {
 
 @media (width < 700px) {
 	.mobile-hide {
-		display: none !important;
+		display: none;
 	}
 
 	.mobile-button {
