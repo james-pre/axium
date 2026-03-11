@@ -80,17 +80,25 @@ div.attendees {
 	gap: 1em;
 	align-items: center;
 	font-weight: bold;
+
+	@media (width < 700px) {
+		margin: 0 1em;
+
+		.label {
+			flex-grow: 1;
+		}
+	}
 }
 
-#cal-list {
+:where(#cal-sidebar) {
 	display: flex;
 	flex-direction: column;
 	gap: 1em;
 	grid-column: 1;
 	padding: 1em;
 
-	.cal-list-header,
-	.cal-list-item {
+	.cal-sidebar-header,
+	.cal-sidebar-item {
 		display: flex;
 		align-items: center;
 		justify-content: space-between;
@@ -136,6 +144,10 @@ div.attendees {
 		top: 50%;
 		z-index: 0;
 		pointer-events: none;
+
+		@media (width < 700px) {
+			width: calc(100vw - 5em);
+		}
 	}
 }
 
@@ -157,18 +169,22 @@ div.attendees {
 	height: 5.9em;
 	flex-shrink: 0;
 
-	.day-number {
-		border-radius: 0.3em;
-		width: 2em;
-		height: 2em;
-		display: inline-flex;
-		align-items: center;
-		justify-content: center;
+	@media (width < 700px) {
+		flex-direction: column;
+	}
+}
 
-		&.today {
-			border: var(--border-accent);
-			color: var(--fg-accent);
-		}
+.day-number {
+	border-radius: 0.3em;
+	width: 2em;
+	height: 2em;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+
+	&.today {
+		border: var(--border-accent);
+		color: var(--fg-accent);
 	}
 }
 
@@ -193,5 +209,27 @@ div.attendees {
 			border-radius: 50%;
 			background-color: hsl(0 33 var(--fg-light));
 		}
+	}
+}
+
+@media (width < 700px) {
+	#cal-app {
+		grid-template-columns: 1fr;
+	}
+
+	#cal-sidebar:focus-within {
+		display: flex;
+	}
+
+	#cal-sidebar:focus-within + #cal {
+		display: none;
+	}
+
+	#cal-sidebar.active {
+		display: flex;
+	}
+
+	#cal-sidebar.active + #cal {
+		display: none;
 	}
 }

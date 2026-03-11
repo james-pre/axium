@@ -43,6 +43,7 @@
 	$effect(() => {
 		for (const cal of calendars) cal.color ||= encodeColor(colorHashHex(cal.name));
 		getEvents(calendars, { start: new Date(start.getTime()), end: new Date(end.getTime()) }).then(e => (events = e));
+		calSidebar?.classList.remove('active');
 	});
 
 	const tz = new Date().toLocaleString('en', { timeStyle: 'long' }).split(' ').slice(-1)[0];
@@ -81,6 +82,8 @@
 	);
 
 	const defaultEventColor = $derived((eventInit.calendar || calendars[0])?.color || encodeColor(colorHashHex(user.name)));
+
+	let calSidebar = $state<HTMLDivElement>();
 </script>
 
 <svelte:head>
@@ -88,28 +91,38 @@
 </svelte:head>
 
 <div id="cal-app">
-	<button class="event-init icon-text" command="show-modal" commandfor="event-init"><Icon i="plus" /> New Event</button>
+	<button class="event-init icon-text mobile-hide" command="show-modal" commandfor="event-init"><Icon i="plus" /> New Event</button>
 	<div class="bar">
-		<button onclick={() => start.setTime(today.getTime())}>Today</button>
+		<!-- desktop -->
+		<button class="mobile-hide" onclick={() => start.setTime(today.getTime())}>Today</button>
 		<button
-			style:display="contents"
+			class="reset mobile-hide"
 			onclick={() => {
 				start.setDate(start.getDate() - spanDays);
 				end.setDate(end.getDate() - spanDays);
 			}}><Icon i="chevron-left" /></button
 		>
 		<button
-			style:display="contents"
+			class="reset mobile-hide"
 			onclick={() => {
 				start.setDate(start.getDate() + spanDays);
 				end.setDate(end.getDate() + spanDays);
 			}}><Icon i="chevron-right" /></button
 		>
+
+		<!-- mobile -->
+		<button class="reset mobile-only icon-text" onclick={() => calSidebar?.classList.toggle('active')}><Icon i="bars" /></button>
+
+		<!-- shared -->
 		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
+
+		<!-- mobile -->
+		<button class="reset mobile-only day-number today" onclick={() => start.setTime(today.getTime())}>{today.getDate()}</button>
+		<button class="reset mobile-only icon-text" command="show-modal" commandfor="event-init"><Icon i="plus" /></button>
 	</div>
-	<div id="cal-list">
+	<div id="cal-sidebar" class="mobile-hide" bind:this={calSidebar}>
 		<Cal.Select bind:start bind:end />
-		<div class="cal-list-header">
+		<div class="cal-sidebar-header">
 			<h4>My Calendars</h4>
 			<button style:display="contents" command="show-modal" commandfor="add-calendar">
 				<Icon i="plus" />
@@ -117,7 +130,7 @@
 		</div>
 		{#each calendars.filter(cal => cal.userId == user.id) as cal (cal.id)}
 			<div
-				class="cal-list-item"
+				class="cal-sidebar-item"
 				{@attach contextMenu(
 					{ i: 'pencil', text: 'Rename', action: () => dialogs['rename:' + cal.id].showModal() },
 					{ i: 'user-group', text: 'Share', action: () => dialogs['share:' + cal.id].showModal() },
@@ -162,7 +175,7 @@
 			</div>
 		{/each}
 		{#if calendars.some(cal => cal.userId != user.id)}
-			<div class="cal-list-header">
+			<div class="cal-sidebar-header">
 				<h4>Shared Calendars</h4>
 			</div>
 			{#each calendars.filter(cal => cal.userId != user.id) as cal (cal.id)}
