@@ -14,6 +14,24 @@ export const Column = z.strictObject({
 });
 export interface Column extends z.infer<typeof Column> {}
 
+export function applyToColumn(column: data.Column, delta: Column): void {
+	if (delta.type) column.type = delta.type!;
+	if (delta.default) column.default = delta.default!;
+	for (const op of delta.ops || []) {
+		switch (op) {
+			case 'drop_default':
+				delete column.default;
+				break;
+			case 'set_required':
+				column.required = true;
+				break;
+			case 'drop_required':
+				column.required = false;
+				break;
+		}
+	}
+}
+
 export const Table = z.strictObject({
 	add_columns: z.record(z.string(), data.Column).optional().default({}),
 	drop_columns: z.string().array().optional().default([]),
@@ -37,21 +55,7 @@ export function applyToTable(table: data.Table, delta: Table): void {
 	for (const [name, columnDelta] of Object.entries(delta.alter_columns)) {
 		const column = table.columns[name];
 		if (!column) throw `can't modify column ${name} because it does not exist`;
-		if (columnDelta.type) column.type = columnDelta.type!;
-		if (columnDelta.default) column.default = columnDelta.default!;
-		for (const op of columnDelta.ops || []) {
-			switch (op) {
-				case 'drop_default':
-					delete column.default;
-					break;
-				case 'set_required':
-					column.required = true;
-					break;
-				case 'drop_required':
-					column.required = false;
-					break;
-			}
-		}
+		applyToColumn(column, columnDelta);
 	}
 
 	for (const name of delta.drop_constraints) {
@@ -225,18 +229,66 @@ export function collapse(deltas: Version[]): Version {
 		for (const [name, table] of Object.entries(delta.alter_tables)) {
 			if (name in add_tables) {
 				applyToTable(add_tables[name], table);
-			} else if (name in alter_tables) {
-				const existing = alter_tables[name];
+				continue;
+			}
 
-				for (const [colName, column] of Object.entries(table.add_columns)) {
-					existing.add_columns[colName] = column;
+			const existing = alter_tables[name];
+
+			if (!existing) {
+				alter_tables[name] = table;
+				continue;
+			}
+
+			for (const [colName, column] of Object.entries(table.add_columns)) {
+				existing.add_columns[colName] = column;
+			}
+
+			for (const colName of table.drop_columns) {
+				if (colName in existing.add_columns) delete existing.add_columns[colName];
+				else existing.drop_columns.push(colName);
+			}
+
+			for (const [colName, delta] of Object.entries(table.alter_columns)) {
+				if (colName in existing.add_columns) {
+					applyToColumn(existing.add_columns[colName], delta);
+					continue;
 				}
 
-				for (const colName of table.drop_columns) {
-					if (colName in existing.add_columns) delete existing.add_columns[colName];
-					else existing.drop_columns.push(colName);
+				const existingCol = existing.alter_columns[colName];
+
+				if (!existingCol) {
+					existing.alter_columns[colName] = delta;
+					continue;
 				}
-			} else alter_tables[name] = table;
+
+				if ('default' in delta) existingCol.default = delta.default;
+				if ('type' in delta) existingCol.type = delta.type;
+
+				existingCol.ops ||= [];
+				const { ops } = existingCol;
+				for (const op of delta.ops || []) {
+					if (ops.includes(op)) {
+						io.debug(`Ignoring duplicate operation whilst resolving delta for ${name}.${colName}`);
+						continue;
+					}
+
+					switch (op) {
+						case 'drop_default':
+							if ('default' in existingCol) delete existingCol.default;
+							else ops.push(op);
+							break;
+						case 'set_required':
+						case 'drop_required': {
+							const i = ops.indexOf(op == 'set_required' ? 'drop_required' : 'set_required');
+
+							if (i == -1) ops.push(op);
+							else ops.splice(i, 1);
+
+							break;
+						}
+					}
+				}
+			}
 		}
 
 		for (const table of delta.drop_tables) {
