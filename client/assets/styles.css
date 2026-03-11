@@ -76,7 +76,7 @@ button {
 	}
 }
 
-button.reset {
+button:where(.reset) {
 	border-radius: unset;
 	border: none;
 	background-color: unset;
