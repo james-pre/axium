@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import { TaskList } from '@axium/tasks/components';
 
@@ -14,7 +15,7 @@
 </script>
 
 <svelte:head>
-	<title>Tasks — {data.list.name}</title>
+	<title>{text('tasks.list_page_title', { name: data.list.name })}</title>
 </svelte:head>
 
 <div class="list-container">
@@ -27,7 +28,8 @@
 					close();
 				}}
 			>
-				<Icon i="arrow-left-from-bracket" /> Back to Tasks
+				<Icon i="arrow-left-from-bracket" />
+				<span>{text('tasks.back_to_main')}</span>
 			</button>
 		</div>
 	{/if}

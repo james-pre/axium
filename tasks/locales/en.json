@@ -1,0 +1,27 @@
+{
+	"app_name": {
+		"tasks": "Tasks"
+	},
+	"tasks": {
+		"list_page_title": "Tasks — {name}",
+		"back_to_main": "Back to Tasks",
+		"new_list": "New List",
+		"list_init": {
+			"submit": "Create List",
+			"name": "Name",
+			"description": "Description <span class='subtle'>(optional)</span>"
+		},
+		"copy_id": "Copy ID",
+		"copy_link": "Copy Link",
+		"export_list": "Export",
+		"share_list": "Share",
+		"mark_all_complete": "Complete All",
+		"mark_all_pending": "Un-complete All",
+		"open_new_tab": "Open in New Tab",
+		"new_task": "Add Task",
+		"pending_heading": "Pending",
+		"pending_empty": "No pending tasks.",
+		"completed_heading": "Completed",
+		"completed_empty": "No completed tasks."
+	}
+}

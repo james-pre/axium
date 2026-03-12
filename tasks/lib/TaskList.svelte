@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { copy } from '@axium/client/gui';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
-	import { fetchAPI } from '@axium/client/requests';
+	import { fetchAPI, text } from '@axium/client';
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
 	import { download } from 'utilium/dom.js';
@@ -60,11 +60,13 @@
 						tasks.splice(tasks.indexOf(task), 1);
 					})}
 			>
-				<Icon i="trash" /> Delete
+				<Icon i="trash" />
+				<span>{text('generic.delete')}</span>
 			</div>
 			{#if page.data.session?.user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', task.id)}>
-					<Icon i="hashtag" --size="14px" /> Copy ID
+					<Icon i="hashtag" --size="14px" />
+					<span>{text('tasks.copy_id')}</span>
 				</div>
 			{/if}
 		</Popover>
@@ -95,7 +97,8 @@
 						else lists.splice(lists.indexOf(list), 1);
 					})}
 			>
-				<Icon i="trash" /> Delete
+				<Icon i="trash" />
+				<span>{text('generic.delete')}</span>
 			</div>
 			<div
 				class="menu-item"
@@ -108,7 +111,8 @@
 							.join('\n')
 					)}
 			>
-				<Icon i="regular/file-export" /> Export
+				<Icon i="regular/file-export" />
+				<span>{text('tasks.export_list')}</span>
 			</div>
 			<div
 				class="menu-item"
@@ -117,7 +121,8 @@
 					acl!.click();
 				}}
 			>
-				<Icon i="user-group" /> Share
+				<Icon i="user-group" />
+				<span>{text('tasks.share_list')}</span>
 			</div>
 			{#if tasks.some(t => !t.completed)}
 				<div
@@ -127,7 +132,8 @@
 						fetchAPI('POST', 'task_lists/:id', { all_completed: true }, list.id);
 					}}
 				>
-					<Icon i="regular/circle-check" /> Complete All
+					<Icon i="regular/circle-check" />
+					<span>{text('tasks.mark_all_complete')}</span>
 				</div>
 			{/if}
 			{#if tasks.some(t => t.completed)}
@@ -138,20 +144,24 @@
 						fetchAPI('POST', 'task_lists/:id', { all_completed: false }, list.id);
 					}}
 				>
-					<Icon i="regular/circle" /> Un-complete All
+					<Icon i="regular/circle" />
+					<span>{text('tasks.mark_all_pending')}</span>
 				</div>
 			{/if}
 			<div class="menu-item" onclick={() => copy('text/plain', `${location.origin}/tasks/${list.id}`)}>
-				<Icon i="link-horizontal" /> Copy Link
+				<Icon i="link-horizontal" />
+				<span>{text('tasks.copy_link')}</span>
 			</div>
 			{#if lists}
 				<div class="menu-item" onclick={() => open(`/tasks/${list.id}`)}>
-					<Icon i="arrow-up-right-from-square" /> Open in New Tab
+					<Icon i="arrow-up-right-from-square" />
+					<span>{text('tasks.open_new_tab')}</span>
 				</div>
 			{/if}
 			{#if page.data.session?.user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', list.id)}>
-					<Icon i="hashtag" --size="14px" /> Copy ID
+					<Icon i="hashtag" --size="14px" />
+					<span>{text('tasks.copy_id')}</span>
 				</div>
 			{/if}
 		</Popover>
@@ -165,20 +175,21 @@
 					.then(t => t)
 					.then(tasks.push.bind(tasks))}
 		>
-			<Icon i="regular/circle-plus" /> Add Task
+			<Icon i="regular/circle-plus" />
+			<span>{text('tasks.new_task')}</span>
 		</button>
 	</div>
-	<h4>Pending</h4>
+	<h4>{text('tasks.pending_heading')}</h4>
 	{#each tasks.filter(task => !task.parentId && !task.completed) as task (task.id)}
 		{@render task_tree(task)}
 	{:else}
-		<i class="subtle">No pending tasks.</i>
+		<i class="subtle">{text('tasks.pending_empty')}</i>
 	{/each}
-	<h4>Completed</h4>
+	<h4>{text('tasks.completed_heading')}</h4>
 	{#each tasks.filter(task => !task.parentId && task.completed) as task (task.id)}
 		{@render task_tree(task)}
 	{:else}
-		<i class="subtle">No completed tasks.</i>
+		<i class="subtle">{text('tasks.completed_empty')}</i>
 	{/each}
 </div>
 

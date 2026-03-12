@@ -1,6 +1,6 @@
 <script lang="ts">
+	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
-	import { fetchAPI } from '@axium/client/requests';
 	import { Note } from '@axium/notes/components';
 
 	const { data } = $props();
@@ -9,11 +9,11 @@
 </script>
 
 <svelte:head>
-	<title>Notes</title>
+	<title>{text('app_name.notes')}</title>
 </svelte:head>
 
 <div id="notes-main">
-	<h1>Notes</h1>
+	<h1>{text('app_name.notes')}</h1>
 	<button
 		id="create-note"
 		class="icon-text mobile-float-right"
@@ -22,7 +22,8 @@
 			notes.push(result);
 		}}
 	>
-		<Icon i="plus" /> New Note
+		<Icon i="plus" />
+		<span>{text('notes.new')}</span>
 	</button>
 	<div class="lists-container">
 		{#each notes as note}

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { FormDialog, Icon } from '@axium/client/components';
-	import { fetchAPI } from '@axium/client/requests';
+	import { fetchAPI, text } from '@axium/client';
 	import { TaskListInit } from '@axium/tasks/common';
 	import { TaskList } from '@axium/tasks/components';
 
@@ -11,14 +11,15 @@
 </script>
 
 <svelte:head>
-	<title>Tasks</title>
+	<title>{text('app_name.tasks')}</title>
 </svelte:head>
 
 <div id="tasks-main">
-	<h1>Tasks</h1>
+	<h1>{text('app_name.tasks')}</h1>
 
 	<button id="create-task-list" class="icon-text mobile-float-right" onclick={() => dialog!.showModal()}>
-		<Icon i="plus" /> New List
+		<Icon i="plus" />
+		<span>{text('tasks.new_list')}</span>
 	</button>
 
 	<div class="lists-container">
@@ -30,7 +31,7 @@
 
 <FormDialog
 	bind:dialog
-	submitText="Create List"
+	submitText={text('tasks.list_init.submit')}
 	submit={async rawInit => {
 		const init = TaskListInit.parse(rawInit);
 		const result = await fetchAPI('PUT', 'users/:id/task_lists', init, data.session!.userId);
@@ -38,11 +39,11 @@
 	}}
 >
 	<div>
-		<label for="name">Name</label>
+		<label for="name">{text('tasks.list_init.name')}</label>
 		<input name="name" type="text" required />
 	</div>
 	<div>
-		<label for="description">Description <span class="subtle">(optional)</span></label>
+		<label for="description">{@html text('tasks.list_init.description', { $html: true })}</label>
 		<input name="description" type="text" />
 	</div>
 </FormDialog>

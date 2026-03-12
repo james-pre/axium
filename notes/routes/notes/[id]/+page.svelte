@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import { Note } from '@axium/notes/components';
 
@@ -14,7 +15,7 @@
 </script>
 
 <svelte:head>
-	<title>Notes — {data.note.title}</title>
+	<title>{text('notes.note_title', { title: data.note.title })}</title>
 </svelte:head>
 
 <div class="note-container">
@@ -27,7 +28,8 @@
 					close();
 				}}
 			>
-				<Icon i="arrow-left-from-bracket" /> Back to Notes
+				<Icon i="arrow-left-from-bracket" />
+				<span>{text('notes.back_to_main')}</span>
 			</button>
 		</div>
 	{/if}

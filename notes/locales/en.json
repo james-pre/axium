@@ -1,0 +1,16 @@
+{
+	"app_name": {
+		"notes": "Notes"
+	},
+	"notes": {
+		"back_to_main": "Back to Notes",
+		"content_placeholder": "It's a beautiful day outside...",
+		"copy_id": "Copy ID",
+		"copy_link": "Copy Link",
+		"download": "Download",
+		"new": "New Note",
+		"note_title": "Notes — {title}",
+		"open_new_tab": "Open in New Tab",
+		"share": "Share"
+	}
+}

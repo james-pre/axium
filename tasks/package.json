@@ -49,7 +49,7 @@
 			"routes": "routes",
 			"hooks": "./dist/hooks.js",
 			"db": "./db.json",
-			"web_client_hooks": "./dist/common.js"
+			"web_client_hooks": "./dist/web_hook.js"
 		},
 		"apps": [
 			{

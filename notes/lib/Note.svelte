@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
+	import { fetchAPI, text } from '@axium/client';
 	import { dynamicRows } from '@axium/client/attachments';
-	import { copy } from '@axium/client/gui';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
-	import { fetchAPI } from '@axium/client/requests';
+	import { copy } from '@axium/client/gui';
 	import type { Note } from '@axium/notes/common';
 	import { download } from 'utilium/dom.js';
 
@@ -34,10 +34,12 @@
 						else notes.splice(notes.indexOf(note), 1);
 					})}
 			>
-				<Icon i="trash" /> Delete
+				<Icon i="trash" />
+				<span>{text('generic.delete')}</span>
 			</div>
 			<div class="menu-item" onclick={() => download(note.title + '.txt', note.content ?? '')}>
-				<Icon i="download" /> Download
+				<Icon i="download" />
+				<span>{text('notes.download')}</span>
 			</div>
 			<div
 				class="menu-item"
@@ -46,20 +48,23 @@
 					acl!.click();
 				}}
 			>
-				<Icon i="user-group" /> Share
+				<Icon i="user-group" />
+				<span>{text('notes.share')}</span>
 			</div>
 			<div class="menu-item" onclick={() => copy('text/plain', `${location.origin}/notes/${note.id}`)}>
-				<Icon i="link-horizontal" /> Copy Link
+				<Icon i="link-horizontal" />
+				<span>{text('notes.copy_link')}</span>
 			</div>
 			{#if notes}
 				<div class="menu-item" onclick={() => open(`/notes/${note.id}`)}>
-					<Icon i="arrow-up-right-from-square" /> Open in New Tab
+					<Icon i="arrow-up-right-from-square" />
+					<span>{text('notes.open_new_tab')}</span>
 				</div>
 			{/if}
 			{#if page.data.session?.user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', note.id)}>
 					<Icon i="hashtag" --size="14px" />
-					Copy ID
+					<span>{text('notes.copy_id')}</span>
 				</div>
 			{/if}
 		</Popover>
@@ -69,7 +74,7 @@
 		bind:value={note.content}
 		name="content"
 		class="editable-text"
-		placeholder="It's a beautiful day outside..."
+		placeholder={text('notes.content_placeholder')}
 		oninput={() => fetchAPI('PATCH', 'notes/:id', note, note.id)}
 		{@attach dynamicRows()}>{note.content}</textarea
 	>
