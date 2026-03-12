@@ -1,7 +1,12 @@
 .section {
 	width: 50%;
 	min-width: fit-content;
-	padding-top: 2em;
+	padding: 2em;
+	border-radius: 1em;
+	background-color: var(--bg-menu);
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
 
 	/* This is causing duplicate separators when removing sessions/passkeys
 	> div:has(+ div) {

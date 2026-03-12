@@ -36,7 +36,7 @@
 
 <h2>{text('page.admin.users.manage_heading')}</h2>
 
-<div id="info" class="section main">
+<div id="info" class="section">
 	<div class="item info">
 		<p>{text('page.admin.users.uuid')}</p>
 		<p>{user.id}</p>
@@ -126,12 +126,12 @@
 	</FormDialog>
 </div>
 
-<div id="sessions" class="section main">
+<div id="sessions" class="section">
 	<h3>{text('generic.sessions')}</h3>
 	<SessionList {sessions} {user} />
 </div>
 
-<div id="preferences" class="section main">
+<div id="preferences" class="section">
 	<h3>{text('generic.preferences')}</h3>
 	<ZodForm
 		bind:rootValue={user.preferences}

@@ -18,28 +18,6 @@ a {
 	color: inherit;
 }
 
-.main {
-	padding: 2em;
-	border-radius: 1em;
-	background-color: var(--bg-menu);
-	display: flex;
-	flex-direction: column;
-	gap: 1em;
-}
-
-.main-container:has(form.main) {
-	position: absolute;
-	inset: 0;
-	display: flex;
-	justify-content: center;
-	align-items: center;
-}
-
-form.main {
-	width: max-content;
-	height: max-content;
-}
-
 form {
 	div:has(label ~ input),
 	div:has(label ~ textarea),

@@ -65,7 +65,7 @@
 
 <dialog bind:this={dialog} {onclose} {...rest} onclick={e => e.stopPropagation()} {@attach closeOnBackGesture}>
 	{@render header?.()}
-	<form {onsubmit} class="main" method="dialog">
+	<form {onsubmit} method="dialog">
 		{#if error}
 			<div class="error">{error}</div>
 		{/if}
@@ -88,5 +88,21 @@
 		gap: 1em;
 		flex-direction: row;
 		justify-content: space-between;
+	}
+
+	form {
+		padding: 2em;
+		border-radius: 1em;
+		background-color: var(--bg-menu);
+		display: flex;
+		flex-direction: column;
+		gap: 1em;
+
+		width: max-content;
+		height: max-content;
+
+		@media (width < 700px) {
+			padding: 1em;
+		}
 	}
 </style>

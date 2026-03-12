@@ -38,7 +38,7 @@
 	</div>
 	<p class="greeting">{text('page.account.greeting', { name: user.name })}</p>
 
-	<div id="info" class="section main">
+	<div id="info" class="section">
 		<h3>{text('page.account.personal_info')}</h3>
 		<div class="item info">
 			<p class="subtle">{text('generic.username')}</p>
@@ -96,7 +96,7 @@
 		</div>
 	</div>
 
-	<div id="passkeys" class="section main">
+	<div id="passkeys" class="section">
 		<h3>{text('page.account.passkeys.title')}</h3>
 		{#each passkeys as passkey}
 			<div class="item passkey">
@@ -163,12 +163,12 @@
 		</button>
 	</div>
 
-	<div id="sessions" class="section main">
+	<div id="sessions" class="section">
 		<h3>{text('page.account.sessions')}</h3>
 		<SessionList {sessions} {currentSession} {user} redirectAfterLogoutAll />
 	</div>
 
-	<div id="preferences" class="section main">
+	<div id="preferences" class="section">
 		<h3>{text('page.account.preferences')}</h3>
 		<ZodForm
 			bind:rootValue={user.preferences}
