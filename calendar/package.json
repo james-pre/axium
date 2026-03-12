@@ -43,6 +43,7 @@
 	},
 	"dependencies": {
 		"rrule": "^2.8.1",
+		"svelte-gestures": "^5.2.2",
 		"zod": "^4.0.5"
 	},
 	"axium": {

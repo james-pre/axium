@@ -18,6 +18,7 @@
 	import { fetchAPI } from '@axium/client/requests';
 	import { colorHashHex, encodeColor } from '@axium/core/color';
 	import { rrulestr } from 'rrule';
+	import { useSwipe } from 'svelte-gestures';
 	import { SvelteDate } from 'svelte/reactivity';
 	import { _throw } from 'utilium';
 	import * as z from 'zod';
@@ -188,7 +189,27 @@
 			{/each}
 		{/if}
 	</div>
-	<div id="cal">
+	<div
+		id="cal"
+		{...useSwipe(
+			e => {
+				if (e.detail.pointerType != 'touch') return;
+				switch (e.detail.direction) {
+					case 'left':
+						start.setDate(start.getDate() + spanDays);
+						end.setDate(end.getDate() + spanDays);
+						break;
+					case 'right':
+						start.setDate(start.getDate() - spanDays);
+						end.setDate(end.getDate() - spanDays);
+						break;
+					case 'top':
+					case 'bottom':
+				}
+			},
+			() => ({ touchAction: 'pan-y' })
+		)}
+	>
 		<div id="hours" class="subtle">
 			{#each { length: 24 }, i}
 				{#if !i}
