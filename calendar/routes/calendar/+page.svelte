@@ -117,7 +117,9 @@
 		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
 
 		<!-- mobile -->
-		<button class="reset mobile-only day-number today" onclick={() => start.setTime(today.getTime())}>{today.getDate()}</button>
+		<button class="reset mobile-only" onclick={() => start.setTime(today.getTime())}>
+			<span class="day-number today">{today.getDate()}</span>
+		</button>
 		<button class="reset mobile-only icon-text" command="show-modal" commandfor="event-init"><Icon i="plus" /></button>
 	</div>
 	<div id="cal-sidebar" bind:this={calSidebar}>
