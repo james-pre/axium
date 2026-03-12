@@ -14,5 +14,6 @@
 		height: var(--size, 1em);
 		display: inline-block;
 		fill: var(--fill, hsl(var(--hue) 0 var(--fg-light)));
+		user-select: none;
 	}
 </style>
