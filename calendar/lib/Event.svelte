@@ -2,6 +2,7 @@
 	import type { EventInitProp } from '@axium/calendar/client';
 	import type { Event } from '@axium/calendar/common';
 	import { eventToICS, formatEventTimes, toRRuleDate } from '@axium/calendar/common';
+	import { text } from '@axium/client';
 	import { contextMenu } from '@axium/client/attachments';
 	import { Icon, Popover } from '@axium/client/components';
 	import { colorHashHex, decodeColor, encodeColor } from '@axium/core/color';
@@ -43,7 +44,7 @@
 			{@attach contextMenu(
 				{
 					i: 'pencil',
-					text: 'Edit',
+					text: text('Event.edit'),
 					action: () => {
 						eventEditId = event.id;
 						eventEditCalId = event.calId;
@@ -53,12 +54,12 @@
 				},
 				{
 					i: 'file-export',
-					text: 'Export .ics',
+					text: text('Event.export'),
 					action: () => download(event.summary + '.ics', eventToICS(event)),
 				},
 				{
 					i: 'trash-can',
-					text: 'Delete',
+					text: text('Event.delete'),
 					action: () => {
 						eventEditId = event.id;
 						document.querySelector<HTMLDialogElement>('#event-delete')!.showModal();

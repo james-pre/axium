@@ -13,9 +13,9 @@
 		withOrdinalSuffix,
 	} from '@axium/calendar/common';
 	import * as Cal from '@axium/calendar/components';
+	import { fetchAPI, text } from '@axium/client';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, ColorPicker, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
-	import { fetchAPI } from '@axium/client/requests';
 	import { colorHashHex, encodeColor } from '@axium/core/color';
 	import { rrulestr } from 'rrule';
 	import { useSwipe } from 'svelte-gestures';
@@ -88,14 +88,17 @@
 </script>
 
 <svelte:head>
-	<title>Calendar</title>
+	<title>{text('app_name.calendar')}</title>
 </svelte:head>
 
 <div id="cal-app">
-	<button class="event-init icon-text mobile-hide" command="show-modal" commandfor="event-init"><Icon i="plus" /> New Event</button>
+	<button class="event-init icon-text mobile-hide" command="show-modal" commandfor="event-init">
+		<Icon i="plus" />
+		<span>{text('calendar.new_event')}</span>
+	</button>
 	<div class="bar">
 		<!-- desktop -->
-		<button class="mobile-hide" onclick={() => start.setTime(today.getTime())}>Today</button>
+		<button class="mobile-hide" onclick={() => start.setTime(today.getTime())}>{text('calendar.today')}</button>
 		<button
 			class="reset mobile-hide"
 			onclick={() => {
@@ -126,7 +129,7 @@
 	<div id="cal-sidebar" bind:this={calSidebar}>
 		<Cal.Select bind:start bind:end />
 		<div class="cal-sidebar-header">
-			<h4>My Calendars</h4>
+			<h4>{text('calendar.list_owned')}</h4>
 			<button style:display="contents" command="show-modal" commandfor="add-calendar">
 				<Icon i="plus" />
 			</button>
@@ -135,51 +138,55 @@
 			<div
 				class="cal-sidebar-item"
 				{@attach contextMenu(
-					{ i: 'pencil', text: 'Rename', action: () => dialogs['rename:' + cal.id].showModal() },
-					{ i: 'user-group', text: 'Share', action: () => dialogs['share:' + cal.id].showModal() },
-					{ i: 'trash', text: 'Delete', action: () => dialogs['delete:' + cal.id].showModal() }
+					{ i: 'pencil', text: text('generic.rename'), action: () => dialogs['rename:' + cal.id].showModal() },
+					{ i: 'user-group', text: text('generic.share'), action: () => dialogs['share:' + cal.id].showModal() },
+					{ i: 'trash', text: text('generic.delete'), action: () => dialogs['delete:' + cal.id].showModal() }
 				)}
 			>
 				<span>{cal.name}</span>
 				<Popover showToggle="hover">
 					<div class="menu-item" onclick={() => dialogs['rename:' + cal.id].showModal()}>
-						<Icon i="pencil" /> Rename
+						<Icon i="pencil" />
+						<span>{text('generic.rename')}</span>
 					</div>
 					<div class="menu-item" onclick={() => dialogs['share:' + cal.id].showModal()}>
-						<Icon i="user-group" /> Share
+						<Icon i="user-group" />
+						<span>{text('generic.share')}</span>
 					</div>
 					<div class="menu-item" onclick={() => dialogs['delete:' + cal.id].showModal()}>
-						<Icon i="trash" /> Delete
+						<Icon i="trash" />
+						<span>{text('generic.delete')}</span>
 					</div>
 				</Popover>
 				<FormDialog
 					bind:dialog={dialogs['rename:' + cal.id]}
-					submitText="Save"
+					submitText={text('calendar_init.submit')}
 					submit={(input: { name: string }) =>
 						fetchAPI('PATCH', 'calendars/:id', input, cal.id).then(result => Object.assign(cal, result))}
 				>
 					<div>
-						<label for="name">Name</label>
+						<label for="name">{text('calendar_init.name')}</label>
 						<input name="name" type="text" required value={cal.name} />
 					</div>
 				</FormDialog>
 				<AccessControlDialog editable itemType="calendars" item={cal} bind:dialog={dialogs['share:' + cal.id]} />
 				<FormDialog
 					bind:dialog={dialogs['delete:' + cal.id]}
-					submitText="Delete"
+					submitText={text('generic.delete')}
 					submitDanger
 					submit={() => fetchAPI('DELETE', 'calendars/:id', null, cal.id).then(() => calendars.splice(calendars.indexOf(cal), 1))}
 				>
 					<p>
-						Are you sure you want to delete the calendar "{cal.name}"?<br />
-						<strong>This action cannot be undone.</strong>
+						<span>{text('calendar.delete_confirm', { name: cal.name })}</span>
+						<br />
+						<strong>{text('generic.action_irreversible')}</strong>
 					</p>
 				</FormDialog>
 			</div>
 		{/each}
 		{#if calendars.some(cal => cal.userId != user.id)}
 			<div class="cal-sidebar-header">
-				<h4>Shared Calendars</h4>
+				<h4>{text('calendar.list_shared')}</h4>
 			</div>
 			{#each calendars.filter(cal => cal.userId != user.id) as cal (cal.id)}
 				{@const { list, icon } = getCalPermissionsInfo(cal, user)}
@@ -263,7 +270,7 @@
 	id="event-init"
 	clearOnCancel
 	cancel={() => (eventInit = defaultEventInit)}
-	submitText={eventEditId ? 'Update' : 'Create'}
+	submitText={eventEditId ? text('event_init.submit_update') : text('generic.create')}
 	submit={async (data: EventInitFormData) => {
 		Object.assign(eventInit, data);
 		const calendar = calendars.find(cal => cal.id == eventInit.calId);
@@ -283,7 +290,7 @@
 		return;
 	}}
 >
-	<input name="summary" type="text" required placeholder="Add title" bind:value={eventInit.summary} />
+	<input name="summary" type="text" required placeholder={text('event_init.title_placeholder')} bind:value={eventInit.summary} />
 	<div class="event-times-container">
 		<label for="eventInit.start"><Icon i="clock" /></label>
 		<div class="event-times">
@@ -308,22 +315,24 @@
 				<label for="eventInit.isAllDay:checkbox" class="checkbox">
 					{#if eventInit.isAllDay}<Icon i="check" --size="1.3em" />{/if}
 				</label>
-				<label for="eventInit.isAllDay:checkbox">All day</label>
+				<label for="eventInit.isAllDay:checkbox">{text('event_init.all_day')}</label>
 				<div class="spacing"></div>
 				<select name="recurrence" bind:value={eventInit.recurrence}>
-					<option value="">Does not repeat</option>
-					<option value="FREQ=DAILY">Every day</option>
+					<option value="">{text('event_init.recurrence.none')}</option>
+					<option value="FREQ=DAILY">{text('event_init.recurrence.daily')}</option>
 					<option value="FREQ=WEEKLY;BYDAY={toByDay(eventInit.start)}">
-						Every week on {longWeekDay(eventInit.start)}
+						{text('event_init.recurrence.weekly', { day: longWeekDay(eventInit.start) })}
 					</option>
 					<option value="FREQ=MONTHLY;BYDAY={Math.ceil(eventInit.start.getDate() / 7) + toByDay(eventInit.start)}"
-						>Every month on the {weekDayOfMonth(eventInit.start)}
+						>{text('event_init.recurrence.monthly_on', { day: weekDayOfMonth(eventInit.start) })}
 					</option>
 					<option value="FREQ=MONTHLY;BYMONTHDAY={eventInit.start.getDate()}">
-						Every month on the {withOrdinalSuffix(eventInit.start.getDate())}
+						{text('event_init.recurrence.monthly_on', { day: withOrdinalSuffix(eventInit.start.getDate()) })}
 					</option>
 					<option value="FREQ=YEARLY;BYMONTH={eventInit.start.getMonth()};BYMONTHDAY={eventInit.start.getDate()}">
-						Every year on {eventInit.start.toLocaleDateString('default', { month: 'long', day: 'numeric' })}
+						{text('event_init.recurrence.yearly', {
+							date: eventInit.start.toLocaleDateString('default', { month: 'long', day: 'numeric' }),
+						})}
 					</option>
 					<!-- @todo <option value="">Custom</option> -->
 				</select>
@@ -364,7 +373,12 @@
 
 	<div>
 		<label for="eventInit.location"><Icon i="location-dot" /></label>
-		<input name="location" id="eventInit.location" placeholder="Add location" bind:value={eventInit.location} />
+		<input
+			name="location"
+			id="eventInit.location"
+			placeholder={text('event_init.location_placeholder')}
+			bind:value={eventInit.location}
+		/>
 	</div>
 
 	<div>
@@ -372,7 +386,7 @@
 		<textarea
 			name="description"
 			id="eventInit.description"
-			placeholder="Add description"
+			placeholder={text('event_init.description_placeholder')}
 			bind:value={eventInit.description}
 			{@attach dynamicRows()}
 		></textarea>
@@ -381,7 +395,7 @@
 
 <FormDialog
 	id="event-delete"
-	submitText="Delete"
+	submitText={text('generic.delete')}
 	submitDanger
 	submit={async () => {
 		if (!eventEditId) throw new Error('No event to delete');
@@ -392,17 +406,17 @@
 		eventEditId = undefined;
 	}}
 >
-	<p>Are you sure you want to delete this event?</p>
+	<p>{text('event_delete.confirm')}</p>
 </FormDialog>
 
 <FormDialog
 	id="add-calendar"
-	submitText="Create"
+	submitText={text('generic.create')}
 	submit={(input: { name: string }) =>
 		fetchAPI('PUT', 'users/:id/calendars', input, user.id).then(cal => calendars.push({ ...cal, acl: [] }))}
 >
 	<div>
-		<label for="name">Name</label>
+		<label for="name">{text('calendar_init.name')}</label>
 		<input name="name" type="text" required />
 	</div>
 </FormDialog>

@@ -29,6 +29,7 @@
 		"dist",
 		"lib",
 		"routes",
+		"locales",
 		"db.json"
 	],
 	"scripts": {
@@ -50,7 +51,8 @@
 		"server": {
 			"routes": "routes",
 			"hooks": "./dist/hooks.js",
-			"db": "./db.json"
+			"db": "./db.json",
+			"web_client_hooks": "./dist/web_hook.js"
 		},
 		"apps": [
 			{

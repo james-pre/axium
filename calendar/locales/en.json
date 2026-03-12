@@ -1,0 +1,38 @@
+{
+	"app_name": {
+		"calendar": "Calendar"
+	},
+	"Event": {
+		"edit": "Edit",
+		"export": "Export .ics",
+		"delete": "Delete"
+	},
+	"calendar": {
+		"new_event": "New Event",
+		"today": "Today",
+		"list_owned": "My Calendars",
+		"list_shared": "Shared Calendars",
+		"delete_confirm": "Are you sure you want to delete the calendar \"{name}\"?"
+	},
+	"calendar_init": {
+		"name": "Name",
+		"submit": "Save"
+	},
+	"event_delete": {
+		"confirm": "Are you sure you want to delete this event?"
+	},
+	"event_init": {
+		"all_day": "All day",
+		"description_placeholder": "Add description",
+		"location_placeholder": "Add location",
+		"recurrence": {
+			"daily": "Every day",
+			"monthly_on": "Every month on the {day}",
+			"none": "Does not repeat",
+			"weekly": "Every week on {day}",
+			"yearly": "Every year on {date}"
+		},
+		"submit_update": "Update",
+		"title_placeholder": "Add title"
+	}
+}
