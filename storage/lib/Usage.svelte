@@ -15,8 +15,8 @@
 		<p>
 			<a href="/files/usage">
 				<NumberBar
-					max={info.limits.user_size && info.limits.user_size * 1_000_000n}
-					value={info.usedBytes}
+					max={!!info.limits.user_size && Number(info.limits.user_size * 1_000_000n)}
+					value={Number(info.usedBytes)}
 					text="{formatBytes(info.usedBytes)} {!info.limits.user_size
 						? ''
 						: '/ ' + formatBytes(info.limits.user_size * 1_000_000n)}"

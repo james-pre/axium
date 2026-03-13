@@ -23,6 +23,6 @@
 
 <h2>{text('page.files.usage.heading')}</h2>
 
-<p><NumberBar max={limits.user_size * 1_000_000n} value={usedBytes} text={barText} /></p>
+<p><NumberBar max={Number(limits.user_size * 1_000_000n)} value={Number(usedBytes)} text={barText} /></p>
 
 <List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} />
