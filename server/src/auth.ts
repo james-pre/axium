@@ -1,4 +1,5 @@
 import type { Passkey, Session, UserInternal, VerificationInternal, VerificationRole } from '@axium/core';
+import { checkACL, controlMatchesUser } from '@axium/core';
 import type { Insertable, Kysely, SelectQueryBuilder } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit, type WithRequired } from 'utilium';
@@ -241,11 +242,11 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 				})
 		: item.acl;
 
-	const matching = controls.filter(c => acl.controlMatchesUser(c, user));
+	const matching = controls.filter(c => controlMatchesUser(c, user));
 
 	if (!matching.length) error(403, 'Item is not shared with you');
 
-	const missing = Array.from(acl.check(matching, permissions));
+	const missing = Array.from(checkACL(matching, permissions as any));
 	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
 
 	return result;

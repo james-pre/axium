@@ -1,4 +1,4 @@
-import { getConfig, type AsyncResult } from '@axium/core';
+import { checkACL, getConfig, type AsyncResult } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { audit } from '@axium/server/audit';
 import { requireSession } from '@axium/server/auth';
@@ -82,7 +82,7 @@ addRoute({
 
 			if (!item.acl || !item.acl.length) error(403, 'Missing permission for item: ' + item.id);
 
-			acl.check(item.acl, changedIds.has(item.id) ? { write: true } : { manage: true });
+			checkACL(item.acl, changedIds.has(item.id) ? { write: true } : { manage: true });
 
 			error(403, 'Missing permission for item: ' + item.id);
 		}

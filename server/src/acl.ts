@@ -52,15 +52,6 @@ export function match(user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
 	};
 }
 
-export function controlMatchesUser(control: AccessControl, user: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
-	return (
-		(!control.role && !control.tag && !control.userId) ||
-		control.userId === user.id ||
-		(control.role && user.roles.includes(control.role)) ||
-		(control.tag && user.tags.includes(control.tag))
-	);
-}
-
 export interface ACLSelectionOptions {
 	/** Instead of using the `id` from `table`, use the `id` from this instead */
 	alias?: string;
@@ -134,25 +125,6 @@ export async function add<const TB extends TableName>(table: TB, itemId: string,
 		.returningAll()
 		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
 		.executeTakeFirstOrThrow();
-}
-
-/** Check an ACL against a set of permissions. */
-export function check<const TB extends TableName>(
-	acl: Result<TB>[],
-	permissions: Partial<PermissionsFor<TB>>
-): Set<keyof PermissionsFor<TB>> {
-	const allowed = new Set<keyof PermissionsFor<TB>>();
-	const all = new Set(Object.keys(permissions) as (keyof PermissionsFor<TB>)[]);
-	const entries = Object.entries(permissions) as Entries<typeof permissions>;
-
-	for (const control of acl) {
-		for (const [key, needed] of entries) {
-			const value = control[key];
-			if (value === needed) allowed.add(key);
-		}
-	}
-
-	return all.difference(allowed);
 }
 
 export function listTables(): Record<string, TableName> {
