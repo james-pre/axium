@@ -192,8 +192,7 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 		fromACL: false,
 	};
 
-	if (!session || !user) error(401, 'Item is not public');
-	if (user.isSuspended) error(403, 'User is suspended');
+	if (user?.isSuspended) error(403, 'User is suspended');
 
 	if (userId == item.userId) return result;
 
@@ -244,7 +243,9 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 
 	const matching = controls.filter(c => controlMatchesUser(c, user));
 
-	if (!matching.length) error(403, 'Item is not shared with you');
+	if (!matching.length)
+		if (!session || !user) error(401, 'Item is not public');
+		else error(403, 'Item is not shared with you');
 
 	const missing = Array.from(checkACL(matching, permissions as any));
 	if (missing.length) error(403, 'Missing permissions: ' + missing.join(', '));
@@ -263,10 +264,15 @@ export async function authRequestForItem<const TB extends acl.TargetName>(
 	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
 	recursive: boolean = false
 ): Promise<ItemAuthResult<TB>> {
-	const token = getToken(request, false);
-	if (!token) error(401, 'Missing token');
+	let session: SessionAndUser | null = null;
 
-	const session = await getSessionAndUser(token).catch(() => null);
+	try {
+		const token = getToken(request, false);
+		if (!token) error(401, 'Missing token');
+		session = await getSessionAndUser(token).catch(() => null);
+	} catch {
+		session = null;
+	}
 
 	return await authSessionForItem(itemType, itemId, permissions, session, recursive);
 }
