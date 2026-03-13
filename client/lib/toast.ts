@@ -3,6 +3,7 @@ import { text } from '@axium/client/locales';
 import { animate, onAnimationEnd } from '@axium/client/gui';
 import Icon from './Icon.svelte';
 import { mount } from 'svelte';
+import { $ZodError, prettifyError } from 'zod/v4/core';
 
 const list = document.querySelector<HTMLDivElement>('#toasts')!;
 
@@ -22,6 +23,8 @@ const durationMultiplier = {
 } as Record<ToastType, number>;
 
 export async function toast(type: ToastType, message: any): Promise<void> {
+	if (message instanceof $ZodError) console.error('[toast]', prettifyError(message));
+	else if (message instanceof Error) console.error('[toast]', message);
 	const text = errorText(message);
 
 	const toast = document.createElement('div');
