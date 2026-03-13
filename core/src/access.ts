@@ -1,6 +1,6 @@
-import * as z from 'zod';
-import { UserPublic, type User } from './user.js';
 import { omit, type Entries, type Omit } from 'utilium';
+import * as z from 'zod';
+import { UserPublic } from './user.js';
 
 export const AccessControl = z
 	.object({
@@ -29,12 +29,12 @@ export function fromTarget(target: AccessTarget): Pick<AccessControl, 'userId' |
 	return { userId: target, role: null, tag: null };
 }
 
-export function controlMatchesUser(control: AccessControl, user: Pick<User, 'id' | 'roles' | 'tags'>): boolean {
+export function controlMatchesUser(control: AccessControl, user: Pick<UserPublic, 'id' | 'roles' | 'tags'>): boolean {
 	return !!(
 		(!control.role && !control.tag && !control.userId) ||
 		control.userId === user.id ||
 		(control.role && user.roles.includes(control.role)) ||
-		(control.tag && user.tags.includes(control.tag))
+		(control.tag && user.tags?.includes(control.tag))
 	);
 }
 
@@ -74,7 +74,7 @@ export function checkACL<const AC extends AccessControl>(
  */
 export function checkAndMatchACL<const AC extends AccessControl>(
 	acl: AC[],
-	user: Pick<User, 'id' | 'roles' | 'tags'>,
+	user: Pick<UserPublic, 'id' | 'roles' | 'tags'>,
 	permissions: Partial<PickPermissions<AC>>
 ): Set<keyof PickPermissions<AC>> {
 	const filtered = acl.filter(c => controlMatchesUser(c, user));
