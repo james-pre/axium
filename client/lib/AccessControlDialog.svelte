@@ -108,7 +108,7 @@
 		</div>
 	{/each}
 
-	<UserDiscovery {onSelect} excludeTargets={acl.map(getTarget)} />
+	<UserDiscovery {onSelect} excludeTargets={acl.map(getTarget).filter<string>((t): t is string => !!t)} />
 
 	<div>
 		<button class="done" onclick={() => dialog!.close()}>{text('generic.done')}</button>

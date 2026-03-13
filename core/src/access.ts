@@ -23,7 +23,7 @@ export function getTarget(ac: AccessControl): AccessTarget {
 }
 
 export function fromTarget(target: AccessTarget): Partial<Pick<AccessControl, 'userId' | 'role' | 'tag'>> {
-	if (target == 'public') return { userId: null, role: null, tag: null };
+	if (target == null) return { userId: null, role: null, tag: null };
 	if (target[0] == '@') return { userId: null, role: target.slice(1), tag: null };
 	if (target[0] == '#') return { userId: null, role: null, tag: target.slice(1) };
 	return { userId: target, role: null, tag: null };
@@ -46,9 +46,13 @@ export const AccessTarget = z.union([
 	z.uuid(),
 	z.templateLiteral(['@', z.string()]),
 	z.templateLiteral(['#', z.string()]),
-	z.literal('public'),
+	z.literal(null),
 ]);
 
+/**
+ * A primitive representation for the target of an access control.
+ *
+ */
 export type AccessTarget = z.infer<typeof AccessTarget>;
 
 export const AccessControlUpdate = z.object({

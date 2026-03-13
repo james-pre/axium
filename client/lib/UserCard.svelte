@@ -7,7 +7,7 @@
 		user,
 		compact = false,
 		self = false,
-		href = `/users/${user.id}`,
+		href,
 		you = false,
 	}: {
 		user: Partial<User>;

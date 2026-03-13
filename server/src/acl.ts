@@ -1,4 +1,5 @@
-import { fromTarget, type AccessControl, type AccessControllable, type AccessTarget, type UserInternal } from '@axium/core';
+import type { AccessControl, AccessControllable, AccessTarget, UserInternal } from '@axium/core';
+import { fromTarget } from '@axium/core/access';
 import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { Entries, WithRequired } from 'utilium';
