@@ -1,5 +1,6 @@
 import type { AccessControl, AccessTarget } from '@axium/core';
 import { fetchAPI } from './requests.js';
+import { useCache } from './cache.js';
 
 export async function updateACL(
 	itemType: string,
@@ -11,7 +12,7 @@ export async function updateACL(
 }
 
 export async function getACL(itemType: string, itemId: string): Promise<AccessControl[]> {
-	return await fetchAPI('GET', 'acl/:itemType/:itemId', {}, itemType, itemId);
+	return await useCache('acl', `${itemType}/${itemId}`, () => fetchAPI('GET', 'acl/:itemType/:itemId', {}, itemType, itemId));
 }
 
 export async function addToACL(itemType: string, itemId: string, target: AccessTarget): Promise<AccessControl> {
