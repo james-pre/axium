@@ -1,5 +1,6 @@
 import type { APIParameters, APIValues, Endpoint, RequestBody } from '@axium/core/api';
 import { $API } from '@axium/core/api';
+import { errorText } from '@axium/core/io';
 import type { RequestMethod } from '@axium/core/requests';
 import { prettifyError } from 'zod';
 
@@ -101,6 +102,6 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 	try {
 		return Output.parse(json);
 	} catch (e: any) {
-		throw `${method} ${endpoint}:\n${prettifyError(e)}`;
+		throw `${method} ${endpoint}:\n${errorText(e)}`;
 	}
 }
