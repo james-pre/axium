@@ -29,9 +29,10 @@ export function fromTarget(target: AccessTarget): Pick<AccessControl, 'userId' |
 	return { userId: target, role: null, tag: null };
 }
 
-export function controlMatchesUser(control: AccessControl, user: Pick<UserPublic, 'id' | 'roles' | 'tags'>): boolean {
+export function controlMatchesUser(control: AccessControl, user?: Pick<UserPublic, 'id' | 'roles' | 'tags'>): boolean {
+	if (!control.role && !control.tag && !control.userId) return true;
+	if (!user) return false;
 	return !!(
-		(!control.role && !control.tag && !control.userId) ||
 		control.userId === user.id ||
 		(control.role && user.roles.includes(control.role)) ||
 		(control.tag && user.tags?.includes(control.tag))

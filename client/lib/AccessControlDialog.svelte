@@ -1,32 +1,25 @@
 <script lang="ts">
 	import { addToACL, getACL, removeFromACL, text, updateACL, userInfo } from '@axium/client';
-	import type { AccessControllable, AccessTarget, User } from '@axium/core';
-	import { getTarget, pickPermissions } from '@axium/core';
-	import { errorText } from '@axium/core/io';
+	import type { AccessControllable, AccessTarget, UserPublic } from '@axium/core';
+	import { checkAndMatchACL, getTarget, pickPermissions } from '@axium/core';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
 	import Icon from './Icon.svelte';
 	import UserCard from './UserCard.svelte';
 	import UserDiscovery from './UserDiscovery.svelte';
 	import { closeOnBackGesture } from './attachments.js';
-	import { toastStatus } from './toast.js';
+	import { toast, toastStatus } from './toast.js';
 
 	interface Props extends HTMLDialogAttributes {
-		editable: boolean;
+		user?: UserPublic;
 		dialog?: HTMLDialogElement;
 		itemType: string;
-		item: { name?: string; user?: User; id: string } & AccessControllable;
+		item: { name?: string; user?: UserPublic; id: string } & AccessControllable;
 	}
-	let { item, itemType, editable, dialog = $bindable(), ...rest }: Props = $props();
-
-	let error = $state<string>();
+	let { item, itemType, user, dialog = $bindable(), ...rest }: Props = $props();
 
 	const acl = $state(item.acl ?? (await getACL(itemType, item.id)));
 
-	async function onSelect(target: AccessTarget) {
-		const control = await addToACL(itemType, item.id, target);
-		if (control.userId) control.user = await userInfo(control.userId);
-		acl.push(control);
-	}
+	const editable = $derived(!!user && (item.userId === user.id || !checkAndMatchACL(item.acl || [], user, { manage: true }).size));
 </script>
 
 <dialog bind:this={dialog} {...rest} onclick={e => e.stopPropagation()} {@attach closeOnBackGesture}>
@@ -34,10 +27,6 @@
 		<h3>{@html text('AccessControlDialog.named_title', { $html: true, name: item.name })}</h3>
 	{:else}
 		<h3>{text('AccessControlDialog.title')}</h3>
-	{/if}
-
-	{#if error}
-		<div class="error">{error}</div>
 	{/if}
 
 	<div class="AccessControl text">
@@ -55,13 +44,13 @@
 				const updated = await updateACL(itemType, item.id, getTarget(control), { [key]: e.currentTarget.checked });
 				Object.assign(control, updated);
 			} catch (e) {
-				error = errorText(e);
+				toast('error', e);
 			}
 		}}
 		<div class="AccessControl">
 			<div class="target">
-				{#if control.user}
-					<UserCard user={control.user} />
+				{#if control.userId}
+					<UserCard user={(control.user ||= await userInfo(control.userId))} />
 				{:else if control.role}
 					<span class="icon-text">
 						<Icon i="at" />
@@ -73,7 +62,7 @@
 						<span>{control.tag}</span>
 					</span>
 				{:else}
-					<i>{text('generic.unknown')}</i>
+					<span>{text('AccessControlDialog.public_target')}</span>
 				{/if}
 				{#if editable}
 					<button
@@ -108,7 +97,34 @@
 		</div>
 	{/each}
 
-	<UserDiscovery {onSelect} excludeTargets={acl.map(getTarget).filter<string>((t): t is string => !!t)} />
+	{#if editable}
+		<div class="actions">
+			{#if !acl.find(c => !c.userId && !c.role && !c.tag)}
+				<button
+					class="icon-text"
+					onclick={() =>
+						addToACL(itemType, item.id, null)
+							.then(ac => acl.push(ac))
+							.catch(e => toast('error', e))}
+				>
+					<Icon i="globe" />
+					<span>{text('AccessControlDialog.add_public')}</span>
+				</button>
+			{/if}
+		</div>
+		<UserDiscovery
+			onSelect={async (target: AccessTarget) => {
+				try {
+					const control = await addToACL(itemType, item.id, target);
+					if (control.userId) control.user = await userInfo(control.userId);
+					acl.push(control);
+				} catch (e) {
+					toast('error', e);
+				}
+			}}
+			excludeTargets={acl.map(getTarget).filter<string>((t): t is string => !!t)}
+		/>
+	{/if}
 
 	<div>
 		<button class="done" onclick={() => dialog!.close()}>{text('generic.done')}</button>
@@ -130,6 +146,12 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.1em;
+	}
+
+	.actions {
+		display: flex;
+		gap: 1em;
+		align-items: center;
 	}
 
 	.AccessControl {

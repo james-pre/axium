@@ -4,7 +4,9 @@
 		"owner": "Owner",
 		"title": "Permissions",
 		"remove": "Remove",
-		"toast_removed": "Removed access"
+		"toast_removed": "Removed access",
+		"public_target": "Everyone",
+		"add_public": "Add Public Access"
 	},
 	"AppMenu": {
 		"failed": "Couldn't load apps.",
