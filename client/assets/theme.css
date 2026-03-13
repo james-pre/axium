@@ -40,6 +40,7 @@ html {
 	--bg-warning: hsl(60 40 var(--bg-light-status));
 	--bg-success: hsl(120 40 var(--bg-light-status));
 
+	--fg-normal: hsl(0 0 var(--fg-light));
 	--fg-accent: hsl(var(--hue) 15 var(--fg-light));
 	--fg-strong: hsl(var(--hue) 25 calc(var(--fg-light) - var(--light-step)));
 

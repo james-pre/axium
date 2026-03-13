@@ -8,8 +8,8 @@ body {
 	font-family: sans-serif;
 	font-size: 16px;
 	background-color: var(--bg-normal);
-	color: hsl(0 0 var(--fg-light));
-	accent-color: hsl(0 0 var(--fg-light));
+	color: var(--fg-normal);
+	accent-color: var(--fg-normal);
 	overflow-y: scroll;
 }
 
@@ -34,16 +34,16 @@ select,
 textarea {
 	border: var(--border-accent);
 	background-color: var(--bg-normal);
-	font-family: inherit;
-	color: hsl(0 0 var(--fg-light));
-	accent-color: hsl(0 0 var(--fg-light));
+	font: inherit;
+	color: inherit;
+	accent-color: inherit;
 }
 
 input,
 button,
 select {
-	border-radius: 0.5em;
-	padding: 0.5em 1em;
+	border-radius: 0.5rem;
+	padding: 0.4rem 0.75rem;
 }
 
 button {
