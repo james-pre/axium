@@ -46,7 +46,7 @@ const TasksAPI = {
 	'task_lists/:id': {
 		GET: TaskList.required({ tasks: true }),
 		PATCH: [TaskListInit, TaskList],
-		POST: [TaskListUpdate, {}],
+		POST: [TaskListUpdate, z.unknown()],
 		PUT: [TaskInit.omit({ listId: true }), Task],
 		DELETE: TaskList,
 	},
