@@ -101,8 +101,8 @@
 </svelte:head>
 
 <div id="cal-app">
-	<div id="event-init-container">
-		<button class="event-init icon-text mobile-hide" command="show-modal" commandfor="event-init">
+	<div id="event-init-container" class="mobile-hide">
+		<button class="event-init icon-text" command="show-modal" commandfor="event-init">
 			<Icon i="plus" />
 			<span>{text('calendar.new_event')}</span>
 		</button>
