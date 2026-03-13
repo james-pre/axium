@@ -6,7 +6,7 @@
 		text,
 	}: {
 		min?: number;
-		max: number | false;
+		max?: number | false;
 		value: number;
 		text: string;
 	} = $props();
