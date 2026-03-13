@@ -20,13 +20,13 @@
 
 		<a class="menu-item" href="/account">
 			<Icon i="user" --size="1.5em" />
-			<span>{text('component.UserMenu.account')}</span>
+			<span>{text('UserMenu.account')}</span>
 		</a>
 
 		{#if user.isAdmin}
 			<a class="menu-item" href="/admin">
 				<Icon i="gear-complex" --size="1.5em" />
-				<span>{text('component.UserMenu.admin')}</span>
+				<span>{text('UserMenu.admin')}</span>
 			</a>
 		{/if}
 
@@ -45,10 +45,10 @@
 					<span>{text('app_name.' + app.id, { $default: app.name })}</span>
 				</a>
 			{:else}
-				<i>{text('component.AppMenu.none')}</i>
+				<i>{text('AppMenu.none')}</i>
 			{/each}
 		{:catch}
-			<i>{text('component.AppMenu.failed')}</i>
+			<i>{text('AppMenu.failed')}</i>
 		{/await}
 
 		<button class="menu-item logout reset" command="show-modal" commandfor="logout">

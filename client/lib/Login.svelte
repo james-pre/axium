@@ -18,13 +18,13 @@
 
 <FormDialog bind:dialog submitText={text('generic.login')} {submit} pageMode={fullPage}>
 	<div>
-		<label for="email">{text('component.Login.email')}</label>
+		<label for="email">{text('Login.email')}</label>
 		<input name="email" type="email" required />
 	</div>
 	{#snippet footer()}
 		{#if fullPage}
 			<div class="footer">
-				<a href="/register">{text('component.Login.register')}</a>
+				<a href="/register">{text('Login.register')}</a>
 			</div>
 		{/if}
 	{/snippet}

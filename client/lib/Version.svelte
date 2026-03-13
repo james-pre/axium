@@ -14,13 +14,13 @@
 	{#await _latest then latest}
 		<span class="latest">
 			{#if ltVersion(v, latest)}
-				{@html text('component.Version.upgrade', { $html: true, latest })}
+				{@html text('Version.upgrade', { $html: true, latest })}
 			{:else}
-				{text('component.Version.latest')}
+				{text('Version.latest')}
 			{/if}
 		</span>
 	{:catch}
-		<span class="latest error">{text('component.Version.error')}</span>
+		<span class="latest error">{text('Version.error')}</span>
 	{/await}
 {/if}
 

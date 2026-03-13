@@ -31,9 +31,9 @@
 
 <dialog bind:this={dialog} {...rest} onclick={e => e.stopPropagation()} {@attach closeOnBackGesture}>
 	{#if item.name}
-		<h3>{@html text('component.AccessControlDialog.named_title', { $html: true, name: item.name })}</h3>
+		<h3>{@html text('AccessControlDialog.named_title', { $html: true, name: item.name })}</h3>
 	{:else}
-		<h3>{text('component.AccessControlDialog.title')}</h3>
+		<h3>{text('AccessControlDialog.title')}</h3>
 	{/if}
 
 	{#if error}
@@ -46,7 +46,7 @@
 		{:else if item}
 			{#await userInfo(item.userId) then user}<UserCard {user} />{:catch}<i>{text('generic.unknown')}</i>{/await}
 		{/if}
-		<span>{text('component.AccessControlDialog.owner')}</span>
+		<span>{text('AccessControlDialog.owner')}</span>
 	</div>
 
 	{#each acl as control, i (control.userId || control.role || control.tag)}
@@ -81,11 +81,11 @@
 						onclick={() =>
 							toastStatus(
 								removeFromACL(itemType, item.id, getTarget(control)).then(() => acl.splice(i, 1)),
-								text('component.AccessControlDialog.toast_removed')
+								text('AccessControlDialog.toast_removed')
 							)}
 					>
 						<Icon i="user-minus" />
-						<span>{text('component.AccessControlDialog.remove')}</span>
+						<span>{text('AccessControlDialog.remove')}</span>
 					</button>
 				{/if}
 			</div>

@@ -11,7 +11,7 @@
 	submitText={text('generic.logout')}
 	submit={() => logoutCurrentSession().then(() => (window.location.href = '/'))}
 >
-	<p>{text('component.Logout.question')}</p>
+	<p>{text('Logout.question')}</p>
 	{#if fullPage}
 		<button
 			command="close"
@@ -19,7 +19,7 @@
 			onclick={e => {
 				e.preventDefault();
 				history.back();
-			}}>{text('component.Logout.back')}</button
+			}}>{text('Logout.back')}</button
 		>
 	{/if}
 </FormDialog>

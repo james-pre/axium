@@ -17,14 +17,14 @@
 		<p>
 			{session.name ?? `${session.id.slice(0, 4)}...${session.id.slice(-4)}`}
 			{#if session.id == currentSession?.id}
-				<span class="current">{text('component.SessionList.current')}</span>
+				<span class="current">{text('SessionList.current')}</span>
 			{/if}
 			{#if session.elevated}
-				<span class="elevated">{text('component.SessionList.elevated')}</span>
+				<span class="elevated">{text('SessionList.elevated')}</span>
 			{/if}
 		</p>
-		<p class="timestamp">{text('component.SessionList.created', { date: session.created.toLocaleString() })}</p>
-		<p class="timestamp">{text('component.SessionList.expires', { date: session.expires.toLocaleString() })}</p>
+		<p class="timestamp">{text('SessionList.created', { date: session.created.toLocaleString() })}</p>
+		<p class="timestamp">{text('SessionList.expires', { date: session.expires.toLocaleString() })}</p>
 		<button command="show-modal" commandfor={'logout-session:' + session.id} class="logout icon-text">
 			<Icon i="right-from-bracket" --size="16px" />
 			<span class="mobile-only">{text('generic.logout')}</span>
@@ -39,18 +39,17 @@
 		}}
 		submitText={text('generic.logout')}
 	>
-		<p>{text('component.SessionList.logout_single')}</p>
+		<p>{text('SessionList.logout_single')}</p>
 	</FormDialog>
 {/each}
-<button command="show-modal" commandfor="logout-all" class="danger inline-button">{text('component.SessionList.logout_all_trigger')}</button
->
+<button command="show-modal" commandfor="logout-all" class="danger inline-button">{text('SessionList.logout_all_trigger')}</button>
 <FormDialog
 	id="logout-all"
 	submit={() => logoutAll(user.id).then(() => (redirectAfterLogoutAll ? (window.location.href = '/') : null))}
-	submitText={text('component.SessionList.logout_all_submit')}
+	submitText={text('SessionList.logout_all_submit')}
 	submitDanger
 >
-	<p>{text('component.SessionList.logout_all_question')}</p>
+	<p>{text('SessionList.logout_all_question')}</p>
 </FormDialog>
 
 <style>

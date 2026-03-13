@@ -189,7 +189,7 @@
 	</div>
 {:else}
 	<!-- No idea how to render this -->
-	<i class="error">{text('component.ZodInput.invalid_type', { type: JSON.stringify((schema as ZodPref)?.def?.type) })}</i>
+	<i class="error">{text('ZodInput.invalid_type', { type: JSON.stringify((schema as ZodPref)?.def?.type) })}</i>
 {/if}
 
 <style>

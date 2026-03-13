@@ -1,61 +1,59 @@
 {
-	"component": {
-		"AccessControlDialog": {
-			"named_title": "Permissions for <strong>{name}</strong>",
-			"owner": "Owner",
-			"title": "Permissions",
-			"remove": "Remove",
-			"toast_removed": "Removed access"
-		},
-		"AppMenu": {
-			"failed": "Couldn't load apps.",
-			"none": "No apps available."
-		},
-		"Login": {
-			"email": "Email",
-			"register": "Register instead"
-		},
-		"Logout": {
-			"back": "Take me back",
-			"question": "Are you sure you want to log out?"
-		},
-		"Register": {
-			"email": "Email",
-			"login": "Login instead",
-			"name": "Display Name"
-		},
-		"SessionList": {
-			"created": "Created {date}",
-			"current": "Current",
-			"elevated": "Elevated",
-			"expires": "Expires {date}",
-			"logout_all_question": "Are you sure you want to log out all sessions?",
-			"logout_all_submit": "Logout All Sessions",
-			"logout_all_trigger": "Logout All",
-			"logout_single": "Are you sure you want to log out this session?"
-		},
-		"Upload": {
-			"upload": "Upload"
-		},
-		"UserCard": {
-			"you": "(You)"
-		},
-		"UserDiscovery": {
-			"no_results": "No results",
-			"placeholder": "Add users and roles"
-		},
-		"UserMenu": {
-			"account": "Your Account",
-			"admin": "Administration"
-		},
-		"Version": {
-			"error": "Latest unknown",
-			"latest": "Latest",
-			"upgrade": "<span class=\"version\">{latest}</span> available"
-		},
-		"ZodInput": {
-			"invalid_type": "Invalid input type: {type}"
-		}
+	"AccessControlDialog": {
+		"named_title": "Permissions for <strong>{name}</strong>",
+		"owner": "Owner",
+		"title": "Permissions",
+		"remove": "Remove",
+		"toast_removed": "Removed access"
+	},
+	"AppMenu": {
+		"failed": "Couldn't load apps.",
+		"none": "No apps available."
+	},
+	"Login": {
+		"email": "Email",
+		"register": "Register instead"
+	},
+	"Logout": {
+		"back": "Take me back",
+		"question": "Are you sure you want to log out?"
+	},
+	"Register": {
+		"email": "Email",
+		"login": "Login instead",
+		"name": "Display Name"
+	},
+	"SessionList": {
+		"created": "Created {date}",
+		"current": "Current",
+		"elevated": "Elevated",
+		"expires": "Expires {date}",
+		"logout_all_question": "Are you sure you want to log out all sessions?",
+		"logout_all_submit": "Logout All Sessions",
+		"logout_all_trigger": "Logout All",
+		"logout_single": "Are you sure you want to log out this session?"
+	},
+	"Upload": {
+		"upload": "Upload"
+	},
+	"UserCard": {
+		"you": "(You)"
+	},
+	"UserDiscovery": {
+		"no_results": "No results",
+		"placeholder": "Add users and roles"
+	},
+	"UserMenu": {
+		"account": "Your Account",
+		"admin": "Administration"
+	},
+	"Version": {
+		"error": "Latest unknown",
+		"latest": "Latest",
+		"upgrade": "<span class=\"version\">{latest}</span> available"
+	},
+	"ZodInput": {
+		"invalid_type": "Invalid input type: {type}"
 	},
 	"generic": {
 		"action_irreversible": "This action can't be undone.",

@@ -56,7 +56,7 @@
 	}
 </script>
 
-<input bind:value type="text" placeholder={text('component.UserDiscovery.placeholder')} {oninput} />
+<input bind:value type="text" placeholder={text('UserDiscovery.placeholder')} {oninput} />
 {#if !gotError && value}
 	<!-- Don't show results when we can't use the discovery API -->
 	<div class="results">
@@ -79,7 +79,7 @@
 				</div>
 			{/if}
 		{:else}
-			<i>{text('component.UserDiscovery.no_results')}</i>
+			<i>{text('UserDiscovery.no_results')}</i>
 		{/each}
 	</div>
 {/if}

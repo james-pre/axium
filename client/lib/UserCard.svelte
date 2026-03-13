@@ -28,7 +28,7 @@
 	{/if}
 	{user.name}
 	{#if self && you}
-		<span class="subtle">{text('component.UserCard.you')}</span>
+		<span class="subtle">{text('UserCard.you')}</span>
 	{/if}
 </a>
 

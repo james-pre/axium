@@ -46,7 +46,7 @@
 				<Icon i="cloud-arrow-up" />
 			{/if}
 		{:else}
-			<Icon i="upload" /> {text('component.Upload.upload')}
+			<Icon i="upload" /> {text('Upload.upload')}
 		{/each}
 	</label>
 

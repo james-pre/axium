@@ -27,9 +27,9 @@
 				<span>{text('app_name.' + app.id, { $default: app.name })}</span>
 			</a>
 		{:else}
-			<i>{text('component.AppMenu.none')}</i>
+			<i>{text('AppMenu.none')}</i>
 		{/each}
 	{:catch}
-		<i>{text('component.AppMenu.failed')}</i>
+		<i>{text('AppMenu.failed')}</i>
 	{/await}
 </Popover>
