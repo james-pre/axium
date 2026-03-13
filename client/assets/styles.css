@@ -41,8 +41,8 @@ textarea {
 input,
 button,
 select {
-	border-radius: 0.5rem;
-	padding: 0.4rem 0.75rem;
+	border-radius: 0.5em;
+	padding: 0.4em 0.75em;
 }
 
 button {
