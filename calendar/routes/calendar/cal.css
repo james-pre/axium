@@ -15,11 +15,18 @@ body:has(#cal-app) {
 	}
 }
 
+#event-init-container {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0 1em;
+}
+
 button.event-init {
-	margin: 0.5em;
 	background-color: var(--bg-alt);
 	text-align: center;
 	justify-content: center;
+	width: 100%;
 }
 
 form {
@@ -80,6 +87,10 @@ div.attendees {
 	gap: 1em;
 	align-items: center;
 	font-weight: bold;
+
+	button {
+		font-weight: normal;
+	}
 
 	@media (width < 700px) {
 		margin: 0 1em;

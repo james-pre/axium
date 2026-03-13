@@ -159,6 +159,7 @@ export function formatEventTimes(event: Event): string {
 
 export const CalendarInit = z.object({
 	name: z.string(),
+	color: Color.nullish(),
 });
 export interface CalendarInit extends z.infer<typeof CalendarInit> {}
 
@@ -166,7 +167,6 @@ export const Calendar = CalendarInit.extend({
 	id: z.uuid(),
 	userId: z.uuid(),
 	created: z.coerce.date(),
-	color: Color.nullish(),
 	acl: AccessControl.array().optional(),
 });
 export interface Calendar extends z.infer<typeof Calendar> {}

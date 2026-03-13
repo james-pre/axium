@@ -45,7 +45,7 @@
 				{
 					i: 'pencil',
 					text: text('Event.edit'),
-					action: () => {
+					action() {
 						eventEditId = event.id;
 						eventEditCalId = event.calId;
 						eventInit = initData;
@@ -60,7 +60,7 @@
 				{
 					i: 'trash-can',
 					text: text('Event.delete'),
-					action: () => {
+					action() {
 						eventEditId = event.id;
 						document.querySelector<HTMLDialogElement>('#event-delete')!.showModal();
 					},

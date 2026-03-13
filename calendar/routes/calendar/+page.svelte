@@ -2,6 +2,7 @@
 	import { getEvents, type EventInitFormData, type EventInitProp } from '@axium/calendar/client';
 	import type { Event } from '@axium/calendar/common';
 	import {
+		CalendarInit,
 		dateToInputValue,
 		fromRRuleDate,
 		getCalPermissionsInfo,
@@ -70,6 +71,13 @@
 		eventEditId = $state<string>(),
 		eventEditCalId = $state<string>();
 
+	const defaultCalInit = {
+		color: null,
+	} as CalendarInit;
+
+	let calInit = $state<CalendarInit>(defaultCalInit),
+		calEditId = $state<string>();
+
 	const recurringEvents = $derived(
 		events
 			.filter(ev => ev.recurrence)
@@ -82,7 +90,8 @@
 			})
 	);
 
-	const defaultEventColor = $derived((eventInit.calendar || calendars[0])?.color || encodeColor(colorHashHex(user.name)));
+	const defaultCalColor = encodeColor(colorHashHex(user.name));
+	const defaultEventColor = $derived((eventInit.calendar || calendars[0])?.color || defaultCalColor);
 
 	let calSidebar = $state<HTMLDivElement>();
 </script>
@@ -92,10 +101,12 @@
 </svelte:head>
 
 <div id="cal-app">
-	<button class="event-init icon-text mobile-hide" command="show-modal" commandfor="event-init">
-		<Icon i="plus" />
-		<span>{text('calendar.new_event')}</span>
-	</button>
+	<div id="event-init-container">
+		<button class="event-init icon-text mobile-hide" command="show-modal" commandfor="event-init">
+			<Icon i="plus" />
+			<span>{text('calendar.new_event')}</span>
+		</button>
+	</div>
 	<div class="bar">
 		<!-- desktop -->
 		<button class="mobile-hide" onclick={() => start.setTime(today.getTime())}>{text('calendar.today')}</button>
@@ -130,25 +141,38 @@
 		<Cal.Select bind:start bind:end />
 		<div class="cal-sidebar-header">
 			<h4>{text('calendar.list_owned')}</h4>
-			<button style:display="contents" command="show-modal" commandfor="add-calendar">
+			<button style:display="contents" command="show-modal" commandfor="cal-init">
 				<Icon i="plus" />
 			</button>
 		</div>
 		{#each calendars.filter(cal => cal.userId == user.id) as cal (cal.id)}
+			{@const edit = () => {
+				calEditId = cal.id;
+				calInit = cal;
+				document.querySelector<HTMLDialogElement>('#cal-init')!.showModal();
+			}}
 			<div
 				class="cal-sidebar-item"
 				{@attach contextMenu(
-					{ i: 'pencil', text: text('generic.rename'), action: () => dialogs['rename:' + cal.id].showModal() },
+					{ i: 'pencil', text: text('calendar.edit'), action: edit },
 					{ i: 'user-group', text: text('generic.share'), action: () => dialogs['share:' + cal.id].showModal() },
 					{ i: 'trash', text: text('generic.delete'), action: () => dialogs['delete:' + cal.id].showModal() }
 				)}
 			>
 				<span>{cal.name}</span>
 				<Popover showToggle="hover">
-					<div class="menu-item" onclick={() => dialogs['rename:' + cal.id].showModal()}>
+					<button
+						class="reset menu-item"
+						command="show-modal"
+						commandfor="cal-init"
+						onclick={() => {
+							calEditId = cal.id;
+							calInit = { ...cal };
+						}}
+					>
 						<Icon i="pencil" />
-						<span>{text('generic.rename')}</span>
-					</div>
+						<span>{text('calendar.edit')}</span>
+					</button>
 					<div class="menu-item" onclick={() => dialogs['share:' + cal.id].showModal()}>
 						<Icon i="user-group" />
 						<span>{text('generic.share')}</span>
@@ -158,17 +182,6 @@
 						<span>{text('generic.delete')}</span>
 					</div>
 				</Popover>
-				<FormDialog
-					bind:dialog={dialogs['rename:' + cal.id]}
-					submitText={text('calendar_init.submit')}
-					submit={(input: { name: string }) =>
-						fetchAPI('PATCH', 'calendars/:id', input, cal.id).then(result => Object.assign(cal, result))}
-				>
-					<div>
-						<label for="name">{text('calendar_init.name')}</label>
-						<input name="name" type="text" required value={cal.name} />
-					</div>
-				</FormDialog>
 				<AccessControlDialog editable itemType="calendars" item={cal} bind:dialog={dialogs['share:' + cal.id]} />
 				<FormDialog
 					bind:dialog={dialogs['delete:' + cal.id]}
@@ -269,8 +282,12 @@
 <FormDialog
 	id="event-init"
 	clearOnCancel
-	cancel={() => (eventInit = defaultEventInit)}
-	submitText={eventEditId ? text('event_init.submit_update') : text('generic.create')}
+	cancel={() => {
+		eventInit = defaultEventInit;
+		eventEditId = undefined;
+		eventEditCalId = undefined;
+	}}
+	submitText={text(eventEditId ? 'event_init.submit_edit' : 'generic.create')}
 	submit={async (data: EventInitFormData) => {
 		Object.assign(eventInit, data);
 		const calendar = calendars.find(cal => cal.id == eventInit.calId);
@@ -410,13 +427,37 @@
 </FormDialog>
 
 <FormDialog
-	id="add-calendar"
-	submitText={text('generic.create')}
-	submit={(input: { name: string }) =>
-		fetchAPI('PUT', 'users/:id/calendars', input, user.id).then(cal => calendars.push({ ...cal, acl: [] }))}
+	id="cal-init"
+	clearOnCancel
+	cancel={() => {
+		calInit = defaultCalInit;
+		calEditId = undefined;
+	}}
+	submitText={text(calEditId ? 'calendar_init.submit_edit' : 'generic.create')}
+	submit={async (data: Record<keyof CalendarInit, string>) => {
+		Object.assign(calInit, data);
+
+		if (!calEditId) {
+			const cal = await fetchAPI('PUT', 'users/:id/calendars', calInit, user.id);
+			calendars.push({ ...cal, acl: [] });
+			return;
+		}
+
+		const cal = calendars.find(cal => cal.id == calEditId);
+
+		const result = await fetchAPI('PATCH', 'calendars/:id', calInit, calEditId);
+
+		if (cal) Object.assign(cal, result);
+		else console.warn('Could not find calendar to update');
+	}}
 >
 	<div>
-		<label for="name">{text('calendar_init.name')}</label>
-		<input name="name" type="text" required />
+		<label for="calInit.name">{text('calendar_init.name')}</label>
+		<input id="calInit.name" bind:value={calInit.name} required />
+	</div>
+
+	<div>
+		<label for="calInit.color">{text('calendar_init.color')}</label>
+		<ColorPicker bind:value={calInit.color} defaultValue={defaultCalColor} />
 	</div>
 </FormDialog>

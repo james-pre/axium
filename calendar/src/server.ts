@@ -52,7 +52,7 @@ addRoute({
 		return withEncoded(
 			await database
 				.insertInto('calendars')
-				.values({ ...init, userId })
+				.values({ ...withDecoded(init), userId })
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not create calendar'))
@@ -75,7 +75,7 @@ addRoute({
 		return withEncoded(
 			await database
 				.updateTable('calendars')
-				.set(body)
+				.set(withDecoded(body))
 				.where('id', '=', id)
 				.returningAll()
 				.executeTakeFirstOrThrow()
