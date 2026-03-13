@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
+	import { toast } from '@axium/client/toast';
 	import { Note } from '@axium/notes/components';
 
 	const { data } = $props();
@@ -18,8 +19,12 @@
 		id="create-note"
 		class="icon-text mobile-float-right"
 		onclick={async () => {
-			const result = await fetchAPI('PUT', 'users/:id/notes', { title: '' }, data.session.userId);
-			notes.push(result);
+			try {
+				const result = await fetchAPI('PUT', 'users/:id/notes', { title: '' }, data.session.userId);
+				notes.push(result);
+			} catch (e) {
+				toast('error', e);
+			}
 		}}
 	>
 		<Icon i="plus" />

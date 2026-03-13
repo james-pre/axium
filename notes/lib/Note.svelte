@@ -5,6 +5,7 @@
 	import { dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
+	import { toastStatus } from '@axium/client/toast';
 	import type { Note } from '@axium/notes/common';
 	import { download } from 'utilium/dom.js';
 
@@ -29,10 +30,12 @@
 			<div
 				class="menu-item"
 				onclick={() =>
-					fetchAPI('DELETE', 'notes/:id', {}, note.id).then(() => {
-						if (!notes) goto('/notes');
-						else notes.splice(notes.indexOf(note), 1);
-					})}
+					toastStatus(
+						fetchAPI('DELETE', 'notes/:id', {}, note.id).then(() => {
+							if (!notes) goto('/notes');
+							else notes.splice(notes.indexOf(note), 1);
+						})
+					)}
 			>
 				<Icon i="trash" />
 				<span>{text('generic.delete')}</span>
