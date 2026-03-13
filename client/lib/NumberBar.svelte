@@ -12,7 +12,7 @@
 
 <div class="Bar">
 	{#if max}
-		<div class="fill" style="width: {((value - min) / (max - min)) * ((typeof value == 'bigint' ? 100n : 100) as typeof value)}%"></div>
+		<div class="fill" style="width: {Number((value - min) / (max - min)) * 100}%"></div>
 	{/if}
 	{#if text}<span class="text">{text}</span>{/if}
 </div>
