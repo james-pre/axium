@@ -77,7 +77,7 @@
 				</div>
 			{/if}
 		</Popover>
-		<AccessControlDialog bind:dialog={acl} item={note} itemType="notes" editable />
+		<AccessControlDialog bind:dialog={acl} item={note} itemType="notes" {user} />
 	</div>
 	<textarea
 		bind:value={note.content}

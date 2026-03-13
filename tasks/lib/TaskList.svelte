@@ -179,7 +179,7 @@
 				</div>
 			{/if}
 		</Popover>
-		<AccessControlDialog bind:dialog={acl} item={list} itemType="task_lists" editable />
+		<AccessControlDialog bind:dialog={acl} item={list} itemType="task_lists" {user} />
 	</div>
 	<div>
 		<button class="icon-text" onclick={() => fetchAPI('PUT', 'task_lists/:id', { summary: '' }, list.id).then(t => tasks.push(t))}>

@@ -182,7 +182,7 @@
 						<span>{text('generic.delete')}</span>
 					</div>
 				</Popover>
-				<AccessControlDialog editable itemType="calendars" item={cal} bind:dialog={dialogs['share:' + cal.id]} />
+				<AccessControlDialog itemType="calendars" item={cal} bind:dialog={dialogs['share:' + cal.id]} {user} />
 				<FormDialog
 					bind:dialog={dialogs['delete:' + cal.id]}
 					submitText={text('generic.delete')}

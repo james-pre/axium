@@ -33,18 +33,7 @@
 		{text('page.files.restore')}
 	</button>
 {:else}
-	<AccessControlDialog
-		bind:dialog={shareDialog}
-		{item}
-		itemType="storage"
-		editable={(item.acl?.find(
-			a =>
-				a.userId == user?.id ||
-				(a.role && user?.roles.includes(a.role)) ||
-				(a.tag && user?.tags?.includes(a.tag)) ||
-				(!a.userId && !a.role && !a.tag)
-		)?.manage as boolean | undefined) ?? true}
-	/>
+	<AccessControlDialog bind:dialog={shareDialog} {item} itemType="storage" {user} />
 	{#if item.parents}
 		<p class="parents" data-sveltekit-reload>
 			{#each item.parents as { id, name } (id)}<a href="/files/{id}">{name}</a>{/each}
