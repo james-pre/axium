@@ -2,7 +2,6 @@
 	import { text } from '@axium/client';
 	import { fetchAPI } from '@axium/client/requests';
 	import { getUserImage, type UserPublic } from '@axium/core';
-	import { colorHashRGB } from '@axium/core/color';
 	import { errorText } from '@axium/core/io';
 	import Icon from './Icon.svelte';
 
