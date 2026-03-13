@@ -2,6 +2,7 @@ import type { NewSessionResponse, Passkey, PasskeyChangeable, Session, User, Use
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import * as z from 'zod';
 import { fetchAPI } from './requests.js';
+import { useCache } from './cache.js';
 
 export async function login(userId: string): Promise<NewSessionResponse> {
 	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'login' }, userId);
@@ -73,15 +74,9 @@ function _checkId(userId: string): void {
 	}
 }
 
-const userCache = new Map<string, Promise<UserPublic & Partial<User>>>();
-
-export async function userInfo(userId: string, noCache: boolean = false): Promise<UserPublic & Partial<User>> {
+export async function userInfo(userId: string): Promise<UserPublic & Partial<User>> {
 	_checkId(userId);
-	const cached = userCache.get(userId);
-	if (!noCache && cached) return await cached;
-	const result = fetchAPI('GET', 'users/:id', {}, userId);
-	userCache.set(userId, result);
-	return await result;
+	return await useCache('user', userId, () => fetchAPI('GET', 'users/:id', {}, userId));
 }
 
 export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>): Promise<User> {
