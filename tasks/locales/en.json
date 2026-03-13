@@ -22,6 +22,10 @@
 		"pending_heading": "Pending",
 		"pending_empty": "No pending tasks.",
 		"completed_heading": "Completed",
-		"completed_empty": "No completed tasks."
+		"completed_empty": "No completed tasks.",
+		"toast_all_completed": "All tasks marked as complete",
+		"toast_all_pending": "All tasks marked as pending",
+		"toast_task_deleted": "Task deleted",
+		"toast_list_deleted": "Task list deleted"
 	}
 }

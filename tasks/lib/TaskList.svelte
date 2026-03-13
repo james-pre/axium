@@ -7,6 +7,7 @@
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
 	import { download } from 'utilium/dom.js';
+	import { toastStatus } from '@axium/client/toast';
 
 	let { list = $bindable(), lists = $bindable() }: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[] } =
 		$props();
@@ -56,9 +57,12 @@
 			<div
 				class="menu-item"
 				onclick={() =>
-					fetchAPI('DELETE', 'tasks/:id', {}, task.id).then(() => {
-						tasks.splice(tasks.indexOf(task), 1);
-					})}
+					toastStatus(
+						fetchAPI('DELETE', 'tasks/:id', {}, task.id).then(() => {
+							tasks.splice(tasks.indexOf(task), 1);
+						}),
+						text('tasks.toast_task_deleted')
+					)}
 			>
 				<Icon i="trash" />
 				<span>{text('generic.delete')}</span>
@@ -92,10 +96,13 @@
 			<div
 				class="menu-item"
 				onclick={() =>
-					fetchAPI('DELETE', 'task_lists/:id', {}, list.id).then(() => {
-						if (!lists) goto('/tasks');
-						else lists.splice(lists.indexOf(list), 1);
-					})}
+					toastStatus(
+						fetchAPI('DELETE', 'task_lists/:id', {}, list.id).then(() => {
+							if (!lists) goto('/tasks');
+							else lists.splice(lists.indexOf(list), 1);
+						}),
+						text('tasks.toast_list_deleted')
+					)}
 			>
 				<Icon i="trash" />
 				<span>{text('generic.delete')}</span>
@@ -129,7 +136,10 @@
 					class="menu-item"
 					onclick={() => {
 						for (const task of tasks) task.completed = true;
-						fetchAPI('POST', 'task_lists/:id', { all_completed: true }, list.id);
+						toastStatus(
+							fetchAPI('POST', 'task_lists/:id', { all_completed: true }, list.id),
+							text('tasks.toast_all_completed')
+						);
 					}}
 				>
 					<Icon i="regular/circle-check" />
@@ -141,7 +151,7 @@
 					class="menu-item"
 					onclick={() => {
 						for (const task of tasks) task.completed = false;
-						fetchAPI('POST', 'task_lists/:id', { all_completed: false }, list.id);
+						toastStatus(fetchAPI('POST', 'task_lists/:id', { all_completed: false }, list.id), text('tasks.toast_all_pending'));
 					}}
 				>
 					<Icon i="regular/circle" />
@@ -168,13 +178,7 @@
 		<AccessControlDialog bind:dialog={acl} item={list} itemType="task_lists" editable />
 	</div>
 	<div>
-		<button
-			class="icon-text"
-			onclick={() =>
-				fetchAPI('PUT', 'task_lists/:id', { summary: '' }, list.id)
-					.then(t => t)
-					.then(tasks.push.bind(tasks))}
-		>
+		<button class="icon-text" onclick={() => fetchAPI('PUT', 'task_lists/:id', { summary: '' }, list.id).then(t => tasks.push(t))}>
 			<Icon i="regular/circle-plus" />
 			<span>{text('tasks.new_task')}</span>
 		</button>
