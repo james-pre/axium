@@ -24,7 +24,7 @@
 
 	<div class="lists-container">
 		{#each lists as list}
-			<TaskList {list} bind:lists />
+			<TaskList {list} bind:lists user={data.session?.user} />
 		{/each}
 	</div>
 </div>

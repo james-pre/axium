@@ -34,7 +34,7 @@
 		</div>
 	{/if}
 
-	<Note note={data.note} pageMode />
+	<Note note={data.note} pageMode user={data.session?.user} />
 </div>
 
 <style>

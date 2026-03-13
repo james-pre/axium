@@ -32,7 +32,7 @@
 	</button>
 	<div class="lists-container">
 		{#each notes as note}
-			<Note {note} bind:notes />
+			<Note {note} bind:notes user={data.session?.user} />
 		{/each}
 	</div>
 </div>

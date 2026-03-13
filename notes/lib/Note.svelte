@@ -9,7 +9,12 @@
 	import type { Note } from '@axium/notes/common';
 	import { download } from 'utilium/dom.js';
 
-	let { note = $bindable(), notes = $bindable(), pageMode = false }: { note: Note; notes?: Note[]; pageMode?: boolean } = $props();
+	let {
+		note = $bindable(),
+		notes = $bindable(),
+		pageMode = false,
+		user,
+	}: { note: Note; notes?: Note[]; pageMode?: boolean; user?: UserPublic } = $props();
 
 	let acl = $state<HTMLDialogElement>();
 </script>

@@ -34,7 +34,7 @@
 		</div>
 	{/if}
 
-	<TaskList list={data.list} />
+	<TaskList list={data.list} user={data.session?.user} />
 </div>
 
 <style>

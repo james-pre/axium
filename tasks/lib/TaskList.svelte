@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { copy } from '@axium/client/gui';
+	import type { UserPublic } from '@axium/core';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { fetchAPI, text } from '@axium/client';
 	import type { Task, TaskList } from '@axium/tasks/common';
@@ -9,8 +10,11 @@
 	import { download } from 'utilium/dom.js';
 	import { toastStatus } from '@axium/client/toast';
 
-	let { list = $bindable(), lists = $bindable() }: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[] } =
-		$props();
+	let {
+		list = $bindable(),
+		lists = $bindable(),
+		user,
+	}: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[]; user?: UserPublic } = $props();
 
 	let tasks = $state(list.tasks);
 
