@@ -180,7 +180,7 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 		.select(acl.from(itemType))
 		.executeTakeFirstOrThrow()
 		.catch(e => {
-			if (e.message.includes('no rows')) error(404, itemType + ' not found');
+			if (e.constructor.name == 'NoResultError' || e.message.includes('no rows')) error(404, 'Not found');
 			throw e;
 		})) as acl.WithACL<TB>;
 
