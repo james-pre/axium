@@ -34,7 +34,8 @@
 						fetchAPI('DELETE', 'notes/:id', {}, note.id).then(() => {
 							if (!notes) goto('/notes');
 							else notes.splice(notes.indexOf(note), 1);
-						})
+						}),
+						text('notes.toast_deleted')
 					)}
 			>
 				<Icon i="trash" />

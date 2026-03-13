@@ -11,6 +11,7 @@
 		"new": "New Note",
 		"note_title": "Notes — {title}",
 		"open_new_tab": "Open in New Tab",
-		"share": "Share"
+		"share": "Share",
+		"toast_deleted": "Note deleted"
 	}
 }
