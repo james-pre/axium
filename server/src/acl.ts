@@ -2,7 +2,7 @@ import type { AccessControl, AccessControllable, AccessTarget, UserInternal } fr
 import { fromTarget } from '@axium/core/access';
 import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
-import type { Entries, WithRequired } from 'utilium';
+import type { WithRequired } from 'utilium';
 import * as db from './database.js';
 
 export interface DBAccessControllable extends Omit<AccessControllable, 'id'> {
