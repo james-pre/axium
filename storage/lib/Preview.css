@@ -54,6 +54,10 @@
 	justify-content: center;
 	flex-direction: column;
 
+	&.no-top-bar {
+		top: 1em;
+	}
+
 	.full-fill {
 		position: absolute;
 		inset: 0;

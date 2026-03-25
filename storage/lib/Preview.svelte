@@ -14,11 +14,14 @@
 		shareDialog,
 		previewDialog,
 		onDelete = () => {},
+		noTopBar,
 	}: {
 		item: StorageItemMetadata & AccessControllable;
 		shareDialog?: HTMLDialogElement;
 		previewDialog?: HTMLDialogElement;
 		onDelete?(): unknown;
+		/** Set when the preview is displayed for an item not inside a directory (e.g. when sharing links to files) */
+		noTopBar?: boolean;
 	} = $props();
 
 	const itemOpeners = openers.filter(opener => opener.types.includes(item.type));
@@ -32,44 +35,47 @@
 	</span>
 {/snippet}
 
-<div class="preview-top-bar">
-	<div class="title">{item.name}</div>
-	{#if itemOpeners.length}
-		{@const [first, ...others] = itemOpeners}
-		<div class="openers">
-			<span>{text('storage.Preview.open_with')} <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
-			{#if others.length}
-				<Popover>
-					{#snippet toggle()}
-						<Icon i="caret-down" />
-					{/snippet}
-					{#each others as opener}
-						<a href={opener.openURL(item)} target="_blank">{opener.name}</a>
-					{/each}
-				</Popover>
+{#if !noTopBar}
+	<div class="preview-top-bar">
+		<div class="title">{item.name}</div>
+
+		{#if itemOpeners.length}
+			{@const [first, ...others] = itemOpeners}
+			<div class="openers">
+				<span>{text('storage.Preview.open_with')} <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
+				{#if others.length}
+					<Popover>
+						{#snippet toggle()}
+							<Icon i="caret-down" />
+						{/snippet}
+						{#each others as opener}
+							<a href={opener.openURL(item)} target="_blank">{opener.name}</a>
+						{/each}
+					</Popover>
+				{/if}
+			</div>
+		{/if}
+		<div class="actions">
+			{@render action('rename', 'pencil')}
+			{#if shareDialog}
+				<span class="icon-text preview-action" onclick={() => shareDialog.showModal()}>
+					<Icon i="user-group" />
+				</span>
+			{/if}
+			{@render action('download', 'download')}
+			<span class="icon-text preview-action" onclick={() => copyShortURL(item)}>
+				<Icon i="link-horizontal" />
+			</span>
+			{@render action('trash', 'trash')}
+			{#if previewDialog}
+				<span class="icon-text preview-action mobile-hide" onclick={() => previewDialog.close()}>
+					<Icon i="xmark" --size="20px" />
+				</span>
 			{/if}
 		</div>
-	{/if}
-	<div class="actions">
-		{@render action('rename', 'pencil')}
-		{#if shareDialog}
-			<span class="icon-text preview-action" onclick={() => shareDialog.showModal()}>
-				<Icon i="user-group" />
-			</span>
-		{/if}
-		{@render action('download', 'download')}
-		<span class="icon-text preview-action" onclick={() => copyShortURL(item)}>
-			<Icon i="link-horizontal" />
-		</span>
-		{@render action('trash', 'trash')}
-		{#if previewDialog}
-			<span class="icon-text preview-action mobile-hide" onclick={() => previewDialog.close()}>
-				<Icon i="xmark" --size="20px" />
-			</span>
-		{/if}
 	</div>
-</div>
-<div class="preview-content">
+{/if}
+<div class={['preview-content', noTopBar && 'no-top-bar']}>
 	{#if item.type.startsWith('image/')}
 		<img src={item.dataURL} alt={item.name} />
 	{:else if item.type.startsWith('audio/')}
