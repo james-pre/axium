@@ -1,4 +1,4 @@
-import { debug, errorText } from '@axium/core/io';
+import { debug, errorText } from 'ioium';
 import { text } from '@axium/client/locales';
 import { animate, onAnimationEnd } from '@axium/client/gui';
 import Icon from './Icon.svelte';

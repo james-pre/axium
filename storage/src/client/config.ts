@@ -1,5 +1,5 @@
 import { configDir } from '@axium/client/cli/config';
-import { debug, readJSON, writeJSON } from '@axium/core/node/io';
+import { debug, readJSON, writeJSON } from 'ioium/node';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import { Sync } from './sync.js';

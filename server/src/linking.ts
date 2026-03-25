@@ -1,4 +1,4 @@
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
 import { existsSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path/posix';
@@ -74,7 +74,7 @@ export function linkRoutes(options: LinkOptions = {}) {
 }
 
 const hooksBuiltin = `
-import { errorText } from '@axium/core/io';
+import { errorText } from 'ioium';
 
 export function handleError({ error, status }) {
 	console.error(error);

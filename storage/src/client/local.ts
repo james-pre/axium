@@ -1,7 +1,7 @@
 import { cacheDir, session } from '@axium/client/cli/config';
 import { userInfo } from '@axium/client/user';
 import { UserPublic } from '@axium/core';
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { ENOENT, ENOTDIR } from 'node:constants';
 import { stat } from 'node:fs/promises';
 import { join } from 'node:path';

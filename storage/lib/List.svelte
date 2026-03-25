@@ -7,7 +7,7 @@
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { errorText } from '@axium/core/io';
+	import { errorText } from 'ioium';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { copyShortURL, formatItemName } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, type StorageItemMetadata } from '@axium/storage/common';

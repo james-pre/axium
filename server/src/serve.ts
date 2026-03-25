@@ -1,5 +1,5 @@
 import { apps, type RequestMethod } from '@axium/core';
-import { _debugOutput, debug, warn } from '@axium/core/node/io';
+import { _debugOutput, debug, warn } from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
 import '@axium/server/api/index';
 import { readFileSync } from 'node:fs';

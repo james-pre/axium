@@ -1,6 +1,6 @@
 import { serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { loadPlugin } from '@axium/core/node/plugins';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';

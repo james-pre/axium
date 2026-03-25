@@ -1,5 +1,5 @@
 import { type RequestMethod, type User, type UserInternal } from '@axium/core';
-import * as io from '@axium/core/io';
+import * as io from 'ioium';
 import { userProtectedFields, userPublicFields } from '@axium/core/user';
 import * as cookie from 'cookie_v1';
 import { pick } from 'utilium';

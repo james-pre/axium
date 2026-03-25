@@ -1,4 +1,4 @@
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { Plugin, plugins, type PluginInternal } from '@axium/core/plugins';
 import * as fs from 'node:fs';
 import { findPackageJSON } from 'node:module';

@@ -1,6 +1,6 @@
 import { configDir, saveConfig } from '@axium/client/cli/config';
 import { fetchAPI } from '@axium/client/requests';
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import mime from 'mime';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';

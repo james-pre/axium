@@ -8,7 +8,7 @@ https://github.com/microsoft/TypeScript/issues/61695
 @todo Remove when TypeScript 5.9 is released
 */
 
-import { debug } from '@axium/core/io';
+import { debug } from 'ioium';
 
 interface FromBase64Options {
 	alphabet?: 'base64' | 'base64url';

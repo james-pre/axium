@@ -1,4 +1,4 @@
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { sql } from 'kysely';
 import { styleText } from 'node:util';
 import type { WithRequired } from 'utilium';

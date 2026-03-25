@@ -5,7 +5,7 @@ import { capitalize, omit } from 'utilium';
 import * as z from 'zod';
 import config from './config.js';
 import { database, type Schema } from './database.js';
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 
 const severityFormat = {
 	[Severity.Emergency]: ['bgRedBright', 'white', 'underline'],

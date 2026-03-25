@@ -1,10 +1,10 @@
 // Supporting code for the CLI. The CLI entry point is main.ts
 
 import type { UserInternal } from '@axium/core';
-import { io } from '@axium/core/node';
+import * as io from 'ioium/node';
 import { styleText } from 'node:util';
-import * as db from './database.js';
 import * as z from 'zod';
+import * as db from './database.js';
 
 export function userText(user: UserInternal, bold: boolean = false): string {
 	const text = `${user.name} <${user.email}> (${user.id})`;

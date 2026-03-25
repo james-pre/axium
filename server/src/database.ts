@@ -1,5 +1,5 @@
 import type { Preferences, UserInternal, VerificationRole } from '@axium/core';
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
 import type * as kysely from 'kysely';

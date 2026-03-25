@@ -1,8 +1,8 @@
 import { formatBytes, parseByteSize } from '@axium/core';
-import { io } from '@axium/core/node';
 import { lookupUser } from '@axium/server/cli';
 import { count, database } from '@axium/server/database';
 import { Option, program } from 'commander';
+import * as io from 'ioium/node';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import { parseItem } from './db.js';

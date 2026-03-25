@@ -1,7 +1,7 @@
 import client from '@axium/client/package.json' with { type: 'json' };
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity, UserAdminChange } from '@axium/core';
-import { debug, errorText, writeJSON } from '@axium/core/node/io';
+import { debug, errorText, writeJSON } from 'ioium/node';
 import core from '@axium/core/package.json' with { type: 'json' };
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';

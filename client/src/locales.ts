@@ -1,4 +1,4 @@
-import { debug, error, info, warn } from '@axium/core/io';
+import { debug, error, info, warn } from 'ioium';
 import type { FlattenKeys, GetByString, Split, UnionToIntersection } from 'utilium';
 import { deepAssign, getByString } from 'utilium';
 import en from '../locales/en.json' with { type: 'json' };

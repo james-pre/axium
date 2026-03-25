@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { App } from './apps.js';
-import { debug, warn } from './io.js';
+import { debug, warn } from 'ioium';
 import { zAsyncFunction } from './schemas.js';
 
 const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');

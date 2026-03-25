@@ -2,7 +2,7 @@
 	import { text } from '@axium/client';
 	import { fetchAPI } from '@axium/client/requests';
 	import { getUserImage, type UserPublic } from '@axium/core';
-	import { errorText } from '@axium/core/io';
+	import { errorText } from 'ioium';
 	import Icon from './Icon.svelte';
 
 	const {

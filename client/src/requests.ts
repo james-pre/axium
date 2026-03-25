@@ -1,6 +1,6 @@
 import type { APIParameters, APIValues, Endpoint, RequestBody } from '@axium/core/api';
 import { $API } from '@axium/core/api';
-import { errorText } from '@axium/core/io';
+import { errorText } from 'ioium';
 import type { RequestMethod } from '@axium/core/requests';
 import { prettifyError } from 'zod';
 

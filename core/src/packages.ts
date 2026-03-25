@@ -1,6 +1,6 @@
 import * as z from 'zod';
 import { lt as ltVersion } from 'semver';
-import { warn } from './io.js';
+import { warn } from 'ioium';
 
 export const PackageVersionInfo = z.object({
 	name: z.string(),

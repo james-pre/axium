@@ -1,4 +1,4 @@
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 import config from '../config.js';

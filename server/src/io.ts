@@ -1,4 +1,4 @@
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import type { PackageVersionInfo } from '@axium/core/packages';
 import { getVersionInfo } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';

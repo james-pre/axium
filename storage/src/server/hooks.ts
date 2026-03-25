@@ -1,6 +1,6 @@
 import { getConfig } from '@axium/core';
 import { formatBytes } from '@axium/core/format';
-import { done, start } from '@axium/core/node/io';
+import { done, start } from 'ioium/node';
 import type { OpOptions } from '@axium/server/database';
 import { count, database } from '@axium/server/database';
 import { mkdirSync } from 'node:fs';

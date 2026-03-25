@@ -1,5 +1,5 @@
 import { apps } from '@axium/core';
-import { debug } from '@axium/core/node/io';
+import { debug } from 'ioium/node';
 import type { RequestMethod } from '@axium/core/requests';
 import type { Component } from 'svelte';
 import type z from 'zod';

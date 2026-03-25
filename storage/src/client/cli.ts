@@ -1,6 +1,6 @@
 import { configDir, session } from '@axium/client/cli/config';
 import { formatBytes } from '@axium/core/format';
-import * as io from '@axium/core/node/io';
+import * as io from 'ioium/node';
 import { Option, program } from 'commander';
 import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';

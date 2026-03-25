@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { error } from '@axium/core/io';
+	import { error } from 'ioium';
 	import { lt as ltVersion } from 'semver';
 
 	const { v, latest: _latest }: { v: string; latest?: string | null | Promise<string> } = $props();

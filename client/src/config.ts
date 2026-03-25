@@ -1,4 +1,4 @@
-import { debug, warn } from '@axium/core/io';
+import { debug, warn } from 'ioium';
 import { App, Session, User } from '@axium/core';
 import * as z from 'zod';
 

@@ -1,7 +1,8 @@
 #! /usr/bin/env node
 
 import type { NewSessionResponse } from '@axium/core';
-import { io, outputDaemonStatus, pluginText } from '@axium/core/node';
+import { outputDaemonStatus, pluginText } from '@axium/core/node';
+import * as io from 'ioium/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
 import { createServer } from 'node:http';
