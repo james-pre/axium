@@ -312,6 +312,7 @@ h6 {
 	gap: 1em;
 	text-align: right;
 	align-items: end;
+	z-index: 25;
 }
 
 div.toast {
