@@ -15,7 +15,7 @@ import { getLimits } from './config.js';
 import { getUserStats, parseItem } from './db.js';
 import { checkNewItem, createNewItem, requireUpload } from './item.js';
 
-function contentDispositionFor(name: string) {
+export function _contentDispositionFor(name: string, suffix: string = '') {
 	const fallback =
 		name
 			.replace(/[\r\n]/g, '')
@@ -28,7 +28,7 @@ function contentDispositionFor(name: string) {
 		char => '%' + char.charCodeAt(0).toString(16).toUpperCase()
 	);
 
-	return `attachment; filename="${fallback}"; filename*=UTF-8''${encoded}`;
+	return `attachment; filename="${fallback}${suffix}"; filename*=UTF-8''${encoded}${suffix}`;
 }
 
 addRoute({
@@ -119,13 +119,14 @@ addRoute({
 	path: '/raw/storage/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }) {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
+		const config = getConfig('@axium/storage');
+		if (!config.enabled) error(503, 'User storage is disabled');
 
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
-		const path = join(getConfig('@axium/storage').data, item.id);
+		const path = join(config.data, item.id);
 		const range = request.headers.get('range');
 
 		let start = 0,
@@ -159,7 +160,7 @@ addRoute({
 				'Accept-Ranges': 'bytes',
 				'Content-Length': String(length),
 				'Content-Type': item.type,
-				'Content-Disposition': contentDispositionFor(item.name),
+				'Content-Disposition': _contentDispositionFor(item.name),
 			},
 		});
 	},

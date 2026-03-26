@@ -57,12 +57,15 @@
 		"generic": {
 			"copy_id": "Copy ID",
 			"download": "Download",
-			"download_confirm": "Are you sure you want to download {name}?",
+			"download_confirm": "Are you sure you want to download this?",
+			"download_confirm_named": "Are you sure you want to download {name}?",
 			"name": "Name",
 			"no_name_in_dialog": "this",
 			"no_item": "No item is selected",
 			"rename": "Rename",
-			"trash": "Trash"
+			"trash": "Trash",
+			"trash_success": "Item trashed",
+			"delete_confirm_named": "Are you sure you want to delete {name}?"
 		},
 		"Add": {
 			"content": "Content",
@@ -77,24 +80,20 @@
 			"empty": "Folder is empty.",
 			"last_modified": "Last Modified",
 			"share": "Share",
-			"size": "Size",
-			"trash_confirm": "Are you sure you want to trash {name}?"
+			"size": "Size"
 		},
 		"Preview": {
-			"download_confirm": "Are you sure you want to download this?",
 			"error_loading": "Error loading preview. You might not have permission to view this file.",
 			"loading": "Loading",
 			"open_with": "Open with",
 			"pdf_fallback_download": "PDF couldn't be previewed. Click here to download.",
-			"preview_unavailable": "Preview not available",
-			"trash_confirm": "Are you sure you want to trash this?"
+			"preview_unavailable": "Preview not available"
 		},
 		"Sidebar": {
 			"no_files": "No files yet"
 		},
 		"SidebarItem": {
 			"delete": "Delete",
-			"delete_confirm": "Are you sure you want to delete {name}?",
 			"download_disclaimer": "We are not responsible for the contents of this file."
 		},
 		"Usage": {

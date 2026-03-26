@@ -1,14 +1,14 @@
 <script lang="ts">
-	import { text } from '@axium/client';
 	import { page } from '$app/state';
-	import { copy } from '@axium/client/gui';
+	import { text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
+	import { copy } from '@axium/client/gui';
 	import * as icon from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
+	import { formatItemName } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
 	import SidebarItem from './SidebarItem.svelte';
-	import { formatItemName } from '@axium/storage/client/frontend';
 
 	let {
 		item = $bindable(),
@@ -133,7 +133,7 @@
 		if (index !== -1) items.splice(index, 1);
 	}}
 >
-	<p>{text('storage.SidebarItem.delete_confirm', { name: itemName })}</p>
+	<p>{text('storage.generic.delete_confirm_named', { name: itemName })}</p>
 </FormDialog>
 <FormDialog
 	bind:dialog={dialogs.download}
@@ -144,7 +144,7 @@
 >
 	<p>
 		{text('storage.SidebarItem.download_disclaimer')} <br />
-		{text('storage.generic.download_confirm', { name: itemName })}
+		{text('storage.generic.download_confirm_named', { name: itemName })}
 	</p>
 </FormDialog>
 

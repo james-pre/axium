@@ -4,13 +4,14 @@
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import '@axium/client/styles/list';
+	import { toastStatus } from '@axium/client/toast';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { errorText } from 'ioium';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { copyShortURL, formatItemName } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, type StorageItemMetadata } from '@axium/storage/common';
+	import { errorText } from 'ioium';
 	import Preview from './Preview.svelte';
 
 	let {
@@ -51,15 +52,15 @@
 	);
 </script>
 
-{#snippet action(name: string, icon: string, i: number, preview: boolean = false)}
+{#snippet action(name: string, icon: string, i: number)}
 	<span
-		class={['icon-text', !preview ? 'action' : 'preview-action']}
+		class="icon-text action"
 		onclick={() => {
 			activeIndex = i;
 			dialogs[name].showModal();
 		}}
 	>
-		<Icon i={icon} --size={preview ? '18px' : '14px'} />
+		<Icon i={icon} --size="14px" />
 	</span>
 {/snippet}
 
@@ -79,6 +80,13 @@
 		{/each}
 	</div>
 	{#each sortedItems as [item, i] (item.id)}
+		{@const trash = () => {
+			activeIndex = i;
+			toastStatus(
+				updateItemMetadata(activeItem.id, { trash: true }).then(() => items.splice(activeIndex, 1)),
+				text('storage.generic.trash_success')
+			);
+		}}
 		<div
 			class="list-item"
 			onclick={async () => {
@@ -97,7 +105,7 @@
 				},
 				{ i: 'download', text: text('storage.generic.download'), action: () => ((activeIndex = i), dialogs.download.showModal()) },
 				{ i: 'link-horizontal', text: text('storage.List.copy_link'), action: () => ((activeIndex = i), copyShortURL(item)) },
-				{ i: 'trash', text: text('storage.generic.trash'), action: () => ((activeIndex = i), dialogs.trash.showModal()) },
+				{ i: 'trash', text: text('storage.generic.trash'), action: trash },
 				user?.preferences?.debug && {
 					i: 'hashtag',
 					text: text('storage.generic.copy_id'),
@@ -121,7 +129,9 @@
 				{@render action('rename', 'pencil', i)}
 				{@render action('share:' + item.id, 'user-group', i)}
 				{@render action('download', 'download', i)}
-				{@render action('trash', 'trash', i)}
+				<span class="icon-text action" onclick={trash}>
+					<Icon i="trash" --size="14px" />
+				</span>
 			</div>
 			<AccessControlDialog bind:dialog={dialogs['share:' + item.id]} {item} itemType="storage" {user} />
 		</div>
@@ -156,18 +166,6 @@
 	</div>
 </FormDialog>
 <FormDialog
-	bind:dialog={dialogs.trash}
-	submitText={text('storage.generic.trash')}
-	submitDanger
-	submit={async () => {
-		if (!activeItem) throw text('storage.generic.no_item');
-		await updateItemMetadata(activeItem.id, { trash: true });
-		items.splice(activeIndex, 1);
-	}}
->
-	<p>{text('storage.List.trash_confirm', { name: activeItemName })}</p>
-</FormDialog>
-<FormDialog
 	bind:dialog={dialogs.download}
 	submitText={text('storage.generic.download')}
 	submit={async () => {
@@ -178,7 +176,7 @@
 		} else open(activeItem!.dataURL, '_blank');
 	}}
 >
-	<p>{text('storage.generic.download_confirm', { name: activeItemName })}</p>
+	<p>{text('storage.generic.download_confirm_named', { name: activeItemName })}</p>
 </FormDialog>
 
 <style>

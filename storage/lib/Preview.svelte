@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { FormDialog, Icon, Popover } from '@axium/client/components';
+	import { toast } from '@axium/client/toast';
 	import type { AccessControllable } from '@axium/core';
 	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { openers, previews } from '@axium/storage/client/3rd-party';
@@ -66,7 +67,21 @@
 			<span class="icon-text preview-action" onclick={() => copyShortURL(item)}>
 				<Icon i="link-horizontal" />
 			</span>
-			{@render action('trash', 'trash')}
+			<span
+				class="icon-text preview-action"
+				onclick={async () => {
+					try {
+						if (!item) throw text('storage.generic.no_item');
+						await updateItemMetadata(item.id, { trash: true });
+						onDelete();
+						toast('success', text('storage.generic.trash_success'));
+					} catch (e) {
+						toast('error', e);
+					}
+				}}
+			>
+				<Icon i="trash" />
+			</span>
 			{#if previewDialog}
 				<span class="icon-text preview-action mobile-hide" onclick={() => previewDialog.close()}>
 					<Icon i="xmark" --size="20px" />
@@ -127,18 +142,6 @@
 	</div>
 </FormDialog>
 <FormDialog
-	bind:dialog={dialogs.trash}
-	submitText={text('storage.generic.trash')}
-	submitDanger
-	submit={async () => {
-		if (!item) throw text('storage.generic.no_item');
-		await updateItemMetadata(item.id, { trash: true });
-		onDelete();
-	}}
->
-	<p>{text('storage.Preview.trash_confirm')}</p>
-</FormDialog>
-<FormDialog
 	bind:dialog={dialogs.download}
 	submitText={text('storage.generic.download')}
 	submit={async () => {
@@ -149,5 +152,5 @@
 		} else open(item!.dataURL, '_blank');
 	}}
 >
-	<p>{text('storage.Preview.download_confirm')}</p>
+	<p>{text('storage.generic.download_confirm')}</p>
 </FormDialog>
