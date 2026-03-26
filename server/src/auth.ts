@@ -244,7 +244,7 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 	const matching = controls.filter(c => controlMatchesUser(c, user));
 
 	if (!matching.length)
-		if (!session || !user) error(401, 'Item is not public');
+		if (!session || !user) error(401, 'Item is not public (are you logged in?)');
 		else error(403, 'Item is not shared with you');
 
 	const missing = Array.from(checkACL(matching, permissions as any));
