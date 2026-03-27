@@ -18,6 +18,7 @@ addRoute({
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
+		if (item.type != 'inode/directory') error(410, 'Only folders can be downloaded as ZIP files');
 
 		const stream = new Duplex();
 

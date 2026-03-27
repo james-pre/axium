@@ -45,6 +45,7 @@
 	"type": "module",
 	"devDependencies": {
 		"@commander-js/extra-typings": "^14.0.0",
+		"@types/node": "^25.5.0",
 		"eslint": "^9.21.0",
 		"prettier": "^3.5.1",
 		"prettier-plugin-svelte": "^3.3.3",
