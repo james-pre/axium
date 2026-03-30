@@ -68,6 +68,16 @@ export const Config = z
 		show_duplicate_state: z.boolean(),
 		/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
 		user_discovery: z.literal(['disabled', 'admin', 'user', 'public']),
+		user_pfp: z
+			.looseObject({
+				/** Whether user's can upload custom profile pictures */
+				enabled: z.boolean(),
+				/** Max PFP size in KB. Set to zero for no limit */
+				max_size: z.number().min(0),
+				/** Max dimensions on a side. Set to zero for no limit */
+				max_length: z.number().min(0),
+			})
+			.partial(),
 		verifications: z
 			.looseObject({
 				/** In minutes */
@@ -140,6 +150,11 @@ export const defaultConfig: DeepRequired<Config> = {
 	show_duplicate_state: false,
 	request_size_limit: 0,
 	user_discovery: 'user',
+	user_pfp: {
+		enabled: true,
+		max_size: 500,
+		max_length: 2000,
+	},
 	verifications: {
 		timeout: 60,
 		email: false,

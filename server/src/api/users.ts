@@ -1,4 +1,3 @@
-/** Register a new passkey for a new or existing user. */
 import type { AsyncResult } from '@axium/core/api';
 import { PasskeyAuthResponse, PasskeyRegistration } from '@axium/core/passkeys';
 import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';

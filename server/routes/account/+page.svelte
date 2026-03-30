@@ -1,10 +1,9 @@
 <script lang="ts">
 	import { fetchAPI, text } from '@axium/client';
-	import { ClipboardCopy, FormDialog, Icon, Logout, SessionList, ZodForm } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, Logout, SessionList, UserPFP, ZodForm } from '@axium/client/components';
 	import '@axium/client/styles/account';
 	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
 	import { preferenceLabels, Preferences } from '@axium/core/preferences';
-	import { getUserImage } from '@axium/core/user';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
@@ -33,9 +32,7 @@
 {/snippet}
 
 <div class="Account flex-content">
-	<div id="pfp-container">
-		<img id="pfp" src={getUserImage(user)} alt={text('page.account.profile_alt')} width="100px" height="100px" />
-	</div>
+	<div id="pfp-container"><UserPFP {user} --size="100px" /></div>
 	<p class="greeting">{text('page.account.greeting', { name: user.name })}</p>
 
 	<div id="info" class="section">
@@ -191,13 +188,6 @@
 			position: relative;
 			top: -24px;
 		}
-	}
-
-	#pfp {
-		width: 100px;
-		height: 100px;
-		border-radius: 50%;
-		border: 1px solid #8888;
 	}
 
 	.greeting {

@@ -87,6 +87,24 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"users": {
+					"drop_columns": ["image"]
+				}
+			},
+			"add_tables": {
+				"profile_pictures": {
+					"columns": {
+						"userId": { "type": "uuid", "required": true, "primary": true, "references": "users.id", "onDelete": "cascade" },
+						"type": { "type": "text", "required": true },
+						"data": { "type": "bytea", "required": true },
+						"isPublic": { "type": "boolean", "required": true, "default": false }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]
