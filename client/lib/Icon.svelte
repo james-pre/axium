@@ -1,5 +1,6 @@
 <script lang="ts">
-	const { i, ...rest } = $props();
+	import type { SVGAttributes } from 'svelte/elements';
+	const { i, ...rest }: { i: string } & SVGAttributes<SVGSVGElement> = $props();
 	const [style, id] = $derived(i.includes('/') ? i.split('/') : ['solid', i]);
 	const href = $derived(`/icons/${style}.svg#${id}`);
 </script>
