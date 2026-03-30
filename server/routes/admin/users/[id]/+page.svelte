@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { deleteUser, fetchAPI, text } from '@axium/client';
-	import { ClipboardCopy, FormDialog, Icon, SessionList, ZodForm, ZodInput } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, SessionList, UserPFP, ZodForm, ZodInput } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import '@axium/client/styles/account';
 	import { preferenceLabels, Preferences, User } from '@axium/core';
@@ -10,7 +10,8 @@
 	let user = $state(data.user);
 	const { session } = data;
 
-	let sessions = $state(user.sessions);
+	let sessions = $state(user.sessions),
+		hasDefaultPFP = $state(false);
 
 	async function updateValue(val: User) {
 		try {
@@ -94,12 +95,9 @@
 	</div>
 	<div class="item info">
 		<p>{text('page.admin.users.profile_image')}</p>
-		{#if user.image}
-			<a href={user.image} target="_blank" rel="noopener noreferrer">{user.image}</a>
-			<ClipboardCopy value={user.image} --size="16px" />
-		{:else}
-			<i>{text('page.admin.users.default_image')}</i>
-			<p></p>
+		<UserPFP {user} bind:isDefault={hasDefaultPFP} />
+		{#if hasDefaultPFP}
+			<p>{text('page.admin.users.default_image')}</p>
 		{/if}
 	</div>
 	<div class="item info">
