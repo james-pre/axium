@@ -106,6 +106,12 @@
 				"title": "Passkeys"
 			},
 			"personal_info": "Personal Information",
+			"pfp": {
+				"update": "Upload",
+				"remove": "Remove",
+				"toast_removed": "Profile picture removed",
+				"toast_updated": "Profile picture updated"
+			},
 			"preferences": "Preferences",
 			"sessions": "Sessions",
 			"title": "Your Account",

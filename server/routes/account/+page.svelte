@@ -1,23 +1,49 @@
 <script lang="ts">
 	import { fetchAPI, text } from '@axium/client';
-	import { ClipboardCopy, FormDialog, Icon, Logout, SessionList, UserPFP, ZodForm } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, Logout, Popover, SessionList, UserPFP, ZodForm } from '@axium/client/components';
 	import '@axium/client/styles/account';
 	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
 	import { preferenceLabels, Preferences } from '@axium/core/preferences';
 	import type { PageProps } from './$types';
+	import { toast, toastStatus } from '@axium/client/toast';
+	import { contextMenu } from '@axium/client/attachments';
+	import { upload } from 'utilium/dom.js';
 
 	const { data }: PageProps = $props();
 	const { canVerify } = data;
 
-	let verificationSent = $state(false);
-	let currentSession = $state(data.currentSession);
-	let user = $state(data.user);
-	let passkeys = $state(data.passkeys);
-	let sessions = $state(data.sessions);
+	let verificationSent = $state(false),
+		currentSession = $state(data.currentSession),
+		user = $state(data.user),
+		passkeys = $state(data.passkeys),
+		sessions = $state(data.sessions),
+		hasDefaultPFP = $state(false);
 
 	async function _editUser(data: Record<string, FormDataEntryValue>) {
 		const result = await updateUser(user.id, data);
 		user = result;
+	}
+
+	async function updatePFP() {
+		try {
+			const file = await upload('image/*');
+			const response = await fetch('/raw/pfp/' + user.id, {
+				method: 'POST',
+				headers: { 'content-type': file.type, 'content-length': file.size.toString() },
+				body: file,
+			});
+			if (!response.ok) {
+				if (response.headers.get('content-type')?.endsWith('/json')) {
+					const error = await response.json();
+					throw error.message;
+				} else {
+					throw new Error('Failed to update profile picture');
+				}
+			}
+			await toast('success', text('page.account.pfp.toast_updated'));
+		} catch (e) {
+			await toast('error', e);
+		}
 	}
 </script>
 
@@ -32,7 +58,31 @@
 {/snippet}
 
 <div class="Account flex-content">
-	<div id="pfp-container"><UserPFP {user} --size="100px" /></div>
+	<div id="pfp-container" {@attach contextMenu({ i: 'upload', text: text('page.account.pfp.update'), action: updatePFP })}>
+		<UserPFP {user} --size="100px" bind:isDefault={hasDefaultPFP} />
+		{#if hasDefaultPFP}
+			<Icon i="regular/camera" id="pfp-menu-toggle" onclick={updatePFP} />
+		{:else}
+			<Popover>
+				{#snippet toggle()}
+					<Icon i="regular/camera" id="pfp-menu-toggle" />
+				{/snippet}
+
+				<div class="menu-item" onclick={updatePFP}>
+					<Icon i="upload" />
+					<span>{text('page.account.pfp.update')}</span>
+				</div>
+
+				<div
+					class="menu-item"
+					onclick={() => toastStatus(fetch('/raw/pfp/' + user.id, { method: 'DELETE' }), text('page.account.pfp.toast_removed'))}
+				>
+					<Icon i="trash" />
+					<span>{text('page.account.pfp.remove')}</span>
+				</div>
+			</Popover>
+		{/if}
+	</div>
 	<p class="greeting">{text('page.account.greeting', { name: user.name })}</p>
 
 	<div id="info" class="section">
@@ -182,11 +232,15 @@
 		width: 100px;
 		height: 100px;
 		margin-top: 3em;
+	}
 
-		:global(.MenuToggle) {
-			float: right;
-			position: relative;
-			top: -24px;
+	:global(#pfp-menu-toggle) {
+		float: right;
+		position: relative;
+		top: -24px;
+
+		&:hover {
+			cursor: pointer;
 		}
 	}
 
