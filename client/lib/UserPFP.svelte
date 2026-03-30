@@ -4,13 +4,21 @@
 
 	const { user }: { user: UserPublic } = $props();
 
-	const defaultImage =
+	const defaultImage = $derived(
 		`data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50" style="background-color:${colorHashRGB(user.name ?? '\0')};display:flex;align-items:center;justify-content:center;">
-		<text x="23" y="28" style="font-family:sans-serif;font-weight:bold;" fill="white">${(user.name ?? '?').replaceAll(/\W/g, '')[0]}</text>
-	</svg>`.replaceAll(/[\t\n]/g, '');
+		<text x="23" y="28" style="font-family:sans-serif;font-weight:bold;" fill="white">${(user.name.replaceAll(/\W/g, '') || '?')[0]}</text>
+	</svg>`.replaceAll(/[\t\n]/g, '')
+	);
+
+	let src = $state(`/raw/pfp/${user.id}`);
+
+	$effect(() => {
+		// Reset the attempted source when the user changes
+		src = `/raw/pfp/${user.id}`;
+	});
 </script>
 
-<img class="UserPFP" src={defaultImage} alt={user.name} />
+<img class="UserPFP" {src} alt={user.name} onerror={() => (src = defaultImage)} />
 
 <style>
 	img.UserPFP {
