@@ -117,7 +117,6 @@ addRoute({
 		const result = await db
 			.deleteFrom('profile_pictures')
 			.where('userId', '=', userId)
-			.limit(1)
 			.executeTakeFirst()
 			.catch(withError('Failed to delete profile picture', 500));
 
