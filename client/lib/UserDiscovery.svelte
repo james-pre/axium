@@ -1,9 +1,10 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { fetchAPI } from '@axium/client/requests';
-	import { getUserImage, type UserPublic } from '@axium/core';
+	import type { UserPublic } from '@axium/core';
 	import { errorText } from 'ioium';
 	import Icon from './Icon.svelte';
+	import UserPFP from './UserPFP.svelte';
 
 	const {
 		onSelect,
@@ -63,7 +64,7 @@
 			{#if !excludeTargets.includes(result.target)}
 				<div class="result" onclick={select(result.target)}>
 					{#if result.type == 'user'}
-						<span><img src={getUserImage(result.value)} alt={result.value.name} />{result.value.name}</span>
+						<span><UserPFP user={result.value} /> {result.value.name}</span>
 					{:else if result.type == 'role'}
 						<span>
 							<span class="icon-text non-user"><Icon i="at" />{result.value}</span>
@@ -134,13 +135,5 @@
 	.result:hover {
 		cursor: pointer;
 		background-color: var(--bg-strong);
-	}
-
-	img {
-		width: 2em;
-		height: 2em;
-		border-radius: 50%;
-		vertical-align: middle;
-		margin-right: 0.5em;
 	}
 </style>

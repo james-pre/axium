@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { fetchAPI, text } from '@axium/client';
-	import { getUserImage } from '@axium/core';
 	import type { UserPublic } from '@axium/core/user';
 	import Icon from './Icon.svelte';
 	import Logout from './Logout.svelte';
 	import Popover from './Popover.svelte';
+	import UserPFP from './UserPFP.svelte';
 
 	const { user }: { user?: UserPublic } = $props();
 </script>
@@ -13,7 +13,7 @@
 	<Popover>
 		{#snippet toggle()}
 			<div class="UserMenu toggle">
-				<img src={getUserImage(user)} alt={user.name} />
+				<UserPFP {user} />
 				{user.name}
 			</div>
 		{/snippet}
@@ -71,14 +71,6 @@
 		border: var(--border-accent);
 		cursor: pointer;
 		background-color: var(--bg-alt);
-	}
-
-	img {
-		width: 2em;
-		height: 2em;
-		border-radius: 50%;
-		vertical-align: middle;
-		margin-right: 0.5em;
 	}
 
 	.logout {

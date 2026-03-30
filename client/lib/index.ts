@@ -15,6 +15,7 @@ export { default as Upload } from './Upload.svelte';
 export { default as URLText } from './URLText.svelte';
 export { default as UserCard } from './UserCard.svelte';
 export { default as UserDiscovery } from './UserDiscovery.svelte';
+export { default as UserPFP } from './UserPFP.svelte';
 export { default as UserMenu } from './UserMenu.svelte';
 export { default as Version } from './Version.svelte';
 export { default as ZodForm } from './ZodForm.svelte';
