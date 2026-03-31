@@ -1,0 +1,112 @@
+{
+	"$schema": "../server/schemas/db.json",
+	"format": 1,
+	"versions": [
+		{
+			"delta": false,
+			"tables": {
+				"contacts": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"linkedUserId": { "type": "uuid", "references": "users.id", "onDelete": "set null" },
+						"display": { "type": "text" },
+						"prefix": { "type": "text" },
+						"firstName": { "type": "text" },
+						"middleName": { "type": "text" },
+						"lastName": { "type": "text" },
+						"suffix": { "type": "text" },
+						"nickname": { "type": "text" },
+						"company": { "type": "text" },
+						"jobTitle": { "type": "text" },
+						"department": { "type": "text" },
+						"notes": { "type": "text" },
+						"birthDay": { "type": "int2" },
+						"birthMonth": { "type": "int2" },
+						"birthYear": { "type": "int2" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"updatedAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"urls": { "type": "text[]" }
+					}
+				},
+				"contact_emails": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"email": { "type": "text", "required": true },
+						"label": { "type": "text" },
+						"isDefault": { "type": "boolean", "required": true, "default": "false" }
+					},
+					"constraints": {
+						"PK_contact_emails": { "type": "primary_key", "on": ["id", "email"] }
+					}
+				},
+				"contact_addresses": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"address": { "type": "text", "required": true },
+						"label": { "type": "text" },
+						"isDefault": { "type": "boolean", "required": true, "default": "false" }
+					},
+					"constraints": {
+						"PK_contact_addresses": { "type": "primary_key", "on": ["id", "address"] }
+					}
+				},
+				"contact_phones": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"country": { "type": "int2" },
+						"number": { "type": "bigint", "required": true },
+						"label": { "type": "text" },
+						"isDefault": { "type": "boolean", "required": true, "default": "false" }
+					},
+					"constraints": {
+						"PK_contact_phones": { "type": "primary_key", "on": ["id", "country", "number"] }
+					}
+				},
+				"contact_dates": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"label": { "type": "text" },
+						"day": { "type": "int2" },
+						"month": { "type": "int2" },
+						"year": { "type": "int2" }
+					}
+				},
+				"contact_relationships": {
+					"columns": {
+						"from": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"to": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"label": { "type": "text", "required": true }
+					},
+					"constraints": {
+						"PK_contact_relationships": { "type": "primary_key", "on": ["from", "to"] }
+					}
+				},
+				"contact_custom": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"label": { "type": "text" },
+						"value": { "type": "text", "required": true }
+					}
+				}
+			},
+			"indexes": {
+				"contacts_userId": { "on": "contacts", "columns": ["userId"] },
+				"contact_emails_id": { "on": "contact_emails", "columns": ["id"] },
+				"contact_addresses_id": { "on": "contact_addresses", "columns": ["id"] },
+				"contact_phones_id": { "on": "contact_phones", "columns": ["id"] },
+				"contact_dates_id": { "on": "contact_dates", "columns": ["id"] },
+				"contact_custom_id": { "on": "contact_custom", "columns": ["id"] }
+			}
+		}
+	],
+	"wipe": [
+		"contact_custom",
+		"contact_relationships",
+		"contact_dates",
+		"contact_phones",
+		"contact_addresses",
+		"contact_emails",
+		"contacts"
+	]
+}

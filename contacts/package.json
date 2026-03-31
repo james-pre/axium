@@ -1,0 +1,64 @@
+{
+	"name": "@axium/contacts",
+	"version": "0.0.1",
+	"author": "James Prevett <axium@jamespre.dev>",
+	"description": "Contacts for Axium",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"license": "LGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
+	},
+	"files": [
+		"dist",
+		"lib",
+		"routes",
+		"locales",
+		"db.json"
+	],
+	"scripts": {
+		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/client": ">=0.21.0",
+		"@axium/core": ">=0.23.0",
+		"@axium/server": ">=0.35.0",
+		"@sveltejs/kit": "^2.27.3",
+		"utilium": "^2.4.0"
+	},
+	"dependencies": {
+		"zod": "^4.0.5"
+	},
+	"axium": {
+		"server": {
+			"routes": "routes",
+			"hooks": "./dist/hooks.js",
+			"db": "./db.json",
+			"web_client_hooks": "./dist/web_hook.js"
+		},
+		"apps": [
+			{
+				"id": "contacts",
+				"name": "Contacts",
+				"icon": "address-book"
+			}
+		],
+		"update_checks": true
+	}
+}
