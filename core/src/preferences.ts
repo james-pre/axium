@@ -1,55 +1,9 @@
-import { zKeys } from './locales.js';
+import type { ZodSerializable } from '@axium/core';
 import * as z from 'zod';
-
-type StringFormatTypes =
-	| z.ZodGUID
-	| z.ZodUUID
-	| z.ZodEmail
-	| z.ZodURL
-	| z.ZodEmoji
-	| z.ZodNanoID
-	| z.ZodCUID
-	| z.ZodCUID2
-	| z.ZodULID
-	| z.ZodXID
-	| z.ZodKSUID
-	| z.ZodISODateTime
-	| z.ZodISODate
-	| z.ZodISOTime
-	| z.ZodISODuration
-	| z.ZodIPv4
-	| z.ZodIPv6
-	| z.ZodCIDRv4
-	| z.ZodCIDRv6
-	| z.ZodBase64
-	| z.ZodBase64URL
-	| z.ZodE164
-	| z.ZodJWT;
-
-type ZodPrefPrimitive =
-	| z.ZodString
-	| z.ZodNumber
-	| z.ZodBigInt
-	| z.ZodBoolean
-	| z.ZodDate
-	| z.ZodLiteral
-	| z.ZodTemplateLiteral
-	| z.ZodFile
-	| z.ZodEnum
-	| StringFormatTypes;
-
-type ZodPrefComposite =
-	| ZodPrefPrimitive
-	| z.ZodNullable<ZodPrefPrimitive>
-	| z.ZodOptional<ZodPrefPrimitive>
-	| z.ZodDefault<ZodPrefPrimitive>
-	| z.ZodArray<ZodPrefPrimitive>
-	| z.ZodTuple<ZodPrefPrimitive[]>
-	| z.ZodRecord<z.ZodString, ZodPrefPrimitive>
-	| z.ZodObject<Readonly<Record<string, ZodPrefPrimitive>>>;
+import { zKeys } from './locales.js';
 
 /** @internal Used so we can narrow using `type` and get access to type-specific properties (e.g. `ZodNumber.minValue`) */
-export type ZodPref = ZodPrefComposite | z.ZodObject<Readonly<Record<string, ZodPrefComposite>>>;
+export type ZodPref = Exclude<ZodSerializable, z.ZodPrefault>;
 
 /**
  * @internal
