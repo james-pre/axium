@@ -15,8 +15,10 @@
 		"types": ["node", "commander"],
 		"paths": {
 			"@axium/calendar": ["./calendar/*"],
-			"@axium/core": ["./core/*"],
 			"@axium/client": ["./client/*"],
+			"@axium/contacts": ["./contacts/*"],
+			"@axium/core": ["./core/*"],
+			"@axium/notes": ["./notes/*"],
 			"@axium/server": ["./server/*"],
 			"@axium/storage": ["./storage/*"],
 			"@axium/tasks": ["./tasks/*"]
@@ -27,8 +29,9 @@
 	"files": [],
 	"references": [
 		{ "path": "./calendar" },
-		{ "path": "./core" },
 		{ "path": "./client" },
+		{ "path": "./contacts" },
+		{ "path": "./core" },
 		{ "path": "./notes" },
 		{ "path": "./server" },
 		{ "path": "./storage" },
