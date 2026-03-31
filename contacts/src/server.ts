@@ -2,7 +2,7 @@ import { locationKeys, type AsyncResult } from '@axium/core';
 import { checkAuthForUser } from '@axium/server/auth';
 import { database, type Schema as DB } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
-import { parseBody, withError } from '@axium/server/requests';
+import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import type { ControlledTransaction, ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
@@ -38,6 +38,21 @@ async function insertContactFields(
 	relationshipInit: contact.Relationship[],
 	customInit: contact.Custom[]
 ) {
+	for (const [name, data] of [
+		['addresses', addressInit],
+		['emails', emailInit],
+		['phones', phoneInit],
+	] as const) {
+		let defaultItem;
+		for (const item of data) {
+			if (!item.isDefault) continue;
+			if (defaultItem) error(400, 'Can not have multiple default ' + name);
+			defaultItem = item;
+		}
+
+		if (!defaultItem && data.length) data[0].isDefault = true;
+	}
+
 	const [addresses, emails, phones, dates, relationships, custom] = await Promise.all([
 		tx
 			.insertInto('contact_addresses')

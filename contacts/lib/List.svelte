@@ -1,0 +1,33 @@
+<script lang="ts">
+	import { text } from '@axium/client';
+	import '@axium/client/styles/list';
+	import type { Contact } from '@axium/contacts';
+	import * as format from '@axium/contacts/format';
+
+	const { contacts }: { contacts: Contact[] } = $props();
+</script>
+
+<div class="list">
+	<div class="list-item list-header">
+		<span></span>
+		<span>{text('contacts.list.name')}</span>
+		<span>{text('contacts.list.email')}</span>
+		<span>{text('contacts.list.phone')}</span>
+		<span>{text('contacts.list.job')}</span>
+	</div>
+
+	{#each contacts as contact (contact.id)}
+		<div class="list-item">
+			<span>{format.name(contact)}</span>
+			<span>{format.emailDefault(contact)}</span>
+			<span>{format.phoneDefault(contact)}</span>
+			<span>{[contact.jobTitle, contact.company].filter(v => v).join(', ')}</span>
+		</div>
+	{/each}
+</div>
+
+<style>
+	.list-item {
+		grid-template-columns: 2em 2fr 1fr 1fr 1fr;
+	}
+</style>
