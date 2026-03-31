@@ -26,7 +26,7 @@
 						"birthYear": { "type": "int2" },
 						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
 						"updatedAt": { "type": "timestamptz", "required": true, "default": "now()" },
-						"urls": { "type": "text[]", "required": true, "default": "[]" }
+						"urls": { "type": "text[]", "required": true, "default": "'{}'::text[]" }
 					}
 				},
 				"contact_emails": {
