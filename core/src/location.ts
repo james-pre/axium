@@ -15,3 +15,8 @@ export const Location = z.object({
 });
 
 export interface Location extends z.infer<typeof Location> {}
+
+export const LocationInit = Location.partial();
+export interface LocationInit extends Partial<Location> {}
+
+export const locationKeys = Object.keys(Location.shape) as (keyof Location)[];
