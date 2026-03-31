@@ -26,7 +26,7 @@
 						"birthYear": { "type": "int2" },
 						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
 						"updatedAt": { "type": "timestamptz", "required": true, "default": "now()" },
-						"urls": { "type": "text[]" }
+						"urls": { "type": "text[]", "required": true, "default": "[]" }
 					}
 				},
 				"contact_emails": {
@@ -43,12 +43,17 @@
 				"contact_addresses": {
 					"columns": {
 						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
-						"address": { "type": "text", "required": true },
+						"country": { "type": "text", "required": true },
+						"subdivision": { "type": "text" },
+						"locality": { "type": "text" },
+						"postalCode": { "type": "text" },
+						"street1": { "type": "text" },
+						"street2": { "type": "text" },
 						"label": { "type": "text" },
 						"isDefault": { "type": "boolean", "required": true, "default": "false" }
 					},
 					"constraints": {
-						"PK_contact_addresses": { "type": "primary_key", "on": ["id", "address"] }
+						"PK_contact_addresses": { "type": "primary_key", "on": ["id", "country"] }
 					}
 				},
 				"contact_phones": {
@@ -67,19 +72,19 @@
 					"columns": {
 						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
 						"label": { "type": "text" },
-						"day": { "type": "int2" },
-						"month": { "type": "int2" },
+						"day": { "type": "int2", "required": true },
+						"month": { "type": "int2", "required": true },
 						"year": { "type": "int2" }
 					}
 				},
 				"contact_relationships": {
 					"columns": {
-						"from": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
+						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
 						"to": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
 						"label": { "type": "text", "required": true }
 					},
 					"constraints": {
-						"PK_contact_relationships": { "type": "primary_key", "on": ["from", "to"] }
+						"PK_contact_relationships": { "type": "primary_key", "on": ["id", "to"] }
 					}
 				},
 				"contact_custom": {

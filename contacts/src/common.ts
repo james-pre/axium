@@ -2,81 +2,88 @@ import { $API } from '@axium/core/api';
 import { Location } from '@axium/core';
 import * as z from 'zod';
 
-export const ContactEmail = z.object({
+const SmallTextRequired = z.string().nonempty().max(100);
+const SmallText = z.string().nonempty().max(100).nullish();
+
+export const Email = z.object({
 	email: z.email().max(255),
-	label: z.string().max(255).nullish(),
+	label: SmallText,
 	isDefault: z.boolean().default(false),
 });
-export interface ContactEmail extends z.infer<typeof ContactEmail> {}
+export interface Email extends z.infer<typeof Email> {}
 
-export const ContactAddress = Location.extend({
+export const Address = Location.extend({
 	isDefault: z.boolean().default(false),
 });
-export interface ContactAddress extends z.infer<typeof ContactAddress> {}
+export interface Address extends z.infer<typeof Address> {}
 
-export const ContactPhone = z.object({
+export const Phone = z.object({
+	country: z.int().min(0).max(999).nullish(),
+	number: z.coerce.bigint(),
+	label: SmallText,
 	isDefault: z.boolean().default(false),
 });
-export interface ContactPhone extends z.infer<typeof ContactPhone> {}
+export interface Phone extends z.infer<typeof Phone> {}
 
-export const ContactDate = z.object({});
-export interface ContactDate extends z.infer<typeof ContactDate> {}
+export const SigDate = z.object({
+	year: z.int().min(0).max(9999).nullish(),
+	month: z.int().min(1).max(12),
+	day: z.int().min(1).max(31),
+	label: SmallText,
+});
+export interface SigDate extends z.infer<typeof SigDate> {}
 
-export const ContactRelationshipInit = z.object({
+export const Relationship = z.object({
 	to: z.uuid(),
-	label: z.string().max(255).nullish(),
+	label: SmallTextRequired,
 });
+export interface Relationship extends z.infer<typeof Relationship> {}
 
-export const ContactRelationship = ContactRelationshipInit.extend({
-	from: z.uuid(),
+export const Custom = z.object({
+	label: SmallText,
+	value: z.string().max(255),
 });
-export interface ContactRelationship extends z.infer<typeof ContactRelationship> {}
+export interface Custom extends z.infer<typeof Custom> {}
 
-export const ContactCustom = z.object({
-	label: z.string().max(255).nullish(),
-	value: z.string().max(255).nullish(),
-});
-export interface ContactCustom extends z.infer<typeof ContactCustom> {}
-
-export const ContactInit = z.object({
-	display: z.string().max(255).nullish(),
-	prefix: z.string().max(255).nullish(),
-	firstName: z.string().max(255).nullish(),
-	middleName: z.string().max(255).nullish(),
-	lastName: z.string().max(255).nullish(),
-	suffix: z.string().max(255).nullish(),
-	nickname: z.string().max(255).nullish(),
-	company: z.string().max(255).nullish(),
-	jobTitle: z.string().max(255).nullish(),
-	department: z.string().max(255).nullish(),
+export const Init = z.object({
+	display: SmallText,
+	prefix: SmallText,
+	firstName: SmallText,
+	middleName: SmallText,
+	lastName: SmallText,
+	suffix: SmallText,
+	nickname: SmallText,
+	company: SmallText,
+	jobTitle: SmallText,
+	department: SmallText,
 	notes: z.string().max(1000).nullish(),
 	birthDay: z.int().min(1).max(31).nullish(),
 	birthMonth: z.int().min(1).max(12).nullish(),
 	birthYear: z.int().min(0).max(9999).nullish(),
-	urls: z.string().array().max(100).default([]),
-	emails: ContactEmail.array().max(100).default([]),
-	addresses: ContactAddress.array().max(100).default([]),
-	phones: ContactPhone.array().max(100).default([]),
-	dates: ContactDate.array().max(100).default([]),
-	relationships: ContactRelationshipInit.array().max(100).default([]),
-	custom: ContactCustom.array().max(100).default([]),
+	urls: z.string().max(100).array().max(100).default([]),
+	emails: Email.array().max(100).default([]),
+	addresses: Address.array().max(100).default([]),
+	phones: Phone.array().max(100).default([]),
+	dates: SigDate.array().max(100).default([]),
+	relationships: Relationship.array().max(100).default([]),
+	custom: Custom.array().max(100).default([]),
 });
 
-export const Contact = ContactInit.extend({
+export const Contact = Init.extend({
 	id: z.uuid(),
 	userId: z.uuid(),
-	relationships: ContactRelationship.array().max(100).default([]),
+	relationships: Relationship.array().max(100).default([]),
 });
 export interface Contact extends z.infer<typeof Contact> {}
 
 const ContactsAPI = {
 	'users/:id/contacts': {
 		GET: Contact.array(),
-		PUT: [ContactInit, Contact],
+		PUT: [Init, Contact],
 	},
 	'contacts/:id': {
 		GET: Contact,
-		PATCH: [ContactInit, Contact],
+		PATCH: [Init, Contact],
 		DELETE: Contact,
 	},
 } as const;
