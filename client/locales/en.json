@@ -231,5 +231,6 @@
 	},
 	"preference": {
 		"debug": "Debug mode"
-	}
+	},
+	"countries": {}
 }
