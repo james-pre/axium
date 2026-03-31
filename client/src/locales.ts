@@ -2,6 +2,7 @@ import { debug, error, info, warn } from 'ioium';
 import type { FlattenKeys, GetByString, Split, UnionToIntersection } from 'utilium';
 import { deepAssign, getByString } from 'utilium';
 import en from '../locales/en.json' with { type: 'json' };
+import { getNames } from 'i18n-iso-countries';
 
 const loadedLocales = Object.assign(Object.create(null), { en });
 
@@ -18,6 +19,8 @@ export function extendLocale(locale: string, data: object) {
 }
 
 let currentLoaded = en;
+
+export let countryNames = getNames('en');
 
 /**
  * Current locale
@@ -49,6 +52,7 @@ export function useLocale(newLocale: string): void {
 	if (!loadedLocales[newLocale]) throw new Error('Locale is not available: ' + newLocale);
 	currentLocale = newLocale;
 	currentLoaded = loadedLocales[newLocale];
+	countryNames = getNames(newLocale);
 }
 
 const localeReplacement = /\{(\w+)\}/g;
