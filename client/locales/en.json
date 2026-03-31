@@ -12,6 +12,14 @@
 		"failed": "Couldn't load apps.",
 		"none": "No apps available."
 	},
+	"LocationSelect": {
+		"country": "Country",
+		"subdivision": "State / province",
+		"locality": "Locality",
+		"postalCode": "Postal code",
+		"street1": "Street address",
+		"street2": "Street address line 2"
+	},
 	"Login": {
 		"email": "Email",
 		"register": "Register instead"
@@ -231,6 +239,5 @@
 	},
 	"preference": {
 		"debug": "Debug mode"
-	},
-	"countries": {}
+	}
 }
