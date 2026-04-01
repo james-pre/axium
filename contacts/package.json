@@ -59,6 +59,9 @@
 				"icon": "address-book"
 			}
 		],
-		"update_checks": true
+		"update_checks": true,
+		"config": {
+			"auto_link": true
+		}
 	}
 }

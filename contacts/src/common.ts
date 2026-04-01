@@ -1,7 +1,7 @@
+import { Location, serverConfigs } from '@axium/core';
 import { $API } from '@axium/core/api';
-import { Location } from '@axium/core';
-import * as z from 'zod';
 import { zKeys } from '@axium/core/locales';
+import * as z from 'zod';
 
 const SmallText = z.string().nonempty().max(100);
 
@@ -87,6 +87,7 @@ export const Init = z.object({
 	dates: SigDate.array().max(100).default([]),
 	relationships: Relationship.array().max(100).default([]),
 	custom: Custom.array().max(100).default([]),
+	linkedUserId: z.uuid().nullish(),
 });
 export interface Init extends z.infer<typeof Init> {}
 
@@ -98,6 +99,18 @@ export const Contact = Init.extend({
 	updatedAt: z.coerce.date(),
 });
 export interface Contact extends z.infer<typeof Contact> {}
+
+const ContactsConfig = z.object({
+	auto_link: z.boolean(),
+});
+
+declare module '@axium/core/plugins' {
+	export interface $PluginConfigs {
+		'@axium/contacts': z.infer<typeof ContactsConfig>;
+	}
+}
+
+serverConfigs.set('@axium/contacts', ContactsConfig);
 
 const ContactsAPI = {
 	'users/:id/contacts': {
