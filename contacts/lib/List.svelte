@@ -17,11 +17,11 @@
 	</div>
 
 	{#each contacts as contact (contact.id)}
-		<div class="list-item">
+		<div class="list-item" onclick={() => (location.href = `/contacts/${contact.id}`)}>
 			<span>{format.name(contact)}</span>
 			<span>{format.emailDefault(contact)}</span>
 			<span>{format.phoneDefault(contact)}</span>
-			<span>{[contact.jobTitle, contact.company].filter(v => v).join(', ')}</span>
+			<span>{format.job(contact)}</span>
 		</div>
 	{:else}
 		<p class="list-empty">{text('contacts.list.empty')}</p>

@@ -42,9 +42,9 @@
 
 <div class="contact-init-actions">
 	<a href="/contacts">
-		<button>
+		<button class="icon-text">
 			<Icon i="arrow-left" />
-			<span>{text('contacts.init.back')}</span>
+			<span>{text('contacts.back')}</span>
 		</button>
 	</a>
 

@@ -28,6 +28,7 @@ export const Email = z.object({
 export interface Email extends z.infer<typeof Email> {}
 
 export const Address = Location.extend({
+	label: Label,
 	isDefault: IsDefault,
 });
 export interface Address extends z.infer<typeof Address> {}

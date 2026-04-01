@@ -3,6 +3,11 @@
 		"contacts": "Contacts"
 	},
 	"contacts": {
+		"back": "Back",
+		"edit": "Edit",
+		"edit_title": "Contacts — Edit",
+		"new_button": "New Contact",
+		"field_loading": "Loading...",
 		"list": {
 			"name": "Name",
 			"email": "Email",
@@ -12,7 +17,6 @@
 		},
 		"init": {
 			"title": "Contacts — New",
-			"back": "Back",
 			"save": "Save",
 			"add": {
 				"emails": "Add email",
@@ -25,8 +29,7 @@
 			},
 			"show_more": "Show more",
 			"show_less": "Show less"
-		},
-		"new_button": "New Contact"
+		}
 	},
 	"contact": {
 		"label": "Label",

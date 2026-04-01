@@ -192,17 +192,14 @@ addRoute({
 		try {
 			const contact = await database.updateTable('contacts').set(init).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
 
-			await tx
-				.deleteFrom([
-					'contact_addresses',
-					'contact_emails',
-					'contact_phones',
-					'contact_dates',
-					'contact_relationships',
-					'contact_custom',
-				])
-				.where('id', '=', id)
-				.execute();
+			await Promise.all([
+				tx.deleteFrom('contact_addresses').where('id', '=', id).execute(),
+				tx.deleteFrom('contact_emails').where('id', '=', id).execute(),
+				tx.deleteFrom('contact_phones').where('id', '=', id).execute(),
+				tx.deleteFrom('contact_dates').where('id', '=', id).execute(),
+				tx.deleteFrom('contact_relationships').where('id', '=', id).execute(),
+				tx.deleteFrom('contact_custom').where('id', '=', id).execute(),
+			]);
 
 			const rest = await insertContactFields(
 				tx,
