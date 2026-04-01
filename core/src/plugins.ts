@@ -108,16 +108,7 @@ export async function runIntegrations() {
 
 export interface $PluginConfigs {}
 
-interface PluginConfigData {
-	schema: z.ZodObject;
-	labels: Record<string, string>;
-}
-
-export const serverConfigs = new Map<string, PluginConfigData>();
-
-export function setServerConfig(pluginName: string, schema: z.ZodObject, labels: Record<string, string> = {}) {
-	serverConfigs.set(pluginName, { schema, labels });
-}
+export const serverConfigs = new Map<string, z.ZodObject>();
 
 export function getConfig<T extends string>(pluginName: T): T extends keyof $PluginConfigs ? $PluginConfigs[T] : Record<string, unknown> {
 	const plugin = _findPlugin(pluginName);
