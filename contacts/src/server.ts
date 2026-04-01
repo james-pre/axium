@@ -1,4 +1,4 @@
-import { locationKeys, type AsyncResult } from '@axium/core';
+import { locationKeys, type AsyncResult, type Country } from '@axium/core';
 import { checkAuthForUser } from '@axium/server/auth';
 import { database, type Schema as DB } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
@@ -12,7 +12,10 @@ import { Init } from './common.js';
 import type * as contact from './common.js';
 
 declare module '@axium/server/database' {
-	export interface Schema extends FromSchemaFile<typeof schema> {}
+	interface _DB extends FromSchemaFile<typeof schema> {}
+	export interface Schema extends _DB {
+		contact_addresses: _DB['contact_addresses'] & { country: Country };
+	}
 }
 
 function contactsFields(eb: ExpressionBuilder<DB, 'contacts'>) {

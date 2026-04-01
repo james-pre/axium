@@ -7,17 +7,28 @@
 			"name": "Name",
 			"email": "Email",
 			"phone": "Phone number",
-			"job": "Job title and company"
-		}
+			"job": "Job title and company",
+			"empty": "No contacts"
+		},
+		"init": {
+			"title": "Contacts — New",
+			"add": {
+				"emails": "Add email",
+				"phones": "Add phone number",
+				"addresses": "Add address",
+				"relationships": "Add relationship",
+				"dates": "Add significant date",
+				"urls": "Add website",
+				"custom": "Add custom field"
+			},
+			"show_more": "Show more",
+			"show_less": "Show less"
+		},
+		"new_button": "New Contact"
 	},
 	"contact": {
 		"label": "Label",
 		"default": "Default",
-		"date": {
-			"day": "Day",
-			"month": "Month",
-			"year": "Year"
-		},
 		"email": "Email",
 		"phone": {
 			"number": "Number"
@@ -28,15 +39,15 @@
 		"custom": {
 			"value": "Value"
 		},
-		"display": "Display Name",
+		"display": "Display name",
 		"prefix": "Prefix",
-		"given_name": "First Name",
-		"given_name_2": "Middle Name",
-		"surname": "Last Name",
+		"given_name": "First name",
+		"given_name_2": "Middle name",
+		"surname": "Last name",
 		"suffix": "Suffix",
 		"nickname": "Nickname",
 		"company": "Company",
-		"job_title": "Job Title",
+		"job_title": "Job title",
 		"department": "Department",
 		"notes": "Notes"
 	}

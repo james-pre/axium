@@ -23,6 +23,8 @@
 			<span>{format.phoneDefault(contact)}</span>
 			<span>{[contact.jobTitle, contact.company].filter(v => v).join(', ')}</span>
 		</div>
+	{:else}
+		<p class="list-empty">{text('contacts.list.empty')}</p>
 	{/each}
 </div>
 

@@ -8,9 +8,11 @@ const SmallText = z.string().nonempty().max(100);
 const LabelRequired = SmallText.clone().register(zKeys, { key: 'contact.label' });
 const Label = SmallText.nullish().register(zKeys, { key: 'contact.label' });
 const IsDefault = z.boolean().register(zKeys, { key: 'contact.default' });
-const Day = z.int().min(1).max(31).register(zKeys, { key: 'contact.date.day' });
-const Month = z.int().min(1).max(12).register(zKeys, { key: 'contact.date.month' });
-const Year = z.int().min(0).max(9999).nullish().register(zKeys, { key: 'contact.date.year' });
+const Day = z.int().min(1).max(31);
+const Month = z.int().min(1).max(12);
+const Year = z.int().min(0).max(9999).nullish();
+
+export const ContactURL = z.url().max(100);
 
 export const Email = z.object({
 	email: z.email().max(255).register(zKeys, { key: 'contact.email' }),
@@ -71,7 +73,7 @@ export const Init = z.object({
 	birthDay: Day.nullish(),
 	birthMonth: Month.nullish(),
 	birthYear: Year,
-	urls: z.string().max(100).array().max(100).default([]),
+	urls: ContactURL.array().max(100).default([]),
 	emails: Email.array().max(100).default([]),
 	addresses: Address.array().max(100).default([]),
 	phones: Phone.array().max(100).default([]),
@@ -79,6 +81,7 @@ export const Init = z.object({
 	relationships: Relationship.array().max(100).default([]),
 	custom: Custom.array().max(100).default([]),
 });
+export interface Init extends z.infer<typeof Init> {}
 
 export const Contact = Init.extend({
 	id: z.uuid(),

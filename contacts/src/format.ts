@@ -1,5 +1,5 @@
 import type { Address, Contact, Phone } from './common.js';
-import { countryNames } from '@axium/client';
+import { countryName, text } from '@axium/client';
 
 /**
  * Display name for contact
@@ -50,8 +50,13 @@ export function address(addr: Address): string {
 		addr.street1,
 		addr.street2,
 		[addr.locality, addr.subdivision, addr.postalCode].filter(v => v).join(', '),
-		countryNames[addr.country],
+		countryName(addr.country),
 	]
 		.filter(v => v)
 		.join('\n');
+}
+
+export function date(day: number, month: number, year: number): string {
+	month -= 1;
+	return new Date(year, month, day).toLocaleDateString();
 }
