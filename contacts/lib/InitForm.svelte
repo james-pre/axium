@@ -17,6 +17,16 @@
 	type ArrayField = 'emails' | 'phones' | 'addresses' | 'relationships' | 'urls' | 'dates' | 'custom';
 
 	function updateValue() {}
+
+	let saving = $state(false);
+
+	async function doSave() {
+		saving = true;
+		try {
+			await save(init);
+		} catch (e) {}
+		saving = false;
+	}
 </script>
 
 {#snippet zod(name: keyof Init, showMore?: boolean, detailed?: boolean)}
@@ -48,7 +58,10 @@
 		</button>
 	</a>
 
-	<button onclick={() => save(init)}>{text('contacts.init.save')}</button>
+	<button class="icon-text save" onclick={doSave} disabled={saving}>
+		{#if saving}<Icon i="regular/circle-notched" />{/if}
+		<span>{text('contacts.init.save')}</span>
+	</button>
 </div>
 
 <div class="contact-init">
