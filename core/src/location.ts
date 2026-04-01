@@ -3,6 +3,7 @@ import countries from '../data/countries.json' with { type: 'json' };
 import { zKeys } from './locales.js';
 
 export type Country = (typeof countries)[number];
+export { countries };
 
 export const Location = z.object({
 	/** ISO 3166-1 alpha-2 */
