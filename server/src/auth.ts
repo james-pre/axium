@@ -68,9 +68,9 @@ export async function getSession(sessionId: string): Promise<SessionInternal> {
 export async function requireSession(request: Request, sensitive: boolean = false): Promise<SessionAndUser> {
 	const token = getToken(request, sensitive);
 
-	if (!token) error(401, 'Missing session token');
+	if (!token) error(401, 'Missing session (you are not logged in)');
 
-	const session = await getSessionAndUser(token).catch(withError('Invalid or expired session token', 401));
+	const session = await getSessionAndUser(token).catch(withError('Invalid or expired session', 401));
 
 	if (session.user.isSuspended) error(403, 'User is suspended');
 
