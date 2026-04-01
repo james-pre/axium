@@ -190,7 +190,12 @@ addRoute({
 		const tx = await database.startTransaction().execute();
 
 		try {
-			const contact = await database.updateTable('contacts').set(init).where('id', '=', id).returningAll().executeTakeFirstOrThrow();
+			const contact = await database
+				.updateTable('contacts')
+				.set({ ...init, updatedAt: new Date() })
+				.where('id', '=', id)
+				.returningAll()
+				.executeTakeFirstOrThrow();
 
 			await Promise.all([
 				tx.deleteFrom('contact_addresses').where('id', '=', id).execute(),

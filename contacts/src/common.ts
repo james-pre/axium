@@ -94,6 +94,8 @@ export const Contact = Init.extend({
 	id: z.uuid(),
 	userId: z.uuid(),
 	relationships: Relationship.array().max(100).default([]),
+	createdAt: z.coerce.date(),
+	updatedAt: z.coerce.date(),
 });
 export interface Contact extends z.infer<typeof Contact> {}
 
