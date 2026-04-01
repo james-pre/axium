@@ -1,4 +1,4 @@
-import { $API, AccessControl, setServerConfig } from '@axium/core';
+import { $API, AccessControl, serverConfigs } from '@axium/core';
 import * as z from 'zod';
 
 /**
@@ -168,7 +168,7 @@ declare module '@axium/core/plugins' {
 	}
 }
 
-setServerConfig('@axium/storage', StorageConfig);
+serverConfigs.set('@axium/storage', StorageConfig);
 
 export const StorageItemInit = z.object({
 	name: z.string(),
