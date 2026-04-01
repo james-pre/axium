@@ -1,14 +1,13 @@
-import { getConfig, locationKeys, type AsyncResult, type Country } from '@axium/core';
-import { checkAuthForUser } from '@axium/server/auth';
+import { getConfig, type AsyncResult, type Country } from '@axium/core';
+import { checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database, type Schema as DB } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import type { ControlledTransaction, ExpressionBuilder } from 'kysely';
+import type { AliasedRawBuilder, ControlledTransaction, ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
 import type schema from '../db.json';
-import { Init } from './common.js';
 import * as contact from './common.js';
 
 declare module '@axium/server/database' {
@@ -19,24 +18,26 @@ declare module '@axium/server/database' {
 }
 
 function contactsFields(eb: ExpressionBuilder<DB, 'contacts'>) {
-	return [
-		jsonArrayFrom(eb.selectFrom('contact_addresses').select([...locationKeys, 'label', 'isDefault'])).as('addresses'),
-		jsonArrayFrom(eb.selectFrom('contact_emails').select(['email', 'label', 'isDefault'])).as('emails'),
-		jsonArrayFrom(eb.selectFrom('contact_phones').select(['country', 'number', 'label', 'isDefault']))
-			.$castTo<contact.Phone[]>()
-			.as('phones'),
-		jsonArrayFrom(eb.selectFrom('contact_dates').select(['year', 'month', 'day', 'label'])).as('dates'),
-		jsonArrayFrom(eb.selectFrom('contact_relationships').select(['to', 'label'])).as('relationships'),
-		jsonArrayFrom(eb.selectFrom('contact_custom').select(['label', 'value'])).as('custom'),
-	] as const;
+	function select<const T extends contact.ExternalField>(field: T): AliasedRawBuilder<contact.OnlyExternal[T], T> {
+		return jsonArrayFrom(
+			eb
+				.selectFrom(`contact_${field}`)
+				// @ts-expect-error 2349
+				.select(Object.keys(fieldSchemas[field].shape))
+				.whereRef('id', '=', 'contacts.id')
+		)
+			.$castTo<contact.OnlyExternal[T]>()
+			.as(field);
+	}
+
+	return [select('addresses'), select('emails'), select('phones'), select('dates'), select('relationships'), select('custom')] as const;
 }
 
 /**
  * Try to automatically link the contact to a user
  */
-async function tryAutoLink(init: Init): Promise<void> {
-	if (!getConfig('@axium/contacts').auto_link) return;
-	if (init.linkedUserId) return;
+async function tryAutoLink(init: contact.Init): Promise<void> {
+	if (!getConfig('@axium/contacts').auto_link || init.linkedUserId || !init.emails.length) return;
 
 	const emails = init.emails.map(e => e.email);
 
@@ -55,24 +56,16 @@ const fieldSchemas = {
 	custom: contact.Custom,
 };
 
-type ContactFieldName = keyof typeof fieldSchemas;
-type Value<T extends ContactFieldName> = ContactFieldValues[T];
-
-interface ContactFieldValues {
-	addresses: contact.Address[];
-	emails: contact.Email[];
-	phones: contact.Phone[];
-	dates: contact.SigDate[];
-	relationships: contact.Relationship[];
-	custom: contact.Custom[];
-}
-
-function splitInit(init: Init): [Omit<Init, keyof ContactFieldValues>, ContactFieldValues] {
+function splitInit(init: contact.Init): [contact.InitNoExternal, contact.OnlyExternal] {
 	const { addresses, emails, phones, dates, relationships, custom, ...rest } = init;
 	return [rest, { addresses, emails, phones, dates, relationships, custom }];
 }
 
-async function insertContactFields(tx: ControlledTransaction<DB, []>, id: string, init: ContactFieldValues): Promise<ContactFieldValues> {
+async function insertContactFields(
+	tx: ControlledTransaction<DB, []>,
+	id: string,
+	init: contact.OnlyExternal
+): Promise<contact.OnlyExternal> {
 	for (const [name, data] of [
 		['addresses', init.addresses],
 		['emails', init.emails],
@@ -88,16 +81,16 @@ async function insertContactFields(tx: ControlledTransaction<DB, []>, id: string
 		if (!defaultItem && data.length) data[0].isDefault = true;
 	}
 
-	async function insertWithId<const T extends ContactFieldName>(field: T): Promise<{ [K in T]: Value<T> }> {
+	async function insertWithId<const T extends contact.ExternalField>(field: T): Promise<Pick<contact.OnlyExternal, T>> {
 		const value = init[field];
-		if (!value.length) return { [field]: [] } as any as { [K in T]: Value<T> };
+		if (!value.length) return { [field]: [] } as any as Pick<contact.OnlyExternal, T>;
 		const result = (await tx
 			.insertInto(`contact_${field}`)
 			.values(value.map(item => ({ ...item, id })) as any)
 			.returning(Object.keys(fieldSchemas[field].shape) as any)
-			.execute()) as Value<T>;
+			.execute()) as any;
 
-		return { [field]: result } as { [K in T]: Value<T> };
+		return { [field]: result } as Pick<contact.OnlyExternal, T>;
 	}
 
 	const result = await Promise.all([
@@ -121,7 +114,7 @@ addRoute({
 		return await database.selectFrom('contacts').selectAll().select(contactsFields).where('userId', '=', userId).execute();
 	},
 	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/contacts'> {
-		const init = await parseBody(request, Init);
+		const init = await parseBody(request, contact.Init);
 
 		await checkAuthForUser(request, userId);
 
@@ -166,7 +159,7 @@ addRoute({
 		return contact;
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'contacts/:id'> {
-		const init = await parseBody(request, Init);
+		const init = await parseBody(request, contact.Init);
 
 		const { userId } = await database
 			.selectFrom('contacts')
@@ -225,5 +218,55 @@ addRoute({
 			.returningAll()
 			.returning(contactsFields)
 			.executeTakeFirstOrThrow();
+	},
+});
+
+addRoute({
+	path: '/api/contact-discovery',
+	async POST(request): AsyncResult<'POST', 'contact-discovery'> {
+		const query = await parseBody(request, z.string().max(100));
+
+		const { userId } = await requireSession(request);
+
+		return await database
+			.selectFrom('contacts')
+			.selectAll()
+			.where('userId', '=', userId)
+			.where(eb =>
+				eb.or([
+					eb(eb.fn('concat_ws', [eb.val(' '), 'givenName', 'givenName2', 'surname']), 'like', `%${query}%`),
+					eb('id', 'in', eb.selectFrom('contact_emails').select('id').where('email', 'like', `%${query}%`)),
+					eb(
+						'id',
+						'in',
+						eb
+							.selectFrom('contact_phones')
+							.select('id')
+							.where(eb => eb.cast('number', 'text'), 'like', `%${query}%`)
+					),
+					eb(
+						'id',
+						'in',
+						eb
+							.selectFrom('contact_addresses')
+							.select('id')
+							.where(
+								eb =>
+									eb.fn('concat_ws', [
+										eb.val(' '),
+										'street1',
+										'street2',
+										'locality',
+										'subdivision',
+										'postalCode',
+										'country',
+									]),
+								'like',
+								`%${query}%`
+							)
+					),
+				])
+			)
+			.execute();
 	},
 });

@@ -94,11 +94,52 @@ export interface Init extends z.infer<typeof Init> {}
 export const Contact = Init.extend({
 	id: z.uuid(),
 	userId: z.uuid(),
-	relationships: Relationship.array().max(100).default([]),
 	createdAt: z.coerce.date(),
 	updatedAt: z.coerce.date(),
 });
 export interface Contact extends z.infer<typeof Contact> {}
+
+const _externalFields = {
+	addresses: true,
+	emails: true,
+	phones: true,
+	dates: true,
+	relationships: true,
+	custom: true,
+} as const;
+
+/**
+ * Large contact fields, which are stored externally
+ */
+export const OnlyExternal = Contact.pick(_externalFields);
+
+/**
+ * Large contact fields, which are stored externally
+ */
+export interface OnlyExternal {
+	addresses: Address[];
+	emails: Email[];
+	phones: Phone[];
+	dates: SigDate[];
+	relationships: Relationship[];
+	custom: Custom[];
+}
+
+export type ExternalField = keyof OnlyExternal;
+
+/**
+ * Contact init fields that are not stored externally
+ */
+export interface InitNoExternal extends Omit<Init, ExternalField> {}
+
+export const InitNoExternal = Init.omit(_externalFields);
+
+/**
+ * Contact fields that are not stored externally
+ */
+export interface NoExternal extends Omit<Contact, ExternalField> {}
+
+export const NoExternal = Contact.omit(_externalFields);
 
 const ContactsConfig = z.object({
 	auto_link: z.boolean(),
@@ -116,6 +157,9 @@ const ContactsAPI = {
 	'users/:id/contacts': {
 		GET: Contact.array(),
 		PUT: [Init, Contact],
+	},
+	'contact-discovery': {
+		POST: [z.string(), NoExternal.array()],
 	},
 	'contacts/:id': {
 		GET: Contact,

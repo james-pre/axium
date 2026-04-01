@@ -2,12 +2,17 @@
 	import { text } from '@axium/client';
 	import { dynamicRows } from '@axium/client/attachments';
 	import { Icon, LocationSelect, ZodInput } from '@axium/client/components';
-	import { ContactURL, Custom, Email, Init, Phone, Relationship, SigDate } from '@axium/contacts';
+	import { ContactURL, Custom, Email, Init, Phone, Relationship, SigDate, type Contact } from '@axium/contacts';
 	import DateSelect from './DateSelect.svelte';
+	import Discovery from './Discovery.svelte';
 
 	let showDetailed = $state(false);
 
-	let { init = $bindable<Init>(), save, back = '/contacts' }: { init: Init; save(init: Init): unknown; back?: string } = $props();
+	let {
+		init = $bindable<Init & Partial<Contact>>(),
+		save,
+		back = '/contacts',
+	}: { init: Init & Partial<Contact>; save(init: Init): unknown; back?: string } = $props();
 
 	let more = $state({
 		names: false,
@@ -120,10 +125,20 @@
 
 	{#if showDetailed}
 		<Icon i="regular/circle-nodes" />
-		{#each init.relationships, i}
+		{#each init.relationships as rel, i}
 			{#if i}<span />{/if}
 			<div class="section">
-				<ZodInput bind:rootValue={init} path="relationships.{i}" schema={Relationship} {updateValue} noLabel="placeholder" />
+				<Discovery
+					exclude={[init.id, ...init.relationships.map(r => r.to)].filter((v): v is string => !!v)}
+					onSelect={id => (rel.to = id)}
+				/>
+				<ZodInput
+					bind:rootValue={init}
+					path="relationships.{i}.label"
+					schema={Relationship.shape.label}
+					{updateValue}
+					noLabel="placeholder"
+				/>
 			</div>
 			<Icon i="xmark" onclick={() => init.relationships.splice(i, 1)} />
 		{/each}

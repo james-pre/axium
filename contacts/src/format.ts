@@ -1,11 +1,11 @@
 import { countryName, currentLocale } from '@axium/client';
-import type { Address, Contact, Phone } from './common.js';
+import type { Address, Contact, NoExternal, Phone } from './common.js';
 
 /**
  * Display name for contact
  * @todo localize
  */
-export function name(contact: Contact): string {
+export function name(contact: NoExternal): string {
 	if (contact.display) return contact.display;
 
 	return [contact.prefix, contact.givenName, contact.givenName2, contact.surname, contact.suffix].filter(v => v).join(' ');
@@ -82,6 +82,6 @@ export function date(sig: SigDateLike): string {
 	return '';
 }
 
-export function job(contact: Contact): string {
+export function job(contact: NoExternal): string {
 	return [contact.jobTitle, contact.company].filter(v => v).join(', ');
 }

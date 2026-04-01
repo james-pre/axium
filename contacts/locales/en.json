@@ -30,6 +30,10 @@
 			},
 			"show_more": "Show more",
 			"show_less": "Show less"
+		},
+		"Discovery": {
+			"placeholder": "Search for a contact",
+			"no_results": "No contacts found"
 		}
 	},
 	"contact": {
