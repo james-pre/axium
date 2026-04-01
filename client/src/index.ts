@@ -1,4 +1,5 @@
 export * from './access.js';
+export * from './cache.js';
 export * from './config.js';
 export * from './locales.js';
 export * from './requests.js';
