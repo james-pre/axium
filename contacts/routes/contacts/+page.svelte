@@ -24,6 +24,6 @@
 
 <style>
 	.contact-list-container {
-		margin: 1em;
+		margin: 2em;
 	}
 </style>

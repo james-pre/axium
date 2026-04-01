@@ -9,7 +9,7 @@ import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
 import type schema from '../db.json';
 import { Init } from './common.js';
-import type * as contact from './common.js';
+import * as contact from './common.js';
 
 declare module '@axium/server/database' {
 	interface _DB extends FromSchemaFile<typeof schema> {}
@@ -31,6 +31,27 @@ function contactsFields(eb: ExpressionBuilder<DB, 'contacts'>) {
 	] as const;
 }
 
+const fieldSchemas = {
+	addresses: contact.Address,
+	emails: contact.Email,
+	phones: contact.Phone,
+	dates: contact.SigDate,
+	relationships: contact.Relationship,
+	custom: contact.Custom,
+};
+
+type ContactFieldTable = keyof typeof fieldSchemas;
+type Value<T extends ContactFieldTable> = ContactFieldValues[T];
+
+interface ContactFieldValues {
+	addresses: contact.Address[];
+	emails: contact.Email[];
+	phones: contact.Phone[];
+	dates: contact.SigDate[];
+	relationships: contact.Relationship[];
+	custom: contact.Custom[];
+}
+
 async function insertContactFields(
 	tx: ControlledTransaction<DB, []>,
 	id: string,
@@ -40,7 +61,7 @@ async function insertContactFields(
 	dateInit: contact.SigDate[],
 	relationshipInit: contact.Relationship[],
 	customInit: contact.Custom[]
-) {
+): Promise<ContactFieldValues> {
 	for (const [name, data] of [
 		['addresses', addressInit],
 		['emails', emailInit],
@@ -56,40 +77,27 @@ async function insertContactFields(
 		if (!defaultItem && data.length) data[0].isDefault = true;
 	}
 
-	const [addresses, emails, phones, dates, relationships, custom] = await Promise.all([
-		tx
-			.insertInto('contact_addresses')
-			.values(addressInit.map(addr => ({ ...addr, id })))
-			.returning([...locationKeys, 'label', 'isDefault'])
-			.execute(),
-		tx
-			.insertInto('contact_emails')
-			.values(emailInit.map(email => ({ ...email, id })))
-			.returning(['email', 'label', 'isDefault'])
-			.execute(),
-		tx
-			.insertInto('contact_phones')
-			.values(phoneInit.map(phone => ({ ...phone, id })))
-			.returning(['country', 'number', 'label', 'isDefault'])
-			.execute(),
-		tx
-			.insertInto('contact_dates')
-			.values(dateInit.map(date => ({ ...date, id })))
-			.returning(['year', 'month', 'day', 'label'])
-			.execute(),
-		tx
-			.insertInto('contact_relationships')
-			.values(relationshipInit.map(relationship => ({ ...relationship, id })))
-			.returning(['to', 'label'])
-			.execute(),
-		tx
-			.insertInto('contact_custom')
-			.values(customInit.map(item => ({ ...item, id })))
-			.returningAll()
-			.execute(),
+	async function insertWithId<const T extends ContactFieldTable>(field: T, init: Value<T>): Promise<{ [K in T]: Value<T> }> {
+		if (!init.length) return { [field]: [] } as any as { [K in T]: Value<T> };
+		const result = (await tx
+			.insertInto(`contact_${field}`)
+			.values(init.map(item => ({ ...item, id })) as any)
+			.returning(Object.keys(fieldSchemas[field].shape) as any)
+			.execute()) as Value<T>;
+
+		return { [field]: result } as { [K in T]: Value<T> };
+	}
+
+	const result = await Promise.all([
+		insertWithId('addresses', addressInit),
+		insertWithId('emails', emailInit),
+		insertWithId('phones', phoneInit),
+		insertWithId('dates', dateInit),
+		insertWithId('relationships', relationshipInit),
+		insertWithId('custom', customInit),
 	]);
 
-	return { addresses, emails, phones, dates, relationships, custom };
+	return Object.assign(...result);
 }
 
 addRoute({

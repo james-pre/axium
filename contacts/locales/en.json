@@ -12,6 +12,8 @@
 		},
 		"init": {
 			"title": "Contacts — New",
+			"back": "Back",
+			"save": "Save",
 			"add": {
 				"emails": "Add email",
 				"phones": "Add phone number",

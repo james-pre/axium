@@ -30,6 +30,6 @@
 
 <style>
 	.list-item {
-		grid-template-columns: 2em 2fr 1fr 1fr 1fr;
+		grid-template-columns: 2em 2fr minmax(10em, 25em) minmax(10em, 20em) 1fr;
 	}
 </style>

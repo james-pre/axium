@@ -8,9 +8,15 @@ const SmallText = z.string().nonempty().max(100);
 const LabelRequired = SmallText.clone().register(zKeys, { key: 'contact.label' });
 const Label = SmallText.nullish().register(zKeys, { key: 'contact.label' });
 const IsDefault = z.boolean().register(zKeys, { key: 'contact.default' });
-const Day = z.int().min(1).max(31);
-const Month = z.int().min(1).max(12);
-const Year = z.int().min(0).max(9999).nullish();
+const Day = z.coerce.number().int().min(1).max(31);
+const Month = z.coerce.number().int().min(1).max(12);
+const Year = z.coerce.number().int().min(1).max(9999).nullish();
+const DatePartNull = z.coerce
+	.number()
+	.int()
+	.min(0)
+	.max(0)
+	.transform(() => null);
 
 export const ContactURL = z.url().max(100);
 
@@ -70,9 +76,9 @@ export const Init = z.object({
 	jobTitle: SmallText.nullish().register(zKeys, { key: 'contact.job_title' }),
 	department: SmallText.nullish().register(zKeys, { key: 'contact.department' }),
 	notes: z.string().max(1000).nullish().register(zKeys, { key: 'contact.notes' }),
-	birthDay: Day.nullish(),
-	birthMonth: Month.nullish(),
-	birthYear: Year,
+	birthDay: Day.or(DatePartNull).nullish(),
+	birthMonth: Month.or(DatePartNull).nullish(),
+	birthYear: Year.or(DatePartNull),
 	urls: ContactURL.array().max(100).default([]),
 	emails: Email.array().max(100).default([]),
 	addresses: Address.array().max(100).default([]),
