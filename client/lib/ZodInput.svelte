@@ -14,15 +14,17 @@
 		path: string;
 		label?: string;
 		schema: ZodPref;
+		_parseSchema?: ZodPref;
 		defaultValue?: any;
 		optional?: boolean;
+		readonly?: boolean;
 		noLabel?: boolean | 'placeholder';
 		updateValue(value: any): void;
 	}
 
 	let { rootValue = $bindable(), ...props }: Props = $props();
 
-	let { label, path, schema, optional, defaultValue, idPrefix, updateValue, noLabel } = props;
+	let { label, path, schema, _parseSchema = schema, optional, readonly, defaultValue, idPrefix, updateValue, noLabel } = props;
 
 	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
 
@@ -104,6 +106,7 @@
 			required={!optional}
 			{defaultValue}
 			{placeholder}
+			{readonly}
 			class={[error && 'error']}
 		/>
 	</div>
@@ -142,6 +145,8 @@
 	</div>
 {:else if schema.type == 'template_literal'}
 	<!-- todo -->
+{:else if schema.type == 'readonly'}
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} readonly />
 {:else if schema.type == 'default'}
 	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
 {:else if schema.type == 'nullable' || schema.type == 'optional'}
@@ -205,6 +210,14 @@
 			{/each}
 		</select>
 	</div>
+{:else if schema.type == 'success'}
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} {_parseSchema} />
+{:else if schema.type == 'pipe'}
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.in} {_parseSchema} />
+{:else if schema.type == 'union'}
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.options[0]} {_parseSchema} />
+{:else if schema.type == 'intersection'}
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.left} {_parseSchema} />
 {:else}
 	<!-- No idea how to render this -->
 	<i class="error">{text('ZodInput.invalid_type', { type: JSON.stringify((schema as ZodPref)?.def?.type) })}</i>
