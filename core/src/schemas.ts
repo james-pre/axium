@@ -53,9 +53,16 @@ export type ZodSerializable =
 	| z.ZodNonOptional<any>
 	| z.ZodPrefault<any>
 	| z.ZodDefault<any>
+	| z.ZodReadonly<any>
+	| z.ZodSuccess<any>
 	// composites
 	| z.ZodArray<any>
-	| z.ZodObject<Readonly<Record<string, any>>>;
+	| z.ZodObject<Readonly<Record<string, any>>>
+	// misc
+	| z.ZodIntersection<any, any>
+	| z.ZodUnion<any[]>
+	| z.ZodTransform
+	| z.ZodPipe<any, any>;
 
 /**
  * Used to narrow using `type` and get access to type-specific properties (e.g. `ZodNumber.minValue`)
@@ -77,14 +84,8 @@ export type ZodSpecificType =
 	| z.ZodMap<ZodSpecificType, ZodSpecificType>
 	| z.ZodSet<ZodSpecificType>
 	// wrappers
-	| z.ZodReadonly<any>
 	| z.ZodCatch<any>
-	| z.ZodSuccess<any>
 	// misc
-	| z.ZodIntersection<any, any>
-	| z.ZodUnion<any[]>
-	| z.ZodTransform
-	| z.ZodPipe<any, any>
 	| z.ZodPromise<ZodSpecificType>
 	| z.ZodLazy<any>
 	| z.ZodFunction<any, ZodSpecificType>
