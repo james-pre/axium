@@ -6,6 +6,8 @@
 		"back": "Back",
 		"edit": "Edit",
 		"edit_title": "Contacts — Edit",
+		"delete": "Delete",
+		"export": "Export",
 		"new_button": "New Contact",
 		"field_loading": "Loading...",
 		"named_title": "Contacts — {name}",
@@ -49,7 +51,7 @@
 		"custom": {
 			"value": "Value"
 		},
-		"display": "Display name",
+		"display": "Display as",
 		"prefix": "Prefix",
 		"given_name": "First name",
 		"given_name_2": "Middle name",

@@ -2,7 +2,7 @@
 	import { text } from '@axium/client';
 	import { fetchAPI } from '@axium/client/requests';
 	import type { NoExternal } from '@axium/contacts';
-	import { name } from '@axium/contacts/format';
+	import { format } from '@axium/contacts/client';
 	import { errorText } from 'ioium';
 
 	const { onSelect, exclude = [] }: { onSelect(id: string): unknown; exclude?: string[] } = $props();
@@ -31,7 +31,7 @@
 			e.stopPropagation();
 			onSelect(target.id);
 			results = [];
-			value = name(target);
+			value = format.name(target);
 		};
 	}
 </script>
@@ -43,7 +43,7 @@
 		{#each results as result}
 			{#if !exclude.includes(result.id)}
 				<div class="result" onclick={select(result)}>
-					<span>{name(result)}</span>
+					<span>{format.name(result)}</span>
 				</div>
 			{/if}
 		{:else}

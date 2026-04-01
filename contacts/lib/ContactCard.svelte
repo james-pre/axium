@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { NoExternal } from '@axium/contacts';
-	import * as format from '@axium/contacts/format';
+	import { format } from '@axium/contacts/client';
 
 	const { contact, compact }: { contact: NoExternal; compact?: boolean } = $props();
 

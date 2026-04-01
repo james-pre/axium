@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { NoExternal } from '@axium/contacts';
+	import type { InitNoExternal } from '@axium/contacts';
 	import { colorHashRGB } from '@axium/core/color';
-	import { name as formatName } from '@axium/contacts/format';
+	import { name as formatName } from '@axium/contacts/client/format';
 	import UserPFP from '@axium/client/components/UserPFP';
 	import { userInfo } from '@axium/client';
 
-	let { contact, isDefault = $bindable() }: { contact: NoExternal; isDefault?: boolean } = $props();
+	let { contact, isDefault = $bindable() }: { contact: InitNoExternal & { id: string }; isDefault?: boolean } = $props();
 
 	const name = $derived(formatName(contact));
 

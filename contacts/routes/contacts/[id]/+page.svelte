@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
-	import Field from '@axium/contacts/components/Field';
-	import * as format from '@axium/contacts/format';
 	import { getContact } from '@axium/contacts/client';
+	import { ContactPFP, Field } from '@axium/contacts/components';
+	import * as format from '@axium/contacts/format';
 
 	const { data } = $props();
 	const { contact } = data;
@@ -21,12 +21,24 @@
 		</button>
 	</a>
 
+	<span></span>
+
 	<a href="/contacts/{contact.id}/edit">
 		<button class="icon-text">
 			<Icon i="pencil" />
 			<span>{text('contacts.edit')}</span>
 		</button>
 	</a>
+
+	<button class="icon-text">
+		<Icon i="trash" />
+		<span>{text('contacts.delete')}</span>
+	</button>
+
+	<button class="icon-text">
+		<Icon i="export" />
+		<span>{text('contacts.export')}</span>
+	</button>
 </div>
 
 {#snippet part(i: string, value: string | false | 0 | null | undefined)}
@@ -36,8 +48,12 @@
 	{/if}
 {/snippet}
 
+<div class="contact-header">
+	<ContactPFP {contact} --size="100px" />
+	<span>{format.name(contact)}</span>
+</div>
+
 <div class="contact">
-	{@render part('user', format.name(contact))}
 	{@render part('regular/buildings', format.job(contact))}
 
 	{#if contact.emails.length}
@@ -111,6 +127,7 @@
 </div>
 
 <style>
+	.contact-header,
 	.contact,
 	.contact-actions {
 		padding: 2em;
@@ -121,11 +138,19 @@
 		}
 	}
 
+	.contact-header,
 	.contact-actions {
 		display: flex;
 		gap: 1em;
 		align-items: center;
-		justify-content: space-between;
+	}
+
+	.contact-actions a {
+		flex: 0 0 auto;
+	}
+
+	.contact-actions > span {
+		flex: 1 1 auto;
 	}
 
 	.contact {

@@ -2,7 +2,7 @@
 	import { text } from '@axium/client';
 	import '@axium/client/styles/list';
 	import type { Contact } from '@axium/contacts';
-	import * as format from '@axium/contacts/format';
+	import { format } from '@axium/contacts/client';
 
 	const { contacts }: { contacts: Contact[] } = $props();
 </script>

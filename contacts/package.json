@@ -21,6 +21,8 @@
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": "./dist/index.js",
+		"./client": "./dist/client/index.js",
+		"./server": "./dist/server/index.js",
 		"./*": "./dist/*.js",
 		"./components": "./lib/index.js",
 		"./components/*": "./lib/*.svelte"
@@ -48,9 +50,9 @@
 	"axium": {
 		"server": {
 			"routes": "routes",
-			"hooks": "./dist/hooks.js",
+			"hooks": "./dist/server/hooks.js",
 			"db": "./db.json",
-			"web_client_hooks": "./dist/web_hook.js"
+			"web_client_hooks": "./dist/client/web_hook.js"
 		},
 		"apps": [
 			{

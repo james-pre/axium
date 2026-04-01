@@ -5,6 +5,7 @@
 	import { ContactURL, Custom, Email, Init, Phone, Relationship, SigDate, type Contact } from '@axium/contacts';
 	import DateSelect from './DateSelect.svelte';
 	import Discovery from './Discovery.svelte';
+	import ContactPFP from './ContactPFP.svelte';
 
 	let showDetailed = $state(false);
 
@@ -57,6 +58,12 @@
 		<span>{text('contacts.init.save')}</span>
 	</button>
 </div>
+
+{#if init.id}
+	<div class="contact-init-header">
+		<ContactPFP contact={init as typeof init & { id: string }} --size="100px" />
+	</div>
+{/if}
 
 <div class="contact-init">
 	<Icon i="user" />
