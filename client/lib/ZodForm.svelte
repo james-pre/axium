@@ -5,7 +5,7 @@
 	interface Props {
 		rootValue: any;
 		schema: ZodObject;
-		labels: Record<string, string>;
+		labels?: Record<string, string>;
 		updateValue(value: any): void;
 		idPrefix?: string;
 	}
@@ -15,7 +15,7 @@
 
 <div class="ZodForm">
 	{#each Object.keys(schema.shape).sort((a, b) => a.localeCompare(b)) as path}
-		<ZodInput bind:rootValue {updateValue} {idPrefix} {path} schema={schema.shape[path]} label={labels[path] || path} />
+		<ZodInput bind:rootValue {updateValue} {idPrefix} {path} schema={schema.shape[path]} label={labels?.[path] || path} />
 	{/each}
 </div>
 
