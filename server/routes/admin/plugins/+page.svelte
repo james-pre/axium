@@ -16,7 +16,7 @@
 <h2>{text('page.admin.plugins.heading')}</h2>
 
 {#each data.plugins as plugin}
-	{@const cfg = serverConfigs.get(plugin.name)}
+	{@const schema = serverConfigs.get(plugin.name)}
 	<div class="plugin">
 		<h3>
 			{plugin.name}<Version
@@ -46,14 +46,12 @@
 			{:else}<i>{text('generic.none')}</i>{/if}
 		</p>
 		<p>{plugin.description}</p>
-		{#if cfg && plugin.config}
+		{#if schema && plugin.config}
 			<h4>{text('page.admin.plugins.configuration')}</h4>
-			{@const { schema, labels } = cfg}
 			<ZodForm
 				rootValue={plugin.config}
 				idPrefix={plugin.name}
 				{schema}
-				{labels}
 				updateValue={config => fetchAPI('POST', 'admin/plugins', { plugin: plugin.name, config })}
 			/>
 		{/if}
