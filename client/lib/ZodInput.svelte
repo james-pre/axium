@@ -16,7 +16,7 @@
 		schema: ZodPref;
 		defaultValue?: any;
 		optional?: boolean;
-		noLabel?: boolean;
+		noLabel?: boolean | 'placeholder';
 		updateValue(value: any): void;
 	}
 
@@ -85,13 +85,24 @@
 	const oninput = onchange;
 
 	const labelText = $derived(zKeys.has(props.schema) ? text(zKeys.get(props.schema)!.key) : label || path);
+	const placeholder = noLabel == 'placeholder' ? labelText : undefined;
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
-		<input {id} {...rest} bind:value {onchange} {oninput} required={!optional} {defaultValue} class={[error && 'error']} />
+		<input
+			{id}
+			{...rest}
+			bind:value
+			{onchange}
+			{oninput}
+			required={!optional}
+			{defaultValue}
+			{placeholder}
+			class={[error && 'error']}
+		/>
 	</div>
 {/snippet}
 
@@ -104,7 +115,7 @@
 {:else if schema.type == 'boolean'}
 	<div class="ZodInput">
 		{#if !noLabel}<label for="{id}:checkbox">{labelText}</label>{/if}
-		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} />
+		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} {placeholder} />
 		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if value}<Icon i="check" --size="1.3em" />{/if}
 		</label>
@@ -133,14 +144,15 @@
 {:else if schema.type == 'nullable' || schema.type == 'optional'}
 	<!-- defaults are handled differently -->
 	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} optional={true} />
+{:else if schema.type == 'nonoptional'}
+	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} optional={false} />
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
-		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<div class="ZodInput-array">
 			{#each value, i}
 				<div class="ZodInput-element">
-					<input id="{id}.{i}" bind:value={value[i]} {oninput} required={!optional} {defaultValue} class={[error && 'error']} />
+					<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{i}" schema={schema.element} noLabel />
 					<button
 						onclick={e => {
 							value.splice(i, 1);
@@ -220,6 +232,10 @@
 		button {
 			position: relative;
 			right: 1em;
+		}
+
+		& > .ZodInput {
+			grid-template-columns: 1fr;
 		}
 	}
 
