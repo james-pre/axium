@@ -20,6 +20,10 @@ export function connect(): Database {
 
 	database = new Kysely<Schema>({
 		dialect: new PostgresDialect({ pool: new pg.Pool(config.db) }),
+		log(event) {
+			if (event.level != 'error' || !config.debug) return;
+			io.error('Query failed:', event.query.sql);
+		},
 	});
 
 	globalThis[sym] = database;
