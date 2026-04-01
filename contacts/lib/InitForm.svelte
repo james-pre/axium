@@ -75,8 +75,11 @@
 	<Icon i="regular/envelope" />
 	{#each init.emails, i}
 		{#if i}<span />{/if}
-		<div class="section">
-			<ZodInput bind:rootValue={init} path="emails.{i}" schema={Email} {updateValue} noLabel="placeholder" />
+		<div class={['email', init.emails.length > 1 && 'with-label']}>
+			<ZodInput bind:rootValue={init} path="emails.{i}.email" schema={Email.shape.email} {updateValue} noLabel="placeholder" />
+			{#if init.emails.length > 1}
+				<ZodInput bind:rootValue={init} path="emails.{i}.label" schema={Email.shape.label} {updateValue} noLabel="placeholder" />
+			{/if}
 		</div>
 		<Icon i="xmark" onclick={() => init.emails.splice(i, 1)} />
 	{/each}
@@ -85,8 +88,12 @@
 	<Icon i="phone" />
 	{#each init.phones, i}
 		{#if i}<span />{/if}
-		<div class="section">
-			<ZodInput bind:rootValue={init} path="phones.{i}" schema={Phone} {updateValue} noLabel="placeholder" />
+		<div class={['phone', init.phones.length > 1 && 'with-label']}>
+			<ZodInput bind:rootValue={init} path="phones.{i}.country" schema={Phone.shape.country} {updateValue} noLabel="placeholder" />
+			<ZodInput bind:rootValue={init} path="phones.{i}.number" schema={Phone.shape.number} {updateValue} noLabel="placeholder" />
+			{#if init.phones.length > 1}
+				<ZodInput bind:rootValue={init} path="phones.{i}.label" schema={Phone.shape.label} {updateValue} noLabel="placeholder" />
+			{/if}
 		</div>
 		<Icon i="xmark" onclick={() => init.phones.splice(i, 1)} />
 	{/each}
@@ -202,5 +209,25 @@
 		display: flex;
 		flex-direction: column;
 		gap: 0.25em;
+	}
+
+	.email {
+		display: grid;
+		gap: 0.5em;
+		grid-template-columns: 1fr;
+
+		&.with-label {
+			grid-template-columns: 1fr 1fr;
+		}
+	}
+
+	.phone {
+		display: grid;
+		gap: 0.5em;
+		grid-template-columns: 4em 1fr;
+
+		&.with-label {
+			grid-template-columns: 4em 1fr 1fr;
+		}
 	}
 </style>

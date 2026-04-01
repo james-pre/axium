@@ -7,7 +7,7 @@ const SmallText = z.string().nonempty().max(100);
 
 const LabelRequired = SmallText.clone().register(zKeys, { key: 'contact.label' });
 const Label = SmallText.nullish().register(zKeys, { key: 'contact.label' });
-const IsDefault = z.boolean().register(zKeys, { key: 'contact.default' });
+const IsDefault = z.boolean().default(false).register(zKeys, { key: 'contact.default' });
 const Day = z.coerce.number().int().min(1).max(31);
 const Month = z.coerce.number().int().min(1).max(12);
 const Year = z.coerce.number().int().min(1).max(9999).nullish();
