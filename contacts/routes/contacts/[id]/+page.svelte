@@ -1,11 +1,17 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
+	import Field from '@axium/contacts/components/Field';
 	import * as format from '@axium/contacts/format';
+	import { getContact } from '@axium/contacts/client';
 
 	const { data } = $props();
 	const { contact } = data;
 </script>
+
+<svelte:head>
+	<title>{text('contacts.named_title', { name: format.name(contact) })}</title>
+</svelte:head>
 
 <div class="contact-actions">
 	<a href="/contacts">
@@ -30,39 +36,76 @@
 	{/if}
 {/snippet}
 
-{#snippet arrayField<V>(i: string, values: V[], render: (value: V) => string | Promise<string>)}
-	{#if values.length}
-		<Icon {i} />
+<div class="contact">
+	{@render part('user', format.name(contact))}
+	{@render part('regular/buildings', format.job(contact))}
+
+	{#if contact.emails.length}
+		<Icon i="regular/envelope" />
 		<div class="section">
-			{#each values as value}
-				{#await render(value)}
-					<i>{text('contacts.field_loading')}</i>
-				{:then str}
-					<span>{str}</span>
+			{#each contact.emails as { email, label, isDefault }}
+				<Field text={email} link="mailto:{email}" {label} {isDefault} />
+			{/each}
+		</div>
+	{/if}
+
+	{#if contact.phones.length}
+		<Icon i="phone" />
+		<div class="section">
+			{#each contact.phones as phone}
+				<Field text={format.phone(phone)} link={format.phoneLink(phone)} label={phone.label} isDefault={phone.isDefault} />
+			{/each}
+		</div>
+	{/if}
+
+	{#if contact.addresses.length}
+		<Icon i="regular/location-dot" />
+		<div class="section">
+			{#each contact.addresses as addr}
+				<Field text={format.address(addr)} label={addr.label} isDefault={addr.isDefault} />
+			{/each}
+		</div>
+	{/if}
+
+	{@render part('cake-candles', format.birthDate(contact))}
+
+	{#if contact.relationships.length}
+		<Icon i="regular/circle-nodes" />
+		<div class="section">
+			{#each contact.relationships as { to, label }}
+				{#await getContact(to) then other}
+					<Field text={format.name(other)} {label} link="/contacts/{other.id}" />
 				{/await}
 			{/each}
 		</div>
 	{/if}
-{/snippet}
 
-<div class="contact">
-	{@render part('user', format.name(contact))}
-	{@render part('regular/buildings', format.job(contact))}
-	{@render arrayField('regular/envelope', contact.emails, email => email.email)}
+	{#if contact.dates.length}
+		<Icon i="regular/calendar-day" />
+		<div class="section">
+			{#each contact.dates as date}
+				<Field text={format.date(date)} label={date.label} />
+			{/each}
+		</div>
+	{/if}
 
-	{@render arrayField('phone', contact.phones, format.phone)}
+	{#if contact.urls.length}
+		<Icon i="link-simple" />
+		<div class="section">
+			{#each contact.urls as url}
+				<Field text={url} link={url} />
+			{/each}
+		</div>
+	{/if}
 
-	{@render arrayField('regular/location-dot', contact.addresses, format.address)}
-
-	{@render part('cake-candles', format.birthDate(contact))}
-
-	{@render arrayField('regular/circle-nodes', contact.relationships, format.relationship)}
-
-	{@render arrayField('regular/calendar-day', contact.dates, format.date)}
-
-	{@render arrayField('link-simple', contact.urls, url => url)}
-
-	{@render arrayField('regular/input-text', contact.custom, custom => custom.value)}
+	{#if contact.custom.length}
+		<Icon i="regular/input-text" />
+		<div class="section">
+			{#each contact.custom as custom}
+				<Field text={custom.value} label={custom.label} />
+			{/each}
+		</div>
+	{/if}
 
 	{@render part('regular/note', contact.notes)}
 </div>

@@ -7,7 +7,7 @@
 
 	let showDetailed = $state(false);
 
-	let { init = $bindable<Init>(), save }: { init: Init; save(init: Init): unknown } = $props();
+	let { init = $bindable<Init>(), save, back = '/contacts' }: { init: Init; save(init: Init): unknown; back?: string } = $props();
 
 	let more = $state({
 		names: false,
@@ -41,7 +41,7 @@
 {/snippet}
 
 <div class="contact-init-actions">
-	<a href="/contacts">
+	<a href={back}>
 		<button class="icon-text">
 			<Icon i="arrow-left" />
 			<span>{text('contacts.back')}</span>

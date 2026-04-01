@@ -22,4 +22,4 @@
 	<title>{text('contacts.edit_title')}</title>
 </svelte:head>
 
-<InitForm bind:init {save} />
+<InitForm bind:init {save} back="/contacts/{data.contact.id}" />

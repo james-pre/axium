@@ -8,6 +8,7 @@
 		"edit_title": "Contacts — Edit",
 		"new_button": "New Contact",
 		"field_loading": "Loading...",
+		"named_title": "Contacts — {name}",
 		"list": {
 			"name": "Name",
 			"email": "Email",

@@ -18,6 +18,7 @@
 
 	{#each contacts as contact (contact.id)}
 		<div class="list-item" onclick={() => (location.href = `/contacts/${contact.id}`)}>
+			<span></span>
 			<span>{format.name(contact)}</span>
 			<span>{format.emailDefault(contact)}</span>
 			<span>{format.phoneDefault(contact)}</span>

@@ -1,6 +1,5 @@
 import { countryName, currentLocale } from '@axium/client';
-import type { Address, Contact, Phone, Relationship, SigDate } from './common.js';
-import { getContact } from './client.js';
+import type { Address, Contact, Phone } from './common.js';
 
 /**
  * Display name for contact
@@ -23,15 +22,17 @@ export function emailDefault(contact: Contact): string {
 	return defaultValue.email;
 }
 
+export function phoneLink(phone: Phone): string {
+	return `tel:${phone.country ? '+' + phone.country : ''}${phone.number}`;
+}
+
 /**
  * @todo localize this to support more than US-style 10 digit numbers
  */
 export function phone(phone: Phone): string {
 	const str = phone.number.toString();
 	const number = `(${str.slice(0, 3)}) ${str.slice(3, 6)}-${str.slice(6, 10)}`;
-
-	const text = phone.country ? `+${phone.country} ${number}` : number;
-	return [text, phone.label && '• ' + phone.label, phone.isDefault && '(default)'].filter(v => v).join(' ');
+	return phone.country ? `+${phone.country} ${number}` : number;
 }
 
 export function phoneDefault(contact: Contact): string {
@@ -52,7 +53,7 @@ export function address(addr: Address): string {
 		addr.street1,
 		addr.street2,
 		[addr.locality, addr.subdivision, addr.postalCode].filter(v => v).join(', '),
-		[countryName(addr.country), addr.label && '• ' + addr.label, addr.isDefault && '(default)'].filter(v => v).join(' '),
+		countryName(addr.country),
 	]
 		.filter(v => v)
 		.join('\n');
@@ -83,9 +84,4 @@ export function date(sig: SigDateLike): string {
 
 export function job(contact: Contact): string {
 	return [contact.jobTitle, contact.company].filter(v => v).join(', ');
-}
-
-export async function relationship(relationship: Relationship): Promise<string> {
-	const to = await getContact(relationship.to);
-	return `${name(to)} • ${relationship.label}`;
 }
