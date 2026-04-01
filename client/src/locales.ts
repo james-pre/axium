@@ -1,5 +1,5 @@
 import { debug, error, info, warn } from 'ioium';
-import type { FlattenKeys, GetByString, Split, UnionToIntersection } from 'utilium';
+import type { FlattenKeys, GetByString, Split, Tuple, UnionToIntersection } from 'utilium';
 import { deepAssign, getByString } from 'utilium';
 import en from '../locales/en.json' with { type: 'json' };
 
@@ -18,11 +18,10 @@ export function extendLocale(locale: string, data: object) {
 }
 
 let currentLoaded = en,
-	currentRegionNames = new Intl.DisplayNames('en', { type: 'region' });
+	currentRegionNames: Intl.DisplayNames,
+	currentDateFields: Intl.DisplayNames;
 
-export function countryName(code: string) {
-	return currentRegionNames.of(code);
-}
+export let currentMonthNames: string[];
 
 /**
  * Current locale
@@ -55,6 +54,20 @@ export function useLocale(newLocale: string): void {
 	currentLocale = newLocale;
 	currentLoaded = loadedLocales[newLocale];
 	currentRegionNames = new Intl.DisplayNames(newLocale, { type: 'region' });
+	currentDateFields = new Intl.DisplayNames(newLocale, { type: 'dateTimeField' });
+
+	const formatter = new Intl.DateTimeFormat(newLocale, { month: 'long' });
+	currentMonthNames = Array.from({ length: 12 }, (_, monthIndex) => formatter.format(new Date(Date.UTC(2000, monthIndex + 1, 1))));
+}
+
+useLocale('en');
+
+export function countryName(code: string): string | undefined {
+	return currentRegionNames.of(code);
+}
+
+export function dateField(name: string): string | undefined {
+	return currentDateFields.of(name);
 }
 
 const localeReplacement = /\{(\w+)\}/g;

@@ -86,6 +86,9 @@
 
 	const labelText = $derived(zKeys.has(props.schema) ? text(zKeys.get(props.schema)!.key) : label || path);
 	const placeholder = noLabel == 'placeholder' ? labelText : undefined;
+
+	/** Array element types that indicate the array should put elements on their own lines */
+	const largeArrayTypes = ['object', 'array', 'record', 'tuple'];
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
@@ -149,10 +152,10 @@
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
-		<div class="ZodInput-array">
+		<div class={['ZodInput-array', largeArrayTypes.includes(schema.element.type) && 'large']}>
 			{#each value, i}
 				<div class="ZodInput-element">
-					<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{i}" schema={schema.element} noLabel />
+					<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{i}" schema={schema.element} noLabel={noLabel || true} />
 					<button
 						onclick={e => {
 							value.splice(i, 1);
@@ -163,8 +166,11 @@
 					</button>
 				</div>
 			{/each}
-			<button onclick={() => value.push('')}>
+			<button class="icon-text" onclick={() => value.push('')}>
 				<Icon i="plus" --size="16px" />
+				{#if noLabel == 'placeholder'}
+					<span>{labelText}</span>
+				{/if}
 			</button>
 		</div>
 	</div>
@@ -173,14 +179,14 @@
 		{#each Object.keys(value) as key}
 			<div class="ZodInput-record-entry">
 				{#if !noLabel}<label for={id}>{key}</label>{/if}
-				<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{key}" schema={schema.valueType} />
+				<ZodInput bind:rootValue {updateValue} {idPrefix} {noLabel} path="{path}.{key}" schema={schema.valueType} />
 			</div>
 		{/each}
 	</div>
 {:else if schema.type == 'object'}
 	<!-- <div class="ZodInput-object"> -->
 	{#each Object.entries(schema.shape) as [key, value]}
-		<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{key}" schema={value} />
+		<ZodInput bind:rootValue {updateValue} {idPrefix} {noLabel} path="{path}.{key}" schema={value} />
 	{/each}
 	<!-- </div> -->
 {:else if schema.type == 'tuple'}
@@ -229,13 +235,14 @@
 		gap: 0.5em;
 		align-items: center;
 
-		button {
-			position: relative;
-			right: 1em;
+		& > button {
+			display: contents;
 		}
 
 		& > .ZodInput {
-			grid-template-columns: 1fr;
+			gap: 0.25em;
+			display: flex;
+			flex-direction: column;
 		}
 	}
 
@@ -243,6 +250,10 @@
 		display: flex;
 		gap: 0.5em;
 		align-items: center;
+
+		&.large {
+			flex-direction: column;
+		}
 	}
 
 	.ZodInput-object,

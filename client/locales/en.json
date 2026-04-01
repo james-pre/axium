@@ -232,7 +232,7 @@
 	"location": {
 		"country": "Country",
 		"subdivision": "State / province",
-		"locality": "Locality",
+		"locality": "City / town",
 		"postal_code": "Postal code",
 		"street1": "Street address",
 		"street2": "Street address line 2"
