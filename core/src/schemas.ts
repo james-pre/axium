@@ -35,11 +35,11 @@ export function zIsFormat<F extends string, S extends ZodSpecificStringFormat>(x
 export type ZodSerializable =
 	| ZodSpecificStringFormat
 	// generic primitives
-	| z.ZodString
-	| z.ZodNumber
-	| z.ZodBigInt
-	| z.ZodBoolean
-	| z.ZodDate
+	| z._ZodString
+	| z._ZodNumber
+	| z._ZodBigInt
+	| z._ZodBoolean
+	| z._ZodDate
 	| z.ZodLiteral
 	| z.ZodTemplateLiteral
 	| z.ZodFile
