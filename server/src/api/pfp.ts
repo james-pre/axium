@@ -32,6 +32,40 @@ try {
 	}
 }
 
+export interface ImageUploadConfig {
+	enabled: boolean;
+	/** Max size in KB */
+	max_size: number;
+	/** Max pixels per dimension */
+	max_length: number;
+}
+
+export async function checkImageUpload(request: Request, cfg: ImageUploadConfig, userId: string) {
+	const { enabled, max_size, max_length } = cfg;
+
+	if (!enabled) error(503, 'Image uploads are disabled');
+
+	await checkAuthForUser(request, userId);
+
+	const type = request.headers.get('content-type');
+	if (!type) error(400, 'Missing Content-Type header');
+	if (!type.startsWith('image/')) error(415, 'Only image files are allowed');
+
+	const size = Number(request.headers.get('content-length'));
+	if (!Number.isSafeInteger(size)) error(400, 'Invalid Content-Length header');
+	if (max_size && size / 1000 > max_size) error(413, `Image must be smaller than ${max_size} KB`);
+
+	const data = await request.bytes();
+	if (data.byteLength != size) error(400, 'Content-Length does not match actual data size');
+
+	const { width, height } = imageSize?.(data) || { width: 0, height: 0 };
+	if (imageSize && (!width || !height)) error(400, 'Invalid image dimensions');
+	if (max_length && (width > max_length || height > max_length))
+		error(413, `Image must be smaller than ${max_length}x${max_length} pixels`);
+
+	return { data, type };
+}
+
 addRoute({
 	path: '/raw/pfp/:id',
 	params: { id: z.uuid() },
@@ -80,26 +114,7 @@ addRoute({
 		});
 	},
 	async POST(request, { id: userId }) {
-		const { enabled, max_size, max_length } = config.user_pfp;
-
-		if (!enabled) error(503, 'Custom profile pictures are disabled');
-		await checkAuthForUser(request, userId);
-
-		const type = request.headers.get('content-type');
-		if (!type) error(400, 'Missing Content-Type header');
-		if (!type.startsWith('image/')) error(415, 'Only image files are allowed');
-
-		const size = Number(request.headers.get('content-length'));
-		if (!Number.isSafeInteger(size)) error(400, 'Invalid Content-Length header');
-		if (max_size && size / 1000 > max_size) error(413, `Profile picture must be smaller than ${max_size} KB`);
-
-		const data = await request.bytes();
-		if (data.byteLength != size) error(400, 'Content-Length does not match actual data size');
-
-		const { width, height } = imageSize?.(data) || { width: 0, height: 0 };
-		if (imageSize && (!width || !height)) error(400, 'Invalid image dimensions');
-		if (max_length && (width > max_length || height > max_length))
-			error(413, `Profile picture must be smaller than ${max_length}x${max_length} pixels`);
+		const { data, type } = await checkImageUpload(request, config.user_pfp, userId);
 
 		const { isInsert } = await db
 			.insertInto('profile_pictures')
