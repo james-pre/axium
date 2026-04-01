@@ -13,7 +13,7 @@
 						"display": { "type": "text" },
 						"prefix": { "type": "text" },
 						"givenName": { "type": "text" },
-						"additionalName": { "type": "text" },
+						"givenName2": { "type": "text" },
 						"surname": { "type": "text" },
 						"suffix": { "type": "text" },
 						"nickname": { "type": "text" },
