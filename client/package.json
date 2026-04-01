@@ -52,7 +52,6 @@
 	},
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.1.0",
-		"commander": "^14.0.0",
-		"i18n-iso-countries": "^7.14.0"
+		"commander": "^14.0.0"
 	}
 }

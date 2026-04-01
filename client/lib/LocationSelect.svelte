@@ -1,13 +1,13 @@
 <script lang="ts">
-	import { text, countryNames } from '@axium/client';
-	import type { LocationInit } from '@axium/core';
+	import { countryName, text } from '@axium/client';
+	import { countries, type LocationInit } from '@axium/core';
 
 	let { value = $bindable<LocationInit>() }: { value: LocationInit } = $props();
 </script>
 
 <select bind:value={value.country} placeholder={text('location.country')}>
-	{#each Object.entries(countryNames) as [code, name]}
-		<option value={code}>{name}</option>
+	{#each countries as country}
+		<option value={country}>{countryName(country)}</option>
 	{/each}
 </select>
 

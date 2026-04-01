@@ -4,6 +4,7 @@ export { default as ColorPicker } from './ColorPicker.svelte';
 export { default as ClipboardCopy } from './ClipboardCopy.svelte';
 export { default as FormDialog } from './FormDialog.svelte';
 export { default as Icon } from './Icon.svelte';
+export { default as LocationSelect } from './LocationSelect.svelte';
 export { default as Login } from './Login.svelte';
 export { default as Logout } from './Logout.svelte';
 export { default as NumberBar } from './NumberBar.svelte';
