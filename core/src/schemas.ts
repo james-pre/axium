@@ -61,7 +61,6 @@ export type ZodSerializable =
 	// misc
 	| z.ZodIntersection<any, any>
 	| z.ZodUnion<any[]>
-	| z.ZodTransform
 	| z.ZodPipe<any, any>;
 
 /**
@@ -86,6 +85,7 @@ export type ZodSpecificType =
 	// wrappers
 	| z.ZodCatch<any>
 	// misc
+	| z.ZodTransform
 	| z.ZodPromise<ZodSpecificType>
 	| z.ZodLazy<any>
 	| z.ZodFunction<any, ZodSpecificType>
