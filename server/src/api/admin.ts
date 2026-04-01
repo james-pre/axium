@@ -77,7 +77,7 @@ addRoute({
 		}
 
 		if (config) {
-			const { schema } = serverConfigs.get(name) || {};
+			const schema = serverConfigs.get(name) || null;
 			if (!schema) error(400, 'Plugin does not have a configuration schema');
 			if (!plugin._configPath) error(503, 'Plugin configuration path is not set');
 

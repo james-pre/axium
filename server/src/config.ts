@@ -291,7 +291,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 				if (!existsSync(configPath)) continue;
 
 				try {
-					const data = io.readJSON(configPath, serverConfig.schema.partial());
+					const data = io.readJSON(configPath, serverConfig.partial());
 					deepAssign(plugin.config, data, true);
 					io.debug(`Loaded config for plugin ${plugin.name} from ${configPath}`);
 				} catch (e: any) {
