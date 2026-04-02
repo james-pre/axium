@@ -7,7 +7,7 @@
 	import { copy } from '@axium/client/gui';
 	import { toastStatus } from '@axium/client/toast';
 	import type { Note } from '@axium/notes/common';
-	import { download } from 'utilium/dom.js';
+	import { download } from 'utilium/dom';
 
 	let {
 		note = $bindable(),

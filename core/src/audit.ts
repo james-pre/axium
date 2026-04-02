@@ -1,4 +1,4 @@
-import { capitalize, uncapitalize } from 'utilium/string.js';
+import { capitalize, uncapitalize } from 'utilium/string';
 import * as z from 'zod';
 import { User } from './user.js';
 

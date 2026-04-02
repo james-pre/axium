@@ -7,7 +7,7 @@
 	import { fetchAPI, text } from '@axium/client';
 	import type { Task, TaskList } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
-	import { download } from 'utilium/dom.js';
+	import { download } from 'utilium/dom';
 	import { toastStatus } from '@axium/client/toast';
 
 	let {

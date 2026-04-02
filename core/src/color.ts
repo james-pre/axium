@@ -1,4 +1,4 @@
-import { hexToHSL } from 'utilium/color.js';
+import { hexToHSL } from 'utilium/color';
 import { hex } from 'zod';
 
 export function colorHash(input: string): number {

@@ -7,7 +7,7 @@
 	import type { PageProps } from './$types';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { contextMenu } from '@axium/client/attachments';
-	import { upload } from 'utilium/dom.js';
+	import { upload } from 'utilium/dom';
 
 	const { data }: PageProps = $props();
 	const { canVerify } = data;

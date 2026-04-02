@@ -5,7 +5,7 @@
 	import { toVCard } from '@axium/contacts';
 	import { format, getContact } from '@axium/contacts/client';
 	import { ContactPicture, Field } from '@axium/contacts/components';
-	import { download, upload } from 'utilium/dom.js';
+	import { download, upload } from 'utilium/dom';
 
 	const { data } = $props();
 	const { contact } = data;

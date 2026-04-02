@@ -40,7 +40,7 @@
 		"@axium/core": ">=0.23.0",
 		"@axium/server": ">=0.35.0",
 		"@sveltejs/kit": "^2.27.3",
-		"utilium": "^2.4.0"
+		"utilium": "^3.0.0"
 	},
 	"dependencies": {
 		"zod": "^4.0.5"

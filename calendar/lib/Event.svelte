@@ -7,7 +7,7 @@
 	import { Icon, Popover } from '@axium/client/components';
 	import { colorHashHex, decodeColor, encodeColor } from '@axium/core/color';
 	import { rrulestr } from 'rrule';
-	import { download } from 'utilium/dom.js';
+	import { download } from 'utilium/dom';
 
 	let {
 		event,
