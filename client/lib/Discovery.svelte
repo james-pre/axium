@@ -11,28 +11,28 @@
 	// built-in / common discovery sources
 	// note getters are used because svelte declares the snippets after the module script
 
-	export const user: Source<{ user: UserPublic; target: string }> = {
+	export const user: Source<{ type: 'user'; user: UserPublic; target: string }> = {
 		name: 'user',
 		async get(value) {
 			const users = await fetchAPI('POST', 'users/discover', value);
-			return users.map(user => ({ user, target: user.id }));
+			return users.map(user => ({ type: 'user', user, target: user.id }));
 		},
 		get render() {
 			return renderUser;
 		},
 	};
 
-	export const role: Source<{ role: string; target: string }> = {
+	export const role: Source<{ type: 'role'; role: string; target: string }> = {
 		name: 'role',
-		get: role => [{ role, target: '@' + role }],
+		get: role => [{ type: 'role', role, target: '@' + role }],
 		get render() {
 			return renderRole;
 		},
 	};
 
-	export const exact: Source<{ target: string }> = {
+	export const exact: Source<{ type: 'exact'; target: string }> = {
 		name: 'exact',
-		get: value => [{ target: value }],
+		get: value => [{ type: 'exact', target: value }],
 		get render() {
 			return renderExact;
 		},
@@ -60,7 +60,8 @@
 		placeholder?: string;
 	} = $props();
 
-	let results = $state<{ [K in keyof T]: { value: T[K]; snippet: Snippet<[T[K]]> } }[keyof T][]>([]),
+	type Result = { [K in keyof T]: { value: T[K]; snippet: Snippet<[T[K]]> } }[keyof T];
+	let results = $state<Result[]>([]),
 		value = $state<string>(),
 		gotErrors = $state<Record<string, boolean>>({});
 
