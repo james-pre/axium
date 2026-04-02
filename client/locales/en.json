@@ -6,11 +6,15 @@
 		"remove": "Remove",
 		"toast_removed": "Removed access",
 		"public_target": "Everyone",
-		"add_public": "Add Public Access"
+		"add_public": "Add Public Access",
+		"placeholder": "Add users and roles"
 	},
 	"AppMenu": {
 		"failed": "Couldn't load apps.",
 		"none": "No apps available."
+	},
+	"Discovery": {
+		"no_results": "No results"
 	},
 	"Login": {
 		"email": "Email",
@@ -40,10 +44,6 @@
 	},
 	"UserCard": {
 		"you": "(You)"
-	},
-	"UserDiscovery": {
-		"no_results": "No results",
-		"placeholder": "Add users and roles"
 	},
 	"UserMenu": {
 		"account": "Your Account",

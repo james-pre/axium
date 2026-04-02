@@ -1,11 +1,13 @@
 <script lang="ts">
 	import { addToACL, getACL, removeFromACL, text, updateACL, userInfo } from '@axium/client';
-	import type { AccessControllable, AccessTarget, UserPublic } from '@axium/core';
+	import { fetchAPI } from '@axium/client/requests';
+	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { checkAndMatchACL, getTarget, pickPermissions } from '@axium/core';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
+	import Discovery from './Discovery.svelte';
 	import Icon from './Icon.svelte';
 	import UserCard from './UserCard.svelte';
-	import UserDiscovery from './UserDiscovery.svelte';
+	import UserPFP from './UserPFP.svelte';
 	import { closeOnBackGesture } from './attachments.js';
 	import { toast, toastStatus } from './toast.js';
 
@@ -112,8 +114,19 @@
 				</button>
 			{/if}
 		</div>
-		<UserDiscovery
-			onSelect={async (target: AccessTarget) => {
+
+		{#snippet renderUser({ user }: { user: UserPublic; target: string })}
+			<span><UserPFP {user} /> {user.name}</span>
+		{/snippet}
+
+		{#snippet renderRole({ role }: { role: string; target: string })}
+			<span>
+				<span class="icon-text non-user"><Icon i="at" />{role}</span>
+			</span>
+		{/snippet}
+
+		<Discovery
+			onSelect={async ({ target }) => {
 				try {
 					const control = await addToACL(itemType, item.id, target);
 					if (control.userId) control.user = await userInfo(control.userId);
@@ -122,7 +135,27 @@
 					toast('error', e);
 				}
 			}}
-			excludeTargets={acl.map(getTarget).filter<string>((t): t is string => !!t)}
+			sources={[
+				{
+					name: 'user',
+					async get(value) {
+						const users = await fetchAPI('POST', 'users/discover', value);
+						return users.map(user => ({ user, target: user.id }) as const);
+					},
+					render: renderUser,
+				},
+				{
+					name: 'role',
+					get: role => [{ role, target: '@' + role }] as const,
+					render: renderRole,
+				},
+			]}
+			exclude={result =>
+				acl
+					.map(getTarget)
+					.filter<string>((t): t is string => !!t)
+					.includes(result.target)}
+			placeholder={text('AccessControlDialog.placeholder')}
 		/>
 	{/if}
 
