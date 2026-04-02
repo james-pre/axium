@@ -44,5 +44,6 @@
 	"text/x-sass": "brands/sass",
 	"text/x-uri": "link-simple",
 	"text/xml": "code",
+	"text/vcard": "address-card",
 	"video": "clapperboard-play"
 }
