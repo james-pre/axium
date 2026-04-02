@@ -33,6 +33,12 @@
 			"show_more": "Show more",
 			"show_less": "Show less"
 		},
+		"image": {
+			"update": "Upload",
+			"remove": "Remove",
+			"toast_updated": "Updated contact picture",
+			"toast_removed": "Removed contact picture"
+		},
 		"Discovery": {
 			"placeholder": "Search for a contact",
 			"no_results": "No contacts found"

@@ -11,7 +11,7 @@
 
 <!-- @todo show expanded card on hover
 	<div class="ContactCard">
-		<ContactPFP {contact} />
+		<ContactPicture {contact} />
 		<h3>{name}</h3>
 		<span>{format.emailDefault(contact)}</span>
 	</div>

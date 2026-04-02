@@ -29,6 +29,19 @@
 						"urls": { "type": "text[]", "required": true, "default": "'{}'::text[]" }
 					}
 				},
+				"contact_pictures": {
+					"columns": {
+						"contactId": {
+							"type": "uuid",
+							"required": true,
+							"primary": true,
+							"references": "contacts.id",
+							"onDelete": "cascade"
+						},
+						"type": { "type": "text", "required": true },
+						"data": { "type": "bytea", "required": true }
+					}
+				},
 				"contact_emails": {
 					"columns": {
 						"id": { "type": "uuid", "required": true, "references": "contacts.id", "onDelete": "cascade" },
@@ -112,6 +125,7 @@
 		"contact_phones",
 		"contact_addresses",
 		"contact_emails",
+		"contact_pictures",
 		"contacts"
 	]
 }

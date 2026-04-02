@@ -1,12 +1,37 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { Icon } from '@axium/client/components';
-	import { getContact } from '@axium/contacts/client';
-	import { ContactPFP, Field } from '@axium/contacts/components';
-	import * as format from '@axium/contacts/format';
+	import { Icon, Popover } from '@axium/client/components';
+	import { toast, toastStatus } from '@axium/client/toast';
+	import { format, getContact } from '@axium/contacts/client';
+	import { ContactPicture, Field } from '@axium/contacts/components';
+	import { upload } from 'utilium/dom.js';
 
 	const { data } = $props();
 	const { contact } = data;
+
+	let hasDefaultPicture = $state(false);
+
+	async function updatePicture() {
+		try {
+			const file = await upload('image/*');
+			const response = await fetch('/raw/contacts/pfp/' + contact.id, {
+				method: 'POST',
+				headers: { 'content-type': file.type, 'content-length': file.size.toString() },
+				body: file,
+			});
+			if (!response.ok) {
+				if (response.headers.get('content-type')?.endsWith('/json')) {
+					const error = await response.json();
+					throw error.message;
+				} else {
+					throw new Error('Failed to update contact picture');
+				}
+			}
+			await toast('success', text('contacts.image.toast_updated'));
+		} catch (e) {
+			await toast('error', e);
+		}
+	}
 </script>
 
 <svelte:head>
@@ -36,7 +61,7 @@
 	</button>
 
 	<button class="icon-text">
-		<Icon i="export" />
+		<Icon i="file-export" />
 		<span>{text('contacts.export')}</span>
 	</button>
 </div>
@@ -49,8 +74,33 @@
 {/snippet}
 
 <div class="contact-header">
-	<ContactPFP {contact} --size="100px" />
-	<span>{format.name(contact)}</span>
+	<div class="contact-image-container">
+		<ContactPicture {contact} --size="150px" bind:isDefault={hasDefaultPicture} />
+		{#if hasDefaultPicture}
+			<Icon i="regular/camera" class="contact-image-menu-toggle" onclick={updatePicture} />
+		{:else}
+			<Popover>
+				{#snippet toggle()}
+					<Icon i="regular/camera" class="contact-image-menu-toggle" />
+				{/snippet}
+
+				<div class="menu-item" onclick={updatePicture}>
+					<Icon i="upload" />
+					<span>{text('contacts.image.update')}</span>
+				</div>
+
+				<div
+					class="menu-item"
+					onclick={() =>
+						toastStatus(fetch('/raw/contacts/pfp/' + contact.id, { method: 'DELETE' }), text('contacts.image.toast_removed'))}
+				>
+					<Icon i="trash" />
+					<span>{text('contacts.image.remove')}</span>
+				</div>
+			</Popover>
+		{/if}
+	</div>
+	<span class="contact-name-title">{format.name(contact)}</span>
 </div>
 
 <div class="contact">
@@ -127,6 +177,26 @@
 </div>
 
 <style>
+	.contact-image-container {
+		width: 150px;
+		height: 150px;
+	}
+
+	:global(.contact-image-menu-toggle) {
+		float: right;
+		position: relative;
+		top: -24px;
+
+		&:hover {
+			cursor: pointer;
+		}
+	}
+
+	.contact-name-title {
+		margin-left: 2em;
+		font-size: 2em;
+	}
+
 	.contact-header,
 	.contact,
 	.contact-actions {

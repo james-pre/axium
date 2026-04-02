@@ -3,9 +3,9 @@
 	import { dynamicRows } from '@axium/client/attachments';
 	import { Icon, LocationSelect, ZodInput } from '@axium/client/components';
 	import { ContactURL, Custom, Email, Init, Phone, Relationship, SigDate, type Contact } from '@axium/contacts';
+	import ContactPicture from './ContactPicture.svelte';
 	import DateSelect from './DateSelect.svelte';
 	import Discovery from './Discovery.svelte';
-	import ContactPFP from './ContactPFP.svelte';
 
 	let showDetailed = $state(false);
 
@@ -61,7 +61,7 @@
 
 {#if init.id}
 	<div class="contact-init-header">
-		<ContactPFP contact={init as typeof init & { id: string }} --size="100px" />
+		<ContactPicture contact={init as typeof init & { id: string }} --size="100px" />
 	</div>
 {/if}
 
@@ -196,6 +196,7 @@
 </div>
 
 <style>
+	.contact-init-header,
 	.contact-init,
 	.contact-init-actions {
 		padding: 2em;
@@ -204,6 +205,12 @@
 		@media (width < 700px) {
 			width: 100%;
 		}
+	}
+
+	.contact-init-header {
+		display: flex;
+		align-items: center;
+		justify-content: center;
 	}
 
 	.contact-init-actions {

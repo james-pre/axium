@@ -3,6 +3,7 @@
 	import '@axium/client/styles/list';
 	import type { Contact } from '@axium/contacts';
 	import { format } from '@axium/contacts/client';
+	import ContactPicture from './ContactPicture.svelte';
 
 	const { contacts }: { contacts: Contact[] } = $props();
 </script>
@@ -18,7 +19,7 @@
 
 	{#each contacts as contact (contact.id)}
 		<div class="list-item" onclick={() => (location.href = `/contacts/${contact.id}`)}>
-			<span></span>
+			<ContactPicture {contact} />
 			<span>{format.name(contact)}</span>
 			<span>{format.emailDefault(contact)}</span>
 			<span>{format.phoneDefault(contact)}</span>

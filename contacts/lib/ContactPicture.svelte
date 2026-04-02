@@ -16,18 +16,13 @@
 	);
 
 	let src = $state(`/raw/contacts/pfp/${contact.id}`);
-
-	$effect(() => {
-		// Reset the attempted source when the user changes
-		src = `/raw/contacts/pfp/${contact.id}`;
-	});
 </script>
 
 {#if contact.linkedUserId}
 	<UserPFP user={await userInfo(contact.linkedUserId)} bind:isDefault />
 {:else}
 	<img
-		class="ContactPFP"
+		class="ContactPicture"
 		{src}
 		alt={name}
 		onerror={() => {
@@ -38,7 +33,7 @@
 {/if}
 
 <style>
-	img.ContactPFP {
+	img.ContactPicture {
 		width: var(--size, 2em);
 		height: var(--size, 2em);
 		border-radius: 50%;
