@@ -1,15 +1,50 @@
-<script lang="ts" context="module">
-	interface Source<T> {
+<script lang="ts" module>
+	import { fetchAPI } from '@axium/client';
+	import type { UserPublic } from '@axium/core';
+
+	export interface Source<T> {
 		name: string;
 		get(search: string): T[] | Promise<T[]>;
 		render: Snippet<[T]>;
 	}
+
+	// built-in / common discovery sources
+	// note getters are used because svelte declares the snippets after the module script
+
+	export const user: Source<{ user: UserPublic; target: string }> = {
+		name: 'user',
+		async get(value) {
+			const users = await fetchAPI('POST', 'users/discover', value);
+			return users.map(user => ({ user, target: user.id }) as const);
+		},
+		get render() {
+			return renderUser;
+		},
+	};
+
+	export const role: Source<{ role: string; target: string }> = {
+		name: 'role',
+		get: role => [{ role, target: '@' + role }] as const,
+		get render() {
+			return renderRole;
+		},
+	};
+
+	export const exact: Source<{ target: string }> = {
+		name: 'exact',
+		get: value => [{ target: value }],
+		get render() {
+			return renderExact;
+		},
+	};
 </script>
 
 <script lang="ts" generics="T extends any[]">
 	import { text } from '@axium/client';
 	import { errorText } from 'ioium';
 	import type { Snippet } from 'svelte';
+	import Icon from './Icon.svelte';
+	import UserCard from './UserCard.svelte';
 
 	type Value = T[keyof T & number];
 
@@ -64,6 +99,18 @@
 	}
 </script>
 
+{#snippet renderUser({ user }: { user: UserPublic; target: string })}
+	<UserCard {user} />
+{/snippet}
+
+{#snippet renderRole({ role }: { role: string; target: string })}
+	<span class="icon-text"><Icon i="at" />{role}</span>
+{/snippet}
+
+{#snippet renderExact(result: { target: string })}
+	<span>{result.target}</span>
+{/snippet}
+
 <input bind:value type="text" {placeholder} {oninput} />
 {#if !allError && value}
 	<div class="results">
@@ -111,15 +158,14 @@
 	}
 
 	.result {
-		padding: 0.5em;
-		border-radius: 0.5em;
+		border-radius: 1em;
+		padding: 0.25em 0.75em;
+		gap: 0.25em;
+		display: inline-flex;
+		align-items: center;
 
-		.non-user {
-			border-radius: 1em;
-			padding: 0.25em 0.75em;
-			display: inline-flex;
-			align-items: center;
-			gap: 0.25em;
+		:global(& > *) {
+			padding: 0.5em;
 		}
 	}
 

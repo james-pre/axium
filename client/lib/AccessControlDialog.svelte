@@ -1,13 +1,11 @@
 <script lang="ts">
 	import { addToACL, getACL, removeFromACL, text, updateACL, userInfo } from '@axium/client';
-	import { fetchAPI } from '@axium/client/requests';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { checkAndMatchACL, getTarget, pickPermissions } from '@axium/core';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
-	import Discovery from './Discovery.svelte';
+	import Discovery, * as discovery from './Discovery.svelte';
 	import Icon from './Icon.svelte';
 	import UserCard from './UserCard.svelte';
-	import UserPFP from './UserPFP.svelte';
 	import { closeOnBackGesture } from './attachments.js';
 	import { toast, toastStatus } from './toast.js';
 
@@ -115,16 +113,6 @@
 			{/if}
 		</div>
 
-		{#snippet renderUser({ user }: { user: UserPublic; target: string })}
-			<span><UserPFP {user} /> {user.name}</span>
-		{/snippet}
-
-		{#snippet renderRole({ role }: { role: string; target: string })}
-			<span>
-				<span class="icon-text non-user"><Icon i="at" />{role}</span>
-			</span>
-		{/snippet}
-
 		<Discovery
 			onSelect={async ({ target }) => {
 				try {
@@ -135,21 +123,7 @@
 					toast('error', e);
 				}
 			}}
-			sources={[
-				{
-					name: 'user',
-					async get(value) {
-						const users = await fetchAPI('POST', 'users/discover', value);
-						return users.map(user => ({ user, target: user.id }) as const);
-					},
-					render: renderUser,
-				},
-				{
-					name: 'role',
-					get: role => [{ role, target: '@' + role }] as const,
-					render: renderRole,
-				},
-			]}
+			sources={[discovery.user, discovery.role]}
 			exclude={result =>
 				acl
 					.map(getTarget)

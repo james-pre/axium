@@ -26,7 +26,7 @@
 	{#if !compact}
 		<UserPFP {user} />
 	{/if}
-	{user.name}
+	<span>{user.name}</span>
 	{#if self && you}
 		<span class="subtle">{text('UserCard.you')}</span>
 	{/if}
@@ -37,5 +37,8 @@
 		cursor: pointer;
 		width: max-content;
 		height: max-content;
+		gap: 0.25em;
+		display: inline-flex;
+		align-items: center;
 	}
 </style>
