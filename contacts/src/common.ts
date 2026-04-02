@@ -53,6 +53,13 @@ export const SigDate = z.object({
 });
 export interface SigDate extends z.infer<typeof SigDate> {}
 
+export interface SigDateLike {
+	year?: number | null;
+	month?: number | null;
+	day?: number | null;
+	label?: string | null;
+}
+
 export const Relationship = z.object({
 	to: z.uuid().register(zKeys, { key: 'contact.relationship.to' }),
 	label: LabelRequired,

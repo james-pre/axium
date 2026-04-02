@@ -1,5 +1,5 @@
 import { countryName, currentLocale } from '@axium/client';
-import type { Address, Contact, InitNoExternal, Phone } from '../common.js';
+import type { Address, Contact, InitNoExternal, Phone, SigDateLike } from '../common.js';
 
 /**
  * Display name for contact
@@ -65,13 +65,6 @@ export function birthDate(contact: Contact): string {
 		month: contact.birthMonth,
 		day: contact.birthDay,
 	});
-}
-
-interface SigDateLike {
-	year?: number | null;
-	month?: number | null;
-	day?: number | null;
-	label?: string | null;
 }
 
 export function date(sig: SigDateLike): string {

@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { fetchAPI, text } from '@axium/client';
-	import { Icon, Popover, FormDialog } from '@axium/client/components';
+	import { FormDialog, Icon, Popover } from '@axium/client/components';
 	import { toast, toastStatus } from '@axium/client/toast';
+	import { toVCard } from '@axium/contacts';
 	import { format, getContact } from '@axium/contacts/client';
 	import { ContactPicture, Field } from '@axium/contacts/components';
-	import { upload } from 'utilium/dom.js';
+	import { download, upload } from 'utilium/dom.js';
 
 	const { data } = $props();
 	const { contact } = data;
@@ -32,6 +33,8 @@
 			await toast('error', e);
 		}
 	}
+
+	const contactFileName = contact.emails.find(e => e.isDefault)?.email || format.name(contact).replaceAll(' ', '_');
 </script>
 
 <svelte:head>
@@ -60,7 +63,7 @@
 		<span>{text('contacts.delete')}</span>
 	</button>
 
-	<button class="icon-text">
+	<button class="icon-text" onclick={() => download(contactFileName + '.vcard', toVCard(contact))}>
 		<Icon i="file-export" />
 		<span>{text('contacts.export')}</span>
 	</button>
