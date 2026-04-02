@@ -1,5 +1,5 @@
 import { debug, error, info, warn } from 'ioium';
-import type { FlattenKeys, GetByString, Split, Tuple, UnionToIntersection } from 'utilium';
+import type { FlattenKeys, GetByString, Split, UnionToIntersection } from 'utilium';
 import { deepAssign, getByString } from 'utilium';
 import en from '../locales/en.json' with { type: 'json' };
 
@@ -17,16 +17,34 @@ export function extendLocale(locale: string, data: object) {
 	deepAssign(loadedLocales[locale], data);
 }
 
-let currentLoaded = en,
-	currentRegionNames: Intl.DisplayNames,
-	currentDateFields: Intl.DisplayNames;
-
-export let currentMonthNames: string[];
+let currentLoaded = en;
 
 /**
  * Current locale
  */
 export let currentLocale = 'en';
+
+let currentRegionNames: Intl.DisplayNames;
+export function countryName(code: string): string | undefined {
+	return currentRegionNames.of(code);
+}
+
+let currentDateFields: Intl.DisplayNames;
+export function dateField(name: string): string | undefined {
+	return currentDateFields.of(name);
+}
+
+let currentConjunction: Intl.ListFormat;
+export function conjoin(list: Iterable<string>) {
+	return currentConjunction.format(list);
+}
+
+let currentDisjunction: Intl.ListFormat;
+export function disjoin(list: Iterable<string>) {
+	return currentDisjunction.format(list);
+}
+
+export let currentMonthNames: string[];
 
 type _locale = typeof currentLoaded;
 
@@ -34,7 +52,7 @@ export interface Locale extends _locale {}
 
 export interface ReplacementOptions {
 	$default?: string;
-	/**  */
+	/** Whether to treat the replacement as HTML */
 	$html?: boolean;
 }
 
@@ -55,20 +73,14 @@ export function useLocale(newLocale: string): void {
 	currentLoaded = loadedLocales[newLocale];
 	currentRegionNames = new Intl.DisplayNames(newLocale, { type: 'region' });
 	currentDateFields = new Intl.DisplayNames(newLocale, { type: 'dateTimeField' });
+	currentConjunction = new Intl.ListFormat(newLocale, { style: 'long', type: 'conjunction' });
+	currentDisjunction = new Intl.ListFormat(newLocale, { style: 'long', type: 'disjunction' });
 
 	const formatter = new Intl.DateTimeFormat(newLocale, { month: 'long' });
 	currentMonthNames = Array.from({ length: 12 }, (_, monthIndex) => formatter.format(new Date(Date.UTC(2000, monthIndex + 1, 1))));
 }
 
 useLocale('en');
-
-export function countryName(code: string): string | undefined {
-	return currentRegionNames.of(code);
-}
-
-export function dateField(name: string): string | undefined {
-	return currentDateFields.of(name);
-}
 
 const localeReplacement = /\{(\w+)\}/g;
 
