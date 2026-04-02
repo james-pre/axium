@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { dynamicRows } from '@axium/client/attachments';
-	import { Icon, LocationSelect, ZodInput } from '@axium/client/components';
+	import { Icon, LocationSelect, ZodInput, Discovery, discovery } from '@axium/client/components';
 	import { ContactURL, Custom, Email, Init, Phone, Relationship, SigDate, type Contact } from '@axium/contacts';
 	import ContactPicture from './ContactPicture.svelte';
 	import DateSelect from './DateSelect.svelte';
-	import Discovery from './Discovery.svelte';
+	import { contactDiscovery } from './discovery.svelte';
 	import { name as formatName } from '@axium/contacts/client/format';
 
 	let showDetailed = $state(false);
@@ -140,8 +140,10 @@
 			{#if i}<span />{/if}
 			<div class="section">
 				<Discovery
-					exclude={[init.id, ...init.relationships.map(r => r.to)].filter((v): v is string => !!v)}
-					onSelect={id => (rel.to = id)}
+					onSelect={result => (rel.to = result.contact.id)}
+					sources={[contactDiscovery]}
+					exclude={target =>
+						[init.id, ...init.relationships.map(r => r.to)].filter((v): v is string => !!v).includes(target.contact.id)}
 				/>
 				<ZodInput
 					bind:rootValue={init}

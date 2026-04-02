@@ -39,10 +39,6 @@
 			"toast_updated": "Updated contact picture",
 			"toast_removed": "Removed contact picture"
 		},
-		"Discovery": {
-			"placeholder": "Search for a contact",
-			"no_results": "No contacts found"
-		},
 		"delete_confirm": "Are you sure you want to delete this contact?"
 	},
 	"contact": {
