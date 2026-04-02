@@ -40,6 +40,7 @@
 		border: 1px solid #8888;
 		vertical-align: middle;
 		margin-right: 0.5em;
+		object-fit: cover;
 		/* see https://drafts.csswg.org/css-image-animation-1/ */
 		image-animation: stopped;
 	}
