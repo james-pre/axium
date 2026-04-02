@@ -15,7 +15,7 @@
 		name: 'user',
 		async get(value) {
 			const users = await fetchAPI('POST', 'users/discover', value);
-			return users.map(user => ({ user, target: user.id }) as const);
+			return users.map(user => ({ user, target: user.id }));
 		},
 		get render() {
 			return renderUser;
@@ -24,7 +24,7 @@
 
 	export const role: Source<{ role: string; target: string }> = {
 		name: 'role',
-		get: role => [{ role, target: '@' + role }] as const,
+		get: role => [{ role, target: '@' + role }],
 		get render() {
 			return renderRole;
 		},
