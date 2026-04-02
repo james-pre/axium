@@ -6,6 +6,7 @@
 	import ContactPicture from './ContactPicture.svelte';
 	import DateSelect from './DateSelect.svelte';
 	import Discovery from './Discovery.svelte';
+	import { name as formatName } from '@axium/contacts/client/format';
 
 	let showDetailed = $state(false);
 
@@ -54,6 +55,8 @@
 		</button>
 	</a>
 
+	<span></span>
+
 	<button class="icon-text save" onclick={() => save(init)}>
 		<span>{text('contacts.init.save')}</span>
 	</button>
@@ -61,7 +64,8 @@
 
 {#if init.id}
 	<div class="contact-init-header">
-		<ContactPicture contact={init as typeof init & { id: string }} --size="100px" />
+		<ContactPicture contact={init as typeof init & { id: string }} --size="150px" />
+		<span class="contact-name-title">{formatName(init)}</span>
 	</div>
 {/if}
 
@@ -196,34 +200,44 @@
 </div>
 
 <style>
+	.contact-name-title {
+		margin-left: 2em;
+		font-size: 2em;
+	}
+
 	.contact-init-header,
 	.contact-init,
 	.contact-init-actions {
 		padding: 2em;
-		width: 700px;
+		margin: 1em;
+		width: calc(700px - 2em);
 
 		@media (width < 700px) {
-			width: 100%;
+			width: calc(100% - 2em);
 		}
 	}
 
-	.contact-init-header {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-	}
-
+	.contact-init-header,
 	.contact-init-actions {
 		display: flex;
 		gap: 1em;
 		align-items: center;
-		justify-content: space-between;
+	}
+
+	.contact-init-actions > :not(span) {
+		flex: 0 0 auto;
+	}
+
+	.contact-init-actions > span {
+		flex: 1 1 auto;
 	}
 
 	.contact-init {
 		display: grid;
 		grid-template-columns: 1em 1fr 1em;
 		gap: 1em;
+		border-radius: 1em;
+		background-color: var(--bg-menu);
 
 		button.toggle {
 			height: 1em;

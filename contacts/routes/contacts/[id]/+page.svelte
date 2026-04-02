@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { text } from '@axium/client';
-	import { Icon, Popover } from '@axium/client/components';
+	import { fetchAPI, text } from '@axium/client';
+	import { Icon, Popover, FormDialog } from '@axium/client/components';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { format, getContact } from '@axium/contacts/client';
 	import { ContactPicture, Field } from '@axium/contacts/components';
@@ -55,7 +55,7 @@
 		</button>
 	</a>
 
-	<button class="icon-text">
+	<button class="icon-text" command="show-modal" commandfor="delete-contact">
 		<Icon i="trash" />
 		<span>{text('contacts.delete')}</span>
 	</button>
@@ -176,6 +176,19 @@
 	{@render part('regular/note', contact.notes)}
 </div>
 
+<FormDialog
+	id="delete-contact"
+	submitDanger
+	submitText={text('generic.delete')}
+	submit={() => fetchAPI('DELETE', 'contacts/:id', {}, contact.id).then(() => (window.location.href = '/contacts'))}
+>
+	<p>
+		<span>{text('contacts.delete_confirm')}</span>
+		<br />
+		<strong>{text('generic.action_irreversible')}</strong>
+	</p>
+</FormDialog>
+
 <style>
 	.contact-image-container {
 		width: 150px;
@@ -201,10 +214,11 @@
 	.contact,
 	.contact-actions {
 		padding: 2em;
-		width: 700px;
+		margin: 1em;
+		width: calc(700px - 2em);
 
 		@media (width < 700px) {
-			width: 100%;
+			width: calc(100% - 2em);
 		}
 	}
 
@@ -227,6 +241,8 @@
 		display: grid;
 		grid-template-columns: 1em 1fr;
 		gap: 1em;
+		border-radius: 1em;
+		background-color: var(--bg-menu);
 
 		button.toggle {
 			height: 1em;
