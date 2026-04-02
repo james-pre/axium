@@ -48,21 +48,23 @@
 
 	type Value = T[keyof T & number];
 
-	const {
+	let {
 		onSelect,
 		sources,
 		exclude,
 		placeholder,
+		initialValue = '',
 	}: {
 		onSelect(target: Value): string | void | Promise<string | void>;
 		sources: { [K in keyof T]: Source<T[K]> };
 		exclude?(target: Value): boolean;
 		placeholder?: string;
+		initialValue?: string;
 	} = $props();
 
 	type Result = { [K in keyof T]: { value: T[K]; snippet: Snippet<[T[K]]> } }[keyof T];
 	let results = $state<Result[]>([]),
-		value = $state<string>(),
+		value = $state<string>(initialValue),
 		gotErrors = $state<Record<string, boolean>>({});
 
 	const allError = $derived(Object.values(gotErrors).every(v => v));
@@ -91,7 +93,7 @@
 		return async (e: Event) => {
 			e.stopPropagation();
 			try {
-				value = (await onSelect(target)) ?? '';
+				value = (await onSelect(target)) || '';
 			} catch (e) {
 				console.log('onSelect error:', e);
 			}
