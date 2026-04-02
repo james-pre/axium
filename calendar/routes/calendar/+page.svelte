@@ -16,7 +16,8 @@
 	import * as Cal from '@axium/calendar/components';
 	import { fetchAPI, text } from '@axium/client';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
-	import { AccessControlDialog, ColorPicker, FormDialog, Icon, Popover, UserDiscovery } from '@axium/client/components';
+	import { AccessControlDialog, ColorPicker, Discovery, discovery, FormDialog, Icon, Popover } from '@axium/client/components';
+	import { toast } from '@axium/client/toast';
 	import { colorHashHex, encodeColor } from '@axium/core/color';
 	import { rrulestr } from 'rrule';
 	import { useSwipe } from 'svelte-gestures';
@@ -370,17 +371,18 @@
 	<div class="attendees-container">
 		<label for="eventInit.attendee"><Icon i="user-group" /></label>
 		<div class="attendees">
-			<UserDiscovery
-				noRoles
-				allowExact
-				onSelect={target => {
-					const { data: userId } = z.uuid().safeParse(target);
-					const { data: email } = z.email().safeParse(target);
-					if (!userId && !email) throw 'Can not determine attendee: ' + target;
-					if (!email) throw 'Specifying attendees without an email is not supported yet';
+			<Discovery
+				onSelect={result => {
+					const { id: userId, email } =
+						result.type == 'user' ? result.user : { id: null, email: z.email().safeParse(result.target).data };
+					if (!userId && !email) return toast('error', text('event_init.discovery_invalid', result));
+					if (!email) return toast('info', text('event_init.discovery_unsupported'));
+
 					// @todo supports roles and also contacts
 					eventInit.attendees.push({ userId, email });
 				}}
+				sources={[discovery.user, discovery.exact]}
+				placeholder={text('event_init.discovery_placeholder')}
 			/>
 			{#each eventInit.attendees as attendee (attendee.email)}
 				<div class="attendee">{attendee.email}</div>

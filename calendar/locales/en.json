@@ -35,6 +35,9 @@
 			"yearly": "Every year on {date}"
 		},
 		"submit_edit": "Update",
-		"title_placeholder": "Add title"
+		"title_placeholder": "Add title",
+		"discovery_placeholder": "Add attendees",
+		"discovery_invalid": "Can't determine attendee \"{target}\"",
+		"discovery_unsupported": "Specifying attendees without an email is not supported yet"
 	}
 }
