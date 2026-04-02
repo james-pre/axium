@@ -6,7 +6,7 @@
 	import ContactPicture from './ContactPicture.svelte';
 	import DateSelect from './DateSelect.svelte';
 	import { contactDiscovery } from './discovery.svelte';
-	import { name as formatName } from '@axium/contacts/client/format';
+	import { format, getContact } from '@axium/contacts/client';
 
 	let showDetailed = $state(false);
 
@@ -65,7 +65,7 @@
 {#if init.id}
 	<div class="contact-init-header">
 		<ContactPicture contact={init as typeof init & { id: string }} --size="150px" />
-		<span class="contact-name-title">{formatName(init)}</span>
+		<span class="contact-name-title">{format.name(init)}</span>
 	</div>
 {/if}
 
@@ -144,6 +144,7 @@
 					sources={[contactDiscovery]}
 					exclude={target =>
 						[init.id, ...init.relationships.map(r => r.to)].filter((v): v is string => !!v).includes(target.contact.id)}
+					initialValue={format.name(await getContact(rel.to))}
 				/>
 				<ZodInput
 					bind:rootValue={init}
