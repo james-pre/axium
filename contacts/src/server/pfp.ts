@@ -57,7 +57,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Contact does not exist', 404));
 
-		const { data, type } = await prepareImageUpload(request, { enabled: true, max_size: 500, max_length: 1000 }, userId);
+		const { data, type } = await prepareImageUpload(request, { enabled: true, max_size: 500, max_length: 500 }, userId);
 
 		const { isInsert } = await database
 			.insertInto('contact_pictures')
