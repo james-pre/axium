@@ -8,6 +8,7 @@ export type Database = Kysely<Schema> & AsyncDisposable;
 
 const sym = Symbol.for('Axium:database');
 
+// eslint-disable-next-line no-shadow-restricted-names
 declare const globalThis: {
 	[sym]?: Database;
 };

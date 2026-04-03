@@ -264,7 +264,7 @@ export async function authRequestForItem<const TB extends acl.TargetName>(
 	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
 	recursive: boolean = false
 ): Promise<ItemAuthResult<TB>> {
-	let session: SessionAndUser | null = null;
+	let session: SessionAndUser | null;
 
 	try {
 		const token = getToken(request, false);

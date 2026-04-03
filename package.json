@@ -24,7 +24,7 @@
 	"scripts": {
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"lint": "eslint",
+		"lint": "eslint */src",
 		"build:schemas": "(cd server && npm run build:schemas)",
 		"build": "tsc -b && for pkg in server storage calendar contacts notes tasks; do (cd $pkg && vite build >/dev/null 2>&1); done",
 		"watch": "tsc -b -w",

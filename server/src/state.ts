@@ -5,6 +5,7 @@ interface UniqueState<T> {
 	stack: string;
 }
 
+// eslint-disable-next-line no-shadow-restricted-names
 declare const globalThis: {
 	[sym]: Record<string, UniqueState<any>> & { _errored: boolean };
 };
