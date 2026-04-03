@@ -1,46 +1,19 @@
+import { debug } from 'ioium';
 import { sql } from 'kysely';
-import { warn } from 'ioium/node';
-import { execSync } from 'node:child_process';
+import sharp from 'sharp';
 import * as z from 'zod';
 import { checkAuthForUser } from '../auth.js';
-import { config } from '../config.js';
+import { config, type ImageUploadConfig } from '../config.js';
 import { database as db } from '../database.js';
 import { error, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 
-interface ImageMetadata {
-	width: number;
-	height: number;
+export interface PreparedImageUpload {
+	data: Uint8Array<ArrayBuffer>;
+	type: string;
 }
 
-let imageSize: ((input: Uint8Array) => ImageMetadata) | undefined;
-try {
-	const mod = await import('image-size');
-	imageSize = mod.imageSize;
-} catch {
-	try {
-		// Fall back to `identify` from ImageMagick
-		execSync('command -v identify');
-
-		imageSize = function identifyImageSize(input: Uint8Array): ImageMetadata {
-			const stdout = execSync('identify -ping -format "%w %h" -', { input, timeout: 1000 });
-			const [width, height] = stdout.toString().trim().split(' ').map(Number);
-			return { width, height };
-		};
-	} catch {
-		warn('Can not determine profile picture dimensions because neither image-size or ImageMagick is available');
-	}
-}
-
-export interface ImageUploadConfig {
-	enabled: boolean;
-	/** Max size in KB */
-	max_size: number;
-	/** Max pixels per dimension */
-	max_length: number;
-}
-
-export async function checkImageUpload(request: Request, cfg: ImageUploadConfig, userId: string) {
+export async function prepareImageUpload(request: Request, cfg: ImageUploadConfig, userId: string): Promise<PreparedImageUpload> {
 	const { enabled, max_size, max_length } = cfg;
 
 	if (!enabled) error(503, 'Image uploads are disabled');
@@ -51,19 +24,31 @@ export async function checkImageUpload(request: Request, cfg: ImageUploadConfig,
 	if (!type) error(400, 'Missing Content-Type header');
 	if (!type.startsWith('image/')) error(415, 'Only image files are allowed');
 
-	const size = Number(request.headers.get('content-length'));
-	if (!Number.isSafeInteger(size)) error(400, 'Invalid Content-Length header');
-	if (max_size && size / 1000 > max_size) error(413, `Image must be smaller than ${max_size} KB`);
+	const contentLength = Number(request.headers.get('content-length'));
+	if (!Number.isSafeInteger(contentLength)) error(400, 'Invalid Content-Length header');
 
-	const data = await request.bytes();
-	if (data.byteLength != size) error(400, 'Content-Length does not match actual data size');
+	const rawData = await request.bytes();
+	if (rawData.byteLength != contentLength) error(400, 'Content-Length does not match actual data size');
 
-	const { width, height } = imageSize?.(data) || { width: 0, height: 0 };
-	if (imageSize && (!width || !height)) error(400, 'Invalid image dimensions');
-	if (max_length && (width > max_length || height > max_length))
+	const { data, info } = await sharp(rawData)
+		.autoOrient()
+		.timeout({ seconds: 10 })
+		.resize({ width: max_length, height: max_length, fit: 'cover', withoutEnlargement: true })
+		.toBuffer({ resolveWithObject: true });
+
+	const { width, height, size } = info;
+
+	if (!width || !height) error(400, 'Invalid image dimensions');
+
+	debug(`Prepared image upload: ${Math.round(size / 1000)}KB @ ${width}x${height}`);
+
+	if (max_size && size / 1000 > max_size) error(413, `Image must be smaller than ${max_size} KB (got ${Math.round(size / 1000)} KB)`);
+	if (max_length && (width > max_length || height > max_length)) {
 		error(413, `Image must be smaller than ${max_length}x${max_length} pixels`);
+	}
 
-	return { data, type };
+	if (!(data.buffer instanceof ArrayBuffer)) error(500, 'Unexpectedly got a shared buffer from sharp.');
+	return { data: data as Uint8Array<ArrayBuffer>, type };
 }
 
 addRoute({
@@ -114,7 +99,7 @@ addRoute({
 		});
 	},
 	async POST(request, { id: userId }) {
-		const { data, type } = await checkImageUpload(request, config.user_pfp, userId);
+		const { data, type } = await prepareImageUpload(request, config.user_pfp, userId);
 
 		const { isInsert } = await db
 			.insertInto('profile_pictures')

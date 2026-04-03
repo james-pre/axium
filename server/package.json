@@ -62,6 +62,7 @@
 		"ioium": "^0.1.0",
 		"logzen": "^0.7.0",
 		"pg": "^8.14.1",
+		"sharp": "^0.34.5",
 		"svelte": "^5.36.0"
 	},
 	"devDependencies": {
@@ -69,7 +70,6 @@
 		"vite-plugin-mkcert": "^1.17.8"
 	},
 	"optionalDependencies": {
-		"image-size": "^2.0.2",
 		"ua-parser-js": "^2.0.9"
 	}
 }

@@ -14,6 +14,16 @@ const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warni
 	keyof typeof Severity
 >[];
 
+export const ImageUploadConfig = z.object({
+	/** Whether images can be uploaded */
+	enabled: z.boolean(),
+	/** Max image size in KB. Set to zero for no limit */
+	max_size: z.number().min(0),
+	/** Max dimensions on a side. Set to zero for no limit */
+	max_length: z.int().min(0),
+});
+export interface ImageUploadConfig extends z.infer<typeof ImageUploadConfig> {}
+
 export const Config = z
 	.looseObject({
 		/** Whether /api/admin is enabled */
@@ -68,16 +78,8 @@ export const Config = z
 		show_duplicate_state: z.boolean(),
 		/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
 		user_discovery: z.literal(['disabled', 'admin', 'user', 'public']),
-		user_pfp: z
-			.looseObject({
-				/** Whether user's can upload custom profile pictures */
-				enabled: z.boolean(),
-				/** Max PFP size in KB. Set to zero for no limit */
-				max_size: z.number().min(0),
-				/** Max dimensions on a side. Set to zero for no limit */
-				max_length: z.number().min(0),
-			})
-			.partial(),
+		/** Configuration for user profile pictures */
+		user_pfp: ImageUploadConfig.loose().partial(),
 		verifications: z
 			.looseObject({
 				/** In minutes */
@@ -153,7 +155,7 @@ export const defaultConfig: DeepRequired<Config> = {
 	user_pfp: {
 		enabled: true,
 		max_size: 500,
-		max_length: 2000,
+		max_length: 750,
 	},
 	verifications: {
 		timeout: 60,
