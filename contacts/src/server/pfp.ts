@@ -1,4 +1,4 @@
-import { checkImageUpload } from '@axium/server/api/images';
+import { prepareImageUpload } from '@axium/server/api/images';
 import { checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
@@ -57,7 +57,7 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Contact does not exist', 404));
 
-		const { data, type } = await checkImageUpload(request, { enabled: true, max_size: 500, max_length: 1000 }, userId);
+		const { data, type } = await prepareImageUpload(request, { enabled: true, max_size: 500, max_length: 1000 }, userId);
 
 		const { isInsert } = await database
 			.insertInto('contact_pictures')
