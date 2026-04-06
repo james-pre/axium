@@ -7,6 +7,9 @@
 	const { data } = $props();
 
 	let notes = $state(data.notes);
+	$effect(() => {
+		notes.sort((a, b) => +!!b.pinned - +!!a.pinned);
+	});
 </script>
 
 <svelte:head>

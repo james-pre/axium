@@ -5,7 +5,7 @@ export const NoteInit = z.object({
 	title: z.string().max(100),
 	content: z.string().max(10_000).nullish(),
 	labels: z.array(z.string().max(30)).default([]),
-	pinned: z.boolean().optional(),
+	pinned: z.boolean().default(false),
 });
 
 export interface NoteInit extends z.infer<typeof NoteInit> {}
