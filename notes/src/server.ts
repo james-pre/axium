@@ -22,6 +22,7 @@ addRoute({
 			.selectFrom('notes')
 			.selectAll()
 			.where('userId', '=', userId)
+			.orderBy('pinned', 'desc')
 			.orderBy('modified', 'desc')
 			.execute()
 			.catch(withError('Could not get notes'));

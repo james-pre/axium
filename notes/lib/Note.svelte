@@ -6,6 +6,7 @@
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import { toastStatus } from '@axium/client/toast';
+	import type { UserPublic } from '@axium/core';
 	import type { Note } from '@axium/notes/common';
 	import { download } from 'utilium/dom';
 
@@ -21,6 +22,9 @@
 
 <div class={['note', pageMode && 'full-page']}>
 	<div class="note-header">
+		{#if note.pinned}
+			<div class="pin"><Icon i="thumbtack" /></div>
+		{/if}
 		<input
 			type="text"
 			bind:value={note.title}
@@ -32,6 +36,17 @@
 			}}
 		/>
 		<Popover showToggle="hover">
+			<div
+				class="menu-item"
+				onclick={() => {
+					note.pinned = !note.pinned;
+					fetchAPI('PATCH', 'notes/:id', note, note.id);
+				}}
+			>
+				<Icon i="thumbtack{note.pinned ? '-slash' : ''}" />
+				<span>{note.pinned ? text('notes.unpin') : text('notes.pin')}</span>
+			</div>
+
 			<div
 				class="menu-item"
 				onclick={() =>
@@ -124,6 +139,10 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
+
+		.pin {
+			flex: 0 0 auto;
+		}
 
 		input {
 			font-size: 1.5em;

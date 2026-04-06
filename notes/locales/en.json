@@ -6,12 +6,14 @@
 		"back_to_main": "Back to Notes",
 		"content_placeholder": "It's a beautiful day outside...",
 		"copy_id": "Copy ID",
-		"copy_link": "Copy Link",
+		"copy_link": "Copy link",
 		"download": "Download",
-		"new": "New Note",
+		"new": "New note",
 		"note_title": "Notes — {title}",
-		"open_new_tab": "Open in New Tab",
+		"open_new_tab": "Open in new tab",
 		"share": "Share",
-		"toast_deleted": "Note deleted"
+		"toast_deleted": "Note deleted",
+		"pin": "Pin note",
+		"unpin": "Unpin note"
 	}
 }

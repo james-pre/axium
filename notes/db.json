@@ -59,6 +59,16 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"notes": {
+					"add_columns": {
+						"pinned": { "type": "boolean", "required": true, "default": false }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["notes", "acl.notes"],
