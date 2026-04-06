@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { text } from '@axium/client';
+	import { text, type ReplacementOptions } from '@axium/client';
 	import type { ZodPref } from '@axium/core';
-	import { zKeys } from '@axium/core/locales';
+	import { zKeys, type ZodLocaleInfo } from '@axium/core/locales';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
 	import { prettifyError } from 'zod';
@@ -10,6 +10,7 @@
 
 	interface Props {
 		idPrefix?: string;
+		localeInfo?: ZodLocaleInfo;
 		rootValue: any;
 		path: string;
 		label?: string;
@@ -24,7 +25,19 @@
 
 	let { rootValue = $bindable(), ...props }: Props = $props();
 
-	let { label, path, schema, _parseSchema = schema, optional, readonly, defaultValue, idPrefix, updateValue, noLabel } = props;
+	let {
+		label,
+		path,
+		schema,
+		_parseSchema = schema,
+		optional,
+		readonly,
+		defaultValue,
+		idPrefix,
+		updateValue,
+		noLabel,
+		localeInfo = zKeys.get(schema),
+	} = props;
 
 	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
 
@@ -86,7 +99,13 @@
 
 	const oninput = onchange;
 
-	const labelText = $derived(zKeys.has(props.schema) ? text(zKeys.get(props.schema)!.key) : label || path);
+	/** Localize text for a given field in the current schema */
+	function subText(name: string, replacements?: ReplacementOptions & Record<string, any>) {
+		if (!localeInfo?.prefix) return;
+		return text(`${localeInfo.prefix}.${name}`, replacements);
+	}
+
+	const labelText = $derived(localeInfo?.key ? text(localeInfo.key) : label || path);
 	const placeholder = noLabel == 'placeholder' ? labelText : undefined;
 
 	/** Array element types that indicate the array should put elements on their own lines */
@@ -138,22 +157,29 @@
 	<div class="ZodInput">
 		<label for={id}>{labelText}</label>
 		<select bind:value {id} {oninput} required={!optional}>
-			{#each schema.values as value}
-				<option {value} selected={value === value}>{value}</option>
+			{#each schema.values as literal}
+				<option value={literal} selected={value === literal}>{subText(String(literal), { $default: String(literal) })}</option>
 			{/each}
 		</select>
 	</div>
 {:else if schema.type == 'template_literal'}
 	<!-- todo -->
 {:else if schema.type == 'readonly'}
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} readonly />
+	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.innerType} readonly />
 {:else if schema.type == 'default'}
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} defaultValue={schema.def.defaultValue} />
+	<ZodInput
+		bind:rootValue
+		{...props}
+		{localeInfo}
+		label={labelText}
+		schema={schema.def.innerType}
+		defaultValue={schema.def.defaultValue}
+	/>
 {:else if schema.type == 'nullable' || schema.type == 'optional'}
 	<!-- defaults are handled differently -->
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} optional={true} />
+	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.innerType} optional={true} />
 {:else if schema.type == 'nonoptional'}
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} optional={false} />
+	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.innerType} optional={false} />
 {:else if schema.type == 'array'}
 	<div class="ZodInput">
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
@@ -191,7 +217,7 @@
 {:else if schema.type == 'object'}
 	<!-- <div class="ZodInput-object"> -->
 	{#each Object.entries(schema.shape) as [key, value]}
-		<ZodInput bind:rootValue {updateValue} {idPrefix} {noLabel} path="{path}.{key}" schema={value} />
+		<ZodInput bind:rootValue {updateValue} {idPrefix} {noLabel} path="{path}.{key}" schema={value} label={subText(key)} />
 	{/each}
 	<!-- </div> -->
 {:else if schema.type == 'tuple'}
@@ -205,8 +231,8 @@
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<select {id} {onchange} bind:value required={!optional}>
-			{#each Object.entries(schema.enum) as [key, value]}
-				<option {value} selected={value === value}>{key}</option>
+			{#each Object.entries(schema.enum) as [name, enumValue]}
+				<option value={enumValue} selected={value === enumValue}>{subText(name, { $default: name })}</option>
 			{/each}
 		</select>
 	</div>
