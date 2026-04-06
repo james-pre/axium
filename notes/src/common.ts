@@ -1,3 +1,4 @@
+import { AccessControl } from '@axium/core';
 import { $API } from '@axium/core/api';
 import * as z from 'zod';
 
@@ -15,6 +16,7 @@ export const Note = NoteInit.extend({
 	userId: z.uuid(),
 	created: z.coerce.date(),
 	modified: z.coerce.date(),
+	acl: AccessControl.array(),
 });
 
 export interface Note extends z.infer<typeof Note> {}

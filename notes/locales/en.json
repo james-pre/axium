@@ -5,6 +5,7 @@
 	"notes": {
 		"back_to_main": "Back to Notes",
 		"content_placeholder": "It's a beautiful day outside...",
+		"content_missing": "This note is shared with you but has no content.",
 		"copy_id": "Copy ID",
 		"copy_link": "Copy link",
 		"download": "Download",

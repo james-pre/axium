@@ -1,12 +1,13 @@
 import type { AsyncResult } from '@axium/core';
+import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
+import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
 import type schema from '../db.json';
 import { NoteInit } from './common.js';
-import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -16,12 +17,13 @@ addRoute({
 	path: '/api/users/:id/notes',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/notes'> {
-		await checkAuthForUser(request, userId);
+		const { user } = await checkAuthForUser(request, userId);
 
 		return await database
 			.selectFrom('notes')
 			.selectAll()
-			.where('userId', '=', userId)
+			.select(acl.from('notes'))
+			.where(eb => eb.or([eb('userId', '=', userId), acl.existsIn('notes', user)(eb)]))
 			.orderBy('pinned', 'desc')
 			.orderBy('modified', 'desc')
 			.execute()
@@ -32,12 +34,15 @@ addRoute({
 
 		await checkAuthForUser(request, userId);
 
-		return await database
-			.insertInto('notes')
-			.values({ ...init, userId })
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not create note'));
+		return Object.assign(
+			await database
+				.insertInto('notes')
+				.values({ ...init, userId })
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not create note')),
+			{ acl: [] }
+		);
 	},
 });
 
@@ -60,6 +65,7 @@ addRoute({
 			.set('modified', new Date())
 			.where('id', '=', id)
 			.returningAll()
+			.returning(acl.from('notes'))
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update note'));
 	},
@@ -70,6 +76,7 @@ addRoute({
 			.deleteFrom('notes')
 			.where('id', '=', id)
 			.returningAll()
+			.returning(acl.from('notes'))
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not delete note'));
 	},
