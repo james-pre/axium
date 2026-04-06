@@ -102,7 +102,6 @@ export function contextMenu(...menuItems: (ContextMenuItem | false | null | unde
 export function dynamicRows(max: number = 40, min: number = 3): Attachment<HTMLTextAreaElement> {
 	return function _attachDynamicRows(element: HTMLTextAreaElement) {
 		element.style.resize = 'none';
-		// @ts-expect-error field-sizing is not yet in the types
 		element.style.fieldSizing = 'content';
 		element.style.height = 'max-content';
 		element.style.overflowY = 'scroll';
