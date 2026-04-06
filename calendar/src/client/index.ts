@@ -1,5 +1,5 @@
 import { fetchAPI } from '@axium/client/requests';
-import type { AttendeeInit, Calendar, Event, EventData, EventFilter } from './common.js';
+import type { AttendeeInit, Calendar, Event, EventData, EventFilter } from '../common.js';
 
 export async function getEvents(calendars: Calendar[], filter: EventFilter): Promise<Event[]> {
 	const events: Event[] = [];

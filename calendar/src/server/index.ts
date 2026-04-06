@@ -7,9 +7,9 @@ import { addRoute } from '@axium/server/routes';
 import { sql, type AliasedRawBuilder, type ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
-import type schema from '../db.json';
-import type { AttendeeStatus, Calendar, Event } from './common.js';
-import { Attendee, CalendarInit, EventFilter, EventInit } from './common.js';
+import type schema from '../../db.json';
+import type { AttendeeStatus, Calendar, Event } from '../common.js';
+import { Attendee, CalendarInit, EventFilter, EventInit } from '../common.js';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 
 declare module '@axium/server/database' {

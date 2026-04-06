@@ -1,6 +1,6 @@
 import { count } from '@axium/server/database';
-import './common.js';
-import './server.js';
+import '../common.js';
+import './index.js';
 
 export async function statusText(): Promise<string> {
 	const { calendars, events } = await count('calendars', 'events');

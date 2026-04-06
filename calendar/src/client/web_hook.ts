@@ -1,7 +1,7 @@
 import { extendLocale } from '@axium/client';
 import type {} from '@axium/client/locales';
-import en from '../locales/en.json' with { type: 'json' };
-import './common.js';
+import en from '../../locales/en.json' with { type: 'json' };
+import '../common.js';
 
 type en = typeof en;
 
