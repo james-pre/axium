@@ -3,7 +3,7 @@
 	import { ClipboardCopy, FormDialog, Icon, SessionList, UserPFP, ZodForm, ZodInput } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import '@axium/client/styles/account';
-	import { preferenceLabels, Preferences, User } from '@axium/core';
+	import { Preferences, User } from '@axium/core';
 	import { formatDateRange } from '@axium/core/format';
 
 	const { data } = $props();
@@ -134,7 +134,6 @@
 	<ZodForm
 		bind:rootValue={user.preferences}
 		schema={Preferences}
-		labels={preferenceLabels}
 		updateValue={(preferences: Preferences) => fetchAPI('PATCH', 'users/:id', { preferences }, user.id)}
 	/>
 </div>

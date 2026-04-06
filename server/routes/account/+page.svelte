@@ -3,7 +3,7 @@
 	import { ClipboardCopy, FormDialog, Icon, Logout, Popover, SessionList, UserPFP, ZodForm } from '@axium/client/components';
 	import '@axium/client/styles/account';
 	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
-	import { preferenceLabels, Preferences } from '@axium/core/preferences';
+	import { Preferences } from '@axium/core/preferences';
 	import type { PageProps } from './$types';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { contextMenu } from '@axium/client/attachments';
@@ -221,7 +221,6 @@
 			bind:rootValue={user.preferences}
 			idPrefix="preferences"
 			schema={Preferences}
-			labels={preferenceLabels}
 			updateValue={(preferences: Preferences) => fetchAPI('PATCH', 'users/:id', { preferences }, user.id)}
 		/>
 	</div>
