@@ -63,6 +63,7 @@
 
 	.lists-container {
 		display: grid;
+		display: grid-lanes;
 		grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
 		gap: 1em;
 	}
