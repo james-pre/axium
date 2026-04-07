@@ -23,6 +23,7 @@ import * as db from './database.js';
 import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks } from './linking.js';
 import { serve } from './serve.js';
+import { build } from './build.js';
 
 using rl = createInterface({
 	input: process.stdin,
@@ -945,6 +946,14 @@ program
 				styleText('blue', event._extra!)
 			);
 		}
+	});
+
+program
+	.command('build')
+	.description('Create the Vite build for the server')
+	.option('--show-garbage-output', 'Show all output from the build process')
+	.action(async options => {
+		await build(options);
 	});
 
 await program.parseAsync();
