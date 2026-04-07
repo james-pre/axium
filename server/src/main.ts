@@ -2,28 +2,30 @@
 import type { AuditEvent, UserInternal } from '@axium/core';
 import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
-import { formatBytes, formatDateRange } from '@axium/core/format';
+import { formatBytes, formatDateRange, formatMs } from '@axium/core/format';
 import { outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins, runIntegrations } from '@axium/core/plugins';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { allLogLevels } from 'logzen';
-import { createWriteStream, type WriteStream } from 'node:fs';
-import { access } from 'node:fs/promises';
+import { createWriteStream, readFileSync, type WriteStream } from 'node:fs';
+import { access, watch } from 'node:fs/promises';
+import type { Server as HttpServer } from 'node:http';
 import { join, resolve } from 'node:path/posix';
 import { createInterface } from 'node:readline/promises';
 import { parseArgs, styleText } from 'node:util';
 import { getByString, isJSON, setByString, type Entries } from 'utilium';
+import { searchForWorkspaceRoot } from 'vite';
 import * as z from 'zod';
 import $pkg from '../package.json' with { type: 'json' };
 import { audit, getEvents, styleSeverity } from './audit.js';
+import { build } from './build.js';
 import { diffUpdate, lookupUser, userText } from './cli.js';
 import config, { ConfigFile, configFiles, reloadConfigs, saveConfigTo } from './config.js';
 import * as db from './database.js';
 import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from './io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks } from './linking.js';
 import { serve } from './serve.js';
-import { build } from './build.js';
 
 using rl = createInterface({
 	input: process.stdin,
@@ -955,16 +957,75 @@ program
 	.option('-s, --diagnostics', 'Show build time and bundle size')
 	.action(async options => {
 		io.start('Building');
-		const { time, size } = await build(options).catch(e => io.exit(e, 2));
+		const { time, size } = await build(options);
 		io.done();
 
 		if (options.diagnostics) {
 			console.log(
 				'Took',
-				styleText('blueBright', time > 5000 ? (time / 1000).toFixed(2) + 's' : time + 'ms'),
+				styleText('blueBright', formatMs(time)),
 				'with a bundle size of',
 				styleText('blueBright', formatBytes(size))
 			);
+		}
+	});
+
+program
+	.command('develop')
+	.alias('dev')
+	.description('Develop with axium')
+	.argument('[dir]', 'The project directory', searchForWorkspaceRoot(process.cwd()))
+	.option('-g, --git', 'Use .gitignore to ignore files (can improve performance)')
+	.action(async (dir, opts) => {
+		let buildId = 0,
+			server: HttpServer | undefined;
+
+		logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
+		db.connect();
+		await db.clean({});
+
+		// eslint-disable-next-line @typescript-eslint/no-misused-promises
+		process.on('beforeExit', () => db.database.destroy());
+
+		async function rebuild() {
+			server?.close();
+			process.stdout.clearLine(0);
+			process.stdout.cursorTo(0);
+			io.start('Building');
+			const { time } = await build();
+			buildId++;
+			process.stdout.clearLine(0);
+			process.stdout.cursorTo(0);
+			server = await serve(config.web);
+			server.listen(config.web.port);
+			process.stdout.write(`Build #${buildId} finished in ${formatMs(time)}`);
+		}
+
+		const ignore = ['node_modules', '.git'];
+		try {
+			if (!opts.git) throw null;
+			const gitignore = readFileSync(join(dir, '.gitignore'), 'utf8');
+
+			for (const rawLine of gitignore.split('\n')) {
+				const line = rawLine.trim();
+				if (!line || line[0] == '#') continue;
+				ignore.push(line);
+			}
+		} catch {
+			// It's fine if we don't have a .gitignore
+		}
+
+		io.debug('Watching', dir);
+
+		await rebuild();
+		try {
+			for await (const _event of watch(dir, { recursive: true, ignore })) {
+				// @todo see if we can be more efficient based on event data
+				await rebuild();
+			}
+		} catch (err: any) {
+			if (err.name === 'AbortError') return;
+			throw err;
 		}
 	});
 
