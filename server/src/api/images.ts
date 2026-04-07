@@ -4,7 +4,7 @@ import sharp from 'sharp';
 import * as z from 'zod';
 import { checkAuthForUser } from '../auth.js';
 import { config, type ImageUploadConfig } from '../config.js';
-import { database as db } from '../database.js';
+import { database as db } from '../db/index.js';
 import { error, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 

@@ -2,6 +2,5 @@
 	"editor.formatOnSave": true,
 	"cSpell.words": ["axium", "kysely", "webauthn"],
 	"js/ts.tsdk.path": "node_modules/typescript/lib",
-	"js/ts.preferences.importModuleSpecifier": "non-relative",
 	"svelte.language-server.ls-path": "node_modules/svelte-language-server/bin/server.js"
 }

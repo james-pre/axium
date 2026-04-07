@@ -12,15 +12,15 @@ import { styleText } from 'node:util';
 import pg from 'pg';
 import type { Entries, Expand } from 'utilium';
 import * as z from 'zod';
-import config from './config.js';
-import { dirs, systemDir } from './io.js';
+import config from '../config.js';
+import { dirs, systemDir } from '../io.js';
 
-import { connect, database } from './db/connection.js';
-export { connect, database };
+import { connect, database } from './connection.js';
 
-import * as schema from './db/schema.js';
-export * as delta from './db/delta.js';
-export * as schema from './db/schema.js';
+import * as schema from './schema.js';
+export * as delta from './delta.js';
+
+export { connect, database, schema };
 
 pg.types.setTypeParser(pg.types.builtins.INT8, BigInt);
 

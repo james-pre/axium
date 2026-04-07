@@ -20,6 +20,7 @@
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": "./dist/index.js",
+		"./database": "./dist/db/index.js",
 		"./*": "./dist/*.js",
 		"./$hooks": "./web/hooks.server.ts",
 		"./$routes": "./routes",

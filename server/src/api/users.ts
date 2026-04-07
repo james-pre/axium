@@ -17,7 +17,7 @@ import {
 	useVerification,
 } from '../auth.js';
 import { config } from '../config.js';
-import { database as db } from '../database.js';
+import { database as db } from '../db/index.js';
 import { createSessionData, error, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 

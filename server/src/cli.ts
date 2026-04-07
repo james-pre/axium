@@ -4,7 +4,9 @@ import type { UserInternal } from '@axium/core';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
 import * as z from 'zod';
-import * as db from './database.js';
+import * as db from './db/index.js';
+import { Option } from 'commander';
+import { createInterface } from 'node:readline/promises';
 
 export function userText(user: UserInternal, bold: boolean = false): string {
 	const text = `${user.name} <${user.email}> (${user.id})`;
@@ -55,4 +57,31 @@ export function diffUpdate(
 		});
 
 	return [!!diffs.length, original, diffs.join(', ')];
+}
+
+// Options shared by multiple (sub)commands
+export const cliOptions = {
+	check: new Option('--check', 'check the database schema after initialization').default(false),
+	force: new Option('-f, --force', 'force the operation').default(false),
+	global: new Option('-g, --global', 'apply the operation globally').default(false),
+	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default(1000).argParser(value => {
+		const timeout = parseInt(value);
+		if (!Number.isSafeInteger(timeout) || timeout < 0) io.warn('Invalid timeout value, using default.');
+		io.setCommandTimeout(timeout);
+	}),
+};
+
+using rl = createInterface({
+	input: process.stdin,
+	output: process.stdout,
+});
+
+export { rl };
+
+export async function rlConfirm(question: string = 'Is this ok'): Promise<void> {
+	const { data, error } = z
+		.stringbool()
+		.default(false)
+		.safeParse(await rl.question(question + ' [y/N]: ').catch(() => io.exit('Aborted.')));
+	if (error || !data) io.exit('Aborted.');
 }

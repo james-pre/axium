@@ -5,7 +5,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { omit, type WithRequired } from 'utilium';
 import * as acl from './acl.js';
 import { audit } from './audit.js';
-import { database as db, userFromId, type Schema } from './database.js';
+import { database as db, userFromId, type Schema } from './db/index.js';
 import { error, getToken, withError } from './requests.js';
 
 export async function getUser(id: string): Promise<UserInternal> {

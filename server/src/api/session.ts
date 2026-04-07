@@ -2,7 +2,7 @@ import type { AsyncResult } from '@axium/core/api';
 import { omit } from 'utilium';
 import { audit } from '../audit.js';
 import { getSessionAndUser } from '../auth.js';
-import { database as db } from '../database.js';
+import { database as db } from '../db/index.js';
 import { error, getToken, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
 

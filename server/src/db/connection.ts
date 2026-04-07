@@ -2,7 +2,7 @@ import * as io from 'ioium/node';
 import { Kysely, PostgresDialect } from 'kysely';
 import pg from 'pg';
 import config from '../config.js';
-import type { Schema } from '../database.js';
+import type { Schema } from '../db/index.js';
 
 export type Database = Kysely<Schema> & AsyncDisposable;
 

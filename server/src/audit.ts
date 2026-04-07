@@ -4,7 +4,7 @@ import { styleText } from 'node:util';
 import { capitalize, omit } from 'utilium';
 import * as z from 'zod';
 import config from './config.js';
-import { database, type Schema } from './database.js';
+import { database, type Schema } from './db/index.js';
 import * as io from 'ioium/node';
 
 const severityFormat = {

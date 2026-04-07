@@ -13,7 +13,7 @@ import $pkg from '../../package.json' with { type: 'json' };
 import { audit, events, getEvents } from '../audit.js';
 import { createVerification, requireSession, type SessionAndUser } from '../auth.js';
 import { config, type Config } from '../config.js';
-import { count, database as db } from '../database.js';
+import { count, database as db } from '../db/index.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 
