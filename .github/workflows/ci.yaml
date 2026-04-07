@@ -40,4 +40,4 @@ jobs:
               run: npx tsc -b
 
             - name: Build server (Vite)
-              run: (cd server && npx axium build)
+              run: (cd server && npm install && npx axium build)
