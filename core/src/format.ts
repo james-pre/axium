@@ -17,7 +17,12 @@ export function formatBytes(bytes: bigint): string {
 	return `${Number.isInteger(value) ? value : value.toFixed(2)} ${units[i]}`;
 }
 
+export function formatMs(time: number): string {
+	return time > 5000 ? (time / 1000).toFixed(2) + 's' : time + 'ms';
+}
+
 export default {
 	dateRange: formatDateRange,
 	bytes: formatBytes,
+	ms: formatMs,
 };
