@@ -43,7 +43,7 @@ const vitePluginSvelteOptions = {
 	...pick(svelteConfig, 'extensions', 'preprocess', 'onwarn', 'compilerOptions'),
 } satisfies SvelteViteOptions;
 
-const otherConfig: InlineConfig & { axiumNestedConfig?: InlineConfig } = {
+const otherConfig: InlineConfig = {
 	configFile: false,
 	appType: 'custom',
 	server: {
@@ -67,25 +67,19 @@ const otherConfig: InlineConfig & { axiumNestedConfig?: InlineConfig } = {
 		},
 		cssMinify: false,
 	},
-} as InlineConfig;
+	logLevel: 'silent',
+};
 
 // SvelteKit uses a nested call to Vite's `build` that fails if we don't have a vite config file
 // We get around that with a sveltekit patch and this "hidden"/internal global
-const __axiumNestedConfig = {
+const __axiumNestedConfig: InlineConfig = {
 	configFile: false,
 	appType: 'custom',
 	plugins: [viteSveltePlugin(vitePluginSvelteOptions), await svelteKitPlugin({ svelte_config: svelteConfig })],
+	logLevel: 'silent',
 };
 
 Object.assign(globalThis, { __axiumNestedConfig });
-
-export interface BuildOptions {
-	/**
-	 * If set all of the output from Vite will be shown.
-	 * This is usually undesirable.
-	 */
-	showGarbageOutput?: boolean;
-}
 
 function write(chunk: string | Uint8Array, encoding?: BufferEncoding | Function, cb?: Function): boolean {
 	if (typeof encoding === 'function') cb = encoding;
@@ -93,17 +87,53 @@ function write(chunk: string | Uint8Array, encoding?: BufferEncoding | Function,
 	return true;
 }
 
+export interface BuildOptions {
+	/**
+	 * If set all of the output from Vite and Svelte/SvelteKit will be shown.
+	 * This is usually undesirable.
+	 */
+	showGarbageOutput?: boolean;
+}
+
+export interface BuildStats {
+	/** Build time in milliseconds */
+	time: number;
+	/** Bundle size in bytes */
+	size: bigint;
+}
+
 export async function build(options: BuildOptions = {}) {
 	const stdoutWrite = process.stdout.write.bind(process.stdout);
 	const stderrWrite = process.stderr.write.bind(process.stderr);
 
-	if (!options.showGarbageOutput) {
+	const startTime = performance.now();
+
+	if (options.showGarbageOutput) {
+		otherConfig.logLevel = 'info';
+		__axiumNestedConfig.logLevel = 'info';
+	} else {
 		Object.assign(process.stdout, { write });
 		Object.assign(process.stderr, { write });
 	}
 
 	try {
-		await buildVite(otherConfig);
+		const result = await buildVite(otherConfig);
+		let size = 0n;
+		const outputs = Array.isArray(result) ? result : [result];
+		for (const out of outputs) {
+			if (out && 'output' in out) {
+				for (const chunk of out.output) {
+					if (chunk.type === 'chunk') size += BigInt(chunk.code.length);
+					else if (chunk.type === 'asset')
+						size += BigInt(chunk.source instanceof Uint8Array ? chunk.source.length : String(chunk.source).length);
+				}
+			}
+		}
+
+		return {
+			time: Math.round(performance.now() - startTime),
+			size,
+		};
 	} finally {
 		if (!options.showGarbageOutput) {
 			process.stdout.write = stdoutWrite;

@@ -2,7 +2,7 @@
 import type { AuditEvent, UserInternal } from '@axium/core';
 import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
-import { formatDateRange } from '@axium/core/format';
+import { formatBytes, formatDateRange } from '@axium/core/format';
 import { outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins, runIntegrations } from '@axium/core/plugins';
 import { Argument, Option, program } from 'commander';
@@ -952,8 +952,20 @@ program
 	.command('build')
 	.description('Create the Vite build for the server')
 	.option('--show-garbage-output', 'Show all output from the build process')
+	.option('-s, --diagnostics', 'Show build time and bundle size')
 	.action(async options => {
-		await build(options);
+		io.start('Building');
+		const { time, size } = await build(options).catch(e => io.exit(e, 2));
+		io.done();
+
+		if (options.diagnostics) {
+			console.log(
+				'Took',
+				styleText('blueBright', time > 5000 ? (time / 1000).toFixed(2) + 's' : time + 'ms'),
+				'with a bundle size of',
+				styleText('blueBright', formatBytes(size))
+			);
+		}
 	});
 
 await program.parseAsync();
