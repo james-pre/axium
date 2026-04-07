@@ -51,25 +51,11 @@ export function linkRoutes(options: LinkOptions = {}) {
 
 		io.start('Linking ' + text);
 		if (existsSync(from)) {
-			io.warn('already exists.');
-
-			io.start('Unlinking ' + text);
-			try {
-				unlinkSync(from);
-			} catch (e: any) {
-				io.exit(e);
-			}
-			io.done();
-
-			io.start('Re-linking ' + text);
+			unlinkSync(from);
 		}
 
-		try {
-			symlinkSync(to, from, 'dir');
-			io.done();
-		} catch (e: any) {
-			io.exit(e);
-		}
+		symlinkSync(to, from, 'dir');
+		io.done();
 	}
 }
 

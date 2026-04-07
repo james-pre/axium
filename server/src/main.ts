@@ -133,8 +133,8 @@ axiumDB
 	.addOption(opts.check)
 	.action(async function axium_db_init() {
 		const opt = this.optsWithGlobals();
-		await db.init(opt).catch(io.exit);
-		await dbInitTables().catch(io.exit);
+		await db.init(opt);
+		await dbInitTables();
 	});
 
 axiumDB
@@ -155,7 +155,7 @@ axiumDB
 	.description('Drop the Axium database and user')
 	.addOption(opts.force)
 	.action(async opt => {
-		const stats = await db.count('users', 'passkeys', 'sessions').catch(io.exit);
+		const stats = await db.count('users', 'passkeys', 'sessions');
 
 		if (!opt.force)
 			for (const key of ['users', 'passkeys', 'sessions'] as const) {
@@ -165,9 +165,9 @@ axiumDB
 				process.exit(2);
 			}
 
-		await db._sql('DROP DATABASE axium', 'Dropping database').catch(io.exit);
-		await db._sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges').catch(io.exit);
-		await db._sql('DROP USER axium', 'Dropping user').catch(io.exit);
+		await db._sql('DROP DATABASE axium', 'Dropping database');
+		await db._sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
+		await db._sql('DROP USER axium', 'Dropping user');
 
 		await db
 			.getHBA(opt)
@@ -200,7 +200,7 @@ axiumDB
 		}
 
 		if (!opt.force) {
-			const stats = await db.count(...tables.keys()).catch(io.exit);
+			const stats = await db.count(...tables.keys());
 			const nonEmpty = Object.entries(stats)
 				.filter(([, v]) => v)
 				.map(([k]) => k);
@@ -219,7 +219,7 @@ axiumDB
 
 		await rlConfirm('Are you sure you want to wipe these tables and any dependents');
 
-		await db.database.deleteFrom(Array.from(tables.keys())).execute().catch(io.exit);
+		await db.database.deleteFrom(Array.from(tables.keys())).execute();
 	});
 
 axiumDB
@@ -227,24 +227,24 @@ axiumDB
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
 	.action(async opt => {
-		await io.run('Checking for sudo', 'which sudo').catch(io.exit);
-		await io.run('Checking for psql', 'which psql').catch(io.exit);
+		await io.run('Checking for sudo', 'which sudo');
+		await io.run('Checking for psql', 'which psql');
 
 		const throwUnlessRows = (text: string) => {
 			if (text.includes('(0 rows)')) throw 'missing.';
 			return text;
 		};
 
-		await db._sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database').then(throwUnlessRows).catch(io.exit);
+		await db._sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database').then(throwUnlessRows);
 
-		await db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows).catch(io.exit);
+		await db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
 
 		io.start('Connecting to database');
 		await using _ = db.connect();
 		io.done();
 
 		io.start('Getting schema metadata');
-		const schemas = await db.database.introspection.getSchemas().catch(io.exit);
+		const schemas = await db.database.introspection.getSchemas();
 		io.done();
 
 		io.start('Checking for acl schema');
@@ -255,7 +255,7 @@ axiumDB
 		const tablePromises = await Promise.all([
 			db.database.introspection.getTables(),
 			db.database.withSchema('acl').introspection.getTables(),
-		]).catch(io.exit);
+		]);
 		const tableMetadata = tablePromises.flat();
 		const tables = Object.fromEntries(tableMetadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
 		io.done();
@@ -286,7 +286,7 @@ axiumDB
 	.description('Remove expired rows')
 	.addOption(opts.force)
 	.action(async opt => {
-		await db.clean(opt).catch(io.exit);
+		await db.clean(opt);
 	});
 
 axiumDB
@@ -389,7 +389,7 @@ axiumDB
 		}
 
 		console.log('Applying delta.');
-		await db.delta.apply(delta, opt.abort).catch(io.exit);
+		await db.delta.apply(delta, opt.abort);
 
 		info.upgrades.push({ timestamp: new Date(), from, to });
 		db.setUpgradeInfo(info);
@@ -799,7 +799,7 @@ program
 	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
 	.option('-N, --node <path>', 'the path to the node binary')
 	.action(async (action: PortOptions['action'], opt) => {
-		await restrictedPorts({ ...opt, action }).catch(io.exit);
+		await restrictedPorts({ ...opt, action });
 	});
 
 program
@@ -809,9 +809,9 @@ program
 	.addOption(opts.check)
 	.option('-s, --skip', 'Skip already initialized steps', false)
 	.action(async opt => {
-		await db.init(opt).catch(io.exit);
-		await dbInitTables().catch(io.exit);
-		await restrictedPorts({ method: 'node-cap', action: 'enable' }).catch(io.exit);
+		await db.init(opt);
+		await dbInitTables();
+		await restrictedPorts({ method: 'node-cap', action: 'enable' });
 	});
 
 program
@@ -968,4 +968,9 @@ program
 		}
 	});
 
-await program.parseAsync();
+try {
+	await program.parseAsync();
+} catch (e) {
+	if (typeof e == 'number') process.exit(e);
+	io.exit(e);
+}
