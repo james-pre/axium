@@ -4,21 +4,14 @@ import { existsSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path/posix';
 import config from './config.js';
 
-const textFor: Record<string, string> = {
-	builtin: 'built-in routes',
-};
-
-function info(id: string): [text: string, link: string] {
-	const text = id.startsWith('#') ? textFor[id.slice(1)] : `routes for plugin: ${id}`;
-	const link = join(config.web.routes, `(${id.startsWith('#') ? id.slice(1) : id.replaceAll('/', '__')})`);
-	return [text, link];
+function resolveLink(id: string): string {
+	return join(config.web.routes, `(${id.startsWith('#') ? id.slice(1) : id.replaceAll('/', '__')})`);
 }
 
 interface LinkInfo {
 	id: string;
 	from: string;
 	to: string;
-	text: string;
 }
 
 export interface LinkOptions {
@@ -27,18 +20,18 @@ export interface LinkOptions {
 
 export function* listRouteLinks(options: LinkOptions = {}): Generator<LinkInfo> {
 	if (!options.only || !options.only.length) {
-		const [text, link] = info('#builtin');
-		yield { text, id: '#builtin', from: link, to: resolve(import.meta.dirname, '../routes') };
+		const link = resolveLink('#builtin');
+		yield { id: '#builtin', from: link, to: resolve(import.meta.dirname, '../routes') };
 	}
 
 	for (const plugin of plugins.values()) {
 		if (!plugin.server?.routes) continue;
 		if (options.only && options.only.length && !options.only.includes(plugin.name)) continue;
 
-		const [text, link] = info(plugin.name);
+		const link = resolveLink(plugin.name);
 
 		const to = resolve(join(plugin.dirname, plugin.server.routes));
-		yield { text, id: plugin.name, from: link, to };
+		yield { id: plugin.name, from: link, to };
 	}
 }
 
@@ -47,15 +40,14 @@ export function* listRouteLinks(options: LinkOptions = {}): Generator<LinkInfo> 
  */
 export function linkRoutes(options: LinkOptions = {}) {
 	for (const info of listRouteLinks(options)) {
-		const { text, from, to } = info;
+		const { from, to } = info;
 
-		io.start('Linking ' + text);
 		if (existsSync(from)) {
 			unlinkSync(from);
 		}
 
+		io.debug('Linking routes:', from, '->', to);
 		symlinkSync(to, from, 'dir');
-		io.done();
 	}
 }
 
@@ -70,7 +62,6 @@ export function handleError({ error, status }) {
 
 export function writePluginHooks() {
 	const hooksPath = join(import.meta.dirname, '../.hooks.js');
-	io.start('Writing web client hooks for plugins');
 	let hooks = `// auto-generated plugin hooks //\n`;
 	for (const plugin of plugins.values()) {
 		if (!plugin.server?.web_client_hooks) continue;
@@ -79,20 +70,15 @@ export function writePluginHooks() {
 	}
 	hooks += hooksBuiltin;
 	writeFileSync(hooksPath, hooks, 'utf8');
-	io.done();
-	io.debug('Wrote', hooksPath);
+	io.debug('Wrote hooks to', hooksPath);
 }
 
 export function unlinkRoutes(options: LinkOptions = {}) {
 	for (const info of listRouteLinks(options)) {
-		const { text, from } = info;
+		const { from } = info;
 		if (!existsSync(from)) return;
-		io.start('Unlinking ' + text);
-		try {
-			unlinkSync(from);
-			io.done();
-		} catch (e: any) {
-			io.exit(e);
-		}
+
+		io.debug('Unlinking routes:', from);
+		unlinkSync(from);
 	}
 }

@@ -874,8 +874,13 @@ program
 			return;
 		}
 
+		io.start('Linking routes');
 		linkRoutes(linkOpts);
+		io.done();
+
+		io.start('Writing web client hooks for plugins');
 		writePluginHooks();
+		io.done();
 	});
 
 program
