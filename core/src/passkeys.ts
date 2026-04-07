@@ -1,15 +1,9 @@
-import type { AuthenticatorAttachment, AuthenticatorTransportFuture } from '@simplewebauthn/server';
 import * as z from 'zod';
 
-const PasskeyTransport = z.literal([
-	'ble',
-	'cable',
-	'hybrid',
-	'internal',
-	'nfc',
-	'smart-card',
-	'usb',
-] satisfies AuthenticatorTransportFuture[]);
+/**
+ * @todo Add 'cable' and 'smart-card'
+ */
+const PasskeyTransport = z.literal(['ble', 'hybrid', 'internal', 'nfc', 'usb'] satisfies AuthenticatorTransport[]);
 
 export const authenticatorAttachment = z.literal(['platform', 'cross-platform'] satisfies AuthenticatorAttachment[]).optional();
 
