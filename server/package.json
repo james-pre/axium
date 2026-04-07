@@ -24,19 +24,15 @@
 		"./*": "./dist/*.js",
 		"./$hooks": "./web/hooks.server.ts",
 		"./$routes": "./routes",
-		"./$template": "./web/template.html",
-		"./svelte.config.js": "./svelte.config.js",
-		"./vite.config.js": "./vite.config.js"
+		"./$template": "./web/template.html"
 	},
 	"files": [
 		"assets",
 		"dist",
 		"routes",
 		"schemas",
-		"svelte.config.js",
 		"web.tsconfig.json",
 		"template.html",
-		"vite.config.js",
 		"axium.service"
 	],
 	"bin": {
