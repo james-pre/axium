@@ -1,9 +1,8 @@
 import * as z from 'zod';
 
-/**
- * @todo Add 'cable' and 'smart-card'
- */
-const PasskeyTransport = z.literal(['ble', 'hybrid', 'internal', 'nfc', 'usb'] satisfies AuthenticatorTransport[]);
+export type PasskeyTransport = AuthenticatorTransport | 'cable' | 'smart-card';
+
+export const PasskeyTransport = z.literal(['ble', 'cable', 'hybrid', 'internal', 'nfc', 'smart-card', 'usb'] satisfies PasskeyTransport[]);
 
 export const authenticatorAttachment = z.literal(['platform', 'cross-platform'] satisfies AuthenticatorAttachment[]).optional();
 
