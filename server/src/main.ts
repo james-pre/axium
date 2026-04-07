@@ -580,6 +580,7 @@ program
 	.description('Create the Vite build for the server')
 	.option('--show-garbage-output', 'Show all output from the build process')
 	.option('-s, --diagnostics', 'Show build time and bundle size')
+	.option('-m, --no-minify', 'Whether to use minification')
 	.action(async options => {
 		io.start('Building');
 		const { time, size } = await build(options);
@@ -617,7 +618,7 @@ program
 			process.stdout.clearLine(0);
 			process.stdout.cursorTo(0);
 			io.start('Building');
-			const { time } = await build();
+			const { time } = await build({ minify: false });
 			buildId++;
 			process.stdout.clearLine(0);
 			process.stdout.cursorTo(0);

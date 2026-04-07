@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { build as buildVite, type InlineConfig } from 'vite';
 import config from './config.js';
-import { pick } from 'utilium';
+import { pick, type WithRequired } from 'utilium';
 
 const sveltekitPackageJSON = findPackageJSON('@sveltejs/kit', import.meta.url);
 if (!sveltekitPackageJSON) exit('Could not resolve @sveltejs/kit package.', 6);
@@ -43,7 +43,7 @@ const vitePluginSvelteOptions = {
 	...pick(svelteConfig, 'extensions', 'preprocess', 'onwarn', 'compilerOptions'),
 } satisfies SvelteViteOptions;
 
-const otherConfig: InlineConfig = {
+const viteConfig: WithRequired<InlineConfig, 'build'> = {
 	configFile: false,
 	appType: 'custom',
 	server: {
@@ -72,11 +72,12 @@ const otherConfig: InlineConfig = {
 
 // SvelteKit uses a nested call to Vite's `build` that fails if we don't have a vite config file
 // We get around that with a sveltekit patch and this "hidden"/internal global
-const __axiumNestedConfig: InlineConfig = {
+const __axiumNestedConfig: WithRequired<InlineConfig, 'build'> = {
 	configFile: false,
 	appType: 'custom',
 	plugins: [viteSveltePlugin(vitePluginSvelteOptions), await svelteKitPlugin({ svelte_config: svelteConfig })],
 	logLevel: 'silent',
+	build: {},
 };
 
 Object.assign(globalThis, { __axiumNestedConfig });
@@ -93,6 +94,9 @@ export interface BuildOptions {
 	 * This is usually undesirable.
 	 */
 	showGarbageOutput?: boolean;
+
+	/** Whether to minify the output */
+	minify?: boolean;
 }
 
 export interface BuildStats {
@@ -109,15 +113,18 @@ export async function build(options: BuildOptions = {}) {
 	const startTime = performance.now();
 
 	if (options.showGarbageOutput) {
-		otherConfig.logLevel = 'info';
+		viteConfig.logLevel = 'info';
 		__axiumNestedConfig.logLevel = 'info';
 	} else {
 		Object.assign(process.stdout, { write });
 		Object.assign(process.stderr, { write });
 	}
 
+	viteConfig.build.minify = options.minify;
+	__axiumNestedConfig.build.minify = options.minify;
+
 	try {
-		const result = await buildVite(otherConfig);
+		const result = await buildVite(viteConfig);
 		let size = 0n;
 		const outputs = Array.isArray(result) ? result : [result];
 		for (const out of outputs) {
