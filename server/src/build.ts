@@ -121,12 +121,9 @@ export async function build(options: BuildOptions = {}) {
 		let size = 0n;
 		const outputs = Array.isArray(result) ? result : [result];
 		for (const out of outputs) {
-			if (out && 'output' in out) {
-				for (const chunk of out.output) {
-					if (chunk.type === 'chunk') size += BigInt(chunk.code.length);
-					else if (chunk.type === 'asset')
-						size += BigInt(chunk.source instanceof Uint8Array ? chunk.source.length : String(chunk.source).length);
-				}
+			if (!out || !('output' in out)) continue;
+			for (const chunk of out.output) {
+				size += BigInt(chunk.type === 'chunk' ? chunk.code.length : chunk.source.length);
 			}
 		}
 
