@@ -2,15 +2,16 @@ import type { AsyncResult } from '@axium/core/api';
 import { from as aclFrom, userHasAccess } from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database, type Schema } from '@axium/server/database';
+import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { error, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { sql, type AliasedRawBuilder, type ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
+import type { Omit } from 'utilium';
 import * as z from 'zod';
 import type schema from '../../db.json';
 import type { AttendeeStatus, Calendar, Event } from '../common.js';
 import { Attendee, CalendarInit, EventFilter, EventInit } from '../common.js';
-import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
