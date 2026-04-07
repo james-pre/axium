@@ -55,15 +55,15 @@ const otherConfig: InlineConfig = {
 		...(await svelteKitPlugin({ svelte_config: svelteConfig })) /*, mkcert({ hosts: ['cloud.jamespre.dev'] }) */,
 	],
 	ssr: {
-		external: ['@axium/server', '@axium/storage/server', '@axium/storage/plugin'],
+		external: ['@axium/server'],
 	},
 	optimizeDeps: {
-		exclude: ['@axium/storage/sidebar'],
-		include: ['@axium/client/components', '@axium/storage/components'],
+		exclude: [],
+		include: ['@axium/client/components'],
 	},
 	build: {
 		rollupOptions: {
-			external: [/^@axium\/server(?!\/components)/],
+			external: ['@axium/server'],
 		},
 		cssMinify: false,
 	},
