@@ -46,6 +46,7 @@
 	},
 	"peerDependencies": {
 		"@axium/core": ">=0.27.1",
+		"ioium": "^1.0.0",
 		"svelte": "^5.36.0",
 		"utilium": "^3.0.0",
 		"zod": "^4.0.5"
