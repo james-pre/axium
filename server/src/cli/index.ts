@@ -150,10 +150,11 @@ program
 program
 	.command('serve')
 	.description('Start the Axium server')
-	.option('-p, --port <port>', 'the port to listen on', Number.parseInt, config.web.port)
+	.option('-p, --port <port>', 'the port to listen on', Number.parseInt)
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
 	.option('-b, --build <path>', 'the path to the handler build')
 	.action(async opt => {
+		opt.port ||= config.web.port;
 		if (opt.port < 1 || opt.port > 65535) io.exit('Invalid port');
 
 		const server = await serve({
