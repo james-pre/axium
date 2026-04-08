@@ -44,7 +44,7 @@ jobs:
               run: npx tsc -b
 
             - name: Build server (Vite)
-              run: cd server && npx patch-package && npx axium build
+              run: cd server && npx patch-package && node dist/main.js build
 
             - name: Export schemas
               run: cd server && npm run build:schemas
