@@ -13,5 +13,4 @@ server/schemas
 !.prettierrc
 !.vscode
 !.github
-!server/.axium/config.json
 !.npmrc
