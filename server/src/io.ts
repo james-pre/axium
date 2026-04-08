@@ -1,11 +1,12 @@
 import * as io from 'ioium/node';
-import type { PackageVersionInfo } from '@axium/core/packages';
+import { fetchPackageMetadata, type PackageVersionInfo } from '@axium/core/packages';
 import { getVersionInfo } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';
 import { Logger } from 'logzen';
 import * as fs from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { _unique } from './state.js';
+import { pick } from 'utilium';
 
 export const systemDir = '/etc/axium';
 
@@ -105,9 +106,12 @@ export async function restrictedPorts(opt: PortOptions) {
 
 export async function getAllVersions(): Promise<PackageVersionInfo[]> {
 	return await Array.fromAsync([
-		...plugins.values().map(p => getVersionInfo(p.specifier, p.loadedBy)),
-		getVersionInfo('@axium/server'),
-		getVersionInfo('@axium/core'),
-		getVersionInfo('@axium/client'),
+		...plugins.values().map(async p => ({
+			...pick(p, 'name', 'version'),
+			latest: (p.update_checks ? await fetchPackageMetadata(p.name) : null)?._latest,
+		})),
+		getVersionInfo('@axium/server', import.meta.dirname),
+		getVersionInfo('@axium/core', import.meta.dirname),
+		getVersionInfo('@axium/client', import.meta.dirname),
 	]);
 }
