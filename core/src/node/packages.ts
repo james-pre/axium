@@ -1,6 +1,6 @@
 import * as fs from 'node:fs';
 import { findPackageJSON } from 'node:module';
-import { getPackage, isRelative, type PackageJSON, type PackageVersionInfo } from '../packages.js';
+import { fetchPackageMetadata, isRelative, type PackageJSON, type PackageVersionInfo } from '../packages.js';
 import { debug } from 'ioium/node';
 
 export function getPackageJSON(specifier: string, from: string): PackageJSON & Record<string, any> & { __path: string } {
@@ -28,6 +28,6 @@ export function getPackageJSON(specifier: string, from: string): PackageJSON & R
  */
 export async function getVersionInfo(specifier: string, from: string = import.meta.filename): Promise<PackageVersionInfo> {
 	const { version, name } = getPackageJSON(specifier, from);
-	const pkg = await getPackage(name);
+	const pkg = await fetchPackageMetadata(name);
 	return { name, version, latest: pkg?._latest };
 }

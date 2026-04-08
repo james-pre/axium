@@ -48,7 +48,7 @@ const cache = new Map<string, CacheEntry>();
 /**
  * Get information for an npm package
  */
-export async function getPackage(specifier: string): Promise<NpmPackage | null> {
+export async function fetchPackageMetadata(specifier: string): Promise<NpmPackage | null> {
 	if (isRelative(specifier)) return null;
 
 	const cached = cache.get(specifier);
