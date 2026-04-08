@@ -2,7 +2,7 @@
 	import { text } from '@axium/client';
 	import { Version } from '@axium/client/components';
 	import { Severity } from '@axium/core';
-	import { getPackage } from '@axium/core/packages';
+	import { fetchPackageMetadata } from '@axium/core/packages';
 	import { _throw, capitalize } from 'utilium';
 
 	const { data } = $props();
@@ -18,7 +18,7 @@
 {#each packages as name}
 	<p>
 		Axium {capitalize(name)}
-		<Version v={data.versions[name]} latest={getPackage('@axium/' + name).then(pkg => pkg?._latest || _throw(null))} />
+		<Version v={data.versions[name]} latest={fetchPackageMetadata('@axium/' + name).then(pkg => pkg?._latest || _throw(null))} />
 	</p>
 {/each}
 

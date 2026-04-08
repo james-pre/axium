@@ -3,7 +3,7 @@
 	import { Version, ZodForm } from '@axium/client/components';
 	import { fetchAPI } from '@axium/client/requests';
 	import { serverConfigs } from '@axium/core';
-	import { getPackage } from '@axium/core/packages';
+	import { fetchPackageMetadata } from '@axium/core/packages';
 	import { _throw } from 'utilium';
 
 	const { data } = $props();
@@ -21,7 +21,7 @@
 		<h3>
 			{plugin.name}<Version
 				v={plugin.version}
-				latest={plugin.update_checks ? getPackage(plugin.name).then(p => p?._latest || _throw(null)) : null}
+				latest={plugin.update_checks ? fetchPackageMetadata(plugin.name).then(p => p?._latest || _throw(null)) : null}
 			/>
 		</h3>
 		<p>
