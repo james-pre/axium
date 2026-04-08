@@ -44,10 +44,10 @@ jobs:
               run: npx tsc -b
 
             - name: Build server (Vite)
-              run: (cd server && npm install && npx axium build)
+              run: cd server && npx patch-package && npx axium build
 
             - name: Export schemas
-              run: (cd server && npm run build:schemas)
+              run: cd server && npm run build:schemas
 
             - name: Publish
               run: npm publish --access=public --provenance
