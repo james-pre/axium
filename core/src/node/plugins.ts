@@ -1,11 +1,10 @@
-import * as io from 'ioium/node';
 import { Plugin, plugins, type PluginInternal } from '@axium/core/plugins';
-import * as fs from 'node:fs';
-import { findPackageJSON } from 'node:module';
+import * as io from 'ioium/node';
 import { dirname, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { _throw } from 'utilium';
 import { apps } from '../apps.js';
+import { getPackageJSON } from './packages.js';
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {
 	yield styleText('whiteBright', plugin.name);
@@ -28,22 +27,10 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 	safeMode: boolean = false
 ): Promise<PluginInternal | void> {
 	try {
-		let base = loadedBy;
-		try {
-			if (specifier[0] != '.' && specifier[0] != '/') base = import.meta.resolve(specifier, loadedBy);
-		} catch {
-			io.debug(`Using fallback base path to resolve package.json of ${specifier}`);
-		}
-		const path = findPackageJSON(specifier, base);
-		if (!path) throw new Error(`Cannot find package.json for package ${specifier} (from ${loadedBy})`);
-		io.debug(`Loading plugin at ${path} (from ${loadedBy})`);
+		const imported = getPackageJSON(specifier, loadedBy);
+		const path = imported.__path;
 
-		let imported: any;
-		try {
-			imported = JSON.parse(fs.readFileSync(path, 'utf8'));
-		} catch {
-			throw new Error('Invalid or missing metadata for ' + specifier);
-		}
+		io.debug(`Loading plugin at ${path} (from ${loadedBy})`);
 
 		if ('axium' in imported) Object.assign(imported, imported.axium); // support axium field in package.json
 

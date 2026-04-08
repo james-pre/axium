@@ -2,6 +2,12 @@ import * as z from 'zod';
 import { lt as ltVersion } from 'semver';
 import { warn } from 'ioium';
 
+export interface PackageJSON {
+	name: string;
+	version: string;
+	description?: string;
+}
+
 export const PackageVersionInfo = z.object({
 	name: z.string(),
 	version: z.string(),
