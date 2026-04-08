@@ -158,13 +158,8 @@ axiumDB
 		io.done();
 
 		io.start('Resolving database schemas');
-		let schema;
-		try {
-			schema = db.schema.getFull();
-			io.done();
-		} catch (e: any) {
-			io.exit(e);
-		}
+		const schema = db.schema.getFull();
+		io.done();
 
 		for (const [name, table] of Object.entries(schema.tables)) {
 			await db.checkTableTypes(name as keyof db.Schema, table, opt, tableMetadata);
@@ -196,12 +191,8 @@ axiumDB
 	.description('Get the JSON schema for the database configuration file')
 	.option('-j, --json', 'values are JSON encoded')
 	.action(opt => {
-		try {
-			const schema = z.toJSONSchema(db.schema.SchemaFile, { io: 'input' });
-			console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
-		} catch (e: any) {
-			io.exit(e);
-		}
+		const schema = z.toJSONSchema(db.schema.SchemaFile, { io: 'input' });
+		console.log(opt.json ? JSON.stringify(schema, null, 4) : schema);
 	});
 
 axiumDB
@@ -269,21 +260,12 @@ axiumDB
 		await rlConfirm();
 
 		io.start('Computing delta');
-		let delta: db.delta.Version;
-		try {
-			delta = db.delta.collapse(deltas);
-			io.done();
-		} catch (e: any) {
-			io.exit(e);
-		}
+		const delta = db.delta.collapse(deltas);
+		io.done();
 
 		io.start('Validating delta');
-		try {
-			db.delta.validate(delta);
-			io.done();
-		} catch (e: any) {
-			io.exit(e);
-		}
+		db.delta.validate(delta);
+		io.done();
 
 		console.log('Applying delta.');
 		await db.delta.apply(delta, opt.abort);
