@@ -26,7 +26,7 @@
 		"format:check": "prettier --check .",
 		"lint": "eslint */src",
 		"build:schemas": "(cd server && npm run build:schemas)",
-		"build": "tsc -b && for pkg in server storage calendar contacts notes tasks; do (cd $pkg && axium build); done",
+		"build": "tsc -b && for pkg in server storage calendar contacts notes tasks; do (cd $pkg && node ../server/dist/main.js build); done",
 		"watch": "tsc -b -w",
 		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build",
 		"postinstall": "patch-package",

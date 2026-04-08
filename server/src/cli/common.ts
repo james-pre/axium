@@ -4,7 +4,7 @@ import type { UserInternal } from '@axium/core';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
 import * as z from 'zod';
-import * as db from './db/index.js';
+import * as db from '../db/index.js';
 import { Option } from 'commander';
 import { createInterface } from 'node:readline/promises';
 
@@ -60,7 +60,7 @@ export function diffUpdate(
 }
 
 // Options shared by multiple (sub)commands
-export const cliOptions = {
+export const sharedOptions = {
 	check: new Option('--check', 'check the database schema after initialization').default(false),
 	force: new Option('-f, --force', 'force the operation').default(false),
 	global: new Option('-g, --global', 'apply the operation globally').default(false),

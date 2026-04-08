@@ -4,8 +4,8 @@ import { createWriteStream, type WriteStream } from 'node:fs';
 import { styleText, type InspectColor } from 'node:util';
 import { capitalize } from 'utilium';
 import * as z from 'zod';
-import { cliOptions as opts, rlConfirm } from '../cli.js';
-import * as db from './index.js';
+import { sharedOptions as opts, rlConfirm } from './common.js';
+import * as db from '../db/index.js';
 
 const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout);
 
