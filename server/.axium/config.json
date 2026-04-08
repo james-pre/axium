@@ -1,9 +1,0 @@
-{
-	"$schema": "https://github.com/james-pre/axium/releases/download/server@0.24.0/schema.json",
-	"auth": {
-		"secure_cookies": false
-	},
-	"log": {
-		"level": "debug"
-	}
-}
