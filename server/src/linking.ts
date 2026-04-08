@@ -8,7 +8,7 @@ function resolveLink(id: string): string {
 	return join(config.web.routes, `(${id.startsWith('#') ? id.slice(1) : id.replaceAll('/', '__')})`);
 }
 
-interface LinkInfo {
+export interface LinkInfo {
 	id: string;
 	from: string;
 	to: string;

@@ -22,7 +22,7 @@ import { build } from '../build.js';
 import config from '../config.js';
 import * as db from '../db/index.js';
 import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from '../io.js';
-import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks } from '../linking.js';
+import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
 import { serve } from '../serve.js';
 import { sharedOptions as opts } from './common.js';
 import { dbInitTables } from './db.js';
@@ -188,13 +188,32 @@ program
 		const linkOpts = { only: names };
 
 		if (opt.list) {
+			let idTextLength = 0,
+				fromLength = 0,
+				toLength = 0;
+
+			const links: (LinkInfo & { idText: string })[] = [];
+
 			for (const link of listRouteLinks(linkOpts)) {
 				const idText = link.id.startsWith('#') ? `(${link.id.slice(1)})` : link.id;
+				idTextLength = Math.max(idTextLength, idText.length);
+				fromLength = Math.max(fromLength, link.from.length);
+				toLength = Math.max(toLength, link.to.length);
+				links.push(Object.assign(link, { idText }));
+			}
+
+			idTextLength++;
+
+			for (const link of links) {
 				const fromColor = await access(link.from)
 					.then(() => 'cyanBright' as const)
 					.catch(() => 'redBright' as const);
+
 				console.log(
-					`${idText}:\t ${styleText(fromColor, link.from)}\t->\t${link.to.replace(/.*\/node_modules\//, styleText('dim', '$&'))}`
+					(link.idText + ':').padEnd(idTextLength),
+					styleText(fromColor, link.from.padEnd(fromLength)),
+					'->',
+					link.to.padEnd(toLength).replace(/.*\/node_modules\//, styleText('dim', '$&'))
 				);
 			}
 			return;
