@@ -61,5 +61,16 @@
 	},
 	"dependencies": {
 		"utilium": "^3.0.0"
+	},
+	"prettier": {
+		"plugins": [
+			"prettier-plugin-svelte"
+		],
+		"singleQuote": true,
+		"useTabs": true,
+		"trailingComma": "es5",
+		"tabWidth": 4,
+		"printWidth": 140,
+		"arrowParens": "avoid"
 	}
 }
