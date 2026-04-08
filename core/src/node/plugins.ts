@@ -28,8 +28,13 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 	safeMode: boolean = false
 ): Promise<PluginInternal | void> {
 	try {
-		const base = specifier[0] == '.' || specifier[1] == '/' ? loadedBy : import.meta.resolve(specifier, loadedBy);
-		const path = findPackageJSON(specifier, base);
+		// `findPackageJSON` relies on trailing slashes for directory resolution
+		// otherwise it incorrectly resolves the parent's package.json
+		if ((specifier[0] == '.' || specifier[0] == '/') && !specifier.endsWith('/') && !specifier.endsWith('.json')) {
+			specifier += '/';
+		}
+
+		const path = findPackageJSON(specifier, loadedBy);
 		if (!path) throw new Error(`Cannot find package.json for package ${specifier} (from ${loadedBy})`);
 		io.debug(`Loading plugin at ${path} (from ${loadedBy})`);
 
