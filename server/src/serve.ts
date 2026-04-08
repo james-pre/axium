@@ -218,8 +218,3 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
 		handle
 	);
 }
-
-/**
- * Perform initial setup for when the server is serving web pages.
- */
-export async function init() {}
