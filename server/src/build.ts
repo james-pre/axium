@@ -3,11 +3,12 @@ import type { Config as SvelteConfig } from '@sveltejs/kit';
 import { svelte as viteSveltePlugin, type Options as SvelteViteOptions } from '@sveltejs/vite-plugin-svelte';
 import { exit } from 'ioium/node';
 import { findPackageJSON } from 'node:module';
+import { devNull } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { pick, type WithRequired } from 'utilium';
 import { build as buildVite, type InlineConfig } from 'vite';
 import config from './config.js';
-import { pick, type WithRequired } from 'utilium';
 
 const sveltekitPackageJSON = findPackageJSON('@sveltejs/kit', import.meta.url);
 if (!sveltekitPackageJSON) exit('Could not resolve @sveltejs/kit package.', 6);
@@ -31,7 +32,7 @@ const svelteConfig: SvelteConfig = processSvelteConfig({
 			appTemplate: join(import.meta.dirname, '../template.html'),
 			routes: config.web.routes,
 			hooks: {
-				universal: '/dev/null',
+				universal: devNull,
 				client: join(import.meta.dirname, '../.hooks.js'),
 			},
 		},
