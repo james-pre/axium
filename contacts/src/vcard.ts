@@ -1,4 +1,4 @@
-import type { Contact, Init, SigDateLike } from '@axium/contacts';
+import type { Contact, SigDateLike } from '@axium/contacts';
 
 function encodeDate(date: SigDateLike): string {
 	const y = date.year ? String(date.year).padStart(4, '0') : '--';
