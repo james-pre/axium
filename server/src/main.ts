@@ -44,5 +44,6 @@ try {
 	await program.parseAsync();
 } catch (e) {
 	if (typeof e == 'number') process.exit(e);
+	io.done(true);
 	io.exit(e);
 }

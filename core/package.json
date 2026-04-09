@@ -36,7 +36,7 @@
 	},
 	"dependencies": {
 		"@types/semver": "^7.7.1",
-		"ioium": "^1.0.0",
+		"ioium": "^1.0.2",
 		"mime": "^4.0.7",
 		"semver": "^7.7.3"
 	}
