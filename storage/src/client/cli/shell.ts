@@ -1,5 +1,6 @@
 import { Command, CommanderError } from 'commander';
 import * as io from 'ioium/node';
+import { spawnSync } from 'node:child_process';
 import { createInterface, type Interface } from 'node:readline/promises';
 import { styleText } from 'node:util';
 import { splitIntoArgs } from 'utilium/shell';
@@ -19,6 +20,11 @@ const shell = new Command(promptChar)
 	.addCommand(commands.ls.exitOverride())
 	.addCommand(commands.mkdir.exitOverride())
 	.addCommand(commands.remove.exitOverride());
+
+const shellLocal = shell
+	.command('local')
+	.description('Execute a regular command locally')
+	.argument('<command>', 'command to execute locally, will be passed through without any changes');
 
 shell
 	.command('cd')
@@ -78,6 +84,23 @@ export default async function filesShell() {
 	readline.prompt();
 	for await (const line of readline) {
 		readline.pause();
+
+		if (line.startsWith('local ')) {
+			const localCommand = line.slice(6).trim();
+			if (!localCommand || localCommand.startsWith('-')) {
+				console.log(shellLocal.helpInformation());
+				readline.prompt();
+				continue;
+			}
+			try {
+				spawnSync(localCommand, { stdio: 'inherit', shell: true });
+			} catch (e) {
+				io.error(io.errorText(e));
+			}
+			readline.prompt();
+			continue;
+		}
+
 		const args = splitIntoArgs(line.trim());
 
 		try {
