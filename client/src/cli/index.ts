@@ -2,11 +2,12 @@
 
 import type { NewSessionResponse } from '@axium/core';
 import { outputDaemonStatus, pluginText } from '@axium/core/node';
-import * as io from 'ioium/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
+import * as io from 'ioium/node';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import * as os from 'node:os';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
 import * as z from 'zod';
@@ -15,7 +16,6 @@ import { config, resolveServerURL } from '../config.js';
 import { prefix, setPrefix, setToken, useUserAgent } from '../requests.js';
 import { getCurrentSession, logout } from '../user.js';
 import { loadConfig, saveConfig, updateCache } from './config.js';
-import { capitalize } from 'utilium';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) || process.argv.includes('--debug');
@@ -225,4 +225,10 @@ axiumPlugin
 		saveConfig();
 	});
 
-await program.parseAsync();
+try {
+	await program.parseAsync();
+} catch (e) {
+	if (typeof e == 'number') process.exit(e);
+	io.done(true);
+	io.exit(e);
+}
