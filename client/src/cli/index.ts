@@ -32,13 +32,6 @@ process.on('SIGHUP', () => {
 	void loadConfig(safe);
 });
 
-using rl = createInterface({
-	input: process.stdin,
-	output: process.stdout,
-});
-
-rl.on('SIGINT', () => io.exit('Aborted.', 7));
-
 program
 	.version($pkg.version)
 	.name('axium-client')
@@ -64,6 +57,13 @@ program
 	.description('Log in to your account on an Axium server')
 	.argument('[server]', 'Axium server URL')
 	.action(async (url?: string) => {
+		using rl = createInterface({
+			input: process.stdin,
+			output: process.stdout,
+		});
+
+		rl.on('SIGINT', () => io.exit('Aborted.', 7));
+
 		if (prefix[0] != '/') url ||= prefix;
 		url ||= await rl.question('Axium server URL: ');
 		url = resolveServerURL(url);
