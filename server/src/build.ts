@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { pick, type WithRequired } from 'utilium';
 import { build as buildVite, type InlineConfig } from 'vite';
 import config from './config.js';
+import type { Socket } from 'node:net';
 
 const sveltekitPackageJSON = findPackageJSON('@sveltejs/kit', import.meta.url);
 if (!sveltekitPackageJSON) exit('Could not resolve @sveltejs/kit package.', 6);
@@ -83,10 +84,25 @@ const __axiumNestedConfig: WithRequired<InlineConfig, 'build'> = {
 
 Object.assign(globalThis, { __axiumNestedConfig });
 
-function write(chunk: string | Uint8Array, encoding?: BufferEncoding | Function, cb?: Function): boolean {
-	if (typeof encoding === 'function') cb = encoding;
-	if (cb) cb();
-	return true;
+const decoder = new TextDecoder();
+
+function overrideWrite(originalWrite: Socket['write']): { write: Socket['write'] } {
+	return {
+		write(chunk: Uint8Array | string, encoding?: BufferEncoding, cb?: (err?: Error | null) => void): boolean {
+			const { stack } = new Error();
+			if (
+				!stack?.includes('svelte') &&
+				!stack?.includes('vite') &&
+				!(typeof chunk == 'string' ? chunk : decoder.decode(chunk)).includes('No Svelte config file')
+			) {
+				return originalWrite(chunk, encoding, cb);
+			}
+
+			if (typeof encoding === 'function') cb = encoding;
+			if (cb) cb();
+			return true;
+		},
+	} as { write: Socket['write'] };
 }
 
 export interface BuildOptions {
@@ -117,8 +133,8 @@ export async function build(options: BuildOptions = {}) {
 		viteConfig.logLevel = 'info';
 		__axiumNestedConfig.logLevel = 'info';
 	} else {
-		Object.assign(process.stdout, { write });
-		Object.assign(process.stderr, { write });
+		Object.assign(process.stdout, overrideWrite(stdoutWrite));
+		Object.assign(process.stderr, overrideWrite(stderrWrite));
 	}
 
 	viteConfig.build.minify = options.minify;
