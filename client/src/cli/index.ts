@@ -3,7 +3,7 @@
 import type { NewSessionResponse } from '@axium/core';
 import { outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
-import { program } from 'commander';
+import { CommanderError, program } from 'commander';
 import * as io from 'ioium/node';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -236,7 +236,11 @@ axiumPlugin
 try {
 	await program.parseAsync();
 } catch (e) {
-	if (typeof e == 'number') process.exit(e);
-	io.done(true);
-	io.exit(e);
+	if (e && e instanceof CommanderError) {
+		process.exit(1);
+	} else {
+		if (typeof e == 'number') process.exit(e);
+		io.done(true);
+		io.exit(e);
+	}
 }
