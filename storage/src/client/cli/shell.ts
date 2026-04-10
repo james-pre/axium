@@ -45,18 +45,19 @@ export default async function filesShell() {
 		prompt: promptText(),
 		async completer(line) {
 			const args = splitIntoArgs(line);
-			if (args.length == 1) {
-				return [shell.commands.map(cmd => cmd.name()).filter(cmd => cmd.startsWith(args[0])), line];
+
+			if (args.length == 1 && !line.endsWith(' ')) {
+				return [shell.commands.map(cmd => cmd.name() + ' ').filter(cmd => cmd.startsWith(args[0])), line];
 			}
 
 			const cmd = shell.commands.find(cmd => cmd.name() === args[0]);
 			if (!cmd || !cmd.registeredArguments.length) return [[], line];
 
 			let dir = '',
-				name = args[1];
+				name = args[1] || '';
 
-			if (args[1].includes('/')) {
-				const parts = args[1].split('/');
+			if (name.includes('/')) {
+				const parts = name.split('/');
 				name = parts.pop()!;
 				dir = parts.join('/').replaceAll(' ', '\\ ') + '/';
 			}
