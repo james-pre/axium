@@ -1,11 +1,11 @@
 import * as fs from 'node:fs';
 import { findPackageJSON } from 'node:module';
-import { fetchPackageMetadata, isRelative, type PackageJSON, type PackageVersionInfo } from '../packages.js';
+import { fetchPackageMetadata, isPath, type PackageJSON, type PackageVersionInfo } from '../packages.js';
 import { debug } from 'ioium/node';
 
 export function getPackageJSON(specifier: string, from: string): PackageJSON & Record<string, any> & { __path: string } {
 	try {
-		if (!isRelative(specifier)) from = import.meta.resolve(specifier, from);
+		if (!isPath(specifier)) from = import.meta.resolve(specifier, from);
 	} catch {
 		debug(`Using fallback base path to resolve package.json of ${specifier}`);
 	}

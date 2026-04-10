@@ -16,7 +16,10 @@ export const PackageVersionInfo = z.object({
 
 export interface PackageVersionInfo extends z.infer<typeof PackageVersionInfo> {}
 
-export function isRelative(specifier: string): boolean {
+/**
+ * Whether the specifier is a path (i.e. is not bare)
+ */
+export function isPath(specifier: string): boolean {
 	return specifier[0] == '/' || ['.', '..'].includes(specifier.split('/')[0]);
 }
 
@@ -49,7 +52,7 @@ const cache = new Map<string, CacheEntry>();
  * Get information for an npm package
  */
 export async function fetchPackageMetadata(specifier: string): Promise<NpmPackage | null> {
-	if (isRelative(specifier)) return null;
+	if (isPath(specifier)) return null;
 
 	const cached = cache.get(specifier);
 
