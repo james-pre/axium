@@ -58,9 +58,7 @@ const StorageCache = z.object({
 	users: z.record(z.uuid(), UserPublic),
 });
 
-interface StorageCache extends z.infer<typeof StorageCache> {
-	users: Record<string, UserPublic>;
-}
+interface StorageCache extends z.infer<typeof StorageCache> {}
 
 export const cachePath = join(cacheDir, 'storage.json');
 

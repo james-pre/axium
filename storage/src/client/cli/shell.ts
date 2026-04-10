@@ -14,9 +14,11 @@ function promptText(): string {
 	return styleText('green', remotePWD) + promptChar + ' ';
 }
 
-const shell = new Command(promptChar).exitOverride();
-
-shell.addCommand(commands.ls).addCommand(commands.mkdir).addCommand(commands.remove);
+const shell = new Command(promptChar)
+	.exitOverride()
+	.addCommand(commands.ls.exitOverride())
+	.addCommand(commands.mkdir.exitOverride())
+	.addCommand(commands.remove.exitOverride());
 
 shell
 	.command('cd')

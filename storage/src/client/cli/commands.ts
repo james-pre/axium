@@ -8,8 +8,8 @@ export const ls = new Command('ls')
 	.alias('list')
 	.description('List the contents of a folder')
 	.argument('[path]', 'remote folder path')
-	.option('-l, --long', 'Show more details')
-	.option('-h, --human-readable', 'Show sizes in human readable format', false)
+	.option('-l, --long', 'show more details')
+	.option('-h, --human-readable', 'show sizes in human readable format', false)
 	.action(async function axium_files_ls(this, path = '') {
 		const { users } = await syncCache();
 		const { long, humanReadable } = this.optsWithGlobals();
