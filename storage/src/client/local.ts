@@ -11,14 +11,20 @@ import { getUserStats, getUserStorage } from './api.js';
 
 let quiet = false;
 
-export function setQuiet(enabled: boolean) {
+export function setQuiet(enabled: boolean): void {
 	quiet = enabled;
 }
 
 export let remotePWD = '/';
 
-export async function setRemotePWD(path: string) {
+export function resolvePath(path: string): string {
 	path = join(remotePWD, path);
+	if (path != '/' && path.endsWith('/')) path = path.slice(0, -1);
+	return path;
+}
+
+export async function setRemotePWD(path: string) {
+	path = resolvePath(path);
 	if (path == '/') {
 		remotePWD = '/';
 		return;
@@ -98,13 +104,13 @@ export async function syncCache(force: boolean | null = null): Promise<StorageCa
 }
 
 export async function resolveItem(path: string): Promise<StorageItemMetadata | null> {
-	path = join(remotePWD, path);
+	path = resolvePath(path);
 	const { items } = await syncCache();
 	return walkItems(path, items);
 }
 
 export async function getDirectory(path: string): Promise<StorageItemMetadata[]> {
-	path = join(remotePWD, path);
+	path = resolvePath(path);
 	const { items } = await syncCache();
 	if (path == '/') return items.filter(item => item.parentId === null);
 	const dir = walkItems(path, items);
