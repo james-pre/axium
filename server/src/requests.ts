@@ -121,7 +121,7 @@ export async function getPrettyUA(request: Request, uaOverride?: string): Promis
 		return [
 			ua.browser.name,
 			ua.browser.name && /axium[- ]client/i.test(ua.browser.name) ? ua.browser.version : ua.browser.major,
-			ua.os.name && ' on ' + ua.os.name,
+			ua.os.name && 'on ' + ua.os.name,
 		]
 			.filter(p => p)
 			.join(' ');
