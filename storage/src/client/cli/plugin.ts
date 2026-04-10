@@ -25,7 +25,8 @@ const cli = program
 	})
 	.addCommand(commands.ls)
 	.addCommand(commands.mkdir)
-	.addCommand(commands.remove);
+	.addCommand(commands.remove)
+	.addCommand(commands.upload);
 
 cli.command('usage')
 	.description('Show your usage')

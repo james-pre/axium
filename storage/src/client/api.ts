@@ -28,12 +28,6 @@ function rawStorage(suffix?: string): string | URL {
 	return url;
 }
 
-export interface UploadOptions {
-	parentId?: string;
-	name?: string;
-	onProgress?(this: void, uploaded: number, total: number): void;
-}
-
 declare global {
 	interface NetworkInformation {
 		readonly downlink: number;
@@ -62,6 +56,30 @@ async function handleError(response: Response): Promise<never> {
 	throw json.message;
 }
 
+async function handleResponse(response: Response | undefined) {
+	if (!response) throw new Error('BUG: No response');
+
+	if (!response.headers.get('Content-Type')?.includes('application/json')) {
+		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
+	}
+
+	const json = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
+
+	if (!response.ok) await handleError(response);
+
+	try {
+		return StorageItemMetadata.parse(json);
+	} catch (e: any) {
+		throw prettifyError(e);
+	}
+}
+
+export interface UploadOptions {
+	parentId?: string;
+	name?: string;
+	onProgress?(this: void, uploaded: number, total: number): void;
+}
+
 export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Promise<StorageItemMetadata> {
 	if (file instanceof File) opt.name ||= file.name;
 
@@ -84,13 +102,11 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 
 	if (upload.status == 'created') return upload.item;
 
-	let chunkSize = Math.min(upload.max_transfer_size, uploadConfig.uxChunkSize);
-	if (globalThis.navigator?.connection) {
-		chunkSize = Math.min(chunkSize, conTypeToSpeed[globalThis.navigator.connection.effectiveType]);
-	}
-
-	// MB -> bytes
-	chunkSize *= 1_000_000;
+	const chunkSize =
+		Math.min(
+			upload.max_transfer_size,
+			globalThis.navigator?.connection ? conTypeToSpeed[globalThis.navigator.connection.effectiveType] : uploadConfig.uxChunkSize
+		) * 1_000_000;
 
 	let response: Response | undefined;
 
@@ -114,21 +130,81 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 		if (offset + size != content.length && response.status != 204) console.warn('Unexpected end of upload before last chunk');
 	}
 
-	if (!response) throw new Error('BUG: No response');
+	return await handleResponse(response);
+}
 
-	if (!response.headers.get('Content-Type')?.includes('application/json')) {
-		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
+export interface UploadStreamOptions extends UploadOptions {
+	name: string;
+	size: number;
+	type: string;
+}
+
+export async function uploadItemStream(
+	stream: ReadableStream<Uint8Array<ArrayBuffer>>,
+	opt: UploadStreamOptions
+): Promise<StorageItemMetadata> {
+	opt.onProgress?.(0, opt.size);
+
+	const upload = await fetchAPI('PUT', 'storage', { ...opt, hash: null });
+
+	if (upload.status == 'created') return upload.item;
+
+	const chunkSize = upload.max_transfer_size * 1_000_000;
+
+	let response: Response | undefined;
+	const reader = stream.getReader();
+	let buffer = new Uint8Array(0);
+
+	for (let offset = 0; offset < opt.size; offset += chunkSize) {
+		const size = Math.min(chunkSize, opt.size - offset);
+		let bytesReadForChunk = 0;
+
+		const chunkStream = new ReadableStream<Uint8Array>({
+			async pull(controller) {
+				if (bytesReadForChunk >= size) {
+					controller.close();
+					return;
+				}
+
+				if (!buffer.length) {
+					const { done, value } = await reader.read();
+					if (done) {
+						controller.close();
+						return;
+					}
+					buffer = value;
+				}
+
+				const take = Math.min(buffer.length, size - bytesReadForChunk);
+				const chunk = buffer.subarray(0, take);
+				buffer = buffer.subarray(take);
+
+				bytesReadForChunk += take;
+				controller.enqueue(chunk);
+
+				opt.onProgress?.(offset + bytesReadForChunk, opt.size);
+			},
+		});
+
+		response = await fetch(rawStorage('chunk'), {
+			method: 'POST',
+			headers: {
+				'x-upload': upload.token,
+				'x-offset': offset.toString(),
+				'content-length': size.toString(),
+				'content-type': 'application/octet-stream',
+			},
+			body: chunkStream,
+			// @ts-expect-error 2769
+			duplex: 'half',
+		});
+
+		if (!response.ok) await handleError(response);
+
+		if (offset + size != opt.size && response.status != 204) console.warn('Unexpected end of upload before last chunk');
 	}
 
-	const json = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
-
-	if (!response.ok) await handleError(response);
-
-	try {
-		return StorageItemMetadata.parse(json);
-	} catch (e: any) {
-		throw prettifyError(e);
-	}
+	return await handleResponse(response);
 }
 
 export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
@@ -146,19 +222,7 @@ export async function updateItem(fileId: string, data: Blob): Promise<StorageIte
 
 	const response = await fetch(rawStorage(fileId), init);
 
-	if (!response.headers.get('Content-Type')?.includes('application/json')) {
-		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
-	}
-
-	const json = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
-
-	if (!response.ok) throw new Error(json.message);
-
-	try {
-		return StorageItemMetadata.parse(json);
-	} catch (e: any) {
-		throw prettifyError(e);
-	}
+	return await handleResponse(response);
 }
 
 export async function getItemMetadata(fileId: string, options: GetItemOptions = {}): Promise<StorageItemMetadata> {

@@ -4,7 +4,7 @@ import { UserPublic } from '@axium/core';
 import * as io from 'ioium/node';
 import { ENOENT, ENOTDIR } from 'node:constants';
 import { stat } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, parse } from 'node:path';
 import * as z from 'zod';
 import { StorageItemMetadata } from '../common.js';
 import { getUserStats, getUserStorage } from './api.js';
@@ -115,4 +115,24 @@ export async function getDirectory(path: string): Promise<StorageItemMetadata[]>
 	if (!dir) throw ENOENT;
 	if (dir.type != 'inode/directory') throw ENOTDIR;
 	return items.filter(item => item.parentId === dir.id);
+}
+
+export interface ResolvedWithParent {
+	parent: StorageItemMetadata | null;
+	dir: string;
+	name: string;
+}
+
+/**
+ * Resolve the name, directory path, and parent metadata for a given path.
+ */
+export async function resolvePathWithParent(path: string): Promise<ResolvedWithParent> {
+	const { dir, base: name } = parse(path);
+	const parent = await resolveItem(dir);
+	if (dir) {
+		if (!parent) io.exit('Could not resolve parent folder.');
+		if (parent.type != 'inode/directory') io.exit('Parent path is not a directory.');
+	}
+	if (!name) io.exit('Invalid path.');
+	return { parent, dir, name };
 }
