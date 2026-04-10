@@ -138,29 +138,20 @@ export function shouldRecreate(opt: InitOptions): boolean {
 	throw 2;
 }
 
-export async function getHBA(opt: OpOptions): Promise<[content: string, writeBack: (newContent: string) => void]> {
-	const hbaShowResult = await io.run('Finding pg_hba.conf', `sudo -u postgres psql -c "SHOW hba_file"`);
+export async function getHBA(): Promise<[content: string, writeBack: (newContent: string) => void]> {
+	const hbaShowResult = await io.runShell('Finding pg_hba.conf', `sudo -u postgres psql -c "SHOW hba_file"`);
 
-	io.start('Resolving pg_hba.conf path');
+	const hbaPath = io.track('Resolving pg_hba.conf path', () => {
+		const result = hbaShowResult.match(/^\s*(.+\.conf)\s*$/m)?.[1]?.trim();
+		if (!result) throw 'failed. You will need to add password-based auth for the axium user manually.';
+		return result;
+	});
 
-	const hbaPath = hbaShowResult.match(/^\s*(.+\.conf)\s*$/m)?.[1]?.trim();
-
-	if (!hbaPath) {
-		throw 'failed. You will need to add password-based auth for the axium user manually.';
-	}
-
-	io.done();
 	io.debug(`Found pg_hba.conf at ${hbaPath}`);
 
-	io.start('Reading HBA configuration');
-	const content = readFileSync(hbaPath, 'utf-8');
-	io.done();
+	const content = io.track('Reading HBA configuration', () => readFileSync(hbaPath, 'utf-8'));
 
-	const writeBack = (newContent: string): void => {
-		io.start('Writing HBA configuration');
-		writeFileSync(hbaPath, newContent);
-		io.done();
-	};
+	const writeBack = (newContent: string): void => io.track('Writing HBA configuration', () => writeFileSync(hbaPath, newContent));
 
 	return [content, writeBack];
 }
@@ -173,7 +164,7 @@ host  axium axium ::1/128 md5
 `;
 
 /** @internal @hidden */
-export const _sql = (command: string, message: string) => io.run(message, `sudo -u postgres psql -c "${command}"`);
+export const _sql = (command: string, message: string) => io.runShell(message, `sudo -u postgres psql -c "${command}"`);
 /** Shortcut to output a warning if an error is thrown because relation already exists */
 export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'already exists.']);
 
@@ -183,8 +174,8 @@ export async function init(opt: InitOptions): Promise<void> {
 		io.debug('Generated password and wrote to global config');
 	}
 
-	await io.run('Checking for sudo', 'which sudo');
-	await io.run('Checking for psql', 'which psql');
+	await io.runShell('Checking for sudo', 'which sudo');
+	await io.runShell('Checking for psql', 'which psql');
 
 	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
 		if (error != 'database "axium" already exists') throw error;
@@ -208,15 +199,13 @@ export async function init(opt: InitOptions): Promise<void> {
 	await _sql('GRANT ALL PRIVILEGES ON SCHEMA public TO axium', 'Granting schema privileges');
 	await _sql('ALTER DATABASE axium OWNER TO axium', 'Setting database owner');
 
-	await getHBA(opt)
+	await getHBA()
 		.then(([content, writeBack]) => {
-			io.start('Checking for Axium HBA configuration');
-			if (content.includes(_pgHba)) throw 'already exists.';
-			io.done();
+			io.track('Checking for Axium HBA configuration', () => {
+				if (content.includes(_pgHba)) throw 'already exists.';
+			});
 
-			io.start('Adding Axium HBA configuration');
-			const newContent = content.replace(/^local\s+all\s+all.*$/m, `$&\n${_pgHba}`);
-			io.done();
+			const newContent = io.track('Adding Axium HBA configuration', () => content.replace(/^local\s+all\s+all.*$/m, `$&\n${_pgHba}`));
 
 			writeBack(newContent);
 		})
@@ -224,12 +213,9 @@ export async function init(opt: InitOptions): Promise<void> {
 
 	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
-	io.start('Connecting to database');
-	await using _ = connect();
-	io.done();
+	await using _ = io.track('Connecting to database', connect);
 
-	io.start('Creating schema acl');
-	await database.schema.createSchema('acl').execute().then(io.done).catch(warnExists);
+	await io.track('Creating schema acl', database.schema.createSchema('acl').execute()).catch(warnExists);
 }
 
 export interface Schema extends Omit<schema.Raw, 'users' | 'verifications' | 'passkeys'> {
@@ -338,11 +324,12 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 export async function clean(opt: Partial<OpOptions>): Promise<void> {
 	const now = new Date();
 
-	io.start('Removing expired sessions');
-	await database.deleteFrom('sessions').where('sessions.expires', '<', now).execute().then(io.done);
+	await io.track('Removing expired sessions', database.deleteFrom('sessions').where('sessions.expires', '<', now).execute());
 
-	io.start('Removing expired verifications');
-	await database.deleteFrom('verifications').where('verifications.expires', '<', now).execute().then(io.done);
+	await io.track(
+		'Removing expired verifications',
+		database.deleteFrom('verifications').where('verifications.expires', '<', now).execute()
+	);
 
 	for (const plugin of plugins.values()) {
 		if (!plugin._hooks?.clean) continue;
@@ -352,13 +339,9 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 }
 
 export async function rotatePassword() {
-	io.start('Generating new password');
-	const password = randomBytes(32).toString('base64');
-	io.done();
+	const password = io.track('Generating new password', () => randomBytes(32).toString('base64'));
 
-	io.start('Updating global config');
-	config.save({ db: { password } }, true);
-	io.done();
+	io.track('Updating global config', () => config.save({ db: { password } }, true));
 
 	await _sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
 }

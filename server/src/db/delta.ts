@@ -393,7 +393,7 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 
 	try {
 		for (const [tableName, table] of Object.entries(delta.add_tables)) {
-			io.start('Adding table ' + tableName);
+			using _ = io.start('Adding table ' + tableName);
 			let query = tx.schema.createTable(tableName);
 			const columns = Object.entries(table.columns);
 			const pkColumns = columns.filter(([, column]) => column.primary).map(([name, column]) => ({ name, ...column }));
@@ -409,13 +409,11 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 		}
 
 		for (const tableName of delta.drop_tables) {
-			io.start('Dropping table ' + tableName);
-			await tx.schema.dropTable(tableName).execute();
-			io.done();
+			await io.track('Dropping table ' + tableName, tx.schema.dropTable(tableName).execute());
 		}
 
 		for (const [tableName, tableDelta] of Object.entries(delta.alter_tables)) {
-			io.start(`Modifying table ${tableName}`);
+			using _ = io.start(`Modifying table ${tableName}`);
 			const query = tx.schema.alterTable(tableName);
 
 			for (const constraint of tableDelta.drop_constraints) {
@@ -470,22 +468,16 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 		}
 
 		for (const [indexName, index] of Object.entries(delta.add_indexes)) {
-			io.start('Adding index ' + indexName);
-			await tx.schema.createIndex(indexName).on(index.on).columns(index.columns).execute();
-			io.done();
+			await io.track('Creating index ' + indexName, tx.schema.createIndex(indexName).on(index.on).columns(index.columns).execute());
 		}
 
 		for (const index of delta.drop_indexes) {
-			io.start('Dropping index ' + index);
-			await tx.schema.dropIndex(index).execute();
-			io.done();
+			await io.track('Dropping index ' + index, tx.schema.dropIndex(index).execute());
 		}
 
 		if (forceAbort) throw 'Rolling back due to --abort';
 
-		io.start('Committing');
-		await tx.commit().execute();
-		io.done();
+		await io.track('Committing', tx.commit().execute());
 	} catch (e) {
 		await tx.rollback().execute();
 		if (e instanceof SuppressedError) io.error(e.suppressed);

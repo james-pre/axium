@@ -1,12 +1,12 @@
 import { getConfig } from '@axium/core';
 import { formatBytes } from '@axium/core/format';
-import { done, start } from 'ioium/node';
 import type { OpOptions } from '@axium/server/database';
 import { count, database } from '@axium/server/database';
+import { track } from 'ioium/node';
 import { mkdirSync } from 'node:fs';
 import '../common.js';
-import './index.js';
 import { getTotalUse } from './db.js';
+import './index.js';
 
 export function load() {
 	mkdirSync(getConfig('@axium/storage').data, { recursive: true });
@@ -20,13 +20,9 @@ export async function statusText(): Promise<string> {
 }
 
 export async function clean(opt: OpOptions) {
-	start('Removing expired trash items');
-
 	const nDaysAgo = new Date(Date.now() - 86400000 * getConfig('@axium/storage').trash_duration);
-	await database
-		.deleteFrom('storage')
-		.where('trashedAt', 'is not', null)
-		.where('trashedAt', '<', nDaysAgo)
-		.executeTakeFirstOrThrow()
-		.then(done);
+	await track(
+		'Removing expired trash items',
+		database.deleteFrom('storage').where('trashedAt', 'is not', null).where('trashedAt', '<', nDaysAgo).executeTakeFirstOrThrow()
+	);
 }

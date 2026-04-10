@@ -225,13 +225,8 @@ program
 			return;
 		}
 
-		io.start('Linking routes');
-		linkRoutes(linkOpts);
-		io.done();
-
-		io.start('Writing web client hooks for plugins');
-		writePluginHooks();
-		io.done();
+		io.track('Linking routes', () => linkRoutes(linkOpts));
+		io.track('Writing web client hooks for plugins', () => writePluginHooks());
 	});
 
 program
@@ -313,9 +308,7 @@ program
 	.option('-s, --diagnostics', 'Show build time and bundle size')
 	.option('-m, --no-minify', 'Whether to use minification')
 	.action(async options => {
-		io.start('Building');
-		const { time, size } = await build(options);
-		io.done();
+		const { time, size } = await io.track('Building', build(options));
 
 		if (options.diagnostics) {
 			console.log(
@@ -348,7 +341,7 @@ program
 			server?.close();
 			process.stdout.clearLine(0);
 			process.stdout.cursorTo(0);
-			io.start('Building');
+			process.stdout.write('Building...');
 			const { time } = await build({ minify: false });
 			buildId++;
 			process.stdout.clearLine(0);

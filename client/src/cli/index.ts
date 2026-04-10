@@ -130,9 +130,10 @@ program
 
 		server.close();
 
-		io.start('Verifying session');
-		const session = await getCurrentSession().catch(e => io.exit(e.message, 6));
-		io.done();
+		const session = await io.track(
+			'Verifying session',
+			getCurrentSession().catch(e => io.exit(e.message, 6))
+		);
 
 		io.debug('Session UUID: ' + session.id);
 

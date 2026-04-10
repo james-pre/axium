@@ -2,7 +2,7 @@ import { Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { createWriteStream, type WriteStream } from 'node:fs';
 import { styleText, type InspectColor } from 'node:util';
-import { capitalize } from 'utilium';
+import { _throw, capitalize } from 'utilium';
 import * as z from 'zod';
 import { sharedOptions as opts, rlConfirm } from './common.js';
 import * as db from '../db/index.js';
@@ -67,16 +67,10 @@ axiumDB
 		await db._sql('DROP USER axium', 'Dropping user');
 
 		await db
-			.getHBA(opt)
+			.getHBA()
 			.then(([content, writeBack]) => {
-				io.start('Checking for Axium HBA configuration');
-				if (!content.includes(db._pgHba)) throw 'missing.';
-				io.done();
-
-				io.start('Removing Axium HBA configuration');
-				const newContent = content.replace(db._pgHba, '');
-				io.done();
-
+				io.track('Checking for Axium HBA configuration', () => !content.includes(db._pgHba) && _throw('missing.'));
+				const newContent = io.track('Removing Axium HBA configuration', () => content.replace(db._pgHba, ''));
 				writeBack(newContent);
 			})
 			.catch(io.warn);
@@ -124,8 +118,8 @@ axiumDB
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
 	.action(async opt => {
-		await io.run('Checking for sudo', 'which sudo');
-		await io.run('Checking for psql', 'which psql');
+		await io.runShell('Checking for sudo', 'which sudo');
+		await io.runShell('Checking for psql', 'which psql');
 
 		const throwUnlessRows = (text: string) => {
 			if (text.includes('(0 rows)')) throw 'missing.';
@@ -136,30 +130,24 @@ axiumDB
 
 		await db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
 
-		io.start('Connecting to database');
-		await using _ = db.connect();
-		io.done();
+		await using _ = io.track('Connecting to database', db.connect);
 
-		io.start('Getting schema metadata');
-		const schemas = await db.database.introspection.getSchemas();
-		io.done();
+		const schemas = await io.track('Getting schema metadata', db.database.introspection.getSchemas());
 
 		io.start('Checking for acl schema');
 		if (!schemas.find(s => s.name == 'acl')) io.exit('missing.');
 		io.done();
 
-		io.start('Getting table metadata');
-		const tablePromises = await Promise.all([
-			db.database.introspection.getTables(),
-			db.database.withSchema('acl').introspection.getTables(),
-		]);
-		const tableMetadata = tablePromises.flat();
-		const tables = Object.fromEntries(tableMetadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
-		io.done();
+		const tableMetadata = await io.track(
+			'Getting table metadata',
+			Promise.all([db.database.introspection.getTables(), db.database.withSchema('acl').introspection.getTables()]).then(md =>
+				md.flat()
+			)
+		);
 
-		io.start('Resolving database schemas');
-		const schema = db.schema.getFull();
-		io.done();
+		const tables = Object.fromEntries(tableMetadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
+
+		const schema = io.track('Resolving database schemas', () => db.schema.getFull());
 
 		for (const [name, table] of Object.entries(schema.tables)) {
 			await db.checkTableTypes(name as keyof db.Schema, table, opt, tableMetadata);
@@ -170,7 +158,10 @@ axiumDB
 		const unchecked = Object.keys(tables).join(', ');
 		if (!unchecked.length) io.done();
 		else if (opt.strict) io.exit(unchecked);
-		else io.warn(unchecked);
+		else {
+			io.done(true);
+			io.warn(unchecked);
+		}
 	});
 
 axiumDB
@@ -259,13 +250,9 @@ axiumDB
 
 		await rlConfirm();
 
-		io.start('Computing delta');
-		const delta = db.delta.collapse(deltas);
-		io.done();
+		const delta = io.track('Computing delta', () => db.delta.collapse(deltas));
 
-		io.start('Validating delta');
-		db.delta.validate(delta);
-		io.done();
+		io.track('Validating delta', () => db.delta.validate(delta));
 
 		console.log('Applying delta.');
 		await db.delta.apply(delta, opt.abort);

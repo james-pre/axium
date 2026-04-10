@@ -41,15 +41,15 @@ export const _dayMs = 24 * 3600_000;
 
 export async function updateCache(force: boolean) {
 	if (!force && config.cache && config.cache.fetched + _dayMs > Date.now()) return;
-	io.start('Fetching metadata');
 
-	const [session, apps] = await Promise.all([getCurrentSession(), fetchAPI('GET', 'apps')]).catch(io.exit);
+	const [session, apps] = await io.track('Fetching metadata', Promise.all([getCurrentSession(), fetchAPI('GET', 'apps')]));
+
+	config.cache = { fetched: Date.now(), session, apps };
 
 	try {
-		config.cache = { fetched: Date.now(), session, apps };
-		saveConfig();
-		io.done();
-	} catch {
+		io.writeJSON(axcConfig, config);
+	} catch (e) {
+		io.error(e);
 		return;
 	}
 }
