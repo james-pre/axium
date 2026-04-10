@@ -79,7 +79,7 @@ export default async function filesShell() {
 		const args = splitIntoArgs(line.trim());
 
 		try {
-			await shell.parseAsync(args, { from: 'user' });
+			if (args.length) await shell.parseAsync(args, { from: 'user' });
 		} catch (e) {
 			if (!e || !(e instanceof CommanderError)) {
 				io.done(true);
