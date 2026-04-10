@@ -9,7 +9,7 @@ import * as commands from './commands.js';
 
 let readline: Interface;
 
-const promptChar = '$';
+const promptChar = '>';
 
 function promptText(): string {
 	return styleText('green', remotePWD) + promptChar + ' ';
