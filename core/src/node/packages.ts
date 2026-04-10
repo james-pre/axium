@@ -6,6 +6,11 @@ import { debug } from 'ioium/node';
 export function getPackageJSON(specifier: string, from: string): PackageJSON & Record<string, any> & { __path: string } {
 	try {
 		if (!isPath(specifier)) from = import.meta.resolve(specifier, from);
+		else {
+			// Try to fix directories' missing a trailing slash which causes `findPackageJSON` use the parent package.json if it exists
+			const stats = fs.statSync(specifier);
+			if (stats.isDirectory() && specifier.at(-1) != '/') specifier += '/';
+		}
 	} catch {
 		debug(`Using fallback base path to resolve package.json of ${specifier}`);
 	}
