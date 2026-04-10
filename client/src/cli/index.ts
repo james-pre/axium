@@ -156,9 +156,16 @@ program.command('status').action(() => {
 	if (!config.token) return console.log('Not logged in.');
 	if (!config.cache) return console.log('No session data available.');
 
+	const { session } = config.cache;
+
 	console.log('Logged in to', new URL(prefix).host);
-	console.log(styleText('whiteBright', 'Session ID:'), config.cache.session.id);
-	const { user } = config.cache.session;
+	console.log(
+		styleText('whiteBright', 'Session:'),
+		'valid until',
+		session.expires.toLocaleDateString(),
+		styleText('dim', `(${session.id})`)
+	);
+	const { user } = session;
 	console.log(styleText('whiteBright', 'User:'), user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
 
 	outputDaemonStatus('axium-client');
