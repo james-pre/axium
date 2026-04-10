@@ -275,5 +275,6 @@ export function* toGraph(schema: SchemaDecl): Generator<string> {
 export const toIntrospected = {
 	boolean: 'bool',
 	integer: 'int4',
+	bigint: 'int8',
 	'text[]': '_text',
 };

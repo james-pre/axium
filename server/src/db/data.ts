@@ -10,7 +10,6 @@ const numberTypes = [
 	'integer',
 	'int2',
 	'int4',
-	'int8',
 	'smallint',
 	'real',
 	'double precision',
@@ -20,7 +19,7 @@ const numberTypes = [
 	'numeric',
 	'serial',
 ] as const;
-const bigintTypes = ['bigint', 'bigserial'] as const;
+const bigintTypes = ['int8', 'bigint', 'bigserial'] as const;
 const booleanTypes = ['boolean', 'bool'] as const;
 const stringTypes = ['varchar', 'char', 'text'] as const;
 const dateTypes = ['date', 'datetime', 'time', 'timetz', 'timestamp', 'timestamptz'] as const;
