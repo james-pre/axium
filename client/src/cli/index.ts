@@ -22,7 +22,7 @@ const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase
 
 if (debug) io._setDebugOutput(true);
 
-const clientUA = `Axium Client/${$pkg.version} (${capitalize(process.platform)}; ${process.arch})`;
+const clientUA = `Axium Client/${$pkg.version} (${os.type()}; ${process.arch})`;
 useUserAgent(clientUA);
 
 await loadConfig(safe);
