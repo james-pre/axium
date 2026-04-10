@@ -15,8 +15,21 @@ export function setQuiet(enabled: boolean) {
 	quiet = enabled;
 }
 
+export let remotePWD = '/';
+
+export async function setRemotePWD(path: string) {
+	path = join(remotePWD, path);
+	if (path == '/') {
+		remotePWD = '/';
+		return;
+	}
+	const item = await resolveItem(path);
+	if (!item) throw new Error('Path not found');
+	if (item.type != 'inode/directory') throw new Error('Path is not a directory');
+	remotePWD = path;
+}
+
 export function walkItems(path: string, items: StorageItemMetadata[]): StorageItemMetadata | null {
-	const resolved: string[] = [];
 	let currentItem = null,
 		currentParentId = null;
 
@@ -27,7 +40,6 @@ export function walkItems(path: string, items: StorageItemMetadata[]): StorageIt
 			if (item.parentId != currentParentId || item.name != part) continue;
 			currentItem = item;
 			currentParentId = item.id;
-			resolved.push(part);
 			break;
 		}
 	}
@@ -86,13 +98,15 @@ export async function syncCache(force: boolean | null = null): Promise<StorageCa
 }
 
 export async function resolveItem(path: string): Promise<StorageItemMetadata | null> {
+	path = join(remotePWD, path);
 	const { items } = await syncCache();
 	return walkItems(path, items);
 }
 
 export async function getDirectory(path: string): Promise<StorageItemMetadata[]> {
+	path = join(remotePWD, path);
 	const { items } = await syncCache();
-	if (path == '/' || path == '') return items.filter(item => item.parentId === null);
+	if (path == '/') return items.filter(item => item.parentId === null);
 	const dir = walkItems(path, items);
 	if (!dir) throw ENOENT;
 	if (dir.type != 'inode/directory') throw ENOTDIR;

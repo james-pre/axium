@@ -48,7 +48,7 @@
 		"ioium": "^1.1.0",
 		"kysely": "^0.28.15",
 		"mime": "^4.1.0",
-		"utilium": "^3.0.0"
+		"utilium": "^3.1.0"
 	},
 	"dependencies": {
 		"blakejs": "^1.2.1",
@@ -64,7 +64,7 @@
 			"web_client_hooks": "./dist/client/web_hook.js"
 		},
 		"client": {
-			"cli": "./dist/client/cli.js",
+			"cli": "./dist/client/cli/plugin.js",
 			"hooks": "./dist/client/hooks.js"
 		},
 		"apps": [
