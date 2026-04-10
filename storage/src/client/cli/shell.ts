@@ -52,13 +52,22 @@ export default async function filesShell() {
 			const cmd = shell.commands.find(cmd => cmd.name() === args[0]);
 			if (!cmd || !cmd.registeredArguments.length) return [[], line];
 
-			const items = await getDirectory('');
+			let dir = '',
+				name = args[1];
+
+			if (args[1].includes('/')) {
+				const parts = args[1].split('/');
+				name = parts.pop()!;
+				dir = parts.join('/').replaceAll(' ', '\\ ') + '/';
+			}
+
+			const items = await getDirectory(dir);
 			return [
 				items
-					.map(i => i.name)
-					.filter(name => name.startsWith(args[1]))
-					.map(name => `${args[0]} ${name.replaceAll(' ', '\\ ')}`),
-				line,
+					.map(i => (i.type == 'inode/directory' ? i.name + '/' : i.name))
+					.filter(itemName => !name || itemName.startsWith(name))
+					.map(itemName => itemName.replaceAll(' ', '\\ ')),
+				line.slice(args[0].length + 1 + dir.length),
 			];
 		},
 	});
