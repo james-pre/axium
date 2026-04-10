@@ -77,7 +77,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 		plugins.set(plugin.name, plugin);
 		io.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
 		return plugin;
-	} catch (e: any) {
-		io.warn(`Failed to load plugin from ${specifier}: ${e ? (e instanceof Error ? e.message : e.toString()) : e}`);
+	} catch (e) {
+		io.warn(`Failed to load plugin from ${specifier}: ${io.errorText(e)}`);
 	}
 }
