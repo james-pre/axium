@@ -84,6 +84,11 @@ export default async function filesShell() {
 
 	readline.prompt();
 	for await (const line of readline) {
+		if (line.startsWith('#')) {
+			readline.prompt();
+			continue;
+		}
+
 		readline.pause();
 
 		if (line.startsWith('local ')) {

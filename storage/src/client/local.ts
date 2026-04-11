@@ -9,12 +9,6 @@ import * as z from 'zod';
 import { StorageItemMetadata } from '../common.js';
 import { getUserStats, getUserStorage } from './api.js';
 
-let quiet = false;
-
-export function setQuiet(enabled: boolean): void {
-	quiet = enabled;
-}
-
 export let remotePWD = '/';
 
 export function resolvePath(path: string): string {
@@ -42,12 +36,14 @@ export function walkItems(path: string, items: StorageItemMetadata[]): StorageIt
 	const target = path.split('/').filter(p => p);
 
 	for (const part of target) {
+		currentItem = null;
 		for (const item of items) {
 			if (item.parentId != currentParentId || item.name != part) continue;
 			currentItem = item;
 			currentParentId = item.id;
 			break;
 		}
+		if (!currentItem) return null;
 	}
 
 	return currentItem;
@@ -80,7 +76,6 @@ export async function syncCache(force: boolean | null = null): Promise<StorageCa
 	lastTrashed ??= new Date(0);
 
 	if ((force || cacheUpdated < lastModified.getTime() || cacheUpdated < lastTrashed.getTime()) && force !== false) {
-		if (!quiet) io.start('Updating and loading item metadata');
 		try {
 			const { items } = await getUserStorage(userId);
 			const users: Record<string, UserPublic> = {};
@@ -89,16 +84,24 @@ export async function syncCache(force: boolean | null = null): Promise<StorageCa
 			}
 			cachedData = { items, users };
 			io.writeJSON(cachePath, cachedData);
-			if (!quiet) io.done();
 		} catch (e) {
-			if (quiet) io.exit('Failed to update item metadata: ' + io.errorText(e));
-			else io.exit(e);
+			io.exit('Failed to update item metadata: ' + io.errorText(e));
 		}
 	} else {
 		cachedData = io.readJSON(cachePath, StorageCache);
 	}
 
 	return cachedData;
+}
+
+/**
+ * Force writing the currently cached data to disk.
+ * Note you must call `syncCache` first.
+ */
+export function writeCache() {
+	if (!cachedData) throw new Error('No cached data to write');
+
+	io.writeJSON(cachePath, cachedData);
 }
 
 export async function resolveItem(path: string): Promise<StorageItemMetadata | null> {

@@ -9,7 +9,7 @@ import { styleText } from 'node:util';
 import { formatItems } from '../../node.js';
 import * as api from '../api.js';
 import { config, saveConfig } from '../config.js';
-import { cachePath, resolveItem, setQuiet, syncCache } from '../local.js';
+import { cachePath, resolveItem, syncCache } from '../local.js';
 import { computeDelta, doSync, fetchSyncItems } from '../sync.js';
 import * as commands from './commands.js';
 import filesShell from './shell.js';
@@ -18,11 +18,6 @@ const cli = program
 	.command('files')
 	.helpGroup('Plugins:')
 	.description('CLI integration for @axium/storage')
-	.option('-q, --quiet', 'Suppress output')
-	.hook('preAction', action => {
-		const opts = action.optsWithGlobals();
-		if (opts.quiet) setQuiet(true);
-	})
 	.addCommand(commands.ls)
 	.addCommand(commands.mkdir)
 	.addCommand(commands.remove)
@@ -191,7 +186,7 @@ cliCache
 		}
 
 		console.log(`Cache contains ${data.items.length} items and ${Object.keys(data.users).length} users.`);
-		if (opt.quiet || !opt.verbose) return;
+		if (!opt.verbose) return;
 
 		console.log(styleText('bold', 'Items:'));
 		for (const text of formatItems({ ...data, humanReadable: true })) console.log(text);

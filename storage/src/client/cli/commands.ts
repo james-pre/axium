@@ -6,7 +6,7 @@ import { basename } from 'node:path';
 import { Readable } from 'node:stream';
 import { colorItem, formatItems } from '../../node.js';
 import * as api from '../api.js';
-import { getDirectory, resolveItem, resolvePathWithParent, syncCache } from '../local.js';
+import { getDirectory, resolveItem, resolvePathWithParent, syncCache, writeCache } from '../local.js';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -31,7 +31,10 @@ export const mkdir = new Command('mkdir')
 	.argument('<path>', 'remote folder path to create')
 	.action(async (path: string) => {
 		const { parent, name } = await resolvePathWithParent(path);
-		await api.uploadItem(new Blob([], { type: 'inode/directory' }), { parentId: parent?.id, name });
+		const item = await api.uploadItem(new Blob([], { type: 'inode/directory' }), { parentId: parent?.id, name });
+		const { items } = await syncCache();
+		items.push(item);
+		writeCache();
 	});
 
 export const remove = new Command('remove')
@@ -40,8 +43,14 @@ export const remove = new Command('remove')
 	.argument('<path>', 'remote path to remove')
 	.action(async (path: string) => {
 		const item = await resolveItem(path);
-		if (!item) io.exit('Could not resolve path.');
+		if (!item) throw 'Could not resolve path.';
 		await api.deleteItem(item.id);
+		const { items } = await syncCache();
+		const index = items.findIndex(i => i.id === item.id);
+		if (index != -1) {
+			items.splice(index, 1);
+			writeCache();
+		}
 	});
 
 export const upload = new Command('upload')
@@ -57,22 +66,21 @@ export const upload = new Command('upload')
 		let { parent, name } = await resolvePathWithParent(remotePath);
 
 		if (stats.isDirectory()) {
-			if (!opts.recursive) io.exit('--recursive/-r not specified but the local path is a directory');
-			else io.exit('Uploading directories is not support yet');
+			if (!opts.recursive) throw '--recursive/-r not specified but the local path is a directory';
+			else throw 'Uploading directories is not support yet';
 		}
 
-		if (existingTarget)
-			if (existingTarget.type == 'inode/directory') {
-				if (opts.targetDirectory) {
-					parent = existingTarget;
-					name = basename(local);
-				} else io.exit('Directory exists at remote path');
-			} else if (!opts.force) io.exit('File exists at remote path, use --force to overwrite it');
+		if (existingTarget?.type == 'inode/directory') {
+			if (opts.targetDirectory) {
+				parent = existingTarget;
+				name = basename(local);
+			} else throw 'Directory exists at remote path: ' + existingTarget.name;
+		} else if (existingTarget && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
 
 		const stream = Readable.toWeb(fs.createReadStream(local));
 		const type = mime.getType(local) || 'application/octet-stream';
 		using _ = io.start('Uploading ' + name);
-		await api.uploadItemStream(stream as ReadableStream<Uint8Array<ArrayBuffer>>, {
+		const item = await api.uploadItemStream(stream as ReadableStream<Uint8Array<ArrayBuffer>>, {
 			parentId: parent?.id,
 			name,
 			size: stats.size,
@@ -82,4 +90,7 @@ export const upload = new Command('upload')
 			},
 		});
 		io.done();
+		const { items } = await syncCache();
+		items.push(item);
+		writeCache();
 	});
