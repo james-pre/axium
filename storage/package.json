@@ -97,5 +97,8 @@
 			"temp_dir": "/tmp/axium",
 			"upload_timeout": 15
 		}
+	},
+	"optionalDependencies": {
+		"music-metadata": "^11.12.3"
 	}
 }

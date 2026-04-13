@@ -3,7 +3,7 @@
 	import { FormDialog, Icon, Popover } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import type { AccessControllable } from '@axium/core';
-	import { downloadItem, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { downloadItem, downloadItemStream, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { openers, previews } from '@axium/storage/client/3rd-party';
 	import { copyShortURL } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
@@ -90,11 +90,47 @@
 		</div>
 	</div>
 {/if}
+
+{#snippet loading()}
+	<div class="preview-center">
+		<Icon i="cloud-arrow-down" --size="50px" />
+		<span>{text('storage.Preview.loading')}</span>
+	</div>
+{/snippet}
+
 <div class={['preview-content', noTopBar && 'no-top-bar']}>
 	{#if item.type.startsWith('image/')}
 		<img src={item.dataURL} alt={item.name} />
 	{:else if item.type.startsWith('audio/')}
-		<audio src={item.dataURL} controls></audio>
+		{#snippet withDefaultCover()}
+			<div class="preview-center">
+				<div class="preview-audio-cover">
+					<Icon i="music-note" --size="50px" />
+				</div>
+				<audio src={item.dataURL} controls></audio>
+			</div>
+		{/snippet}
+		{#await import('music-metadata') then { parseWebStream, selectCover }}
+			{#await downloadItemStream(item.id).then( stream => parseWebStream( stream, { size: Number(item.size), mimeType: item.type, url: item.dataURL, path: item.name } ) )}
+				{@render loading()}
+			{:then metadata}
+				{@const cover = selectCover(metadata.common.picture)}
+				{#if cover}
+					<div class="preview-center">
+						<img
+							// `cover.data`'s source is actually an `ArrayBufferLike`
+							src={URL.createObjectURL(new Blob([cover.data as Uint8Array<ArrayBuffer>], { type: cover.format }))}
+							alt={cover.description}
+						/>
+						<audio src={item.dataURL} controls></audio>
+					</div>
+				{:else}
+					{@render withDefaultCover()}
+				{/if}
+			{/await}
+		{:catch}
+			{@render withDefaultCover()}
+		{/await}
 	{:else if item.type.startsWith('video/')}
 		<video src={item.dataURL} controls>
 			<track kind="captions" />
@@ -106,14 +142,11 @@
 		</object>
 	{:else if item.type.startsWith('text/')}
 		{#await downloadItem(item.id).then(b => b.text())}
-			<div class="full-fill no-preview">
-				<Icon i="cloud-arrow-down" --size="50px" />
-				<span>{text('storage.Preview.loading')}</span>
-			</div>
+			{@render loading()}
 		{:then content}
 			<pre class="full-fill preview-text">{content}</pre>
 		{:catch}
-			<div class="full-fill no-preview">
+			<div class="preview-center">
 				<Icon i="cloud-exclamation" --size="50px" />
 				<span>{text('storage.Preview.error_loading')}</span>
 			</div>
@@ -121,7 +154,7 @@
 	{:else if previews.has(item.type)}
 		{@render previews.get(item.type)!(item)}
 	{:else}
-		<div class="full-fill no-preview">
+		<div class="preview-center">
 			<Icon i="eye-slash" --size="50px" />
 			<span>{text('storage.Preview.preview_unavailable')}</span>
 		</div>
