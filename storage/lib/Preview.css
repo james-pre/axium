@@ -47,7 +47,7 @@
 
 .preview-content {
 	position: absolute;
-	inset: 3em 10em 1em;
+	inset: 3em 1em 1em;
 	display: flex;
 	text-align: center;
 	align-items: center;
@@ -72,6 +72,8 @@
 		line-height: 1.6;
 		background-color: var(--bg-menu);
 		font-family: monospace;
+		max-width: 1000px;
+		margin: auto;
 	}
 
 	img,
