@@ -49,6 +49,7 @@
 
 .passkey {
 	grid-template-columns: 1fr 1fr 1em 1em;
+	padding: 1em 0;
 
 	p:first-child {
 		display: grid;

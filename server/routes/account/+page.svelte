@@ -159,9 +159,9 @@
 						<Icon i={passkey.backedUp ? 'circle-check' : 'circle-xmark'} --size="16px" />
 					</dfn>
 					{#if passkey.name}
-						<p>{passkey.name}</p>
+						<span>{passkey.name}</span>
 					{:else}
-						<p class="subtle"><i>{text('generic.unnamed')}</i></p>
+						<span class="subtle"><i>{text('generic.unnamed')}</i></span>
 					{/if}
 				</p>
 				<p>{text('page.account.passkeys.created', { date: passkey.createdAt.toLocaleString() })}</p>
