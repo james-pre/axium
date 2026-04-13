@@ -20,7 +20,7 @@ const svelteConfig: SvelteConfig = processSvelteConfig({
 	compilerOptions: {
 		runes: true,
 		warningFilter(w) {
-			return !w.code.startsWith('a11y');
+			return !w.code.startsWith('a11y') && w.code != 'state_referenced_locally';
 		},
 		experimental: {
 			async: true,
