@@ -21,7 +21,8 @@ const cli = program
 	.addCommand(commands.ls)
 	.addCommand(commands.mkdir)
 	.addCommand(commands.remove)
-	.addCommand(commands.upload);
+	.addCommand(commands.upload)
+	.addCommand(commands.download);
 
 cli.command('usage')
 	.description('Show your usage')

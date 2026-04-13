@@ -20,7 +20,8 @@ const shell = new Command(promptChar)
 	.addCommand(commands.ls.exitOverride())
 	.addCommand(commands.mkdir.exitOverride())
 	.addCommand(commands.remove.exitOverride())
-	.addCommand(commands.upload.exitOverride());
+	.addCommand(commands.upload.exitOverride())
+	.addCommand(commands.download.exitOverride());
 
 const shellLocal = shell
 	.command('local')

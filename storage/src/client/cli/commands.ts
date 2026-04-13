@@ -94,3 +94,26 @@ export const upload = new Command('upload')
 		items.push(item);
 		writeCache();
 	});
+
+export const download = new Command('download')
+	.description('Download a file')
+	.argument('<remote>', 'remote file path to download')
+	.argument('[local]', 'local path to save the file to')
+	.action(async (remotePath: string, localPath) => {
+		const item = await resolveItem(remotePath);
+		if (!item) throw 'Could not resolve path.';
+		if (item.type == 'inode/directory') throw "Can't download directories yet.";
+		localPath ||= item.name;
+		using _ = io.start('Downloading to' + localPath);
+		const stream = await api.downloadItemStream(item.id);
+		io.progress(0, Number(item.size));
+		let downloaded = 0;
+		const fileStream = fs.createWriteStream(localPath);
+		for await (const chunk of stream) {
+			fileStream.write(chunk);
+			downloaded += chunk.length;
+			io.progress(downloaded, Number(item.size));
+		}
+		fileStream.end();
+		io.done();
+	});
