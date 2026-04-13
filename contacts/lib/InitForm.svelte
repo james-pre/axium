@@ -70,9 +70,8 @@
 {/if}
 
 <div class="contact-init">
-	<div class="icon-container">
-		<Icon i="user" />
-	</div>
+	<Icon i="user" />
+
 	<div class="section">
 		{@render zod('display', more.names, true)}
 		{@render zod('prefix', more.names, true)}
@@ -84,9 +83,7 @@
 	</div>
 	{@render moreToggle('names')}
 
-	<div class="icon-container">
-		<Icon i="regular/buildings" />
-	</div>
+	<Icon i="regular/buildings" />
 	<div class="section">
 		{@render zod('company', more.job)}
 		{@render zod('jobTitle', more.job)}
@@ -94,9 +91,7 @@
 	</div>
 	{@render moreToggle('job')}
 
-	<div class="icon-container">
-		<Icon i="regular/envelope" />
-	</div>
+	<Icon i="regular/envelope" />
 	{#each init.emails, i}
 		{#if i}<span></span>{/if}
 		<div class={['email', init.emails.length > 1 && 'with-label']}>
@@ -105,15 +100,11 @@
 				<ZodInput bind:rootValue={init} path="emails.{i}.label" schema={Email.shape.label} {updateValue} noLabel="placeholder" />
 			{/if}
 		</div>
-		<div class="icon-container">
-			<Icon i="xmark" onclick={() => init.emails.splice(i, 1)} />
-		</div>
+		<Icon i="xmark" onclick={() => init.emails.splice(i, 1)} />
 	{/each}
 	{@render add('emails')}
 
-	<div class="icon-container">
-		<Icon i="phone" />
-	</div>
+	<Icon i="phone" />
 	{#each init.phones, i}
 		{#if i}<span></span>{/if}
 		<div class={['phone', init.phones.length > 1 && 'with-label']}>
@@ -123,39 +114,29 @@
 				<ZodInput bind:rootValue={init} path="phones.{i}.label" schema={Phone.shape.label} {updateValue} noLabel="placeholder" />
 			{/if}
 		</div>
-		<div class="icon-container">
-			<Icon i="xmark" onclick={() => init.phones.splice(i, 1)} />
-		</div>
+		<Icon i="xmark" onclick={() => init.phones.splice(i, 1)} />
 	{/each}
 	{@render add('phones')}
 
-	<div class="icon-container">
-		<Icon i="regular/location-dot" />
-	</div>
+	<Icon i="regular/location-dot" />
 	{#each init.addresses, i}
 		{#if i}<span></span>{/if}
 		<div class="section">
 			<LocationSelect bind:value={init.addresses[i]} />
 		</div>
-		<div class="icon-container">
-			<Icon i="xmark" onclick={() => init.addresses.splice(i, 1)} />
-		</div>
+		<Icon i="xmark" onclick={() => init.addresses.splice(i, 1)} />
 	{/each}
 
 	{@render add('addresses')}
 
-	<div class="icon-container">
-		<Icon i="cake-candles" />
-	</div>
+	<Icon i="cake-candles" />
 	<div class="section">
 		<DateSelect bind:day={init.birthDay} bind:month={init.birthMonth} bind:year={init.birthYear} />
 	</div>
 	<span></span>
 
 	{#if showDetailed}
-		<div class="icon-container">
-			<Icon i="regular/circle-nodes" />
-		</div>
+		<Icon i="regular/circle-nodes" />
 		{#each init.relationships as rel, i}
 			{#if i}<span></span>{/if}
 			<div class="section">
@@ -174,56 +155,42 @@
 					noLabel="placeholder"
 				/>
 			</div>
-			<div class="icon-container">
-				<Icon i="xmark" onclick={() => init.relationships.splice(i, 1)} />
-			</div>
+			<Icon i="xmark" onclick={() => init.relationships.splice(i, 1)} />
 		{/each}
 		{@render add('relationships')}
 
-		<div class="icon-container">
-			<Icon i="regular/calendar-day" />
-		</div>
+		<Icon i="regular/calendar-day" />
 		{#each init.dates, i}
 			{#if i}<span></span>{/if}
 			<div class="section">
 				<ZodInput bind:rootValue={init} path="dates.{i}" schema={SigDate} {updateValue} noLabel="placeholder" />
 			</div>
-			<div class="icon-container">
-				<Icon i="xmark" onclick={() => init.dates.splice(i, 1)} />
-			</div>
+			<Icon i="xmark" onclick={() => init.dates.splice(i, 1)} />
 		{/each}
 		{@render add('dates')}
 
-		<div class="icon-container">
-			<Icon i="link-simple" />
-		</div>
+		<Icon i="link-simple" />
 		{#each init.urls, i}
 			{#if i}<span></span>{/if}
 			<div class="section">
 				<ZodInput bind:rootValue={init} path="urls.{i}" schema={ContactURL} {updateValue} noLabel="placeholder" />
 			</div>
-			<div class="icon-container"><Icon i="xmark" onclick={() => init.urls.splice(i, 1)} /></div>
+			<Icon i="xmark" onclick={() => init.urls.splice(i, 1)} />
 		{/each}
 		{@render add('urls')}
 
-		<div class="icon-container">
-			<Icon i="regular/input-text" />
-		</div>
+		<Icon i="regular/input-text" />
 		{#each init.custom, i}
 			{#if i}<span></span>{/if}
 			<div class="section">
 				<ZodInput bind:rootValue={init} path="custom.{i}" schema={Custom} {updateValue} noLabel="placeholder" />
 			</div>
-			<div class="icon-container">
-				<Icon i="xmark" onclick={() => init.custom.splice(i, 1)} />
-			</div>
+			<Icon i="xmark" onclick={() => init.custom.splice(i, 1)} />
 		{/each}
 		{@render add('custom')}
 	{/if}
 
-	<div class="icon-container">
-		<Icon i="regular/note" />
-	</div>
+	<Icon i="regular/note" />
 	<textarea bind:value={init.notes} {@attach dynamicRows(50, 3)}></textarea>
 	<span></span>
 
@@ -287,8 +254,8 @@
 			gap: 1em;
 		}
 
-		.icon-container {
-			padding: 0.5em 0;
+		:global(& > .Icon) {
+			margin: 0.5em 0;
 		}
 	}
 

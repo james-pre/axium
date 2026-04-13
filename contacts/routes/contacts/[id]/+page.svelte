@@ -252,6 +252,10 @@
 			flex-direction: column;
 			gap: 1em;
 		}
+
+		:global(& > .Icon) {
+			margin: 0.25em 0;
+		}
 	}
 
 	.section {
