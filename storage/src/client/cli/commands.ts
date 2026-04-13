@@ -7,6 +7,7 @@ import { Readable } from 'node:stream';
 import { colorItem, formatItems } from '../../node.js';
 import * as api from '../api.js';
 import { getDirectory, resolveItem, resolvePathWithParent, syncCache, writeCache } from '../local.js';
+import { formatBytes } from '@axium/core';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -86,7 +87,12 @@ export const upload = new Command('upload')
 			size: stats.size,
 			type,
 			onProgress(uploaded, total) {
-				io.progress(uploaded, total, Math.round((uploaded / total) * 100) + '%');
+				io.progress(
+					uploaded,
+					total,
+					Math.round((uploaded / total) * 100) + '%',
+					`${formatBytes(BigInt(uploaded))}/${formatBytes(BigInt(total))}`
+				);
 			},
 		});
 		const { items } = await syncCache();
@@ -105,13 +111,19 @@ export const download = new Command('download')
 		localPath ||= item.name;
 		using _ = io.start('Downloading to ' + localPath);
 		const stream = await api.downloadItemStream(item.id);
-		io.progress(0, Number(item.size));
+		const size = Number(item.size);
+		io.progress(0, size);
 		let downloaded = 0;
 		const fileStream = fs.createWriteStream(localPath);
 		for await (const chunk of stream) {
 			fileStream.write(chunk);
 			downloaded += chunk.length;
-			io.progress(downloaded, Number(item.size));
+			io.progress(
+				downloaded,
+				size,
+				Math.round((downloaded / size) * 100) + '%',
+				`${formatBytes(BigInt(downloaded))}/${formatBytes(item.size)}`
+			);
 		}
 		fileStream.end();
 	});

@@ -92,8 +92,6 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 
 	const content = await file.bytes();
 
-	opt.onProgress?.(0, content.length);
-
 	/** For big files, it takes a *really* long time to compute the hash, so we just don't do it ahead of time and leave it up to the server. */
 	const hash = content.length < uploadConfig.hashThreshold * 1_000_000 ? blake2b(content).toHex() : null;
 
@@ -113,6 +111,8 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 			globalThis.navigator?.connection ? conTypeToSpeed[globalThis.navigator.connection.effectiveType] : uploadConfig.uxChunkSize
 		) * 1_000_000;
 
+	opt.onProgress?.(0, content.length);
+
 	let response: Response | undefined;
 
 	for (let offset = 0; offset < content.length; offset += chunkSize) {
@@ -124,6 +124,7 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 				'x-offset': offset.toString(),
 				'content-length': size.toString(),
 				'content-type': 'application/octet-stream',
+				authorization: 'Bearer ' + token,
 			},
 			body: content.slice(offset, offset + size),
 		}).catch(handleFetchFailed);
@@ -171,6 +172,7 @@ export async function uploadItemStream(
 				'x-offset': offset.toString(),
 				'content-length': size.toString(),
 				'content-type': 'application/octet-stream',
+				authorization: 'Bearer ' + token,
 			},
 			body: new ReadableStream<Uint8Array>({
 				type: 'bytes',
