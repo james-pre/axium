@@ -21,8 +21,20 @@ export function formatMs(time: number): string {
 	return time > 5000 ? (time / 1000).toFixed(2) + 's' : time + 'ms';
 }
 
+/** Formats a short duration into colon-separated values */
+export function formatDuration(seconds: number): string {
+	seconds = Math.floor(seconds);
+	let minutes = Math.floor(seconds / 60);
+	seconds %= 60;
+	const hours = Math.floor(minutes / 60);
+	minutes %= 60;
+	const secondsStr = ':' + seconds.toString().padStart(2, '0');
+	return hours ? `${hours}:${minutes.toString().padStart(2, '0')}${secondsStr}` : minutes + secondsStr;
+}
+
 export default {
 	dateRange: formatDateRange,
 	bytes: formatBytes,
 	ms: formatMs,
+	duration: formatDuration,
 };
