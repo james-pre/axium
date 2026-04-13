@@ -2,12 +2,14 @@
 	import { formatDuration } from '@axium/core';
 	import Icon from './Icon.svelte';
 	import type { MediaState } from './media.svelte.js';
+	import type { Snippet } from 'svelte';
 
 	interface Props {
 		media: MediaState;
+		children?: Snippet;
 	}
 
-	const { media }: Props = $props();
+	const { media, children }: Props = $props();
 </script>
 
 <div class="MediaControls">
@@ -38,6 +40,7 @@
 	<button class="reset icon-text" onclick={() => (media.muted = !media.muted)}>
 		<Icon i={media.muted ? 'volume-slash' : 'volume'} />
 	</button>
+	{#if children}{@render children()}{/if}
 </div>
 
 <style>
