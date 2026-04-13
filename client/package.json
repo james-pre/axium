@@ -54,6 +54,7 @@
 	},
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.1.0",
-		"commander": "^14.0.0"
+		"commander": "^14.0.0",
+		"music-metadata": "^11.12.3"
 	}
 }
