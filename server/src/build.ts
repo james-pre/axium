@@ -110,7 +110,7 @@ export interface BuildOptions {
 	 * If set all of the output from Vite and Svelte/SvelteKit will be shown.
 	 * This is usually undesirable.
 	 */
-	showGarbageOutput?: boolean;
+	verbose?: boolean;
 
 	/** Whether to minify the output */
 	minify?: boolean;
@@ -129,7 +129,7 @@ export async function build(options: BuildOptions = {}) {
 
 	const startTime = performance.now();
 
-	if (options.showGarbageOutput) {
+	if (options.verbose) {
 		viteConfig.logLevel = 'info';
 		__axiumNestedConfig.logLevel = 'info';
 	} else {
@@ -156,7 +156,7 @@ export async function build(options: BuildOptions = {}) {
 			size,
 		};
 	} finally {
-		if (!options.showGarbageOutput) {
+		if (!options.verbose) {
 			process.stdout.write = stdoutWrite;
 			process.stderr.write = stderrWrite;
 		}

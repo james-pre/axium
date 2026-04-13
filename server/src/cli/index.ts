@@ -304,7 +304,7 @@ program
 program
 	.command('build')
 	.description('Create the Vite build for the server')
-	.option('--show-garbage-output', 'Show all output from the build process')
+	.option('-v, --verbose', 'Show all output from the build process')
 	.option('-s, --diagnostics', 'Show build time and bundle size')
 	.option('-m, --no-minify', 'Whether to use minification')
 	.action(async options => {
