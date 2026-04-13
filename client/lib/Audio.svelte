@@ -28,7 +28,7 @@
 	const media = new MediaState();
 </script>
 
-<div onkeydown={media.keydown}>
+<div class="Audio" onkeydown={media.keydown}>
 	{#if showCover}
 		<div class="audio-cover" onclick={media.click}>
 			{#if picture}
@@ -73,9 +73,22 @@
 </dialog>
 
 <style>
+	.Audio {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		width: 100%;
+		max-width: 512px;
+
+		:global(.MediaControls) {
+			width: 100%;
+			margin-top: 1em;
+		}
+	}
+
 	.audio-cover {
-		width: 512px;
-		height: 512px;
+		width: 100%;
+		aspect-ratio: 1/1;
 		background-color: var(--bg-alt);
 		border-radius: 1em;
 		display: flex;
@@ -83,13 +96,12 @@
 		gap: 1em;
 		align-items: center;
 		justify-content: center;
+		overflow: hidden;
 
 		img {
-			border-radius: 1em;
-		}
-
-		:global(.MediaControls) {
-			width: 512px;
+			width: 100%;
+			height: 100%;
+			object-fit: scale-down;
 		}
 	}
 
