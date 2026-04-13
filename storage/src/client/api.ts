@@ -248,6 +248,16 @@ export async function downloadItem(fileId: string): Promise<Blob> {
 	return await response.blob();
 }
 
+export async function downloadItemStream(fileId: string): Promise<ReadableStream<Uint8Array>> {
+	const response = await fetch(rawStorage(fileId), {
+		headers: token ? { Authorization: 'Bearer ' + token } : {},
+	});
+
+	if (!response.ok) throw new Error('Failed to download files: ' + response.statusText);
+	if (!response.body) throw new Error('Failed to download files: No body');
+	return response.body;
+}
+
 export async function updateItemMetadata(fileId: string, metadata: StorageItemUpdate): Promise<StorageItemMetadata> {
 	return await fetchAPI('PATCH', 'storage/item/:id', metadata, fileId);
 }
