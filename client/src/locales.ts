@@ -58,7 +58,9 @@ export interface ReplacementOptions {
 
 type _ArgsValue<V extends string[]> = UnionToIntersection<
 	{
-		[I in keyof V]: Split<V[I], '}'> extends [infer Name extends string, string] ? { [N in Name]: string } : {};
+		[I in keyof V]: Split<V[I], '}'> extends [infer Name extends string, string]
+			? { [N in Name]: string | number | bigint | boolean }
+			: {};
 	}[keyof V & number]
 >;
 
