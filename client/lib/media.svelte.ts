@@ -46,6 +46,7 @@ export class MediaState {
 	seekable = $state<boolean>();
 	seeking = $state<boolean>();
 	ended = $state<boolean>();
+	element = $state<HTMLMediaElement>();
 
 	click = () => {
 		if (this.ended) {
@@ -67,12 +68,27 @@ export class MediaState {
 				this.currentTime = Math.min(this.duration, this.currentTime + 10);
 				break;
 			case 'ArrowUp':
-				e.preventDefault();
 				this.volume = Math.min(1, this.volume + 0.1);
 				break;
 			case 'ArrowDown':
-				e.preventDefault();
 				this.volume = Math.max(0, this.volume - 0.1);
+				break;
+			case 'F11':
+				e.preventDefault();
+				this.element?.requestFullscreen();
+				break;
+			case ' ':
+				this.click();
+				break;
+			case 'm':
+				this.muted = !this.muted;
+				break;
+			case 'p':
+				if (this.element && this.element instanceof HTMLVideoElement) {
+					this.element.requestPictureInPicture?.();
+				} else {
+					console.warn('Not a video element, can not use Picture-in-Picture');
+				}
 				break;
 		}
 	};

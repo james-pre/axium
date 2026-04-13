@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import Icon from './Icon.svelte';
 	import MediaControls from './MediaControls.svelte';
 	import { getMetadata, MediaState, type MediaProps } from './media.svelte.js';
 
@@ -18,6 +19,7 @@
 <div class="Video" onkeydown={media.keydown}>
 	<video
 		{src}
+		bind:this={media.element}
 		bind:currentTime={media.currentTime}
 		bind:duration={media.duration}
 		bind:volume={media.volume}
@@ -25,11 +27,18 @@
 		bind:muted={media.muted}
 		bind:buffered={media.buffered}
 		bind:playbackRate={media.playbackRate}
+		bind:ended={media.ended}
+		onclick={media.click}
 		poster={pictureURL}
 	>
 		<track kind="captions" />
 	</video>
-	<MediaControls {media} />
+	<MediaControls {media}>
+		<button class="reset icon-text" onclick={() => media.element?.requestFullscreen()}>
+			<Icon i="expand-wide" />
+		</button>
+		{#if extraControls}{@render extraControls()}{/if}
+	</MediaControls>
 </div>
 
 <style>
