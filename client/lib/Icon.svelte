@@ -5,7 +5,7 @@
 	const href = $derived(`/icons/${style}.svg#${id}`);
 </script>
 
-<svg class="Icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em" {...rest}>
+<svg {...rest} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em" class={['Icon', rest.class]}>
 	<use {href} />
 </svg>
 
