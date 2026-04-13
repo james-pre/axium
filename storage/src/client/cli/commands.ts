@@ -89,7 +89,6 @@ export const upload = new Command('upload')
 				io.progress(uploaded, total, Math.round((uploaded / total) * 100) + '%');
 			},
 		});
-		io.done();
 		const { items } = await syncCache();
 		items.push(item);
 		writeCache();
@@ -104,7 +103,7 @@ export const download = new Command('download')
 		if (!item) throw 'Could not resolve path.';
 		if (item.type == 'inode/directory') throw "Can't download directories yet.";
 		localPath ||= item.name;
-		using _ = io.start('Downloading to' + localPath);
+		using _ = io.start('Downloading to ' + localPath);
 		const stream = await api.downloadItemStream(item.id);
 		io.progress(0, Number(item.size));
 		let downloaded = 0;
@@ -115,5 +114,4 @@ export const download = new Command('download')
 			io.progress(downloaded, Number(item.size));
 		}
 		fileStream.end();
-		io.done();
 	});

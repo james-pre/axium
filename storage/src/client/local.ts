@@ -4,7 +4,7 @@ import { UserPublic } from '@axium/core';
 import * as io from 'ioium/node';
 import { ENOENT, ENOTDIR } from 'node:constants';
 import { stat } from 'node:fs/promises';
-import { join, parse } from 'node:path';
+import { join, parse, resolve } from 'node:path';
 import * as z from 'zod';
 import { StorageItemMetadata } from '../common.js';
 import { getUserStats, getUserStorage } from './api.js';
@@ -12,7 +12,7 @@ import { getUserStats, getUserStorage } from './api.js';
 export let remotePWD = '/';
 
 export function resolvePath(path: string): string {
-	path = join(remotePWD, path);
+	path = resolve(remotePWD, path);
 	if (path != '/' && path.endsWith('/')) path = path.slice(0, -1);
 	return path;
 }
