@@ -50,6 +50,11 @@ const conTypeToSpeed = {
 	'4g': 64,
 } satisfies Record<NetworkInformation['effectiveType'], number>;
 
+function handleFetchFailed(e: unknown): never {
+	if (!(e instanceof Error) || e.message != 'fetch failed') throw e;
+	throw 'fetch failed: ' + String(e.cause);
+}
+
 async function handleError(response: Response): Promise<never> {
 	if (response.headers.get('Content-Type')?.trim() != 'application/json') throw await response.text();
 	const json = await response.json();
@@ -121,7 +126,7 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 				'content-type': 'application/octet-stream',
 			},
 			body: content.slice(offset, offset + size),
-		});
+		}).catch(handleFetchFailed);
 
 		if (!response.ok) await handleError(response);
 
@@ -159,33 +164,6 @@ export async function uploadItemStream(
 		const size = Math.min(chunkSize, opt.size - offset);
 		let bytesReadForChunk = 0;
 
-		const chunkStream = new ReadableStream<Uint8Array>({
-			async pull(controller) {
-				if (bytesReadForChunk >= size) {
-					controller.close();
-					return;
-				}
-
-				if (!buffer.length) {
-					const { done, value } = await reader.read();
-					if (done) {
-						controller.close();
-						return;
-					}
-					buffer = value;
-				}
-
-				const take = Math.min(buffer.length, size - bytesReadForChunk);
-				const chunk = buffer.subarray(0, take);
-				buffer = buffer.subarray(take);
-
-				bytesReadForChunk += take;
-				controller.enqueue(chunk);
-
-				opt.onProgress?.(offset + bytesReadForChunk, opt.size);
-			},
-		});
-
 		response = await fetch(rawStorage('chunk'), {
 			method: 'POST',
 			headers: {
@@ -194,10 +172,36 @@ export async function uploadItemStream(
 				'content-length': size.toString(),
 				'content-type': 'application/octet-stream',
 			},
-			body: chunkStream,
+			body: new ReadableStream<Uint8Array>({
+				type: 'bytes',
+				async pull(controller) {
+					if (bytesReadForChunk >= size) {
+						controller.close();
+						return;
+					}
+
+					if (!buffer.length) {
+						const { done, value } = await reader.read();
+						if (done) {
+							controller.close();
+							return;
+						}
+						buffer = value;
+					}
+
+					const take = Math.min(buffer.length, size - bytesReadForChunk);
+					const chunk = buffer.subarray(0, take);
+					buffer = buffer.subarray(take);
+
+					bytesReadForChunk += take;
+					controller.enqueue(chunk);
+
+					opt.onProgress?.(offset + bytesReadForChunk, opt.size);
+				},
+			}),
 			// @ts-expect-error 2769
 			duplex: 'half',
-		});
+		}).catch(handleFetchFailed);
 
 		if (!response.ok) await handleError(response);
 
@@ -220,7 +224,7 @@ export async function updateItem(fileId: string, data: Blob): Promise<StorageIte
 	if (data instanceof File) init.headers['X-Name'] = data.name;
 	if (token) init.headers.Authorization = 'Bearer ' + token;
 
-	const response = await fetch(rawStorage(fileId), init);
+	const response = await fetch(rawStorage(fileId), init).catch(handleFetchFailed);
 
 	return await handleResponse(response);
 }
