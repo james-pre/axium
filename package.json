@@ -53,6 +53,7 @@
 		"patch-package": "^8.0.1",
 		"prettier": "^3.5.1",
 		"prettier-plugin-svelte": "^3.3.3",
+		"svelte": "^5.55.3",
 		"svelte-language-server": "^0.17.29",
 		"tsx": "^4.19.3",
 		"typedoc": "^0.28.18",
