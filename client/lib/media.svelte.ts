@@ -47,6 +47,15 @@ export class MediaState {
 	seeking = $state<boolean>();
 	ended = $state<boolean>();
 
+	click = () => {
+		if (this.ended) {
+			this.currentTime = 0;
+			this.paused = false;
+		} else {
+			this.paused = !this.paused;
+		}
+	};
+
 	keydown = (e: KeyboardEvent) => {
 		switch (e.key) {
 			case 'ArrowLeft':

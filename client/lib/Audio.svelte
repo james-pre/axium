@@ -30,7 +30,7 @@
 
 <div onkeydown={media.keydown}>
 	{#if showCover}
-		<div class="audio-cover">
+		<div class="audio-cover" onclick={media.click}>
 			{#if picture}
 				<img src={pictureURL} alt={picture.description} />
 			{:else}
@@ -48,12 +48,13 @@
 		bind:muted={media.muted}
 		bind:buffered={media.buffered}
 		bind:playbackRate={media.playbackRate}
+		bind:ended={media.ended}
 	></audio>
 	<MediaControls {media}>
+		{#if extraControls}{@render extraControls()}{/if}
 		<button class="reset icon-text" command="show-modal" commandfor="{id}:audio-info">
 			<Icon i="regular/circle-info" />
 		</button>
-		{#if extraControls}{@render extraControls()}{/if}
 	</MediaControls>
 </div>
 

@@ -13,8 +13,8 @@
 </script>
 
 <div class="MediaControls">
-	<button class="reset icon-text" onclick={() => (media.paused = !media.paused)}>
-		<Icon i={media.paused ? 'play' : 'pause'} />
+	<button class="reset icon-text" onclick={media.click}>
+		<Icon i={media.ended ? 'arrow-rotate-right' : media.paused ? 'play' : 'pause'} />
 	</button>
 	<div class="timeline">
 		<div class="timeline-track">
