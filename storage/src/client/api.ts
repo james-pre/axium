@@ -117,15 +117,16 @@ export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Pr
 
 	for (let offset = 0; offset < content.length; offset += chunkSize) {
 		const size = Math.min(chunkSize, content.length - offset);
+		const headers: HeadersInit & object = {
+			'x-upload': upload.token,
+			'x-offset': offset.toString(),
+			'content-length': size.toString(),
+			'content-type': 'application/octet-stream',
+		};
+		if (token) headers.authorization = 'Bearer ' + token;
 		response = await fetch(rawStorage('chunk'), {
 			method: 'POST',
-			headers: {
-				'x-upload': upload.token,
-				'x-offset': offset.toString(),
-				'content-length': size.toString(),
-				'content-type': 'application/octet-stream',
-				authorization: 'Bearer ' + token,
-			},
+			headers,
 			body: content.slice(offset, offset + size),
 		}).catch(handleFetchFailed);
 
@@ -165,15 +166,18 @@ export async function uploadItemStream(
 		const size = Math.min(chunkSize, opt.size - offset);
 		let bytesReadForChunk = 0;
 
+		const headers: HeadersInit & object = {
+			'x-upload': upload.token,
+			'x-offset': offset.toString(),
+			'content-length': size.toString(),
+			'content-type': 'application/octet-stream',
+		};
+
+		if (token) headers.authorization = 'Bearer ' + token;
+
 		response = await fetch(rawStorage('chunk'), {
 			method: 'POST',
-			headers: {
-				'x-upload': upload.token,
-				'x-offset': offset.toString(),
-				'content-length': size.toString(),
-				'content-type': 'application/octet-stream',
-				authorization: 'Bearer ' + token,
-			},
+			headers,
 			body: new ReadableStream<Uint8Array>({
 				type: 'bytes',
 				async pull(controller) {
