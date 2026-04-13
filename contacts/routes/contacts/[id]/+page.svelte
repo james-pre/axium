@@ -247,10 +247,6 @@
 		border-radius: 1em;
 		background-color: var(--bg-menu);
 
-		button.toggle {
-			height: 1em;
-		}
-
 		:global(.ZodInput) {
 			display: flex;
 			flex-direction: column;
