@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { FormDialog, Icon, Popover } from '@axium/client/components';
+	import { Audio, FormDialog, Icon, Popover, Video } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import type { AccessControllable } from '@axium/core';
 	import { downloadItem, downloadItemStream, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
@@ -102,39 +102,17 @@
 	{#if item.type.startsWith('image/')}
 		<img src={item.dataURL} alt={item.name} />
 	{:else if item.type.startsWith('audio/')}
-		{#snippet withDefaultCover()}
-			<div class="preview-center">
-				<div class="preview-audio-cover">
-					<Icon i="music-note" --size="50px" />
-				</div>
-				<audio src={item.dataURL} controls></audio>
-			</div>
-		{/snippet}
-		{#await import('music-metadata') then { parseWebStream, selectCover }}
-			{#await downloadItemStream(item.id).then( stream => parseWebStream( stream, { size: Number(item.size), mimeType: item.type, url: item.dataURL, path: item.name } ) )}
-				{@render loading()}
-			{:then metadata}
-				{@const cover = selectCover(metadata.common.picture)}
-				{#if cover}
-					<div class="preview-center">
-						<img
-							// `cover.data`'s source is actually an `ArrayBufferLike`
-							src={URL.createObjectURL(new Blob([cover.data as Uint8Array<ArrayBuffer>], { type: cover.format }))}
-							alt={cover.description}
-						/>
-						<audio src={item.dataURL} controls></audio>
-					</div>
-				{:else}
-					{@render withDefaultCover()}
-				{/if}
-			{/await}
-		{:catch}
-			{@render withDefaultCover()}
+		{#await downloadItemStream(item.id)}
+			{@render loading()}
+		{:then stream}
+			<Audio src={item.dataURL} {...item} metadataSource={stream} cover />
 		{/await}
 	{:else if item.type.startsWith('video/')}
-		<video src={item.dataURL} controls>
-			<track kind="captions" />
-		</video>
+		{#await downloadItemStream(item.id)}
+			{@render loading()}
+		{:then stream}
+			<Video src={item.dataURL} {...item} metadataSource={stream} />
+		{/await}
 	{:else if item.type == 'application/pdf'}
 		<object data={item.dataURL} type="application/pdf" width="100%" height="100%">
 			<embed src={item.dataURL} type="application/pdf" width="100%" height="100%" />
