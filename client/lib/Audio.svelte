@@ -67,6 +67,8 @@
 					<span>{value}</span>
 				</div>
 			{/if}
+		{:else}
+			<i>{text('Audio.no_info')}</i>
 		{/each}
 	</div>
 	<button command="close" commandfor="{id}:audio-info">{text('generic.done')}</button>

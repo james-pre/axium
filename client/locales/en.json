@@ -13,6 +13,9 @@
 		"failed": "Couldn't load apps.",
 		"none": "No apps available."
 	},
+	"Audio": {
+		"no_info": "No track information available"
+	},
 	"Discovery": {
 		"no_results": "No results"
 	},
