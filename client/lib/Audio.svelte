@@ -52,9 +52,11 @@
 	></audio>
 	<MediaControls {media}>
 		{#if extraControls}{@render extraControls()}{/if}
-		<button class="reset icon-text" command="show-modal" commandfor="{id}:audio-info">
-			<Icon i="regular/circle-info" />
-		</button>
+		{#if audioInfo.some(([, value]) => !!value)}
+			<button class="reset icon-text" command="show-modal" commandfor="{id}:audio-info">
+				<Icon i="regular/circle-info" />
+			</button>
+		{/if}
 	</MediaControls>
 </div>
 
@@ -67,8 +69,6 @@
 					<span>{value}</span>
 				</div>
 			{/if}
-		{:else}
-			<i>{text('Audio.no_info')}</i>
 		{/each}
 	</div>
 	<button command="close" commandfor="{id}:audio-info">{text('generic.done')}</button>
