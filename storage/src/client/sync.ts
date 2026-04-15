@@ -5,10 +5,11 @@ import mime from 'mime';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
 import { basename, dirname, join, matchesGlob, relative } from 'node:path';
+import { Readable, Writable } from 'node:stream';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import '../polyfills.js';
-import { deleteItem, downloadItem, updateItem, uploadItem } from './api.js';
+import { deleteItem, downloadItemStream, updateItem, uploadItem, uploadItemStream } from './api.js';
 
 /**
  * A Sync is a storage item that has been selected for synchronization by the user.
@@ -189,8 +190,10 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 				_items.set(dirent._path, Object.assign(pick(dir, 'id', 'modifiedAt'), { path: dirent._path, hash: null }));
 			} else {
 				const type = mime.getType(dirent._path) || 'application/octet-stream';
-				const content = fs.readFileSync(join(sync.local_path, dirent._path));
-				const file = await uploadItem(new Blob([content], { type }), uploadOpts);
+				const { size } = fs.statSync(join(sync.local_path, dirent._path));
+				// cast because Node.js' internals use different types from lib.dom.d.ts
+				const stream = Readable.toWeb(fs.createReadStream(join(sync.local_path, dirent._path))) as ReadableStream<any>;
+				const file = await uploadItemStream(stream, { ...uploadOpts, type, size });
 				_items.set(dirent._path, Object.assign(pick(file, 'id', 'modifiedAt', 'hash'), { path: dirent._path }));
 			}
 		}
@@ -218,9 +221,9 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 			if (!item.hash) {
 				fs.mkdirSync(fullPath, { recursive: true });
 			} else {
-				const blob = await downloadItem(item.id);
-				const content = await blob.bytes();
-				fs.writeFileSync(fullPath, content);
+				const writeStream = fs.createWriteStream(fullPath);
+				const stream = await downloadItemStream(item.id);
+				await stream.pipeTo(Writable.toWeb(writeStream));
 			}
 		}
 	);
@@ -232,9 +235,9 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 		item => (opt.verbose ? 'Updating ' : '') + item.path,
 		async item => {
 			if (item.modifiedAt.getTime() > fs.statSync(join(sync.local_path, item.path)).mtime.getTime()) {
-				const blob = await downloadItem(item.id);
-				const content = await blob.bytes();
-				fs.writeFileSync(join(sync.local_path, item.path), content);
+				const writeStream = fs.createWriteStream(join(sync.local_path, item.path));
+				const stream = await downloadItemStream(item.id);
+				await stream.pipeTo(Writable.toWeb(writeStream));
 				return 'server.';
 			} else {
 				const type = mime.getType(item.path) || 'application/octet-stream';
