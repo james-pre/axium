@@ -160,8 +160,8 @@ export function startUpload(init: StorageItemInit, session: Session): string {
 		if (removed) return;
 		removed = true;
 		inProgress.delete(token.toBase64());
-		void stream.abort();
-		hash.destroy();
+		void stream.close();
+		hash.end();
 	}
 
 	const hash = createHash('BLAKE2b512'),
