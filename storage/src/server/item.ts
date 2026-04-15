@@ -3,8 +3,9 @@ import { authSessionForItem, requireSession, type SessionAndUser } from '@axium/
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { createHash, randomBytes, type Hash } from 'node:crypto';
-import { closeSync, linkSync, mkdirSync, openSync } from 'node:fs';
+import { createWriteStream, linkSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { Writable } from 'node:stream';
 import * as z from 'zod';
 import type { StorageItemInit, StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
@@ -133,8 +134,9 @@ export async function createNewItem(
 
 export interface UploadInfo {
 	file: string;
-	fd: number;
+	stream: WritableStream;
 	hash: Hash;
+	hashStream: WritableStream;
 	uploadedBytes: bigint;
 	sessionId: string;
 	userId: string;
@@ -152,21 +154,24 @@ export function startUpload(init: StorageItemInit, session: Session): string {
 	mkdirSync(temp_dir, { recursive: true });
 	const file = join(temp_dir, token.toHex());
 
-	const fd = openSync(file, 'a');
-
 	let removed = false;
 
 	function remove() {
 		if (removed) return;
 		removed = true;
 		inProgress.delete(token.toBase64());
-		closeSync(fd);
+		void stream.abort();
+		hash.destroy();
 	}
 
+	const hash = createHash('BLAKE2b512'),
+		stream = Writable.toWeb(createWriteStream(file));
+
 	inProgress.set(token.toBase64(), {
-		hash: createHash('BLAKE2b512'),
+		hash,
+		hashStream: Writable.toWeb(hash),
 		file,
-		fd,
+		stream,
 		uploadedBytes: 0n,
 		sessionId: session.id,
 		userId: session.userId,

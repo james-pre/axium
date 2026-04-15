@@ -5,7 +5,7 @@ import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { copyFileSync, createReadStream, renameSync, unlinkSync, writeFileSync, writeSync } from 'node:fs';
+import { copyFileSync, createReadStream, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import { Readable } from 'node:stream';
 import * as z from 'zod';
@@ -74,19 +74,33 @@ addRoute({
 
 		if (upload.uploadedBytes + size > upload.init.size) error(413, 'Upload exceeds allowed size');
 
-		const content = await request.bytes();
-
-		if (content.byteLength != Number(size)) {
-			await audit('storage_size_mismatch', upload.userId, { item: null });
-			error(400, `Content length mismatch: expected ${size}, got ${content.byteLength}`);
-		}
-
 		const offset = BigInt(request.headers.get('x-offset') || -1);
 		if (offset != upload.uploadedBytes) error(400, `Expected offset ${upload.uploadedBytes} but got ${offset}`);
 
-		writeSync(upload.fd, content); // opened with 'a', this appends
-		upload.hash.update(content);
-		upload.uploadedBytes += BigInt(size);
+		if (!request.body) error(400, 'Missing request body');
+
+		let actualSize = 0n;
+		const counter = new TransformStream({
+			transform(chunk, controller) {
+				actualSize += BigInt(chunk.length);
+				controller.enqueue(chunk);
+			},
+		});
+
+		const [forFile, forHash] = request.body.pipeThrough(counter).tee();
+
+		await Promise.all([
+			forFile.pipeTo(upload.stream, { preventClose: true }),
+			forHash.pipeTo(upload.hashStream, { preventClose: true }),
+		]);
+
+		if (actualSize != size) {
+			upload.remove();
+			await audit('storage_size_mismatch', upload.userId, { item: null });
+			error(400, `Content length mismatch: expected ${size}, got ${actualSize}`);
+		}
+
+		upload.uploadedBytes += actualSize;
 
 		if (upload.uploadedBytes != upload.init.size) return new Response(null, { status: 204 });
 
