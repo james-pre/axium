@@ -1,12 +1,15 @@
 import { $API, AccessControl, serverConfigs } from '@axium/core';
 import * as z from 'zod';
 
+export const StorageItemSize = z.coerce.bigint().nonnegative();
+export const StorageItemName = z.string().nonempty().max(255);
+
 /**
  * An update to file metadata.
  */
 export const StorageItemUpdate = z
 	.object({
-		name: z.string(),
+		name: StorageItemName,
 		owner: z.uuid(),
 		trash: z.boolean(),
 	})
@@ -29,10 +32,10 @@ export const StorageItemMetadata = z.object({
 	id: z.uuid(),
 	immutable: z.boolean(),
 	modifiedAt: z.coerce.date(),
-	name: z.string(),
+	name: StorageItemName,
 	userId: z.uuid(),
 	parentId: z.uuid().nullable(),
-	size: z.coerce.bigint().nonnegative(),
+	size: StorageItemSize,
 	trashedAt: z.coerce.date().nullable(),
 	type: z.string(),
 	metadata: z.record(z.string(), z.unknown()),
@@ -171,8 +174,8 @@ declare module '@axium/core/plugins' {
 serverConfigs.set('@axium/storage', StorageConfig);
 
 export const StorageItemInit = z.object({
-	name: z.string(),
-	size: z.coerce.bigint().nonnegative(),
+	name: StorageItemName,
+	size: StorageItemSize,
 	type: z.string(),
 	parentId: z.uuid().nullish(),
 	hash: z.hex().nullish(),
@@ -222,6 +225,7 @@ const StorageAPI = {
 		GET: [GetItemOptions, StorageItemMetadata],
 		DELETE: StorageItemMetadata,
 		PATCH: [StorageItemUpdate, StorageItemMetadata],
+		POST: [StorageItemSize, UploadInitResult],
 	},
 	'storage/directory/:id': {
 		GET: StorageItemMetadata.array(),

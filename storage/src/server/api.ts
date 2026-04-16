@@ -12,6 +12,7 @@ import {
 	batchFormatVersion,
 	GetItemOptions,
 	StorageItemInit,
+	StorageItemSize,
 	StorageItemUpdate,
 	syncProtocolVersion,
 	UserStorageOptions,
@@ -19,7 +20,7 @@ import {
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { deleteRecursive, getParents, getRecursive, getUserStats, parseItem } from './db.js';
-import { checkNewItem, createNewItem, startUpload } from './item.js';
+import { checkItemUpdate, checkNewItem, createNewItem, startUpload } from './item.js';
 
 addRoute({
 	path: '/api/storage',
@@ -51,7 +52,7 @@ addRoute({
 			{
 				...pick(rest, 'batch', 'max_transfer_size'),
 				status: 'accepted',
-				token: startUpload(init, session),
+				token: startUpload(init, session, null),
 			} satisfies R,
 			{ status: 202 }
 		);
@@ -96,6 +97,28 @@ addRoute({
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not update item'))
+		);
+	},
+	async POST(request, { id: itemId }): Promise<Response> {
+		type R = Result<'POST', 'storage/item/:id'>;
+
+		const { enabled, ...rest } = getConfig('@axium/storage');
+
+		if (!enabled) error(503, 'User storage is disabled');
+
+		const size = await parseBody(request, StorageItemSize);
+
+		const { item, session } = await checkItemUpdate(request, itemId);
+
+		if (!session) error(401, 'You must be logged in to change file contents');
+
+		return json(
+			{
+				...pick(rest, 'batch', 'max_transfer_size'),
+				status: 'accepted',
+				token: startUpload({ ...item, size }, session, itemId),
+			} satisfies R,
+			{ status: 202 }
 		);
 	},
 	async DELETE(request, { id: itemId }): AsyncResult<'DELETE', 'storage/item/:id'> {

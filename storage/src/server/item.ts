@@ -1,5 +1,6 @@
 import { getConfig, type Session } from '@axium/core';
-import { authSessionForItem, requireSession, type SessionAndUser } from '@axium/server/auth';
+import { audit } from '@axium/server/audit';
+import { authRequestForItem, authSessionForItem, requireSession, type SessionAndUser, type SessionInternal } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { createHash, randomBytes, type Hash } from 'node:crypto';
@@ -28,16 +29,11 @@ export function useCAS(type: string) {
 }
 
 export async function checkNewItem(init: StorageItemInit, session: SessionAndUser): Promise<NewItemResult> {
-	const { userId } = session;
+	const { size, type, hash } = init;
 
-	const { size, name, type, hash } = init;
-
-	const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
+	const [usage, limits] = await Promise.all([getUserStats(session.userId), getLimits(session.userId)]).catch(
 		withError('Could not fetch usage and/or limits')
 	);
-
-	if (!name) error(400, 'Missing name');
-	if (name.length > 255) error(400, 'Name is too long');
 
 	const parentId = init.parentId
 		? await z
@@ -47,8 +43,6 @@ export async function checkNewItem(init: StorageItemInit, session: SessionAndUse
 		: null;
 
 	if (parentId) await authSessionForItem('storage', parentId, { write: true }, session);
-
-	if (BigInt(size) < 0n) error(411, 'Missing or invalid content length');
 
 	if (limits.user_items && usage.itemCount >= limits.user_items) error(409, 'Too many items');
 
@@ -132,6 +126,61 @@ export async function createNewItem(
 	}
 }
 
+export interface ItemUpdateCheckResult {
+	item: StorageItemMetadata;
+	session?: SessionInternal;
+}
+
+export async function checkItemUpdate(request: Request, itemId: string): Promise<ItemUpdateCheckResult> {
+	if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
+
+	const { item, session } = await authRequestForItem(request, 'storage', itemId, { write: true }, true);
+
+	if (item.immutable) error(405, 'Item is immutable');
+	if (item.type == 'inode/directory') error(409, 'Directories do not have content');
+	if (item.trashedAt) error(410, 'Trashed items can not be changed');
+
+	const type = request.headers.get('content-type') || 'application/octet-stream';
+
+	if (type != item.type) {
+		await audit('storage_type_mismatch', session?.userId, { item: item.id });
+		error(400, 'Content type does not match existing item type');
+	}
+
+	return { item: parseItem(item), session };
+}
+
+export async function finishItemUpdate(
+	itemId: string,
+	size: bigint,
+	hash: Uint8Array<ArrayBuffer>,
+	writeContent?: (path: string) => void
+): Promise<StorageItemMetadata> {
+	const tx = await database.startTransaction().execute();
+
+	const { data: dataDir } = getConfig('@axium/storage');
+
+	const path = join(dataDir, itemId);
+
+	try {
+		const result = await tx
+			.updateTable('storage')
+			.where('id', '=', itemId)
+			.set({ size, modifiedAt: new Date(), hash })
+			.returningAll()
+			.executeTakeFirstOrThrow();
+
+		if (!writeContent) error(501, 'Missing writeContent (this is a bug!)');
+		writeContent(path);
+
+		await tx.commit().execute();
+		return parseItem(result);
+	} catch (error: any) {
+		await tx.rollback().execute();
+		throw withError('Could not update item', 500)(error);
+	}
+}
+
 export interface UploadInfo {
 	file: string;
 	stream: WritableStream;
@@ -141,12 +190,16 @@ export interface UploadInfo {
 	sessionId: string;
 	userId: string;
 	init: StorageItemInit;
+	/** If set we are updating an existing item. Explicit null used to avoid bugs */
+	itemId: string | null;
+
+	/** Remove the upload from pending and clean up resources */
 	remove(): void;
 }
 
 const inProgress = new Map<string, UploadInfo>();
 
-export function startUpload(init: StorageItemInit, session: Session): string {
+export function startUpload(init: StorageItemInit, session: Session, itemId: string | null): string {
 	const { temp_dir, upload_timeout } = getConfig('@axium/storage');
 
 	const token = randomBytes(32);
@@ -176,6 +229,7 @@ export function startUpload(init: StorageItemInit, session: Session): string {
 		sessionId: session.id,
 		userId: session.userId,
 		init,
+		itemId,
 		remove,
 	});
 

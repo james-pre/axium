@@ -1,7 +1,6 @@
 import { getConfig } from '@axium/core';
 import { audit } from '@axium/server/audit';
 import { authRequestForItem, requireSession } from '@axium/server/auth';
-import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
@@ -12,8 +11,8 @@ import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { getUserStats, parseItem } from './db.js';
-import { checkNewItem, createNewItem, requireUpload } from './item.js';
+import { getUserStats } from './db.js';
+import { checkItemUpdate, checkNewItem, createNewItem, finishItemUpdate, requireUpload } from './item.js';
 
 export function _contentDispositionFor(name: string, suffix: string = '') {
 	const fallback =
@@ -89,6 +88,8 @@ addRoute({
 
 		const [forFile, forHash] = request.body.pipeThrough(counter).tee();
 
+		/* @todo Figure out if we need to handle stream cancellation differently.
+		Right now an error with this chunk cancels the streams but may not cleanly fail the upload */
 		await Promise.all([
 			forFile.pipeTo(upload.stream, { preventClose: true }),
 			forHash.pipeTo(upload.hashStream, { preventClose: true }),
@@ -110,14 +111,18 @@ addRoute({
 
 		upload.remove();
 
-		const item = await createNewItem(upload.init, upload.userId, path => {
+		function writeContent(path: string) {
 			try {
 				renameSync(upload.file, path);
 			} catch (e: any) {
 				if (e.code != 'EXDEV') throw e;
 				copyFileSync(upload.file, path);
 			}
-		});
+		}
+
+		const item = upload.itemId
+			? await finishItemUpdate(upload.itemId, upload.init.size, hash, writeContent)
+			: await createNewItem(upload.init, upload.userId, writeContent);
 
 		try {
 			unlinkSync(upload.file);
@@ -128,6 +133,25 @@ addRoute({
 		return item;
 	},
 });
+
+function parseRange(itemSize: bigint, range?: string | null): { start: number; end: number; length: number } {
+	let start = 0,
+		end = Number(itemSize - 1n),
+		length = Number(itemSize);
+
+	if (range) {
+		const [_start, _end = end] = range
+			.replace(/bytes=/, '')
+			.split('-')
+			.map(val => (val && Number.isSafeInteger(parseInt(val)) ? parseInt(val) : undefined));
+
+		start = typeof _start == 'number' ? _start : Number(itemSize) - _end;
+		end = typeof _start == 'number' ? _end : end;
+		length = end - start + 1;
+	}
+
+	return { start, end, length };
+}
 
 addRoute({
 	path: '/raw/storage/:id',
@@ -141,22 +165,8 @@ addRoute({
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
 		const path = join(config.data, item.id);
-		const range = request.headers.get('range');
 
-		let start = 0,
-			end = Number(item.size - 1n),
-			length = Number(item.size);
-
-		if (range) {
-			const [_start, _end = end] = range
-				.replace(/bytes=/, '')
-				.split('-')
-				.map(val => (val && Number.isSafeInteger(parseInt(val)) ? parseInt(val) : undefined));
-
-			start = typeof _start == 'number' ? _start : Number(item.size) - _end;
-			end = typeof _start == 'number' ? _end : end;
-			length = end - start + 1;
-		}
+		const { start, end, length } = parseRange(item.size, request.headers.get('range'));
 
 		if (start >= item.size || end >= item.size || start > end || start < 0) {
 			return new Response(null, {
@@ -179,20 +189,7 @@ addRoute({
 		});
 	},
 	async POST(request, { id: itemId }) {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
-		const { item, session } = await authRequestForItem(request, 'storage', itemId, { write: true }, true);
-
-		if (item.immutable) error(405, 'Item is immutable');
-		if (item.type == 'inode/directory') error(409, 'Directories do not have content');
-		if (item.trashedAt) error(410, 'Trashed items can not be changed');
-
-		const type = request.headers.get('content-type') || 'application/octet-stream';
-
-		if (type != item.type) {
-			await audit('storage_type_mismatch', session?.userId, { item: item.id });
-			error(400, 'Content type does not match existing item type');
-		}
+		const { item, session } = await checkItemUpdate(request, itemId);
 
 		const size = Number(request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
@@ -215,23 +212,8 @@ addRoute({
 
 		const hash = createHash('BLAKE2b512').update(content).digest();
 
-		const tx = await database.startTransaction().execute();
-
-		try {
-			const result = await tx
-				.updateTable('storage')
-				.where('id', '=', itemId)
-				.set({ size: BigInt(size), modifiedAt: new Date(), hash })
-				.returningAll()
-				.executeTakeFirstOrThrow();
-
-			writeFileSync(join(getConfig('@axium/storage').data, result.id), content);
-
-			await tx.commit().execute();
-			return parseItem(result);
-		} catch (error: any) {
-			await tx.rollback().execute();
-			throw withError('Could not update item', 500)(error);
-		}
+		return await finishItemUpdate(itemId, BigInt(size), hash, path => {
+			writeFileSync(path, content);
+		});
 	},
 });
