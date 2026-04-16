@@ -1,7 +1,7 @@
 import type { Http2ServerRequest, Http2ServerResponse } from 'node:http2';
-import { config } from './config.js';
 import { Readable } from 'node:stream';
 import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
+import { config } from './config.js';
 
 /* Credit to the SvelteKit team: https://github.com/sveltejs/kit/blob/8d1ba04825a540324bc003e85f36559a594aadc2/packages/kit/src/exports/node/index.js */
 function get_raw_body(req: Http2ServerRequest): ReadableStream | null {
