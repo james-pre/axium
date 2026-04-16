@@ -1,5 +1,7 @@
 import type { Http2ServerRequest, Http2ServerResponse } from 'node:http2';
 import { config } from './config.js';
+import { Readable } from 'node:stream';
+import type { ReadableStream as NodeReadableStream } from 'node:stream/web';
 
 /* Credit to the SvelteKit team: https://github.com/sveltejs/kit/blob/8d1ba04825a540324bc003e85f36559a594aadc2/packages/kit/src/exports/node/index.js */
 function get_raw_body(req: Http2ServerRequest): ReadableStream | null {
@@ -87,7 +89,7 @@ export function convertToRequest(req: Http2ServerRequest): Request {
 	return request;
 }
 
-export async function convertFromResponse(res: Http2ServerResponse, response: Response): Promise<void> {
+export function convertFromResponse(res: Http2ServerResponse, response: Response): void {
 	res.writeHead(response.status, Object.fromEntries(response.headers));
 
 	if (!response.body) {
@@ -104,43 +106,11 @@ export async function convertFromResponse(res: Http2ServerResponse, response: Re
 		return;
 	}
 
-	const reader = response.body.getReader();
+	if (res.destroyed) return;
 
-	if (res.destroyed) {
-		await reader.cancel();
-		return;
+	try {
+		Readable.fromWeb(response.body as NodeReadableStream).pipe(res);
+	} catch (e: any) {
+		if (!res.destroyed) res.destroy(e);
 	}
-
-	const cancel = (error?: Error) => {
-		res.off('close', cancel);
-		res.off('error', cancel);
-
-		// If the reader has already been interrupted with an error earlier,
-		// then it will appear here, it is useless, but it needs to be caught.
-		reader.cancel(error).catch(() => {});
-		if (error) res.destroy(error);
-	};
-
-	res.on('close', cancel);
-	res.on('error', cancel);
-
-	async function next() {
-		try {
-			for (;;) {
-				const { done, value } = await reader.read();
-
-				if (done) break;
-
-				if (!res.write(value)) {
-					// eslint-disable-next-line @typescript-eslint/no-misused-promises
-					res.once('drain', next);
-					return;
-				}
-			}
-			res.end();
-		} catch (error) {
-			cancel(error instanceof Error ? error : new Error(String(error)));
-		}
-	}
-	void next();
 }
