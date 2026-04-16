@@ -66,6 +66,7 @@ async function _upload(
 		const headers: HeadersInit & object = {
 			'x-upload': upload.token,
 			'x-offset': offset.toString(),
+			'x-chunk-size': chunkSize.toString(),
 			'content-length': chunkSize.toString(),
 			'content-type': 'application/octet-stream',
 		};

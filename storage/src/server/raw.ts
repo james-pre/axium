@@ -67,9 +67,9 @@ addRoute({
 
 		const upload = await requireUpload(request);
 
-		const size = BigInt(request.headers.get('content-length') || -1);
+		const size = BigInt(request.headers.get('x-chunk-size') || -1);
 
-		if (size < 0n) error(411, 'Missing or invalid content length');
+		if (size < 0n) error(411, 'Missing or invalid chunk size');
 
 		if (upload.uploadedBytes + size > upload.init.size) error(413, 'Upload exceeds allowed size');
 
