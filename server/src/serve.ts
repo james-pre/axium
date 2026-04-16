@@ -3,9 +3,8 @@ import { _debugOutput, debug, warn } from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
 import '@axium/server/api/index';
 import { readFileSync } from 'node:fs';
-import type { IncomingMessage, Server } from 'node:http';
-import { createServer, ServerResponse } from 'node:http';
-import { createServer as createSecureServer } from 'node:https';
+import type { Http2ServerRequest, Http2Server } from 'node:http2';
+import { createServer, createSecureServer, Http2ServerResponse } from 'node:http2';
 import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import config from './config.js';
@@ -98,8 +97,8 @@ export interface ServeOptions {
 	multiBuild: boolean;
 }
 
-async function _getMultiBuildHandler(): Promise<(req: IncomingMessage, res: ServerResponse) => void> {
-	const handlers: ((req: IncomingMessage, res: ServerResponse, next: (error?: any) => never) => void)[] = [];
+async function _getMultiBuildHandler(): Promise<(req: Http2ServerRequest, res: Http2ServerResponse) => void> {
+	const handlers: ((req: Http2ServerRequest, res: Http2ServerResponse, next: (error?: any) => never) => void)[] = [];
 
 	for (const plugin of plugins.values()) {
 		if (!plugin.server?.http_handler) continue;
@@ -119,9 +118,11 @@ async function _getMultiBuildHandler(): Promise<(req: IncomingMessage, res: Serv
 	const { handler: handleFrontendRequest } = await import('../build/handler.js');
 	handlers.push(handleFrontendRequest);
 
-	function handle(incoming: IncomingMessage, response: ServerResponse) {
+	function handle(incoming: Http2ServerRequest, response: Http2ServerResponse) {
+		incoming.headers.host ||= incoming.headers[':authority'];
+
 		for (const handler of handlers) {
-			const maybeResponse = new ServerResponse(incoming);
+			const maybeResponse = new Http2ServerResponse(incoming.stream);
 			try {
 				handler(incoming, maybeResponse, __next);
 			} catch (e: any) {
@@ -136,7 +137,9 @@ async function _getMultiBuildHandler(): Promise<(req: IncomingMessage, res: Serv
 			}
 
 			if (maybeResponse.statusCode != 404) {
-				response.setHeaders(new Map(Object.entries(maybeResponse.getHeaders() as any)));
+				for (const [name, value] of Object.entries(maybeResponse.getHeaders())) {
+					if (value !== undefined) response.setHeader(name, value);
+				}
 			}
 		}
 
@@ -163,11 +166,11 @@ async function _runRoute(
 
 async function _getLinkedBuildHandler(
 	buildPath: string = '../build/handler.js'
-): Promise<(req: IncomingMessage, res: ServerResponse) => void> {
+): Promise<(req: Http2ServerRequest, res: Http2ServerResponse) => void> {
 	const { handler: handleFrontendRequest } = await import(buildPath);
 
-	return function handle(req: IncomingMessage, res: ServerResponse) {
-		const url = new URL(req.url!, config.origin);
+	return function handle(req: Http2ServerRequest, res: Http2ServerResponse) {
+		const url = new URL(req.url, config.origin);
 		const [route, params = {}] = resolveRoute(url) ?? [];
 
 		if (!route && url.pathname === '/' && config.debug_home) {
@@ -175,7 +178,7 @@ async function _getLinkedBuildHandler(
 			return;
 		}
 
-		if (config.debug) console.log(styleText('blueBright', req.method!.padEnd(7)), route ? route.path : url.pathname);
+		if (config.debug) console.log(styleText('blueBright', req.method.padEnd(7)), route ? route.path : url.pathname);
 
 		if (route && route.server == true) {
 			const request = convertToRequest(req);
@@ -203,18 +206,20 @@ async function _getLinkedBuildHandler(
 			return;
 		}
 
+		req.headers.host ||= req.headers[':authority'];
+
 		handleFrontendRequest(req, res);
 		return;
 	};
 }
 
-export async function serve(opt: Partial<ServeOptions>): Promise<Server> {
+export async function serve(opt: Partial<ServeOptions>): Promise<Http2Server> {
 	const handle = await _getLinkedBuildHandler(opt.build);
 
 	if (!opt.secure && !config.web.secure) return createServer(handle);
 
 	return createSecureServer(
-		{ key: readFileSync(opt.ssl_key || config.web.ssl_key), cert: readFileSync(opt.ssl_cert || config.web.ssl_cert) },
+		{ allowHTTP1: true, key: readFileSync(opt.ssl_key || config.web.ssl_key), cert: readFileSync(opt.ssl_cert || config.web.ssl_cert) },
 		handle
 	);
 }

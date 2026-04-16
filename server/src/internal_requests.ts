@@ -1,16 +1,14 @@
-import type { IncomingMessage, ServerResponse } from 'node:http';
+import type { Http2ServerRequest, Http2ServerResponse } from 'node:http2';
 import { config } from './config.js';
 
 /* Credit to the SvelteKit team: https://github.com/sveltejs/kit/blob/8d1ba04825a540324bc003e85f36559a594aadc2/packages/kit/src/exports/node/index.js */
-function get_raw_body(req: IncomingMessage): ReadableStream | null {
-	const h = req.headers;
+function get_raw_body(req: Http2ServerRequest): ReadableStream | null {
+	if (!req.headers['content-type'] || req.method == 'GET' || req.method == 'HEAD') return null;
 
-	if (!h['content-type']) return null;
-
-	const content_length = Number(h['content-length']);
+	const content_length = Number(req.headers['content-length']);
 
 	// check if no request body
-	if ((req.httpVersionMajor === 1 && isNaN(content_length) && h['transfer-encoding'] == null) || content_length === 0) {
+	if ((req.httpVersionMajor === 1 && isNaN(content_length) && req.headers['transfer-encoding'] == null) || !content_length) {
 		return null;
 	}
 
@@ -71,8 +69,14 @@ function get_raw_body(req: IncomingMessage): ReadableStream | null {
 	});
 }
 
-export function convertToRequest(req: IncomingMessage): Request {
-	const headers = req.headers as Record<string, string>;
+export function convertToRequest(req: Http2ServerRequest): Request {
+	const headers = new Headers();
+	for (const [key, value] of Object.entries(req.headers)) {
+		if (value === undefined || key[0] == ':') continue;
+		if (!Array.isArray(value)) headers.append(key, String(value));
+		else for (const v of value) headers.append(key, String(v));
+	}
+
 	const request = new Request(config.origin + req.url, {
 		// @ts-expect-error 2353
 		duplex: 'half',
@@ -83,7 +87,7 @@ export function convertToRequest(req: IncomingMessage): Request {
 	return request;
 }
 
-export async function convertFromResponse(res: ServerResponse, response: Response): Promise<void> {
+export async function convertFromResponse(res: Http2ServerResponse, response: Response): Promise<void> {
 	res.writeHead(response.status, Object.fromEntries(response.headers));
 
 	if (!response.body) {

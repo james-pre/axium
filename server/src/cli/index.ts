@@ -10,7 +10,7 @@ import * as io from 'ioium/node';
 import { allLogLevels } from 'logzen';
 import { createWriteStream, readFileSync } from 'node:fs';
 import { access, watch } from 'node:fs/promises';
-import type { Server as HttpServer } from 'node:http';
+import type { Http2Server } from 'node:http2';
 import { join, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import type { Entries } from 'utilium';
@@ -328,7 +328,7 @@ program
 	.option('-g, --git', 'Use .gitignore to ignore files (can improve performance)')
 	.action(async (dir, opts) => {
 		let buildId = 0,
-			server: HttpServer | undefined;
+			server: Http2Server | undefined;
 
 		logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
 		db.connect();
