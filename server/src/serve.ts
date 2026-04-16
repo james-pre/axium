@@ -219,7 +219,15 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Http2Server> {
 	if (!opt.secure && !config.web.secure) return createServer(handle);
 
 	return createSecureServer(
-		{ allowHTTP1: true, key: readFileSync(opt.ssl_key || config.web.ssl_key), cert: readFileSync(opt.ssl_cert || config.web.ssl_cert) },
+		{
+			allowHTTP1: true,
+			settings: {
+				initialWindowSize: 1048576 * 8,
+				maxFrameSize: 1048576 * 8,
+			},
+			key: readFileSync(opt.ssl_key || config.web.ssl_key),
+			cert: readFileSync(opt.ssl_cert || config.web.ssl_cert),
+		},
 		handle
 	);
 }
