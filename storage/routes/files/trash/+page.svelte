@@ -27,11 +27,13 @@
 	}
 
 	function useAndClearActive(thunk: () => any) {
-		if (!activeItem) throw text('storage.generic.no_item');
-		const result = thunk();
-		const index = items.findIndex(item => item.id === activeId);
-		if (index !== -1) items.splice(index, 1);
-		return result;
+		return () => {
+			if (!activeItem) throw text('storage.generic.no_item');
+			const result = thunk();
+			const index = items.findIndex(item => item.id === activeId);
+			if (index !== -1) items.splice(index, 1);
+			return result;
+		};
 	}
 </script>
 
