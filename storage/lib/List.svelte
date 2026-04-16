@@ -21,8 +21,8 @@
 		user,
 	}: { appMode?: boolean; items: (StorageItemMetadata & AccessControllable)[]; emptyText?: string; user?: UserPublic } = $props();
 
-	let activeIndex = $state<number>(0);
-	const activeItem = $derived(items[activeIndex]);
+	let activeId = $state<string>();
+	const activeItem = $derived(items.find(item => item.id === activeId));
 	const activeItemName = $derived(formatItemName(activeItem));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
@@ -38,25 +38,31 @@
 	}
 
 	const sortedItems = $derived(
-		items
-			.map((item, i) => [item, i] as const)
-			.toSorted(
-				sort
-					? ([_a], [_b]) => {
-							const [a, b] = sort?.descending ? [_b, _a] : [_a, _b];
-							// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
-							return sort.by == 'name' ? a.name.localeCompare(b.name) : a[sort.by] - b[sort.by];
-						}
-					: undefined
-			)
+		items.toSorted(
+			sort
+				? (_a, _b) => {
+						const [a, b] = sort?.descending ? [_b, _a] : [_a, _b];
+						// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
+						return sort.by == 'name' ? a.name.localeCompare(b.name) : a[sort.by] - b[sort.by];
+					}
+				: undefined
+		)
 	);
+
+	function removeActiveItem() {
+		const index = items.findIndex(item => item.id === activeId);
+		if (index == -1) return console.warn('Can not remove active item because it does not exist');
+		items.splice(index, 1);
+		activeId = undefined;
+		dialogs.preview.close();
+	}
 </script>
 
-{#snippet action(name: string, icon: string, i: number)}
+{#snippet action(name: string, icon: string, id: string)}
 	<span
 		class="icon-text action"
 		onclick={() => {
-			activeIndex = i;
+			activeId = id;
 			dialogs[name].showModal();
 		}}
 	>
@@ -79,32 +85,33 @@
 			</span>
 		{/each}
 	</div>
-	{#each sortedItems as [item, i] (item.id)}
+	{#each sortedItems as item (item.id)}
 		{@const trash = () => {
-			activeIndex = i;
-			toastStatus(
-				updateItemMetadata(activeItem.id, { trash: true }).then(() => items.splice(activeIndex, 1)),
-				text('storage.generic.trash_success')
-			);
+			activeId = item.id;
+			toastStatus(updateItemMetadata(activeId, { trash: true }).then(removeActiveItem), text('storage.generic.trash_success'));
 		}}
 		<div
 			class="list-item"
 			onclick={async () => {
 				if (item.type != 'inode/directory') {
-					activeIndex = i;
+					activeId = item.id;
 					dialogs.preview.showModal();
 				} else if (appMode) location.href = '/files/' + item.id;
 				else items = await getDirectoryMetadata(item.id);
 			}}
 			{@attach contextMenu(
-				{ i: 'pencil', text: text('storage.generic.rename'), action: () => ((activeIndex = i), dialogs.rename.showModal()) },
+				{ i: 'pencil', text: text('storage.generic.rename'), action: () => ((activeId = item.id), dialogs.rename.showModal()) },
 				{
 					i: 'user-group',
 					text: text('storage.List.share'),
-					action: () => ((activeIndex = i), dialogs['share:' + item.id].showModal()),
+					action: () => ((activeId = item.id), dialogs['share:' + item.id].showModal()),
 				},
-				{ i: 'download', text: text('storage.generic.download'), action: () => ((activeIndex = i), dialogs.download.showModal()) },
-				{ i: 'link-horizontal', text: text('storage.List.copy_link'), action: () => ((activeIndex = i), copyShortURL(item)) },
+				{
+					i: 'download',
+					text: text('storage.generic.download'),
+					action: () => ((activeId = item.id), dialogs.download.showModal()),
+				},
+				{ i: 'link-horizontal', text: text('storage.List.copy_link'), action: () => ((activeId = item.id), copyShortURL(item)) },
 				{ i: 'trash', text: text('storage.generic.trash'), action: trash },
 				user?.preferences?.debug && {
 					i: 'hashtag',
@@ -126,9 +133,9 @@
 					e.stopImmediatePropagation();
 				}}
 			>
-				{@render action('rename', 'pencil', i)}
-				{@render action('share:' + item.id, 'user-group', i)}
-				{@render action('download', 'download', i)}
+				{@render action('rename', 'pencil', item.id)}
+				{@render action('share:' + item.id, 'user-group', item.id)}
+				{@render action('download', 'download', item.id)}
 				<span class="icon-text action" onclick={trash}>
 					<Icon i="trash" --size="14px" />
 				</span>
@@ -142,12 +149,7 @@
 
 <dialog bind:this={dialogs.preview} class="preview" onclick={e => e.stopPropagation()} {@attach closeOnBackGesture}>
 	{#if activeItem}
-		<Preview
-			item={activeItem}
-			previewDialog={dialogs.preview}
-			shareDialog={dialogs['share:' + activeItem.id]}
-			onDelete={() => items.splice(activeIndex, 1)}
-		/>
+		<Preview item={activeItem} previewDialog={dialogs.preview} shareDialog={dialogs['share:' + activeId]} onDelete={removeActiveItem} />
 	{/if}
 </dialog>
 
@@ -155,8 +157,8 @@
 	bind:dialog={dialogs.rename}
 	submitText={text('storage.generic.rename')}
 	submit={async (data: { name: string }) => {
-		if (!activeItem) throw text('storage.generic.no_item');
-		await updateItemMetadata(activeItem.id, data);
+		if (!activeId || !activeItem) throw text('storage.generic.no_item');
+		await updateItemMetadata(activeId, data);
 		activeItem.name = data.name;
 	}}
 >
@@ -168,8 +170,10 @@
 <FormDialog
 	bind:dialog={dialogs.download}
 	submitText={text('storage.generic.download')}
-	submit={async () =>
-		open(activeItem.type != 'inode/directory' ? activeItem.dataURL : '/raw/storage/directory-zip/' + activeItem.id, '_blank')}
+	submit={async () => {
+		if (!activeId || !activeItem) throw text('storage.generic.no_item');
+		open(activeItem.type != 'inode/directory' ? activeItem.dataURL : '/raw/storage/directory-zip/' + activeId, '_blank');
+	}}
 >
 	<p>{text('storage.generic.download_confirm_named', { name: activeItemName })}</p>
 </FormDialog>

@@ -13,17 +13,25 @@
 	let restoreDialog = $state<HTMLDialogElement>()!;
 	let deleteDialog = $state<HTMLDialogElement>()!;
 
-	let activeIndex = $state<number>(-1);
-	const activeItem = $derived(activeIndex == -1 ? null : items[activeIndex]);
+	let activeId = $state<string>();
+	const activeItem = $derived(items.find(item => item.id === activeId));
 	const activeItemName = $derived(formatItemName(activeItem));
 
-	function action(index: number, dialog: () => HTMLDialogElement) {
+	function action(id: string, dialog: () => HTMLDialogElement) {
 		return (e: Event) => {
 			e.stopPropagation();
 			e.preventDefault();
-			activeIndex = index;
+			activeId = id;
 			dialog().showModal();
 		};
+	}
+
+	function useAndClearActive(thunk: () => any) {
+		if (!activeItem) throw text('storage.generic.no_item');
+		const result = thunk();
+		const index = items.findIndex(item => item.id === activeId);
+		if (index !== -1) items.splice(index, 1);
+		return result;
 	}
 </script>
 
@@ -38,16 +46,16 @@
 		<span>{text('page.files.trash_page.last_modified')}</span>
 		<span>{text('storage.List.size')}</span>
 	</div>
-	{#each items as item, i (item.id)}
+	{#each items as item (item.id)}
 		<div class="list-item">
 			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 			<span class="name">{item.name}</span>
 			<span>{item.modifiedAt.toLocaleString()}</span>
 			<span>{formatBytes(item.size)}</span>
-			<span class="action" onclick={action(i, () => restoreDialog)}>
+			<span class="action" onclick={action(item.id, () => restoreDialog)}>
 				<Icon i="rotate-left" --size="14px" />
 			</span>
-			<span class="action" onclick={action(i, () => deleteDialog)}>
+			<span class="action" onclick={action(item.id, () => deleteDialog)}>
 				<Icon i="trash-can-xmark" --size="14px" --fill="#c44" />
 			</span>
 		</div>
@@ -59,11 +67,7 @@
 <FormDialog
 	bind:dialog={restoreDialog}
 	submitText={text('page.files.trash_page.restore')}
-	submit={async () => {
-		if (!activeItem) throw text('storage.generic.no_item');
-		await updateItemMetadata(activeItem.id, { trash: false });
-		items.splice(activeIndex, 1);
-	}}
+	submit={useAndClearActive(() => updateItemMetadata(activeId!, { trash: false }))}
 >
 	<p>{text('page.files.trash_page.restore_confirm', { name: activeItemName })}</p>
 </FormDialog>
@@ -71,15 +75,9 @@
 	bind:dialog={deleteDialog}
 	submitText={text('page.files.trash_page.delete')}
 	submitDanger
-	submit={async () => {
-		if (!activeItem) throw text('storage.generic.no_item');
-		await deleteItem(activeItem.id);
-		items.splice(activeIndex, 1);
-	}}
+	submit={useAndClearActive(() => deleteItem(activeId!))}
 >
-	<p>
-		{text('page.files.trash_page.delete_confirm', { name: activeItemName })}
-	</p>
+	<p>{text('page.files.trash_page.delete_confirm', { name: activeItemName })}</p>
 </FormDialog>
 
 <style>
