@@ -8,7 +8,7 @@ function get_raw_body(req: Http2ServerRequest): ReadableStream | null {
 	const content_length = Number(req.headers['content-length']);
 
 	// check if no request body
-	if ((req.httpVersionMajor === 1 && isNaN(content_length) && req.headers['transfer-encoding'] == null) || !content_length) {
+	if ((req.httpVersionMajor === 1 && isNaN(content_length) && req.headers['transfer-encoding'] == null) || content_length === 0) {
 		return null;
 	}
 
