@@ -1,13 +1,12 @@
+import { formatBytes } from '@axium/core';
 import { Command } from 'commander';
 import * as io from 'ioium/node';
 import mime from 'mime';
 import * as fs from 'node:fs';
 import { basename } from 'node:path';
-import { Readable } from 'node:stream';
-import { colorItem, formatItems } from '../../node.js';
+import { colorItem, formatItems, streamRead } from '../../node.js';
 import * as api from '../api.js';
 import { getDirectory, resolveItem, resolvePathWithParent, syncCache, writeCache } from '../local.js';
-import { formatBytes } from '@axium/core';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -78,10 +77,9 @@ export const upload = new Command('upload')
 			} else throw 'Directory exists at remote path: ' + existingTarget.name;
 		} else if (existingTarget && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
 
-		const stream = Readable.toWeb(fs.createReadStream(local)) as ReadableStream<any>;
 		const type = mime.getType(local) || 'application/octet-stream';
 		using _ = io.start('Uploading ' + name);
-		const item = await api.createItem(stream, {
+		const item = await api.createItem(streamRead(local), {
 			parentId: parent?.id,
 			name,
 			size: stats.size,

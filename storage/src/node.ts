@@ -1,6 +1,8 @@
 import { formatBytes } from '@axium/core/format';
 import { styleText } from 'node:util';
 import type { StorageItemMetadata } from './common.js';
+import { Readable, Writable } from 'node:stream';
+import { createReadStream, createWriteStream } from 'node:fs';
 
 const executables = ['application/x-pie-executable', 'application/x-sharedlib', 'application/vnd.microsoft.portable-executable'];
 
@@ -61,4 +63,16 @@ export function* formatItems({ items, users, humanReadable }: FormatItemsConfig)
 
 		yield `${type}${ownerPerm}${ownerPerm}. ${owner.padEnd(nameWidth)} ${item.__size!.padStart(sizeWidth)} ${formatDate(item.modifiedAt)} ${colorItem(item)}`;
 	}
+}
+
+// 2 MiB
+const highWaterMark = 1024 * 1024 * 2;
+
+export function streamRead(path: string, start?: number, end?: number): ReadableStream<Uint8Array<ArrayBuffer>> {
+	// cast because Node.js' internals use different types from lib.dom.d.ts
+	return Readable.toWeb(createReadStream(path, { start, end, highWaterMark })) as ReadableStream;
+}
+
+export async function streamWrite(path: string, stream: ReadableStream): Promise<void> {
+	await stream.pipeTo(Writable.toWeb(createWriteStream(path, { highWaterMark })));
 }

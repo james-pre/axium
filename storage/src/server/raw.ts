@@ -4,11 +4,11 @@ import { authRequestForItem, requireSession } from '@axium/server/auth';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { copyFileSync, createReadStream, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
-import { Readable } from 'node:stream';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
+import { streamRead } from '../node.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { getUserStats } from './db.js';
@@ -175,7 +175,7 @@ addRoute({
 			});
 		}
 
-		const content = Readable.toWeb(createReadStream(path, { start, end })) as ReadableStream;
+		const content = streamRead(path, start, end);
 
 		return new Response(content, {
 			status: BigInt(length) == item.size ? 200 : 206,
