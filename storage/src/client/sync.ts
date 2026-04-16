@@ -9,7 +9,7 @@ import { Readable, Writable } from 'node:stream';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import '../polyfills.js';
-import { deleteItem, downloadItemStream, updateItem, uploadItem, uploadItemStream } from './api.js';
+import { deleteItem, downloadItemStream, updateItem, createItem, createDirectory } from './api.js';
 
 /**
  * A Sync is a storage item that has been selected for synchronization by the user.
@@ -186,14 +186,14 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 			};
 
 			if (dirent.isDirectory()) {
-				const dir = await uploadItem(new Blob([], { type: 'inode/directory' }), uploadOpts);
-				_items.set(dirent._path, Object.assign(pick(dir, 'id', 'modifiedAt'), { path: dirent._path, hash: null }));
+				const dir = await createDirectory(dirent.name, uploadOpts.parentId);
+				_items.set(dirent._path, Object.assign(pick(dir, 'id', 'modifiedAt'), { path: dirent._path }));
 			} else {
 				const type = mime.getType(dirent._path) || 'application/octet-stream';
 				const { size } = fs.statSync(join(sync.local_path, dirent._path));
 				// cast because Node.js' internals use different types from lib.dom.d.ts
 				const stream = Readable.toWeb(fs.createReadStream(join(sync.local_path, dirent._path))) as ReadableStream<any>;
-				const file = await uploadItemStream(stream, { ...uploadOpts, type, size });
+				const file = await createItem(stream, { ...uploadOpts, type, size });
 				_items.set(dirent._path, Object.assign(pick(file, 'id', 'modifiedAt', 'hash'), { path: dirent._path }));
 			}
 		}
@@ -240,9 +240,9 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 				await stream.pipeTo(Writable.toWeb(writeStream));
 				return 'server.';
 			} else {
-				const type = mime.getType(item.path) || 'application/octet-stream';
-				const content = fs.readFileSync(join(sync.local_path, item.path));
-				const updated = await updateItem(item.id, new Blob([content], { type }));
+				const { size } = fs.statSync(join(sync.local_path, item.path));
+				const stream = Readable.toWeb(fs.createReadStream(join(sync.local_path, item.path))) as ReadableStream<any>;
+				const updated = await updateItem(item.id, size, stream);
 				_items.set(item.path, Object.assign(pick(updated, 'id', 'modifiedAt', 'hash'), { path: item.path }));
 				return 'local.';
 			}

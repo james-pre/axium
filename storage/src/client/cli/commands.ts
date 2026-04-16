@@ -32,7 +32,7 @@ export const mkdir = new Command('mkdir')
 	.argument('<path>', 'remote folder path to create')
 	.action(async (path: string) => {
 		const { parent, name } = await resolvePathWithParent(path);
-		const item = await api.uploadItem(new Blob([], { type: 'inode/directory' }), { parentId: parent?.id, name });
+		const item = await api.createDirectory(name, parent?.id);
 		const { items } = await syncCache();
 		items.push(item);
 		writeCache();
@@ -78,10 +78,10 @@ export const upload = new Command('upload')
 			} else throw 'Directory exists at remote path: ' + existingTarget.name;
 		} else if (existingTarget && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
 
-		const stream = Readable.toWeb(fs.createReadStream(local));
+		const stream = Readable.toWeb(fs.createReadStream(local)) as ReadableStream<any>;
 		const type = mime.getType(local) || 'application/octet-stream';
 		using _ = io.start('Uploading ' + name);
-		const item = await api.uploadItemStream(stream as ReadableStream<Uint8Array<ArrayBuffer>>, {
+		const item = await api.createItem(stream, {
 			parentId: parent?.id,
 			name,
 			size: stats.size,

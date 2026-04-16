@@ -1,24 +1,9 @@
 import { fetchAPI, prefix, token } from '@axium/client/requests';
-import { blake2b } from 'blakejs';
+import { pick } from 'utilium';
 import { prettifyError } from 'zod';
-import type { GetItemOptions, StorageItemUpdate, UserStorage, UserStorageInfo, UserStorageOptions } from '../common.js';
+import type { GetItemOptions, StorageItemUpdate, UploadInitResult, UserStorage, UserStorageInfo, UserStorageOptions } from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
-
-const uploadConfig = {
-	/**
-	 * Requests below this amount in MB will be hashed client-side to avoid bandwidth usage.
-	 * This is most useful when the client has plenty of compute but a poor network connection.
-	 * For good connections, this isn't really useful since it takes longer than just uploading.
-	 * Note that hashing takes a really long time client-side though.
-	 */
-	hashThreshold: 10,
-	/**
-	 * Set an upper limit for chunk size in MB, independent of `max_transfer_size`.
-	 * Smaller chunks means better UX but more latency from RTT and more requests.
-	 */
-	uxChunkSize: 10,
-};
 
 function rawStorage(suffix?: string): string | URL {
 	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
@@ -27,28 +12,6 @@ function rawStorage(suffix?: string): string | URL {
 	url.pathname = raw;
 	return url;
 }
-
-declare global {
-	interface NetworkInformation {
-		readonly downlink: number;
-		readonly downlinkMax?: number;
-		readonly effectiveType: 'slow-2g' | '2g' | '3g' | '4g';
-		readonly rtt: number;
-		readonly saveData: boolean;
-		readonly type: 'bluetooth' | 'cellular' | 'ethernet' | 'none' | 'wifi' | 'wimax' | 'other' | 'unknown';
-	}
-
-	interface Navigator {
-		connection?: NetworkInformation;
-	}
-}
-
-const conTypeToSpeed = {
-	'slow-2g': 1,
-	'2g': 4,
-	'3g': 16,
-	'4g': 64,
-} satisfies Record<NetworkInformation['effectiveType'], number>;
 
 function handleFetchFailed(e: unknown): never {
 	if (!(e instanceof Error) || e.message != 'fetch failed') throw e;
@@ -79,97 +42,30 @@ async function handleResponse(response: Response | undefined) {
 	}
 }
 
-export interface UploadOptions {
-	parentId?: string;
-	name?: string;
-	onProgress?(this: void, uploaded: number, total: number): void;
-}
+type ProgressHandler = (this: void, uploaded: number, total: number) => void;
 
-export async function uploadItem(file: Blob | File, opt: UploadOptions = {}): Promise<StorageItemMetadata> {
-	if (file instanceof File) opt.name ||= file.name;
-
-	if (!opt.name) throw 'item name is required';
-
-	const content = await file.bytes();
-
-	/** For big files, it takes a *really* long time to compute the hash, so we just don't do it ahead of time and leave it up to the server. */
-	const hash = content.length < uploadConfig.hashThreshold * 1_000_000 ? blake2b(content).toHex() : null;
-
-	const upload = await fetchAPI('PUT', 'storage', {
-		parentId: opt.parentId,
-		name: opt.name,
-		type: file.type,
-		size: file.size,
-		hash,
-	});
-
-	if (upload.status == 'created') return upload.item;
-
-	const chunkSize =
-		Math.min(
-			upload.max_transfer_size,
-			globalThis.navigator?.connection ? conTypeToSpeed[globalThis.navigator.connection.effectiveType] : uploadConfig.uxChunkSize
-		) * 1_000_000;
-
-	opt.onProgress?.(0, content.length);
-
-	let response: Response | undefined;
-
-	for (let offset = 0; offset < content.length; offset += chunkSize) {
-		const size = Math.min(chunkSize, content.length - offset);
-		const headers: HeadersInit & object = {
-			'x-upload': upload.token,
-			'x-offset': offset.toString(),
-			'content-length': size.toString(),
-			'content-type': 'application/octet-stream',
-		};
-		if (token) headers.authorization = 'Bearer ' + token;
-		response = await fetch(rawStorage('chunk'), {
-			method: 'POST',
-			headers,
-			body: content.slice(offset, offset + size),
-		}).catch(handleFetchFailed);
-
-		if (!response.ok) await handleError(response);
-
-		opt.onProgress?.(offset + size, content.length);
-
-		if (offset + size != content.length && response.status != 204) console.warn('Unexpected end of upload before last chunk');
-	}
-
-	return await handleResponse(response);
-}
-
-export interface UploadStreamOptions extends UploadOptions {
-	name: string;
-	size: number;
-	type: string;
-}
-
-export async function uploadItemStream(
+async function _uploadStream(
+	upload: UploadInitResult,
 	stream: ReadableStream<Uint8Array<ArrayBuffer>>,
-	opt: UploadStreamOptions
+	itemSize: number,
+	onProgress?: ProgressHandler
 ): Promise<StorageItemMetadata> {
-	opt.onProgress?.(0, opt.size);
-
-	const upload = await fetchAPI('PUT', 'storage', { ...opt, hash: null });
-
 	if (upload.status == 'created') return upload.item;
 
-	const chunkSize = upload.max_transfer_size * 1_000_000;
+	const targetChunkSize = upload.max_transfer_size * 1_000_000;
 
 	let response: Response | undefined;
 	const reader = stream.getReader();
 	let buffer = new Uint8Array(0);
 
-	for (let offset = 0; offset < opt.size; offset += chunkSize) {
-		const size = Math.min(chunkSize, opt.size - offset);
+	for (let offset = 0; offset < itemSize; offset += targetChunkSize) {
+		const chunkSize = Math.min(targetChunkSize, itemSize - offset);
 		let bytesReadForChunk = 0;
 
 		const headers: HeadersInit & object = {
 			'x-upload': upload.token,
 			'x-offset': offset.toString(),
-			'content-length': size.toString(),
+			'content-length': chunkSize.toString(),
 			'content-type': 'application/octet-stream',
 		};
 
@@ -181,7 +77,7 @@ export async function uploadItemStream(
 			body: new ReadableStream<Uint8Array>({
 				type: 'bytes',
 				async pull(controller) {
-					if (bytesReadForChunk >= size) {
+					if (bytesReadForChunk >= chunkSize) {
 						controller.close();
 						return;
 					}
@@ -195,14 +91,14 @@ export async function uploadItemStream(
 						buffer = value;
 					}
 
-					const take = Math.min(buffer.length, size - bytesReadForChunk);
+					const take = Math.min(buffer.length, chunkSize - bytesReadForChunk);
 					const chunk = buffer.subarray(0, take);
 					buffer = buffer.subarray(take);
 
 					bytesReadForChunk += take;
 					controller.enqueue(chunk);
 
-					opt.onProgress?.(offset + bytesReadForChunk, opt.size);
+					onProgress?.(offset + bytesReadForChunk, itemSize);
 				},
 			}),
 			// @ts-expect-error 2769
@@ -211,28 +107,50 @@ export async function uploadItemStream(
 
 		if (!response.ok) await handleError(response);
 
-		if (offset + size != opt.size && response.status != 204) console.warn('Unexpected end of upload before last chunk');
+		if (offset + chunkSize != itemSize && response.status != 204) console.warn('Unexpected end of upload before last chunk');
 	}
 
 	return await handleResponse(response);
 }
 
-export async function updateItem(fileId: string, data: Blob): Promise<StorageItemMetadata> {
-	const init = {
-		method: 'POST',
-		headers: {
-			'Content-Type': data.type,
-			'Content-Length': data.size.toString(),
-		} as Record<string, string>,
-		body: data,
-	} satisfies RequestInit;
+export async function createDirectory(name: string, parentId?: string): Promise<StorageItemMetadata> {
+	const upload = await fetchAPI('PUT', 'storage', { name, parentId, type: 'inode/directory', size: 0, hash: null });
 
-	if (data instanceof File) init.headers['X-Name'] = data.name;
-	if (token) init.headers.Authorization = 'Bearer ' + token;
+	if (upload.status != 'created') throw new Error('Bug! Creating a directory resulted in an `accepted` status');
 
-	const response = await fetch(rawStorage(fileId), init).catch(handleFetchFailed);
+	return upload.item;
+}
 
-	return await handleResponse(response);
+export interface CreateItemInit {
+	onProgress?: ProgressHandler;
+	parentId?: string;
+	name: string;
+	size: number;
+	type: string;
+}
+
+export async function createItem(stream: ReadableStream<Uint8Array<ArrayBuffer>>, init: CreateItemInit): Promise<StorageItemMetadata> {
+	init.onProgress?.(0, init.size);
+
+	if (!init.name) throw 'item name is required';
+
+	const upload = await fetchAPI('PUT', 'storage', { ...init, hash: null });
+
+	return await _uploadStream(upload, stream, init.size, init.onProgress);
+}
+
+export async function createItemFromFile(file: File, init: Partial<CreateItemInit>): Promise<StorageItemMetadata> {
+	return await createItem(file.stream(), { ...pick(file, 'name', 'size', 'type'), ...init });
+}
+
+export async function updateItem(
+	fileId: string,
+	newSize: number | bigint,
+	stream: ReadableStream<Uint8Array<ArrayBuffer>>,
+	onProgress?: ProgressHandler
+): Promise<StorageItemMetadata> {
+	const upload = await fetchAPI('POST', 'storage/item/:id', newSize, fileId);
+	return await _uploadStream(upload, stream, Number(newSize), onProgress);
 }
 
 export async function getItemMetadata(fileId: string, options: GetItemOptions = {}): Promise<StorageItemMetadata> {

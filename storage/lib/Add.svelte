@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { forMime } from '@axium/core/icons';
 	import { FormDialog, Icon, Popover, Upload } from '@axium/client/components';
-	import { uploadItem } from '@axium/storage/client';
+	import { createItemFromFile } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { text } from '@axium/client';
 
@@ -46,7 +46,7 @@
 	cancel={() => (files = new DataTransfer().files)}
 	submit={async () => {
 		for (const [i, file] of Array.from(files!).entries()) {
-			const item = await uploadItem(file, {
+			const item = await createItemFromFile(file, {
 				parentId,
 				onProgress(uploaded, total) {
 					uploadProgress[i] = [uploaded, total];
@@ -64,7 +64,7 @@
 	submitText={text('storage.Add.create')}
 	submit={async (data: { name: string; content?: string }) => {
 		const file = new File(createIncludesContent ? [data.content!] : [], data.name, { type: createType });
-		const item = await uploadItem(file, { parentId });
+		const item = await createItemFromFile(file, { parentId });
 		onAdd?.(item);
 	}}
 >
