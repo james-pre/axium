@@ -4,6 +4,7 @@ import { prettifyError } from 'zod';
 import type { GetItemOptions, StorageItemUpdate, UploadInitResult, UserStorage, UserStorageInfo, UserStorageOptions } from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
+import { warnOnce } from 'ioium';
 
 function rawStorage(suffix?: string): string | URL {
 	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
@@ -44,7 +45,7 @@ async function handleResponse(response: Response | undefined) {
 
 type ProgressHandler = (this: void, uploaded: number, total: number) => void;
 
-async function _uploadStream(
+async function _upload(
 	upload: UploadInitResult,
 	stream: ReadableStream<Uint8Array<ArrayBuffer>>,
 	itemSize: number,
@@ -71,38 +72,71 @@ async function _uploadStream(
 
 		if (token) headers.authorization = 'Bearer ' + token;
 
-		response = await fetch(rawStorage('chunk'), {
-			method: 'POST',
-			headers,
-			body: new ReadableStream<Uint8Array>({
-				type: 'bytes',
-				async pull(controller) {
-					if (bytesReadForChunk >= chunkSize) {
+		let body: BodyInit = new ReadableStream<Uint8Array>({
+			async pull(controller) {
+				if (bytesReadForChunk >= chunkSize) {
+					controller.close();
+					return;
+				}
+
+				if (!buffer.length) {
+					const { done, value } = await reader.read();
+					if (done) {
 						controller.close();
 						return;
 					}
+					buffer = value;
+				}
 
-					if (!buffer.length) {
-						const { done, value } = await reader.read();
-						if (done) {
-							controller.close();
-							return;
-						}
-						buffer = value;
-					}
+				const take = Math.min(buffer.length, chunkSize - bytesReadForChunk);
+				const chunk = buffer.subarray(0, take);
+				buffer = buffer.subarray(take);
 
-					const take = Math.min(buffer.length, chunkSize - bytesReadForChunk);
-					const chunk = buffer.subarray(0, take);
-					buffer = buffer.subarray(take);
+				bytesReadForChunk += take;
+				controller.enqueue(chunk);
 
-					bytesReadForChunk += take;
-					controller.enqueue(chunk);
+				onProgress?.(offset + bytesReadForChunk, itemSize);
+			},
+		});
+		let init: object = { duplex: 'half' };
 
-					onProgress?.(offset + bytesReadForChunk, itemSize);
-				},
-			}),
-			// @ts-expect-error 2769
-			duplex: 'half',
+		/**
+		 * @see https://bugzilla.mozilla.org/show_bug.cgi?id=1387483
+		 */
+		if (globalThis.navigator?.userAgent?.toLowerCase().includes('firefox')) {
+			await body.cancel();
+			init = {};
+			warnOnce('Using a workaround for uploading on Firefox [https://bugzilla.mozilla.org/show_bug.cgi?id=1387483]');
+
+			const chunkData = new Uint8Array(chunkSize);
+			let bytesReadForChunk = 0;
+
+			if (buffer.length > 0) {
+				const take = Math.min(buffer.length, chunkSize);
+				chunkData.set(buffer.subarray(0, take), 0);
+				buffer = buffer.subarray(take);
+				bytesReadForChunk += take;
+			}
+
+			while (bytesReadForChunk < chunkSize) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				const take = Math.min(value.length, chunkSize - bytesReadForChunk);
+				chunkData.set(value.subarray(0, take), bytesReadForChunk);
+				buffer = value.subarray(take);
+				bytesReadForChunk += take;
+			}
+
+			body = chunkData.subarray(0, bytesReadForChunk);
+			onProgress?.(offset + bytesReadForChunk, itemSize);
+		}
+
+		response = await fetch(rawStorage('chunk'), {
+			method: 'POST',
+			headers,
+			body,
+			...init,
 		}).catch(handleFetchFailed);
 
 		if (!response.ok) await handleError(response);
@@ -136,7 +170,7 @@ export async function createItem(stream: ReadableStream<Uint8Array<ArrayBuffer>>
 
 	const upload = await fetchAPI('PUT', 'storage', { ...init, hash: null });
 
-	return await _uploadStream(upload, stream, init.size, init.onProgress);
+	return await _upload(upload, stream, init.size, init.onProgress);
 }
 
 export async function createItemFromFile(file: File, init: Partial<CreateItemInit>): Promise<StorageItemMetadata> {
@@ -150,7 +184,7 @@ export async function updateItem(
 	onProgress?: ProgressHandler
 ): Promise<StorageItemMetadata> {
 	const upload = await fetchAPI('POST', 'storage/item/:id', newSize, fileId);
-	return await _uploadStream(upload, stream, Number(newSize), onProgress);
+	return await _upload(upload, stream, Number(newSize), onProgress);
 }
 
 export async function getItemMetadata(fileId: string, options: GetItemOptions = {}): Promise<StorageItemMetadata> {
