@@ -155,13 +155,7 @@
 <FormDialog
 	bind:dialog={dialogs.download}
 	submitText={text('storage.generic.download')}
-	submit={async () => {
-		if (item!.type == 'inode/directory') {
-			/** @todo ZIP support */
-			const children = await getDirectoryMetadata(item.id);
-			for (const child of children) open(child.dataURL, '_blank');
-		} else open(item!.dataURL, '_blank');
-	}}
+	submit={async () => open(item.type != 'inode/directory' ? item.dataURL : '/raw/storage/directory-zip/' + item.id, '_blank')}
 >
 	<p>{text('storage.generic.download_confirm')}</p>
 </FormDialog>
