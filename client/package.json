@@ -34,8 +34,10 @@
 		"./package.json": "./package.json",
 		".": "./dist/index.js",
 		"./gui": "./dist/gui/index.js",
+		"./native": "./dist/native/index.js",
 		"./*": "./dist/*.js",
 		"./components": "./lib/index.js",
+		"./components/native": "./lib/native/index.js",
 		"./components/*": "./lib/*.svelte",
 		"./toast": "./lib/toast.js",
 		"./attachments": "./lib/attachments.js",
@@ -53,8 +55,12 @@
 		"zod": "^4.0.5"
 	},
 	"dependencies": {
+		"@capacitor/preferences": "^8.0.1",
 		"@simplewebauthn/browser": "^13.1.0",
 		"commander": "^14.0.0",
 		"music-metadata": "^11.12.3"
+	},
+	"devDependencies": {
+		"@sveltejs/kit": "^2.56.1"
 	}
 }

@@ -229,6 +229,12 @@
 			"failed": "Login Failed"
 		}
 	},
+	"native": {
+		"setup": {
+			"prefix": "Server address",
+			"next": "Next"
+		}
+	},
 	"location": {
 		"country": "Country",
 		"subdivision": "State / province",
