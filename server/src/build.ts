@@ -1,4 +1,5 @@
 import nodeAdapter from '@sveltejs/adapter-node';
+import staticAdapter from '@sveltejs/adapter-static';
 import type { Config as SvelteConfig } from '@sveltejs/kit';
 import { svelte as viteSveltePlugin, type Options as SvelteViteOptions } from '@sveltejs/vite-plugin-svelte';
 import { exit } from 'ioium/node';
@@ -16,7 +17,7 @@ if (!sveltekitPackageJSON) exit('Could not resolve @sveltejs/kit package.', 6);
 const { process_config: processSvelteConfig } = await import(join(sveltekitPackageJSON, '../src/core/config/index.js'));
 const { kit: svelteKitPlugin } = await import(join(sveltekitPackageJSON, '../src/exports/vite/index.js'));
 
-const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
+const baseSvelteConfig = {
 	compilerOptions: {
 		runes: true,
 		warningFilter(w) {
@@ -37,11 +38,11 @@ const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
 			},
 		},
 	},
-};
+} satisfies SvelteConfig;
 
 const vitePluginSvelteOptions = {
 	configFile: false,
-	...pick(baseSvelteConfig, 'extensions', 'preprocess', 'onwarn', 'compilerOptions'),
+	...pick(baseSvelteConfig as SvelteConfig, 'extensions', 'preprocess', 'onwarn', 'compilerOptions'),
 } satisfies SvelteViteOptions;
 
 const baseViteConfig: WithRequired<InlineConfig, 'build'> = {
@@ -68,13 +69,22 @@ const baseViteConfig: WithRequired<InlineConfig, 'build'> = {
 };
 
 async function createConfig(options: BuildOptions): Promise<WithRequired<InlineConfig, 'build'>> {
-	const svelteConfig = processSvelteConfig({
+	const svelteConfig: SvelteConfig = processSvelteConfig({
 		...baseSvelteConfig,
 		kit: {
 			...baseSvelteConfig.kit,
-			adapter: nodeAdapter(),
+			files: {
+				...baseSvelteConfig.kit.files,
+				routes: options.native ? 'native' : config.web.routes,
+			},
+			adapter: options.native
+				? staticAdapter({
+						fallback: 'index.html',
+						pages: 'build/native',
+					})
+				: nodeAdapter(),
 		},
-	});
+	} satisfies SvelteConfig);
 
 	const viteConfig = structuredClone(baseViteConfig);
 
@@ -128,6 +138,9 @@ export interface BuildOptions {
 
 	/** Whether to minify the output */
 	minify?: boolean;
+
+	/** Whether to build for native (mobile) apps */
+	native?: boolean;
 }
 
 export interface BuildStats {

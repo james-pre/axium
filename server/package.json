@@ -51,6 +51,7 @@
 		"@axium/core": ">=0.28.0",
 		"@simplewebauthn/browser": "^13.3.0",
 		"@sveltejs/adapter-node": "^5.2.12",
+		"@sveltejs/adapter-static": "^3.0.10",
 		"@sveltejs/kit": "2.56.1",
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"kysely": "^0.28.0",

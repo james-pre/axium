@@ -306,6 +306,7 @@ program
 	.description('Create the Vite build for the server')
 	.option('-v, --verbose', 'Show all output from the build process')
 	.option('-s, --diagnostics', 'Show build time and bundle size')
+	.option('-n, --native', 'Build for native (mobile) apps')
 	.option('-m, --no-minify', 'Whether to use minification')
 	.action(async options => {
 		const { time, size } = await io.track('Building', build(options));
