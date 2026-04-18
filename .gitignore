@@ -14,3 +14,4 @@ server/schemas
 !.vscode
 !.github
 !.npmrc
+*/android
