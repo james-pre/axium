@@ -16,7 +16,7 @@ if (!sveltekitPackageJSON) exit('Could not resolve @sveltejs/kit package.', 6);
 const { process_config: processSvelteConfig } = await import(join(sveltekitPackageJSON, '../src/core/config/index.js'));
 const { kit: svelteKitPlugin } = await import(join(sveltekitPackageJSON, '../src/exports/vite/index.js'));
 
-const svelteConfig: SvelteConfig = processSvelteConfig({
+const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
 	compilerOptions: {
 		runes: true,
 		warningFilter(w) {
@@ -27,7 +27,6 @@ const svelteConfig: SvelteConfig = processSvelteConfig({
 		},
 	},
 	kit: {
-		adapter: nodeAdapter(),
 		files: {
 			assets: join(fileURLToPath(new URL(import.meta.resolve('@axium/client'))), '../../assets'),
 			appTemplate: join(import.meta.dirname, '../template.html'),
@@ -38,24 +37,20 @@ const svelteConfig: SvelteConfig = processSvelteConfig({
 			},
 		},
 	},
-} satisfies SvelteConfig);
+};
 
 const vitePluginSvelteOptions = {
 	configFile: false,
-	...pick(svelteConfig, 'extensions', 'preprocess', 'onwarn', 'compilerOptions'),
+	...pick(baseSvelteConfig, 'extensions', 'preprocess', 'onwarn', 'compilerOptions'),
 } satisfies SvelteViteOptions;
 
-const viteConfig: WithRequired<InlineConfig, 'build'> = {
+const baseViteConfig: WithRequired<InlineConfig, 'build'> = {
 	configFile: false,
 	appType: 'custom',
 	server: {
 		strictPort: true,
 		port: 443,
 	},
-	plugins: [
-		...viteSveltePlugin(vitePluginSvelteOptions),
-		...(await svelteKitPlugin({ svelte_config: svelteConfig })) /*, mkcert({ hosts: ['cloud.jamespre.dev'] }) */,
-	],
 	ssr: {
 		external: ['@axium/server'],
 	},
@@ -72,17 +67,36 @@ const viteConfig: WithRequired<InlineConfig, 'build'> = {
 	logLevel: 'silent',
 };
 
-// SvelteKit uses a nested call to Vite's `build` that fails if we don't have a vite config file
-// We get around that with a sveltekit patch and this "hidden"/internal global
-const __axiumNestedConfig: WithRequired<InlineConfig, 'build'> = {
-	configFile: false,
-	appType: 'custom',
-	plugins: [viteSveltePlugin(vitePluginSvelteOptions), await svelteKitPlugin({ svelte_config: svelteConfig })],
-	logLevel: 'silent',
-	build: {},
-};
+async function createConfig(options: BuildOptions): Promise<WithRequired<InlineConfig, 'build'>> {
+	const svelteConfig = processSvelteConfig({
+		...baseSvelteConfig,
+		kit: {
+			...baseSvelteConfig.kit,
+			adapter: nodeAdapter(),
+		},
+	});
 
-Object.assign(globalThis, { __axiumNestedConfig });
+	const viteConfig = structuredClone(baseViteConfig);
+
+	const logLevel = options.verbose ? 'info' : 'silent';
+	Object.assign(viteConfig, { logLevel, build: pick(options, 'minify') });
+
+	viteConfig.plugins = [...viteSveltePlugin(vitePluginSvelteOptions), ...(await svelteKitPlugin({ svelte_config: svelteConfig }))];
+
+	// SvelteKit uses a nested call to Vite's `build` that fails if we don't have a vite config file
+	// We get around that with a sveltekit patch and this "hidden"/internal global
+	const __axiumNestedConfig: WithRequired<InlineConfig, 'build'> = {
+		configFile: false,
+		appType: 'custom',
+		plugins: [viteSveltePlugin(vitePluginSvelteOptions), await svelteKitPlugin({ svelte_config: svelteConfig })],
+		logLevel,
+		build: { minify: options.minify },
+	};
+
+	Object.assign(globalThis, { __axiumNestedConfig });
+
+	return viteConfig;
+}
 
 const decoder = new TextDecoder();
 
@@ -129,16 +143,12 @@ export async function build(options: BuildOptions = {}) {
 
 	const startTime = performance.now();
 
-	if (options.verbose) {
-		viteConfig.logLevel = 'info';
-		__axiumNestedConfig.logLevel = 'info';
-	} else {
+	const viteConfig = await createConfig(options);
+
+	if (!options.verbose) {
 		Object.assign(process.stdout, overrideWrite(stdoutWrite));
 		Object.assign(process.stderr, overrideWrite(stderrWrite));
 	}
-
-	viteConfig.build.minify = options.minify;
-	__axiumNestedConfig.build.minify = options.minify;
 
 	try {
 		const result = await buildVite(viteConfig);
