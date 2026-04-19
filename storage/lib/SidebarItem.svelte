@@ -5,7 +5,7 @@
 	import { copy } from '@axium/client/gui';
 	import * as icon from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
-	import { formatItemName } from '@axium/storage/client/frontend';
+	import { _downloadItem, formatItemName } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { getDirectory, selection, toggle, toggleRange } from '@axium/storage/sidebar';
 	import SidebarItem from './SidebarItem.svelte';
@@ -100,7 +100,11 @@
 	{@render action('rename', 'pen', text('storage.generic.rename'))}
 	{@render action('delete', 'trash', text('storage.SidebarItem.delete'))}
 	{#if item.type == 'cas_item'}
-		{@render action('download', 'download', text('storage.generic.download'))}
+		{@render action('download', 'download')}
+		<div onclick={() => _downloadItem(item)} class="action icon-text">
+			<Icon i="download" --size="14px" />
+			{text('storage.generic.download')}
+		</div>
 	{/if}
 	{#if page.data.session?.user.preferences.debug}
 		<div class="action icon-text" onclick={() => copy('text/plain', item.id)}>
@@ -134,18 +138,6 @@
 	}}
 >
 	<p>{text('storage.generic.delete_confirm_named', { name: itemName })}</p>
-</FormDialog>
-<FormDialog
-	bind:dialog={dialogs.download}
-	submitText={text('storage.generic.download')}
-	submit={async () => {
-		open(item.dataURL, '_blank');
-	}}
->
-	<p>
-		{text('storage.SidebarItem.download_disclaimer')} <br />
-		{text('storage.generic.download_confirm_named', { name: itemName })}
-	</p>
 </FormDialog>
 
 <style>

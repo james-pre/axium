@@ -106,11 +106,7 @@
 					text: text('storage.List.share'),
 					action: () => ((activeId = item.id), dialogs['share:' + item.id].showModal()),
 				},
-				{
-					i: 'download',
-					text: text('storage.generic.download'),
-					action: () => ((activeId = item.id), dialogs.download.showModal()),
-				},
+				{ i: 'download', text: text('storage.generic.download'), action: () => _downloadItem(item) },
 				{ i: 'link-horizontal', text: text('storage.List.copy_link'), action: () => ((activeId = item.id), copyShortURL(item)) },
 				{ i: 'trash', text: text('storage.generic.trash'), action: trash },
 				user?.preferences?.debug && {
@@ -135,7 +131,9 @@
 			>
 				{@render action('rename', 'pencil', item.id)}
 				{@render action('share:' + item.id, 'user-group', item.id)}
-				{@render action('download', 'download', item.id)}
+				<span class="icon-text action" onclick={() => _downloadItem(item)}>
+					<Icon i="download" --size="14px" />
+				</span>
 				<span class="icon-text action" onclick={trash}>
 					<Icon i="trash" --size="14px" />
 				</span>
@@ -166,9 +164,6 @@
 		<label for="name">{text('storage.generic.name')}</label>
 		<input name="name" type="text" required value={activeItem?.name} />
 	</div>
-</FormDialog>
-<FormDialog bind:dialog={dialogs.download} submitText={text('storage.generic.download')} submit={async () => _downloadItem(activeItem)}>
-	<p>{text('storage.generic.download_confirm_named', { name: activeItemName })}</p>
 </FormDialog>
 
 <style>

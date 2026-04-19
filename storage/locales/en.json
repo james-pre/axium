@@ -57,8 +57,6 @@
 		"generic": {
 			"copy_id": "Copy ID",
 			"download": "Download",
-			"download_confirm": "Are you sure you want to download this?",
-			"download_confirm_named": "Are you sure you want to download {name}?",
 			"name": "Name",
 			"no_name_in_dialog": "this",
 			"no_item": "No item is selected",
@@ -93,8 +91,7 @@
 			"no_files": "No files yet"
 		},
 		"SidebarItem": {
-			"delete": "Delete",
-			"download_disclaimer": "We are not responsible for the contents of this file."
+			"delete": "Delete"
 		},
 		"Usage": {
 			"error": "Couldn't load your uploads.",

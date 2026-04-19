@@ -63,7 +63,9 @@
 					<Icon i="user-group" />
 				</span>
 			{/if}
-			{@render action('download', 'download')}
+			<span class="icon-text preview-action" onclick={() => _downloadItem(item)}>
+				<Icon i="download" />
+			</span>
 			<span class="icon-text preview-action" onclick={() => copyShortURL(item)}>
 				<Icon i="link-horizontal" />
 			</span>
@@ -151,7 +153,4 @@
 		<label for="name">{text('storage.generic.name')}</label>
 		<input name="name" type="text" required value={item.name} />
 	</div>
-</FormDialog>
-<FormDialog bind:dialog={dialogs.download} submitText={text('storage.generic.download')} submit={async () => _downloadItem(item)}>
-	<p>{text('storage.generic.download_confirm')}</p>
 </FormDialog>

@@ -58,7 +58,7 @@
 		{@render action('folder-arrow-up', text('page.files.back'), () => (location.href = parentHref))}
 		{@render action('pencil', text('page.files.rename'), () => dialogs.rename.showModal())}
 		{@render action('user-group', text('page.files.share'), () => shareDialog.showModal())}
-		{@render action('download', text('page.files.download'), () => dialogs.download.showModal())}
+		{@render action('download', text('page.files.download'), () => _downloadItem(item))}
 		{@render action('link-horizontal', text('page.files.copy_link'), () => copyShortURL(item))}
 		{@render action('trash', text('page.files.trash'), () =>
 			toastStatus(
@@ -87,9 +87,6 @@
 			<label for="name">{text('storage.generic.name')}</label>
 			<input name="name" type="text" required value={item.name} />
 		</div>
-	</FormDialog>
-	<FormDialog bind:dialog={dialogs.download} submitText={text('page.files.download')} submit={async () => _downloadItem(item)}>
-		<p>{text('storage.generic.download_confirm_named', { name: item.name })}</p>
 	</FormDialog>
 {/if}
 
