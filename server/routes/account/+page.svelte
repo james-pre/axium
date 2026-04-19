@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fetchAPI, origin, text } from '@axium/client';
+	import { fetchAPI, getOrigin, text } from '@axium/client';
 	import { ClipboardCopy, FormDialog, Icon, Logout, Popover, SessionList, UserPFP, ZodForm } from '@axium/client/components';
 	import '@axium/client/styles/account';
 	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
@@ -76,7 +76,7 @@
 				<div
 					class="menu-item"
 					onclick={() =>
-						toastStatus(fetch(`${origin}/raw/pfp/${user.id}`, { method: 'DELETE' }), text('page.account.pfp.toast_removed'))}
+						toastStatus(fetch(`${getOrigin()}/raw/pfp/${user.id}`, { method: 'DELETE' }), text('page.account.pfp.toast_removed'))}
 				>
 					<Icon i="trash" />
 					<span>{text('page.account.pfp.remove')}</span>

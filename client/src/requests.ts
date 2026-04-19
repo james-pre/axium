@@ -15,12 +15,14 @@ export function setToken(value: string | null): void {
 	token = value;
 }
 
-export let prefix = '/api/',
-	origin = globalThis.location?.origin || 'https://localhost/';
+export let prefix = '/api/';
+
+export function getOrigin(): string {
+	return new URL(prefix, globalThis.location?.origin || 'https://localhost').origin;
+}
 
 export function setPrefix(value: string): void {
 	prefix = value;
-	origin = new URL(prefix, origin).origin;
 }
 
 let userAgent: string | null = null;

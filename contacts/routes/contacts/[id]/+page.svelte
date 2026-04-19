@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { fetchAPI, origin, text } from '@axium/client';
+	import { fetchAPI, getOrigin, text } from '@axium/client';
 	import { FormDialog, Icon, Popover } from '@axium/client/components';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { toVCard } from '@axium/contacts';
@@ -15,7 +15,7 @@
 	async function updatePicture() {
 		try {
 			const file = await upload('image/*');
-			const response = await fetch(`${origin}/raw/contacts/pfp/${contact.id}`, {
+			const response = await fetch(`${getOrigin()}/raw/contacts/pfp/${contact.id}`, {
 				method: 'POST',
 				headers: { 'content-type': file.type, 'content-length': file.size.toString() },
 				body: file,
@@ -96,7 +96,7 @@
 					class="menu-item"
 					onclick={() =>
 						toastStatus(
-							fetch(`${origin}/raw/contacts/pfp/${contact.id}`, { method: 'DELETE' }),
+							fetch(`${getOrigin()}/raw/contacts/pfp/${contact.id}`, { method: 'DELETE' }),
 							text('contacts.image.toast_removed')
 						)}
 				>

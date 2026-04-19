@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { origin, userInfo } from '@axium/client';
+	import { getOrigin, userInfo } from '@axium/client';
 	import UserPFP from '@axium/client/components/UserPFP';
 	import type { InitNoExternal } from '@axium/contacts';
 	import { name as formatName } from '@axium/contacts/client/format';
@@ -15,7 +15,7 @@
 	</svg>`.replaceAll(/[\t\n]/g, '')
 	);
 
-	let src = $state(`${origin}/raw/contacts/pfp/${contact.id}`);
+	let src = $state(`${getOrigin()}/raw/contacts/pfp/${contact.id}`);
 </script>
 
 {#if contact.linkedUserId}
