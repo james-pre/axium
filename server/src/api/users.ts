@@ -136,7 +136,7 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/auth',
 	params,
-	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/auth'> {
+	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/auth'> {
 		const { type, client } = await parseBody(request, UserAuthOptions);
 
 		const user = await getUser(userId).catch(withError('User does not exist', 404));

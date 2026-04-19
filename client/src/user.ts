@@ -5,7 +5,7 @@ import { fetchAPI } from './requests.js';
 import { useCache } from './cache.js';
 
 export async function login(userId: string): Promise<NewSessionResponse> {
-	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'login' }, userId);
+	const options = await fetchAPI('PUT', 'users/:id/auth', { type: 'login' }, userId);
 	const response = await startAuthentication({ optionsJSON: options });
 	return await fetchAPI('POST', 'users/:id/auth', response, userId);
 }
@@ -14,7 +14,7 @@ export async function login(userId: string): Promise<NewSessionResponse> {
  * Create an elevated session for the user to perform sensitive actions.
  */
 export async function elevate(userId: string): Promise<void> {
-	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'action' }, userId);
+	const options = await fetchAPI('PUT', 'users/:id/auth', { type: 'action' }, userId);
 	const response = await startAuthentication({ optionsJSON: options });
 	await fetchAPI('POST', 'users/:id/auth', response, userId);
 }
@@ -54,7 +54,7 @@ export async function logoutCurrentSession(): Promise<Session> {
 export async function register(_data: Record<string, unknown>): Promise<void> {
 	const data = z.object({ name: z.string(), email: z.email() }).parse(_data);
 
-	const { options, userId } = await fetchAPI('OPTIONS', 'register', data);
+	const { options, userId } = await fetchAPI('PUT', 'register', data);
 
 	const response = await startRegistration({ optionsJSON: options });
 
@@ -95,7 +95,7 @@ export async function fullUserInfo(userId: string): Promise<User & { sessions: S
  */
 export async function deleteUser(userId: string, deletingId: string = userId): Promise<User> {
 	_checkId(userId);
-	const options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'action' }, deletingId);
+	const options = await fetchAPI('PUT', 'users/:id/auth', { type: 'action' }, deletingId);
 	const response = await startAuthentication({ optionsJSON: options });
 	await fetchAPI('POST', 'users/:id/auth', response, deletingId);
 	return await fetchAPI('DELETE', 'users/:id', response, userId);

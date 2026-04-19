@@ -59,7 +59,7 @@ const _API = {
 		DELETE: Session,
 	},
 	register: {
-		OPTIONS: [UserRegistrationInit, z.object({ userId: z.uuid(), options: PasskeyCreationOptions })],
+		PUT: [UserRegistrationInit, z.object({ userId: z.uuid(), options: PasskeyCreationOptions })],
 		POST: [UserRegistration, NewSessionResponse],
 	},
 	'users/:id': {
@@ -74,7 +74,7 @@ const _API = {
 		GET: z.object({ ...User.shape, sessions: Session.array() }),
 	},
 	'users/:id/auth': {
-		OPTIONS: [UserAuthOptions, PasskeyAuthOptions],
+		PUT: [UserAuthOptions, PasskeyAuthOptions],
 		POST: [PasskeyAuthResponse, NewSessionResponse],
 	},
 	'users/:id/sessions': {

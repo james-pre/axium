@@ -14,7 +14,7 @@ import { addRoute } from '../routes.js';
 // Map of user ID => challenge
 const registrations = new Map<string, string>();
 
-async function OPTIONS(request: Request): AsyncResult<'OPTIONS', 'register'> {
+async function PUT(request: Request): AsyncResult<'PUT', 'register'> {
 	const { name, email } = await parseBody(request, UserRegistrationInit);
 
 	const userId = randomUUID();
@@ -83,6 +83,6 @@ async function POST(request: Request) {
 addRoute({
 	path: '/api/register',
 	params: {},
-	OPTIONS,
+	PUT,
 	POST,
 });
