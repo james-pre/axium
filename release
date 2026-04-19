@@ -45,7 +45,7 @@ case "$sub" in
 			echo "No tags found for '$pkg'"
 			exit 1
 		fi
-		git diff "$tag..main" -- "$pkg"
+		git diff "$tag..HEAD" -- "$pkg"
 		;;
 	"changed")
 		for pkg in "${packages[@]}"; do
@@ -54,7 +54,7 @@ case "$sub" in
 				echo "$pkg (no releases)"
 				continue
 			fi
-			if ! git diff --quiet "$latest_tag..main" -- "$pkg"; then
+			if ! git diff --quiet "$latest_tag..HEAD" -- "$pkg"; then
 				echo "$pkg"
 			fi
 		done
@@ -68,7 +68,7 @@ case "$sub" in
 				echo "No tags found for '$pkg'"
 				exit 1
 			fi
-			git -C "$root" log "$latest_tag..main" --format=%B -- "$pkg" | sed '/^$/d'
+			git -C "$root" log "$latest_tag..HEAD" --format=%B -- "$pkg" | sed '/^$/d'
 		else
 			for pkg in "${packages[@]}"; do
 				latest_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
@@ -76,7 +76,7 @@ case "$sub" in
 					echo "No tags found for '$pkg'"
 					continue
 				fi
-				output="$(git -C "$root" log "$latest_tag..main" --format=%B -- "$pkg" | sed '/^$/d')"
+				output="$(git -C "$root" log "$latest_tag..HEAD" --format=%B -- "$pkg" | sed '/^$/d')"
 				if [ -z "$output" ]; then
 					continue
 				fi
@@ -103,7 +103,7 @@ case "$sub" in
 		git -C "$root" add "$pkg/package.json" "package-lock.json"
 		git -C "$root" commit -m "$tag"
 		git -C "$root" tag "$tag" -m "$tag"
-		changelog="+ $(git -C "$root" log ${last_tag:+"$last_tag..main"} --format=%B -- "$pkg" | sed '/^$/d')"
+		changelog="+ $(git -C "$root" log ${last_tag:+"$last_tag..HEAD"} --format=%B -- "$pkg" | sed '/^$/d')"
 		git -C "$root" push --follow-tags
 		echo ""
 		echo "$changelog"
@@ -121,7 +121,7 @@ Commands:
     list, ls                  List current versions in package.json files
     create-tags               Create git tags for current versions if they don't exist
     force-update <pkg>        Force update release tag for the current version of the given package
-    diff <pkg> [version]      Show diff between the the specified or last tagged version and main for the given package
+    diff <pkg> [version]      Show diff between the the specified or last tagged version and HEAD for the given package
     changed                   List packages that have changed since their last release
     log [pkg]                 List commits since the last release for the given package, or all packages if none specified
     history <pkg>             List releases for the given package
