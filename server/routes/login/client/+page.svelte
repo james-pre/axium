@@ -12,11 +12,17 @@
 	async function loginFlow() {
 		const response = await startAuthentication({ optionsJSON: data.options! });
 		const newSession = await fetchAPI('POST', 'users/:id/auth', response, data.session.userId);
-		await fetch(data.localCallback, {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify(newSession),
-		});
+
+		if (data.localCallback.protocol === 'http:') {
+			await fetch(data.localCallback, {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify(newSession),
+			});
+		} else {
+			data.localCallback.searchParams.set('session', JSON.stringify(newSession));
+			location.href = data.localCallback.href;
+		}
 	}
 
 	function onclick() {

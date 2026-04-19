@@ -55,6 +55,8 @@
 		"zod": "^4.0.5"
 	},
 	"dependencies": {
+		"@capacitor/app": "^8.1.0",
+		"@capacitor/browser": "^8.0.3",
 		"@capacitor/preferences": "^8.0.1",
 		"@simplewebauthn/browser": "^13.1.0",
 		"commander": "^14.0.0",

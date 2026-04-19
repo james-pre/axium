@@ -44,6 +44,8 @@
 		"utilium": "^3.0.0"
 	},
 	"dependencies": {
+		"@capacitor/android": "^8.3.1",
+		"@capacitor/core": "^8.3.1",
 		"zod": "^4.0.5"
 	},
 	"axium": {
@@ -61,5 +63,11 @@
 			}
 		],
 		"update_checks": true
+	},
+	"devDependencies": {
+		"@capacitor/app": "^8.1.0",
+		"@capacitor/browser": "^8.0.3",
+		"@capacitor/cli": "^8.3.1",
+		"@capacitor/preferences": "^8.0.1"
 	}
 }

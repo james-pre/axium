@@ -232,7 +232,10 @@
 	"native": {
 		"setup": {
 			"prefix": "Server address",
-			"next": "Next"
+			"next": "Next",
+			"login_title": "Login Required",
+			"login_desc": "You must authenticate to continue.",
+			"login_button": "Open Browser to Login"
 		}
 	},
 	"location": {

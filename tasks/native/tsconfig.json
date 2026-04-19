@@ -1,0 +1,12 @@
+{
+	"extends": ["../tsconfig.json", "../.svelte-kit/tsconfig.json"],
+	"compilerOptions": {
+		"moduleResolution": "bundler",
+		"module": "esnext",
+		"noEmit": true,
+		"target": "esnext",
+		"rootDir": ".."
+	},
+	"include": ["**/*", "../lib/*"],
+	"references": [{ "path": ".." }]
+}
