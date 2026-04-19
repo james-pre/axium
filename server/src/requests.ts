@@ -71,7 +71,7 @@ export async function parseBody<const Schema extends z.ZodType>(request: Request
 	const contentType = request.headers.get('content-type');
 	if (!contentType || !contentType.includes('application/json')) error(415, 'Invalid content type');
 
-	const body: unknown = await request.json().catch(() => error(415, 'Invalid JSON'));
+	const body: unknown = await request.json().catch(() => error(415, 'Invalid JSON in request body'));
 
 	try {
 		return schema.parse(body);
