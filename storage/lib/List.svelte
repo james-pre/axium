@@ -9,7 +9,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
-	import { copyShortURL, formatItemName } from '@axium/storage/client/frontend';
+	import { _downloadItem, copyShortURL, formatItemName } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, type StorageItemMetadata } from '@axium/storage/common';
 	import { errorText } from 'ioium';
 	import Preview from './Preview.svelte';
@@ -167,14 +167,7 @@
 		<input name="name" type="text" required value={activeItem?.name} />
 	</div>
 </FormDialog>
-<FormDialog
-	bind:dialog={dialogs.download}
-	submitText={text('storage.generic.download')}
-	submit={async () => {
-		if (!activeId || !activeItem) throw text('storage.generic.no_item');
-		open(activeItem.type != 'inode/directory' ? activeItem.dataURL : '/raw/storage/directory-zip/' + activeId, '_blank');
-	}}
->
+<FormDialog bind:dialog={dialogs.download} submitText={text('storage.generic.download')} submit={async () => _downloadItem(activeItem)}>
 	<p>{text('storage.generic.download_confirm_named', { name: activeItemName })}</p>
 </FormDialog>
 

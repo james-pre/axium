@@ -1,4 +1,4 @@
-import { fetchAPI, prefix, token } from '@axium/client/requests';
+import { fetchAPI, origin, prefix, token } from '@axium/client/requests';
 import { pick } from 'utilium';
 import { prettifyError } from 'zod';
 import type { GetItemOptions, StorageItemUpdate, UploadInitResult, UserStorage, UserStorageInfo, UserStorageOptions } from '../common.js';
@@ -7,7 +7,7 @@ import '../polyfills.js';
 import { warnOnce } from 'ioium';
 
 function rawStorage(suffix?: string): string | URL {
-	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
+	const raw = origin + '/raw/storage' + (suffix ? '/' + suffix : '');
 	if (prefix[0] == '/') return raw;
 	const url = new URL(prefix);
 	url.pathname = raw;

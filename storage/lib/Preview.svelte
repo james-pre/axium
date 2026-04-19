@@ -5,7 +5,7 @@
 	import type { AccessControllable } from '@axium/core';
 	import { downloadItem, downloadItemStream, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { openers, previews } from '@axium/storage/client/3rd-party';
-	import { copyShortURL } from '@axium/storage/client/frontend';
+	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import '@axium/storage/polyfills';
 	import './Preview.css';
@@ -152,10 +152,6 @@
 		<input name="name" type="text" required value={item.name} />
 	</div>
 </FormDialog>
-<FormDialog
-	bind:dialog={dialogs.download}
-	submitText={text('storage.generic.download')}
-	submit={async () => open(item.type != 'inode/directory' ? item.dataURL : '/raw/storage/directory-zip/' + item.id, '_blank')}
->
+<FormDialog bind:dialog={dialogs.download} submitText={text('storage.generic.download')} submit={async () => _downloadItem(item)}>
 	<p>{text('storage.generic.download_confirm')}</p>
 </FormDialog>

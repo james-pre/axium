@@ -2,8 +2,8 @@
 	import { text } from '@axium/client';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import { toastStatus } from '@axium/client/toast';
-	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
-	import { copyShortURL } from '@axium/storage/client/frontend';
+	import { updateItemMetadata } from '@axium/storage/client';
+	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
 	import { Add, List, Preview } from '@axium/storage/components';
 	import type { PageProps } from './$types';
 
@@ -88,11 +88,7 @@
 			<input name="name" type="text" required value={item.name} />
 		</div>
 	</FormDialog>
-	<FormDialog
-		bind:dialog={dialogs.download}
-		submitText={text('page.files.download')}
-		submit={async () => open(item.type != 'inode/directory' ? item.dataURL : '/raw/storage/directory-zip/' + item.id, '_blank')}
-	>
+	<FormDialog bind:dialog={dialogs.download} submitText={text('page.files.download')} submit={async () => _downloadItem(item)}>
 		<p>{text('storage.generic.download_confirm_named', { name: item.name })}</p>
 	</FormDialog>
 {/if}

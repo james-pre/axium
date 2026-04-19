@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { InitNoExternal } from '@axium/contacts';
-	import { colorHashRGB } from '@axium/core/color';
-	import { name as formatName } from '@axium/contacts/client/format';
+	import { origin, userInfo } from '@axium/client';
 	import UserPFP from '@axium/client/components/UserPFP';
-	import { userInfo } from '@axium/client';
+	import type { InitNoExternal } from '@axium/contacts';
+	import { name as formatName } from '@axium/contacts/client/format';
+	import { colorHashRGB } from '@axium/core/color';
 
 	let { contact, isDefault = $bindable() }: { contact: InitNoExternal & { id: string }; isDefault?: boolean } = $props();
 
@@ -15,7 +15,7 @@
 	</svg>`.replaceAll(/[\t\n]/g, '')
 	);
 
-	let src = $state(`/raw/contacts/pfp/${contact.id}`);
+	let src = $state(`${origin}/raw/contacts/pfp/${contact.id}`);
 </script>
 
 {#if contact.linkedUserId}

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { UserPublic } from '@axium/core';
 	import { colorHashRGB } from '@axium/core/color';
+	import { origin } from '@axium/client';
 
 	let { user, isDefault = $bindable() }: { user: UserPublic; isDefault?: boolean } = $props();
 
@@ -10,11 +11,11 @@
 	</svg>`.replaceAll(/[\t\n]/g, '')
 	);
 
-	let src = $state(`/raw/pfp/${user.id}`);
+	let src = $state(`${origin}/raw/pfp/${user.id}`);
 
 	$effect(() => {
 		// Reset the attempted source when the user changes
-		src = `/raw/pfp/${user.id}`;
+		src = `${origin}/raw/pfp/${user.id}`;
 	});
 </script>
 
