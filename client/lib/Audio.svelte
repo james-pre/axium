@@ -3,7 +3,7 @@
 	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 	import MediaControls from './MediaControls.svelte';
-	import { getMetadata, MediaState, type MediaProps } from './media.svelte.js';
+	import { getMetadata, MediaState, type MediaPicture, type MediaProps } from './media.svelte.js';
 
 	interface Props extends MediaProps {
 		cover?: boolean;
@@ -15,15 +15,23 @@
 
 	const id = $props.id();
 
-	const { metadata, picture, pictureURL } = await getMetadata(rest);
+	let picture = $state<MediaPicture>(),
+		pictureURL = $state<string>(),
+		audioInfo = $state<[string, (string | number | null)?][]>([]);
 
-	const audioInfo = [
-		['music', metadata.common.title],
-		['album', metadata.common.album],
-		['user-music', metadata.common.artist],
-		['hashtag', metadata.common.track.no],
-		['compact-disc', metadata.common.disk.no],
-	] as const;
+	getMetadata(rest).then(result => {
+		if (!result) return;
+		picture = result.picture;
+		pictureURL = result.pictureURL;
+		const { common } = result.metadata;
+		audioInfo = [
+			['music', common.title],
+			['album', common.album],
+			['user-music', common.artist],
+			['hashtag', common.track.no],
+			['compact-disc', common.disk.no],
+		] as const;
+	});
 
 	const media = new MediaState();
 </script>

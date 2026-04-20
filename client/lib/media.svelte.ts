@@ -2,31 +2,37 @@ import { parseBuffer, parseWebStream, selectCover } from 'music-metadata';
 import type { IAudioMetadata, IPicture } from 'music-metadata';
 import type { SvelteMediaTimeRange } from 'svelte/elements';
 
+type MetadataSource = ReadableStream<Uint8Array> | Uint8Array;
+
 export interface MediaProps {
 	src: string;
-	metadataSource?: ReadableStream<Uint8Array> | Uint8Array;
+	metadataSource?: MetadataSource | Promise<MetadataSource>;
 	size: number | bigint;
 	type: string;
 	name?: string;
 }
 
+export type MediaPicture = (IPicture & { data: Uint8Array<ArrayBuffer> }) | null;
+
 export interface MediaMetadataResult {
 	metadata: IAudioMetadata;
-	picture: (IPicture & { data: Uint8Array<ArrayBuffer> }) | null;
+	picture: MediaPicture;
 	pictureURL?: string;
 }
 
-export async function getMetadata(props: MediaProps): Promise<MediaMetadataResult> {
+export async function getMetadata(props: MediaProps): Promise<MediaMetadataResult | null> {
+	const source = await props.metadataSource;
+
+	if (!source) return null;
+
 	const metadataFileInfo = { size: Number(props.size), mimeType: props.type, url: props.src, path: props.name };
 
-	const metadata = await (ArrayBuffer.isView(props.metadataSource)
-		? parseBuffer(props.metadataSource, metadataFileInfo)
-		: parseWebStream(props.metadataSource, metadataFileInfo));
+	const metadata = await (ArrayBuffer.isView(source) ? parseBuffer(source, metadataFileInfo) : parseWebStream(source, metadataFileInfo));
 
 	// `picture.data`'s `source` is actually an `ArrayBufferLike`, we need it to be the more specific `ArrayBuffer`
 	const picture = selectCover(metadata.common.picture) satisfies IPicture | null as MediaMetadataResult['picture'];
 
-	if (props.metadataSource && !ArrayBuffer.isView(props.metadataSource)) await props.metadataSource.cancel();
+	if (source && !ArrayBuffer.isView(source)) await source.cancel();
 
 	return {
 		metadata,

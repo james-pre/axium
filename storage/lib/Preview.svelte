@@ -104,17 +104,9 @@
 	{#if item.type.startsWith('image/')}
 		<img src={item.dataURL} alt={item.name} />
 	{:else if item.type.startsWith('audio/')}
-		{#await downloadItemStream(item.id)}
-			{@render loading()}
-		{:then stream}
-			<Audio src={item.dataURL} {...item} metadataSource={stream} cover />
-		{/await}
+		<Audio src={item.dataURL} {...item} metadataSource={downloadItemStream(item.id)} cover />
 	{:else if item.type.startsWith('video/')}
-		{#await downloadItemStream(item.id)}
-			{@render loading()}
-		{:then stream}
-			<Video src={item.dataURL} {...item} metadataSource={stream} />
-		{/await}
+		<Video src={item.dataURL} {...item} />
 	{:else if item.type == 'application/pdf'}
 		<object data={item.dataURL} type="application/pdf" width="100%" height="100%">
 			<embed src={item.dataURL} type="application/pdf" width="100%" height="100%" />

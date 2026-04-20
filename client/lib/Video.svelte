@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 	import MediaControls from './MediaControls.svelte';
-	import { getMetadata, MediaState, type MediaProps } from './media.svelte.js';
+	import { MediaState, type MediaProps } from './media.svelte.js';
 
 	interface Props extends MediaProps {
 		extraControls?: Snippet;
@@ -10,8 +10,6 @@
 
 	const { extraControls, ...rest }: Props = $props();
 	const { src } = rest;
-
-	const { metadata, pictureURL } = await getMetadata(rest);
 
 	const media = new MediaState();
 </script>
@@ -29,7 +27,6 @@
 		bind:playbackRate={media.playbackRate}
 		bind:ended={media.ended}
 		onclick={media.click}
-		poster={pictureURL}
 	>
 		<track kind="captions" />
 	</video>
