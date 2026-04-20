@@ -145,7 +145,13 @@
 	{/each}
 </div>
 
-<dialog bind:this={dialogs.preview} class="preview" onclick={e => e.stopPropagation()} {@attach closeOnBackGesture}>
+<dialog
+	bind:this={dialogs.preview}
+	class="preview"
+	onclick={e => e.stopPropagation()}
+	onclose={() => (activeId = undefined)}
+	{@attach closeOnBackGesture}
+>
 	{#if activeItem}
 		<Preview item={activeItem} previewDialog={dialogs.preview} shareDialog={dialogs['share:' + activeId]} onDelete={removeActiveItem} />
 	{/if}
