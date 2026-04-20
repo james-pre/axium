@@ -9,14 +9,13 @@
 	}
 
 	const { extraControls, ...rest }: Props = $props();
-	const { src } = rest;
 
 	const media = new MediaState();
 </script>
 
 <div class="Video" onkeydown={media.keydown}>
 	<video
-		{src}
+		src={rest.src}
 		bind:this={media.element}
 		bind:currentTime={media.currentTime}
 		bind:duration={media.duration}

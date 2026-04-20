@@ -11,7 +11,6 @@
 	}
 
 	const { cover: showCover, extraControls, ...rest }: Props = $props();
-	const { src } = rest;
 
 	const id = $props.id();
 
@@ -19,18 +18,20 @@
 		pictureURL = $state<string>(),
 		audioInfo = $state<[string, (string | number | null)?][]>([]);
 
-	getMetadata(rest).then(result => {
-		if (!result) return;
-		picture = result.picture;
-		pictureURL = result.pictureURL;
-		const { common } = result.metadata;
-		audioInfo = [
-			['music', common.title],
-			['album', common.album],
-			['user-music', common.artist],
-			['hashtag', common.track.no],
-			['compact-disc', common.disk.no],
-		] as const;
+	$effect(() => {
+		getMetadata(rest).then(result => {
+			if (!result) return;
+			picture = result.picture;
+			pictureURL = result.pictureURL;
+			const { common } = result.metadata;
+			audioInfo = [
+				['music', common.title],
+				['album', common.album],
+				['user-music', common.artist],
+				['hashtag', common.track.no],
+				['compact-disc', common.disk.no],
+			] as const;
+		});
 	});
 
 	const media = new MediaState();
@@ -48,7 +49,7 @@
 	{/if}
 
 	<audio
-		{src}
+		src={rest.src}
 		bind:currentTime={media.currentTime}
 		bind:duration={media.duration}
 		bind:volume={media.volume}
