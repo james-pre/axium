@@ -9,7 +9,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
-	import { _downloadItem, copyShortURL, formatItemName } from '@axium/storage/client/frontend';
+	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, type StorageItemMetadata } from '@axium/storage/common';
 	import { errorText } from 'ioium';
 	import Preview from './Preview.svelte';
@@ -23,7 +23,6 @@
 
 	let activeId = $state<string>();
 	const activeItem = $derived(items.find(item => item.id === activeId));
-	const activeItemName = $derived(formatItemName(activeItem));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
 	const search = new URLSearchParams(location.search);
