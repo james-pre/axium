@@ -191,7 +191,7 @@ axiumDB
 	.alias('update')
 	.alias('up')
 	.description('Upgrade the database to the latest version')
-	.option('--abort', 'Rollback changes instead of committing them')
+	.option('--dry-run', 'Rollback changes instead of committing them')
 	.action(async function axium_db_upgrade(opt) {
 		const deltas: db.delta.Version[] = [];
 
@@ -244,10 +244,6 @@ axiumDB
 			return;
 		}
 
-		if (opt.abort) {
-			io.warn('--abort: Changes will be rolled back instead of being committed.');
-		}
-
 		await rlConfirm();
 
 		const delta = io.track('Computing delta', () => db.delta.collapse(deltas));
@@ -255,10 +251,14 @@ axiumDB
 		io.track('Validating delta', () => db.delta.validate(delta));
 
 		console.log('Applying delta.');
-		await db.delta.apply(delta, opt.abort);
+		await db.delta.apply(delta, opt.dryRun);
 
-		info.upgrades.push({ timestamp: new Date(), from, to });
-		db.setUpgradeInfo(info);
+		if (opt.dryRun) {
+			io.warn('--dry-run: No changes were applied.');
+		} else {
+			info.upgrades.push({ timestamp: new Date(), from, to });
+			db.setUpgradeInfo(info);
+		}
 	});
 
 axiumDB

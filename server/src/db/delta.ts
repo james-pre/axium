@@ -475,11 +475,12 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 			await io.track('Dropping index ' + index, tx.schema.dropIndex(index).execute());
 		}
 
-		if (forceAbort) throw 'Rolling back due to --abort';
+		if (forceAbort) throw '%forceAbort%';
 
 		await io.track('Committing', tx.commit().execute());
 	} catch (e) {
 		await tx.rollback().execute();
+		if (e === '%forceAbort%') return;
 		if (e instanceof SuppressedError) io.error(e.suppressed);
 		throw e;
 	}
