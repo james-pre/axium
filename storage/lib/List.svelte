@@ -11,7 +11,6 @@
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, type StorageItemMetadata } from '@axium/storage/common';
-	import { errorText } from 'ioium';
 	import Preview from './Preview.svelte';
 
 	let {
@@ -26,26 +25,24 @@
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
 	const search = new URLSearchParams(location.search);
-	let sort = $state<StorageItemSorting | null>();
-	try {
-		sort = StorageItemSorting.parse({
+	let sort = $state<StorageItemSorting | undefined>(
+		StorageItemSorting.safeParse({
 			by: search.get('sortBy'),
 			descending: search.has('descending'),
-		});
-	} catch (e) {
-		console.log('Ignoring invalid sorting parameters', errorText(e));
-	}
+		}).data
+	);
 
 	const sortedItems = $derived(
-		items.toSorted(
-			sort
-				? (_a, _b) => {
-						const [a, b] = sort?.descending ? [_b, _a] : [_a, _b];
-						// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
-						return sort.by == 'name' ? a.name.localeCompare(b.name) : a[sort.by] - b[sort.by];
-					}
-				: undefined
-		)
+		items.toSorted((_a, _b) => {
+			if (!sort) {
+				// @todo add support for putting folders before other files
+				return _b.name.localeCompare(_a.name);
+			}
+
+			const [a, b] = sort.descending ? [_b, _a] : [_a, _b];
+			// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
+			return sort.by == 'name' ? a.name.localeCompare(b.name) : a[sort.by] - b[sort.by];
+		})
 	);
 
 	function removeActiveItem() {
@@ -75,7 +72,7 @@
 		{#each [['name', 'storage.generic.name'], ['modifiedAt', 'storage.List.last_modified'], ['size', 'storage.List.size']] as const as [key, translation]}
 			<span
 				class="header-column"
-				onclick={() => (sort = sort?.descending === false ? null : { by: key, descending: !sort?.descending })}
+				onclick={() => (sort = sort?.descending === false ? undefined : { by: key, descending: !sort?.descending })}
 			>
 				{#if sort?.by == key}
 					<Icon i="sort-{sort.descending ? 'down' : 'up'}" />
