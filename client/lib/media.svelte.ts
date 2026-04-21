@@ -27,7 +27,9 @@ export async function getMetadata(props: MediaProps): Promise<MediaMetadataResul
 
 	const metadataFileInfo = { size: Number(props.size), mimeType: props.type, url: props.src, path: props.name };
 
-	const metadata = await (ArrayBuffer.isView(source) ? parseBuffer(source, metadataFileInfo) : parseWebStream(source, metadataFileInfo));
+	const metadata = await (ArrayBuffer.isView(source)
+		? parseBuffer(source, metadataFileInfo)
+		: parseWebStream(source, metadataFileInfo, { skipPostHeaders: true }));
 
 	// `picture.data`'s `source` is actually an `ArrayBufferLike`, we need it to be the more specific `ArrayBuffer`
 	const picture = selectCover(metadata.common.picture) satisfies IPicture | null as MediaMetadataResult['picture'];
