@@ -7,7 +7,7 @@ import * as z from 'zod';
 import './cli/db.js';
 import config, { reloadConfigs } from './config.js';
 
-import './cli/index.js';
+import { rl } from './cli/index.js';
 
 process.on('SIGHUP', () => {
 	io.info('Reloading configuration due to SIGHUP.');
@@ -47,3 +47,5 @@ try {
 	io.done(true);
 	io.exit(e);
 }
+
+rl.close();

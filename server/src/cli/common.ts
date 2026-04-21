@@ -71,7 +71,7 @@ export const sharedOptions = {
 	}),
 };
 
-using rl = createInterface({
+const rl = createInterface({
 	input: process.stdin,
 	output: process.stdout,
 });
