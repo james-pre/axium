@@ -104,10 +104,12 @@ function overrideWrite(originalWrite: Socket['write']): { write: Socket['write']
 	return {
 		write(chunk: Uint8Array | string, encoding?: BufferEncoding, cb?: (err?: Error | null) => void): boolean {
 			const { stack } = new Error();
+			const text = typeof chunk == 'string' ? chunk : decoder.decode(chunk);
 			if (
 				!stack?.includes('svelte') &&
 				!stack?.includes('vite') &&
-				!(typeof chunk == 'string' ? chunk : decoder.decode(chunk)).includes('No Svelte config file')
+				!text.includes('No Svelte config file') &&
+				!text.includes('Circular dependency: node_modules')
 			) {
 				return originalWrite(chunk, encoding, cb);
 			}
