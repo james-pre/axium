@@ -94,6 +94,11 @@ const _API = {
 	'users/:id/verify/login': {
 		POST: [z.object({ token: z.string() }), NewSessionResponse],
 	},
+	'users/:id/preferences/:appId': {
+		GET: z.record(z.string(), z.any()),
+		POST: [z.record(z.string(), z.any()), z.record(z.string(), z.any())],
+		DELETE: z.record(z.string(), z.any()),
+	},
 	'passkeys/:id': {
 		GET: Passkey,
 		PATCH: [PasskeyChangeable, Passkey],
