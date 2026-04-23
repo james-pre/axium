@@ -39,7 +39,7 @@
 			if (!sort) {
 				const dirDiff = +(_b.type == 'inode/directory') - +(_a.type == 'inode/directory');
 				if (sort_folders_first && dirDiff) return dirDiff;
-				return _b.name.localeCompare(_a.name);
+				return _a.name.localeCompare(_b.name);
 			}
 
 			const [a, b] = sort.descending ? [_b, _a] : [_a, _b];
