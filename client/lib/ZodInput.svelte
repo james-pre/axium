@@ -163,7 +163,7 @@
 {:else if schema.type == 'literal'}
 	<div class="ZodInput">
 		<label for={id}>{labelText}</label>
-		<select bind:value {id} {oninput} required={!optional}>
+		<select bind:value {id} {onchange} required={!optional}>
 			{#each schema.values as literal}
 				<option value={literal} selected={value === literal}>{subText(String(literal), { $default: String(literal) })}</option>
 			{/each}
