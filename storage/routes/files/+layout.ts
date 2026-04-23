@@ -19,6 +19,12 @@ export async function load({ url, route, parent }) {
 		},
 		{ name: text('page.files.tab.trash'), href: '/files/trash', icon: 'trash', active: route.id.endsWith('/files/trash') },
 		{ name: text('page.files.tab.shared'), href: '/files/shared', icon: 'user-group', active: route.id.endsWith('/files/shared') },
+		{
+			name: text('page.files.tab.settings'),
+			href: '/files/settings',
+			icon: 'gear-complex',
+			active: route.id.endsWith('/files/settings'),
+		},
 		{ href: '/files/usage', icon: 'chart-pie-simple', active: route.id.endsWith('/files/usage'), mobile: true },
 	] satisfies (
 		| { name: string; href: LayoutRouteId; icon: string; active: boolean }

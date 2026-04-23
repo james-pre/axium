@@ -1,4 +1,6 @@
-import { $API, AccessControl, serverConfigs } from '@axium/core';
+import { $API, AccessControl, appPreferences, serverConfigs } from '@axium/core';
+import type {} from '@axium/core/apps';
+import { zKeys } from '@axium/core/locales';
 import * as z from 'zod';
 
 export const StorageItemSize = z.coerce.bigint().nonnegative();
@@ -98,6 +100,20 @@ export const UserStorageOptions = z
 	.partial()
 	.default({});
 export interface UserStorageOptions extends z.infer<typeof UserStorageOptions> {}
+
+export const UserStoragePreferences = z
+	.object({
+		sort_folders_first: z.boolean().default(true),
+	})
+	.register(zKeys, { prefix: 'storage.preferences' });
+
+appPreferences.set('files', UserStoragePreferences);
+
+declare module '@axium/core/apps' {
+	interface $AppPreferences {
+		files: typeof UserStoragePreferences;
+	}
+}
 
 /**
  * Formats:

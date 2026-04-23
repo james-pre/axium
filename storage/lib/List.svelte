@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { text } from '@axium/client';
+	import { getAppPreferences, text } from '@axium/client';
 	import { closeOnBackGesture, contextMenu } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
@@ -10,7 +10,7 @@
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
-	import { StorageItemSorting, type StorageItemMetadata } from '@axium/storage/common';
+	import { StorageItemSorting, UserStoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
 
 	let {
@@ -32,10 +32,13 @@
 		}).data
 	);
 
+	const { sort_folders_first } = user ? await getAppPreferences(user.id, 'files') : UserStoragePreferences.safeParse({}).data || {};
+
 	const sortedItems = $derived(
 		items.toSorted((_a, _b) => {
 			if (!sort) {
-				// @todo add support for putting folders before other files
+				const dirDiff = +(_b.type == 'inode/directory') - +(_a.type == 'inode/directory');
+				if (sort_folders_first && dirDiff) return dirDiff;
 				return _b.name.localeCompare(_a.name);
 			}
 

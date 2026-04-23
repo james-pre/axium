@@ -24,7 +24,8 @@
 			"tab": {
 				"files": "Files",
 				"trash": "Trash",
-				"shared": "Shared"
+				"shared": "Shared",
+				"settings": "Settings"
 			},
 			"trash_page": {
 				"title": "Files — Trash",
@@ -41,6 +42,9 @@
 				"bar_text": "Using {used} of {total}",
 				"bar_text_unlimited": "Using {used}",
 				"empty": "You have not uploaded any files yet."
+			},
+			"settings": {
+				"title": "Files — Settings"
 			}
 		}
 	},
@@ -64,6 +68,9 @@
 			"trash": "Trash",
 			"trash_success": "Item trashed",
 			"delete_confirm_named": "Are you sure you want to delete {name}?"
+		},
+		"preferences": {
+			"sort_folders_first": "Sort folders before other files"
 		},
 		"Add": {
 			"content": "Content",
