@@ -8,12 +8,12 @@
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { contextMenu } from '@axium/client/attachments';
 	import { upload } from 'utilium/dom';
+	import { invalidateAll } from '$app/navigation';
 
 	const { data }: PageProps = $props();
 	const { canVerify } = data;
 
 	let verificationSent = $state(false),
-		currentSession = $state(data.currentSession),
 		user = $state(data.user),
 		passkeys = $state(data.passkeys),
 		sessions = $state(data.sessions),
@@ -213,7 +213,7 @@
 
 	<div id="sessions" class="section">
 		<h3>{text('page.account.sessions')}</h3>
-		<SessionList {sessions} {currentSession} {user} redirectAfterLogoutAll />
+		<SessionList {sessions} currentSession={data.session} {user} redirectAfterLogoutAll />
 	</div>
 
 	<div id="preferences" class="section">
@@ -222,7 +222,10 @@
 			bind:rootValue={user.preferences}
 			idPrefix="preferences"
 			schema={Preferences}
-			updateValue={(preferences: Preferences) => fetchAPI('PATCH', 'users/:id', { preferences }, user.id)}
+			updateValue={async (preferences: Preferences) => {
+				await fetchAPI('PATCH', 'users/:id', { preferences }, user.id);
+				await invalidateAll();
+			}}
 		/>
 	</div>
 </div>
