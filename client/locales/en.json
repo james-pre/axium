@@ -24,6 +24,10 @@
 		"back": "Take me back",
 		"question": "Are you sure you want to log out?"
 	},
+	"AppPreferences": {
+		"title": "Preferences for {name}",
+		"save": "Save"
+	},
 	"Register": {
 		"email": "Email",
 		"login": "Login instead",

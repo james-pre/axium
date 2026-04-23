@@ -43,6 +43,13 @@
 
 	let value = $state<any>(getByString(rootValue, path));
 
+	let lastRoot = rootValue;
+	$effect(() => {
+		if (rootValue === lastRoot) return;
+		lastRoot = rootValue;
+		value = getByString(rootValue, path);
+	});
+
 	let error = $state();
 
 	function dateAttr(date: Date | null, format: 'date' | 'time' | 'datetime' | 'time+sec') {

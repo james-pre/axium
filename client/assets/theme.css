@@ -43,11 +43,14 @@ html {
 	--fg-normal: hsl(0 0 var(--fg-light));
 	--fg-accent: hsl(var(--hue) 15 var(--fg-light));
 	--fg-strong: hsl(var(--hue) 25 calc(var(--fg-light) - var(--light-step)));
+	--fg-disabled: hsl(0 0 calc(var(--fg-light) - var(--light-step)));
 
 	--fg-error: hsl(0 50 calc(var(--fg-light) - var(--light-step)));
 	--fg-warning: hsl(60 50 calc(var(--fg-light) - var(--light-step)));
 
+	--border-disabled: 1px solid hsl(0 5 calc(var(--bg-light) - var(--light-step)));
 	--border-accent: 1px solid hsl(var(--hue) 10 calc(var(--bg-light) + (var(--light-step) * 3)));
+	--border-strong: 1px solid hsl(var(--hue) 20 calc(var(--bg-light) + (var(--light-step) * 3)));
 
 	--border-error: 1px solid hsl(0 50 var(--fg-light));
 	--border-warning: 1px solid hsl(60 50 var(--fg-light));

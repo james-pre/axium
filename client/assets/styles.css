@@ -217,6 +217,9 @@ div.success {
 :disabled,
 .disabled {
 	cursor: not-allowed;
+	color: var(--fg-disabled);
+	accent-color: var(--fg-disabled);
+	border: var(--border-disabled);
 }
 
 :popover-open {

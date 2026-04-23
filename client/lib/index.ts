@@ -1,5 +1,6 @@
 export { default as AccessControlDialog } from './AccessControlDialog.svelte';
 export { default as AppMenu } from './AppMenu.svelte';
+export { default as AppPreferences } from './AppPreferences.svelte';
 export { default as Audio } from './Audio.svelte';
 export { default as ColorPicker } from './ColorPicker.svelte';
 export { default as ClipboardCopy } from './ClipboardCopy.svelte';
