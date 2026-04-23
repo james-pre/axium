@@ -13,7 +13,7 @@
 						"image": { "type": "text" },
 						"isAdmin": { "type": "boolean", "required": true, "default": false },
 						"name": { "type": "text" },
-						"preferences": { "type": "jsonb", "required": true, "default": "{}" },
+						"preferences": { "type": "jsonb", "required": true, "default": "'{}'::jsonb" },
 						"registeredAt": { "type": "timestamptz", "required": true, "default": "now()" },
 						"roles": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
 						"tags": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
@@ -60,7 +60,7 @@
 						"name": { "type": "text", "required": true },
 						"source": { "type": "text", "required": true },
 						"tags": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
-						"extra": { "type": "jsonb", "required": true, "default": "{}" }
+						"extra": { "type": "jsonb", "required": true, "default": "'{}'::jsonb" }
 					}
 				}
 			},
@@ -102,6 +102,18 @@
 						"type": { "type": "text", "required": true },
 						"data": { "type": "bytea", "required": true },
 						"isPublic": { "type": "boolean", "required": true, "default": false }
+					}
+				}
+			}
+		},
+		{
+			"delta": true,
+			"add_tables": {
+				"app_preferences": {
+					"columns": {
+						"userId": { "type": "uuid", "required": true, "primary": true, "references": "users.id", "onDelete": "cascade" },
+						"appId": { "type": "text", "required": true, "primary": true },
+						"data": { "type": "jsonb", "required": true, "default": "'{}'::jsonb" }
 					}
 				}
 			}

@@ -1,3 +1,4 @@
+import { appPreferences } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import { PasskeyAuthResponse, PasskeyRegistration } from '@axium/core/passkeys';
 import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
@@ -338,11 +339,60 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/verify/login',
 	params,
-	async POST(request, { id: userId }) {
+	async POST(request, { id: userId }): Promise<Response> {
 		const { token } = await parseBody(request, z.object({ token: z.string() }));
 
 		await useVerification('login', userId, token).catch(withError('Invalid or expired verification token', 400));
 
 		return await createSessionData(userId, request);
+	},
+});
+
+const noAppError = "The specified app does not exist or doesn't have preferences";
+
+addRoute({
+	path: '/api/users/:id/preferences/:appId',
+	params: { id: z.uuid(), appId: z.string() },
+	async GET(request, { id: userId, appId }): AsyncResult<'GET', 'users/:id/preferences/:appId'> {
+		const schema = appPreferences.get(appId);
+		if (!schema) error(404, noAppError);
+		await checkAuthForUser(request, userId);
+
+		const { data } =
+			(await db
+				.selectFrom('app_preferences')
+				.selectAll()
+				.where(eb => eb.and({ userId, appId }))
+				.executeTakeFirst()) ?? schema.safeParse({});
+
+		return data;
+	},
+	async POST(request, { id: userId, appId }): AsyncResult<'POST', 'users/:id/preferences/:appId'> {
+		const schema = appPreferences.get(appId);
+		if (!schema) error(404, noAppError);
+		await checkAuthForUser(request, userId);
+
+		const data = await parseBody(request, schema);
+
+		await db
+			.updateTable('app_preferences')
+			.set('data', data)
+			.where(eb => eb.and({ userId, appId }))
+			.executeTakeFirstOrThrow();
+
+		return data;
+	},
+	async DELETE(request, { id: userId, appId }): AsyncResult<'DELETE', 'users/:id/preferences/:appId'> {
+		const schema = appPreferences.get(appId);
+		if (!schema) error(404, noAppError);
+		await checkAuthForUser(request, userId);
+
+		await db
+			.deleteFrom('app_preferences')
+			.where(eb => eb.and({ userId, appId }))
+			.executeTakeFirstOrThrow();
+
+		// this is supposed to return the default settings
+		return schema.safeParse({}).data || {};
 	},
 });
