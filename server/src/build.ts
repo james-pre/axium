@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 import { pick, type WithRequired } from 'utilium';
 import { build as buildVite, type InlineConfig } from 'vite';
 import config from './config.js';
-import type { Socket } from 'node:net';
+import { overrideWrite } from './io.js';
 
 const sveltekitPackageJSON = findPackageJSON('@sveltejs/kit', import.meta.url);
 if (!sveltekitPackageJSON) exit('Could not resolve @sveltejs/kit package.', 6);
@@ -98,27 +98,13 @@ async function createConfig(options: BuildOptions): Promise<WithRequired<InlineC
 	return viteConfig;
 }
 
-const decoder = new TextDecoder();
-
-function overrideWrite(originalWrite: Socket['write']): { write: Socket['write'] } {
-	return {
-		write(chunk: Uint8Array | string, encoding?: BufferEncoding, cb?: (err?: Error | null) => void): boolean {
-			const { stack } = new Error();
-			const text = typeof chunk == 'string' ? chunk : decoder.decode(chunk);
-			if (
-				!stack?.includes('svelte') &&
-				!stack?.includes('vite') &&
-				!text.includes('No Svelte config file') &&
-				!text.includes('Circular dependency: node_modules')
-			) {
-				return originalWrite(chunk, encoding, cb);
-			}
-
-			if (typeof encoding === 'function') cb = encoding;
-			if (cb) cb();
-			return true;
-		},
-	} as { write: Socket['write'] };
+function allowWrite(text: string, stack?: string) {
+	return (
+		!stack?.includes('svelte') &&
+		!stack?.includes('vite') &&
+		!text.includes('No Svelte config file') &&
+		!text.includes('Circular dependency: node_modules')
+	);
 }
 
 export interface BuildOptions {
@@ -140,17 +126,12 @@ export interface BuildStats {
 }
 
 export async function build(options: BuildOptions = {}) {
-	const stdoutWrite = process.stdout.write.bind(process.stdout);
-	const stderrWrite = process.stderr.write.bind(process.stderr);
+	using override = overrideWrite(allowWrite, process.stdout, process.stderr);
+	if (options.verbose) override.cancel();
 
 	const startTime = performance.now();
 
 	const viteConfig = await createConfig(options);
-
-	if (!options.verbose) {
-		Object.assign(process.stdout, overrideWrite(stdoutWrite));
-		Object.assign(process.stderr, overrideWrite(stderrWrite));
-	}
 
 	try {
 		const result = await buildVite(viteConfig);
@@ -168,9 +149,6 @@ export async function build(options: BuildOptions = {}) {
 			size,
 		};
 	} finally {
-		if (!options.verbose) {
-			process.stdout.write = stdoutWrite;
-			process.stderr.write = stderrWrite;
-		}
+		// nothing
 	}
 }

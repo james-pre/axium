@@ -1,12 +1,13 @@
-import * as io from 'ioium/node';
-import { fetchPackageMetadata, type PackageVersionInfo } from '@axium/core/packages';
 import { getVersionInfo } from '@axium/core/node/packages';
+import { fetchPackageMetadata, type PackageVersionInfo } from '@axium/core/packages';
 import { plugins } from '@axium/core/plugins';
+import * as io from 'ioium/node';
 import { Logger } from 'logzen';
 import * as fs from 'node:fs';
+import type { Socket } from 'node:net';
 import { dirname, join, resolve } from 'node:path/posix';
-import { _unique } from './state.js';
 import { _throw, pick } from 'utilium';
+import { _unique } from './state.js';
 
 export const systemDir = '/etc/axium';
 
@@ -103,4 +104,69 @@ export async function getAllVersions(): Promise<PackageVersionInfo[]> {
 		getVersionInfo('@axium/core', import.meta.dirname),
 		getVersionInfo('@axium/client', import.meta.dirname),
 	]);
+}
+
+const decoder = new TextDecoder();
+
+interface OverriddenWrite extends Disposable {
+	/**
+	 * Returns whether a matching stream was written to
+	 */
+	writeTo(stream: Socket, ...args: Parameters<Socket['write']>): boolean;
+	pause(): void;
+	resume(): void;
+	cancel(): void;
+}
+
+/**
+ *
+ * @internal
+ */
+export function overrideWrite(allowPredicate?: (text: string, stack?: string) => boolean, ...streams: Socket[]): OverriddenWrite {
+	const originals: [stream: Socket, original: Socket['write']][] = [];
+
+	let paused = false;
+
+	for (const stream of streams) {
+		const originalWrite = stream.write.bind(stream);
+
+		function write(chunk: Uint8Array | string, encoding?: BufferEncoding, cb?: (err?: Error | null) => void): boolean {
+			const { stack } = new Error();
+			const text = typeof chunk == 'string' ? chunk : decoder.decode(chunk);
+			if (allowPredicate?.(text, stack) || paused) {
+				return originalWrite(chunk, encoding, cb);
+			}
+
+			if (typeof encoding === 'function') cb = encoding;
+			if (cb) cb();
+			return true;
+		}
+
+		Object.assign(stream, { write });
+		originals.push([stream, originalWrite]);
+	}
+
+	return {
+		[Symbol.dispose]() {
+			for (const [stream, originalWrite] of originals) stream.write = originalWrite;
+		},
+		cancel() {
+			for (const [stream, originalWrite] of originals) stream.write = originalWrite;
+		},
+		/** Use the original stream's `write()` */
+		writeTo(stream: Socket, ...args: Parameters<Socket['write']>) {
+			for (const [s, originalWrite] of originals) {
+				if (s !== stream) continue;
+				originalWrite(...args);
+				return true;
+			}
+			return false;
+		},
+		pause() {
+			paused = true;
+		},
+		resume() {
+			paused = false;
+		},
+	};
 }
