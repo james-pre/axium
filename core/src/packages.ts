@@ -92,6 +92,8 @@ export async function fetchPackageMetadata(this: { retry?: number } | void, spec
 
 export interface ActivePackageInfo extends PackageJSON {
 	latest: string;
+	latestSize: bigint;
+	size: bigint;
 	versions: Record<string, NpmPackageVersion>;
 }
 
@@ -110,7 +112,13 @@ export async function getActivePackages(
 		const info = await fetchPackageMetadata(pkg.name);
 		onProgress?.(++no, count);
 		if (!info) continue;
-		packages.push({ ...pkg, ...info, latest: info._latest });
+		packages.push({
+			...pkg,
+			...info,
+			latest: info._latest,
+			size: BigInt(info.versions[pkg.version].dist.unpackedSize),
+			latestSize: BigInt(info.versions[info._latest].dist.unpackedSize),
+		});
 	}
 
 	for (const plugin of plugins.values()) {
@@ -121,7 +129,13 @@ export async function getActivePackages(
 		const info = await fetchPackageMetadata(plugin.name);
 		onProgress?.(++no, count);
 		if (!info) continue;
-		packages.push({ ...plugin, ...info, latest: info._latest });
+		packages.push({
+			...plugin,
+			...info,
+			latest: info._latest,
+			size: BigInt(info.versions[plugin.version].dist.unpackedSize),
+			latestSize: BigInt(info.versions[info._latest].dist.unpackedSize),
+		});
 	}
 	return packages;
 }
