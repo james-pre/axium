@@ -1,6 +1,8 @@
-import * as z from 'zod';
+import { errorText, warn } from 'ioium';
 import { lt as ltVersion } from 'semver';
-import { warn } from 'ioium';
+import { wait } from 'utilium/misc';
+import * as z from 'zod';
+import { plugins } from './plugins.js';
 
 export interface PackageJSON {
 	name: string;
@@ -26,6 +28,11 @@ export function isPath(specifier: string): boolean {
 interface NpmPackageVersion {
 	name: string;
 	version: string;
+	dist: {
+		shasum: string;
+		tarball: string;
+		unpackedSize: number;
+	};
 }
 
 export interface NpmPackage {
@@ -51,20 +58,70 @@ const cache = new Map<string, CacheEntry>();
 /**
  * Get information for an npm package
  */
-export async function fetchPackageMetadata(specifier: string): Promise<NpmPackage | null> {
+export async function fetchPackageMetadata(this: { retry?: number } | void, specifier: string): Promise<NpmPackage | null> {
 	if (isPath(specifier)) return null;
 
 	const cached = cache.get(specifier);
 
 	if (cached && Date.now() - cached.timestamp < cacheTTL) return cached.data;
 
+	let { retry = 0 } = this || {};
+
 	try {
-		const pkg = await fetch('https://registry.npmjs.org/' + specifier).then(res => res.json());
+		const res = await fetch('https://registry.npmjs.org/' + specifier);
+
+		if (res.status == 429 && retry < 5) {
+			retry++;
+			// Exponential backoff
+			await wait(Math.pow(2, retry) * 1000);
+			return await fetchPackageMetadata.call({ retry }, specifier);
+		}
+
+		if (!res.ok) throw res.statusText;
+
+		const pkg = await res.json();
+
 		pkg._latest = pkg['dist-tags']?.latest || Object.keys(pkg.versions).sort((a, b) => (ltVersion(a, b) ? 1 : -1))[0];
 		cache.set(specifier, { timestamp: Date.now(), data: pkg });
 		return pkg;
 	} catch (e) {
-		warn(`Failed to fetch metadata for package ${specifier}: ${e instanceof Error ? e.message : String(e)}`);
+		warn(`Failed to fetch metadata for package ${specifier}: ${errorText(e)}`);
 		return cached?.data || null;
 	}
+}
+
+export interface ActivePackageInfo extends PackageJSON {
+	latest: string;
+	versions: Record<string, NpmPackageVersion>;
+}
+
+export async function getActivePackages(
+	builtin: (PackageJSON & { [k: string]: any })[],
+	onProgress?: (no: number, total: number) => void
+): Promise<ActivePackageInfo[]> {
+	const packages: ActivePackageInfo[] = [];
+
+	const count = builtin.length + plugins.size;
+	let no = 0;
+
+	onProgress?.(no, count);
+
+	for (const pkg of builtin) {
+		const info = await fetchPackageMetadata(pkg.name);
+		onProgress?.(++no, count);
+		if (!info) continue;
+		packages.push({ ...pkg, ...info, latest: info._latest });
+	}
+
+	for (const plugin of plugins.values()) {
+		if (!plugin.update_checks) {
+			onProgress?.(++no, count);
+			continue;
+		}
+		const info = await fetchPackageMetadata(plugin.name);
+		onProgress?.(++no, count);
+		if (!info) continue;
+		packages.push({ ...plugin, ...info, latest: info._latest });
+	}
+	return packages;
 }
