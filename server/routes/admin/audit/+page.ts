@@ -10,7 +10,9 @@ export async function load({ url }) {
 	let filterError = null,
 		filter: input<typeof AuditFilter> = {};
 	try {
-		filter = AuditFilter.parse(Object.fromEntries(url.searchParams));
+		const data = Object.fromEntries(url.searchParams);
+		AuditFilter.parse(data);
+		filter = data;
 	} catch (e: any) {
 		filterError = prettifyError(e);
 	}
