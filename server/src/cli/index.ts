@@ -464,11 +464,12 @@ program
 		await rlConfirm();
 
 		// npm //
-		console.log('Upgrading packages:');
 		if (opt.dryRun) {
 			io.warn('--dry-run: No packages were changed.');
 		} else {
-			execFileSync('npm', ['install', ...packages.map(pkg => `${pkg.name}@${pkg.latest}`)]);
+			io.track('Upgrading packages', () => {
+				execFileSync('npm', ['install', ...packages.map(pkg => `${pkg.name}@${pkg.latest}`)]);
+			});
 		}
 
 		// re-link //
