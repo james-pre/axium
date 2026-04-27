@@ -7,14 +7,13 @@ export const ssr = false;
 const configured = await fetchAPI('OPTIONS', 'admin/audit/events').catch(() => false as const);
 
 export async function load({ url }) {
-	let filterError = null;
+	let filterError = null,
+		filter: input<typeof AuditFilter> = {};
 	try {
-		AuditFilter.parse(Object.fromEntries(url.searchParams));
+		filter = AuditFilter.parse(Object.fromEntries(url.searchParams));
 	} catch (e: any) {
 		filterError = prettifyError(e);
 	}
-
-	const filter: input<typeof AuditFilter> = filterError ? {} : Object.fromEntries(url.searchParams);
 
 	const events = await fetchAPI('GET', 'admin/audit/events', filter);
 
