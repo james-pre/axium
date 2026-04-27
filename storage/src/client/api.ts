@@ -7,8 +7,8 @@ import '../polyfills.js';
 import { warnOnce } from 'ioium';
 
 function rawStorage(suffix?: string): string | URL {
-	const raw = origin + '/raw/storage' + (suffix ? '/' + suffix : '');
-	if (prefix[0] == '/') return raw;
+	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
+	if (prefix[0] == '/') return origin + raw;
 	const url = new URL(prefix);
 	url.pathname = raw;
 	return url;
