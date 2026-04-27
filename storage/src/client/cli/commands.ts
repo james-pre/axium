@@ -3,7 +3,10 @@ import { Command } from 'commander';
 import * as io from 'ioium/node';
 import mime from 'mime';
 import * as fs from 'node:fs';
-import { basename } from 'node:path';
+import { basename, join, parse } from 'node:path';
+import { createInterface } from 'node:readline/promises';
+import { stringbool } from 'zod';
+import type { StorageItemMetadata } from '../../common.js';
 import { colorItem, formatItems, streamRead } from '../../node.js';
 import * as api from '../api.js';
 import { getDirectory, resolveItem, resolvePathWithParent, syncCache, writeCache } from '../local.js';
@@ -53,6 +56,28 @@ export const remove = new Command('remove')
 		}
 	});
 
+async function doUpload(local: string, name: string, size: number, parentId?: string, text: string = name): Promise<StorageItemMetadata> {
+	const type = mime.getType(local) || 'application/octet-stream';
+	using _ = io.start('Uploading ' + text);
+	const item = await api.createItem(streamRead(local), {
+		parentId,
+		name,
+		size,
+		type,
+		onProgress(uploaded, total) {
+			io.progress(
+				uploaded,
+				total,
+				Math.round((uploaded / total) * 100) + '%',
+				`${formatBytes(BigInt(uploaded))}/${formatBytes(BigInt(total))}`
+			);
+		},
+	});
+	const { items } = await syncCache();
+	items.push(item);
+	return item;
+}
+
 export const upload = new Command('upload')
 	.description('Upload a file or folder')
 	.argument('<local>', 'local file or folder path to upload')
@@ -65,36 +90,66 @@ export const upload = new Command('upload')
 		const existingTarget = await resolveItem(remotePath);
 		let { parent, name } = await resolvePathWithParent(remotePath);
 
-		if (stats.isDirectory()) {
-			if (!opts.recursive) throw '--recursive/-r not specified but the local path is a directory';
-			else throw 'Uploading directories is not support yet';
+		if (!stats.isDirectory()) {
+			if (existingTarget?.type == 'inode/directory') {
+				if (opts.targetDirectory) {
+					parent = existingTarget;
+					name = basename(local);
+				} else throw 'Directory exists at remote path: ' + existingTarget.name;
+			} else if (existingTarget && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
+
+			await doUpload(local, name, stats.size, parent?.id);
+			writeCache();
+			return;
 		}
 
-		if (existingTarget?.type == 'inode/directory') {
-			if (opts.targetDirectory) {
-				parent = existingTarget;
-				name = basename(local);
-			} else throw 'Directory exists at remote path: ' + existingTarget.name;
-		} else if (existingTarget && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
+		if (!opts.recursive) throw '--recursive/-r not specified but the local path is a directory';
 
-		const type = mime.getType(local) || 'application/octet-stream';
-		using _ = io.start('Uploading ' + name);
-		const item = await api.createItem(streamRead(local), {
-			parentId: parent?.id,
-			name,
-			size: stats.size,
-			type,
-			onProgress(uploaded, total) {
-				io.progress(
-					uploaded,
-					total,
-					Math.round((uploaded / total) * 100) + '%',
-					`${formatBytes(BigInt(uploaded))}/${formatBytes(BigInt(total))}`
-				);
-			},
+		if (existingTarget) throw 'Folder exists at remote path. Merging is not supported yet.';
+
+		using rl = createInterface({
+			input: process.stdin,
+			output: process.stdout,
 		});
-		const { items } = await syncCache();
-		items.push(item);
+
+		const toUpload: { path: string; stats: fs.BigIntStats; full: string }[] = [];
+		let sum = 0n;
+
+		// Sort to make sure directories come first, e.g. `example` and `example/duck`
+		for (const path of fs.readdirSync(local, { recursive: true, encoding: 'utf8' }).sort((a, b) => a.localeCompare(b))) {
+			const full = join(local, path);
+			const stats = fs.statSync(full, { bigint: true });
+			toUpload.push({ path, stats, full });
+			sum += stats.size;
+		}
+
+		const { data, error } = stringbool()
+			.default(false)
+			.safeParse(
+				await rl.question(`Upload ${toUpload.length} files totaling ${formatBytes(sum)}? [y/N]: `).catch(() => io.exit('Aborted.'))
+			);
+		if (error || !data) io.exit('Aborted.');
+
+		const { id } = await io.track('Creating directory', api.createDirectory(name, parent?.id));
+
+		const dirs = new Map<string, StorageItemMetadata>();
+
+		for (const { path, stats, full } of toUpload) {
+			const { dir, base } = parse(path);
+
+			let parentId;
+			if (dir) {
+				const md = dirs.get(dir);
+				if (!md) throw `Could not get metadata for the directory '${dir}'.`;
+				parentId = md.id;
+			} else parentId = id;
+
+			if (stats.isDirectory()) {
+				await io.track('Creating directory: ' + path, api.createDirectory(base, parentId));
+			} else {
+				await doUpload(full, base, Number(stats.size), parentId, path);
+			}
+		}
 		writeCache();
 	});
 
