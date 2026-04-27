@@ -61,12 +61,14 @@
 	"dependencies": {
 		"@simplewebauthn/server": "^13.1.1",
 		"@types/pg": "^8.11.11",
+		"@types/semver": "^7.7.1",
 		"commander": "^14.0.0",
 		"cookie_v1": "npm:cookie@^1.0.2",
-		"ioium": "^1.4.2",
+		"ioium": "^1.4.3",
 		"logzen": "^0.7.0",
 		"patch-package": "^8.0.1",
 		"pg": "^8.14.1",
+		"semver": "^7.7.4",
 		"sharp": "^0.34.5",
 		"vite": "^8.0.5"
 	},
