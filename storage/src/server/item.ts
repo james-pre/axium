@@ -185,7 +185,6 @@ export interface UploadInfo {
 	file: string;
 	stream: WritableStream;
 	hash: Hash;
-	hashStream: WritableStream;
 	uploadedBytes: bigint;
 	sessionId: string;
 	userId: string;
@@ -222,7 +221,6 @@ export function startUpload(init: StorageItemInit, session: Session, itemId: str
 
 	inProgress.set(token.toBase64(), {
 		hash,
-		hashStream: Writable.toWeb(hash),
 		file,
 		stream,
 		uploadedBytes: 0n,

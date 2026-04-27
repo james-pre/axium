@@ -82,18 +82,14 @@ addRoute({
 		const counter = new TransformStream({
 			transform(chunk, controller) {
 				actualSize += BigInt(chunk.length);
+				upload.hash.update(chunk);
 				controller.enqueue(chunk);
 			},
 		});
 
-		const [forFile, forHash] = request.body.pipeThrough(counter).tee();
-
 		/* @todo Figure out if we need to handle stream cancellation differently.
 		Right now an error with this chunk cancels the streams but may not cleanly fail the upload */
-		await Promise.all([
-			forFile.pipeTo(upload.stream, { preventClose: true }),
-			forHash.pipeTo(upload.hashStream, { preventClose: true }),
-		]);
+		await request.body.pipeThrough(counter).pipeTo(upload.stream, { preventClose: true });
 
 		if (actualSize != size) {
 			upload.remove();
