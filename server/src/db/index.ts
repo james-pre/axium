@@ -18,9 +18,9 @@ import { dirs, systemDir } from '../io.js';
 import { connect, database } from './connection.js';
 
 import * as schema from './schema.js';
-export * as delta from './delta.js';
+import * as delta from './delta.js';
 
-export { connect, database, schema };
+export { connect, database, schema, delta };
 
 pg.types.setTypeParser(pg.types.builtins.INT8, BigInt);
 
@@ -242,9 +242,13 @@ export interface Schema extends Omit<schema.Raw, 'users' | 'verifications' | 'pa
 
 const VersionMap = z.record(z.string(), z.int32().nonnegative());
 
+export const UpgradesInfoEntry = z.object({ timestamp: z.coerce.date(), from: VersionMap, to: VersionMap });
+
+export interface UpgradesInfoEntry extends z.infer<typeof UpgradesInfoEntry> {}
+
 export const UpgradesInfo = z.object({
 	current: VersionMap.default({}),
-	upgrades: z.object({ timestamp: z.coerce.date(), from: VersionMap, to: VersionMap }).array().default([]),
+	upgrades: UpgradesInfoEntry.array().default([]),
 });
 
 export interface UpgradesInfo extends z.infer<typeof UpgradesInfo> {}
@@ -258,6 +262,61 @@ export function getUpgradeInfo(): UpgradesInfo {
 
 export function setUpgradeInfo(info: UpgradesInfo): void {
 	io.writeJSON(upgradesFilePath, info);
+}
+
+export interface Upgrade {
+	delta: delta.Version;
+	entry: UpgradesInfoEntry;
+}
+
+export function initUpgrade(): Upgrade | null {
+	const deltas: delta.Version[] = [];
+
+	const info = getUpgradeInfo();
+
+	let empty = true;
+
+	const from: Record<string, number> = {},
+		to: Record<string, number> = {};
+
+	for (const [name, vSchema] of schema.getFiles()) {
+		if (!(name in info.current)) throw 'Plugin is not initialized: ' + name;
+
+		const currentVersion = info.current[name];
+		const target = vSchema.latest ?? vSchema.versions.length - 1;
+
+		if (currentVersion >= target) continue;
+
+		from[name] = currentVersion;
+		to[name] = target;
+
+		info.current[name] = target;
+
+		let versions = vSchema.versions.slice(currentVersion + 1);
+
+		const v0 = vSchema.versions[0];
+		if (v0.delta) throw 'Initial version can not be a delta';
+
+		for (const [i, v] of versions.toReversed().entries()) {
+			if (v.delta || v == v0) continue;
+			versions = [delta.compute(v0, v), ...versions.slice(-i)];
+			break;
+		}
+
+		const vDelta = delta.collapse(versions as delta.Version[]);
+
+		deltas.push(vDelta);
+
+		console.log(
+			'Upgrading',
+			name,
+			styleText('dim', currentVersion.toString() + '->') + styleText('blueBright', target.toString()) + ':'
+		);
+		if (!delta.isEmpty(vDelta)) empty = false;
+		for (const text of delta.display(vDelta)) console.log(text);
+	}
+
+	return empty ? null : { delta: delta.collapse(deltas), entry: { timestamp: new Date(), from, to } };
 }
 
 export interface CheckOptions extends OpOptions {

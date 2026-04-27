@@ -193,70 +193,25 @@ axiumDB
 	.description('Upgrade the database to the latest version')
 	.option('--dry-run', 'Rollback changes instead of committing them')
 	.action(async function axium_db_upgrade(opt) {
-		const deltas: db.delta.Version[] = [];
+		const upgrade = db.initUpgrade();
 
-		const info = db.getUpgradeInfo();
-
-		let empty = true;
-
-		const from: Record<string, number> = {},
-			to: Record<string, number> = {};
-
-		for (const [name, schema] of db.schema.getFiles()) {
-			if (!(name in info.current)) io.exit('Plugin is not initialized: ' + name);
-
-			const currentVersion = info.current[name];
-			const target = schema.latest ?? schema.versions.length - 1;
-
-			if (currentVersion >= target) continue;
-
-			from[name] = currentVersion;
-			to[name] = target;
-
-			info.current[name] = target;
-
-			let versions = schema.versions.slice(currentVersion + 1);
-
-			const v0 = schema.versions[0];
-			if (v0.delta) throw 'Initial version can not be a delta';
-
-			for (const [i, v] of versions.toReversed().entries()) {
-				if (v.delta || v == v0) continue;
-				versions = [db.delta.compute(v0, v), ...versions.slice(-i)];
-				break;
-			}
-
-			const delta = db.delta.collapse(versions as db.delta.Version[]);
-
-			deltas.push(delta);
-
-			console.log(
-				'Upgrading',
-				name,
-				styleText('dim', currentVersion.toString() + '->') + styleText('blueBright', target.toString()) + ':'
-			);
-			if (!db.delta.isEmpty(delta)) empty = false;
-			for (const text of db.delta.display(delta)) console.log(text);
-		}
-
-		if (empty) {
+		if (!upgrade) {
 			console.log('Already up to date.');
 			return;
 		}
 
 		await rlConfirm();
 
-		const delta = io.track('Computing delta', () => db.delta.collapse(deltas));
-
-		io.track('Validating delta', () => db.delta.validate(delta));
+		io.track('Validating delta', () => db.delta.validate(upgrade.delta));
 
 		console.log('Applying delta.');
-		await db.delta.apply(delta, opt.dryRun);
+		await db.delta.apply(upgrade.delta, opt.dryRun);
 
 		if (opt.dryRun) {
 			io.warn('--dry-run: No changes were applied.');
 		} else {
-			info.upgrades.push({ timestamp: new Date(), from, to });
+			const info = db.getUpgradeInfo();
+			info.upgrades.push(upgrade.entry);
 			db.setUpgradeInfo(info);
 		}
 	});
