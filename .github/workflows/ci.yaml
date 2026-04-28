@@ -16,8 +16,7 @@ jobs:
             run:
                 shell: bash
         permissions:
-            contents: write
-            id-token: write
+            contents: read
         steps:
             - name: Checkout
               uses: actions/checkout@v5
@@ -26,6 +25,9 @@ jobs:
               uses: actions/setup-node@v6
               with:
                   node-version: latest
+
+            - name: Use latest npm version
+              run: npm install -g npm@latest
 
             - name: Install dependencies
               run: npm install
