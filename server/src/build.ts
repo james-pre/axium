@@ -98,12 +98,11 @@ async function createConfig(options: BuildOptions): Promise<WithRequired<InlineC
 	return viteConfig;
 }
 
+const _circularDepWarning = /Circular dependency: (\.\.\/)*node_modules/;
+
 function allowWrite(text: string, stack?: string) {
 	return (
-		!stack?.includes('svelte') &&
-		!stack?.includes('vite') &&
-		!text.includes('No Svelte config file') &&
-		!text.includes('Circular dependency: node_modules')
+		!stack?.includes('svelte') && !stack?.includes('vite') && !text.includes('No Svelte config file') && !_circularDepWarning.test(text)
 	);
 }
 
