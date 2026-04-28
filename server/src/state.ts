@@ -1,4 +1,5 @@
 import { styleText } from 'node:util';
+import { stringbool } from 'zod';
 
 interface UniqueState<T> {
 	value: T;
@@ -13,8 +14,7 @@ declare const globalThis: {
 const sym = Symbol.for('Axium:state');
 globalThis[sym] ||= Object.create({ _errored: false });
 
-const { SHOW_DUPLICATE_STATE } = process.env;
-let _doWarnings: boolean = SHOW_DUPLICATE_STATE ? ['1', 'true', 'y', 'yes'].includes(SHOW_DUPLICATE_STATE.toLowerCase()) : false;
+let _doWarnings: boolean = stringbool().default(false).safeParse(process.env.SHOW_DUPLICATE_STATE).data || false;
 
 export function _duplicateStateWarnings(value: boolean) {
 	_doWarnings = value;
