@@ -127,13 +127,6 @@ export async function getPasskeysByUserId(userId: string): Promise<PasskeyIntern
 	return await db.selectFrom('passkeys').selectAll().where('userId', '=', userId).execute();
 }
 
-export async function updatePasskeyCounter(id: PasskeyInternal['id'], newCounter: PasskeyInternal['counter']): Promise<PasskeyInternal> {
-	await db.updateTable('passkeys').set({ counter: newCounter }).where('id', '=', id).executeTakeFirstOrThrow();
-	const passkey = await getPasskey(id);
-	if (!passkey) throw new Error('Passkey not found');
-	return passkey;
-}
-
 export interface UserAuthResult extends SessionAndUser {
 	/** The user authenticating the request. */
 	accessor: UserInternal;
