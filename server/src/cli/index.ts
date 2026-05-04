@@ -457,7 +457,7 @@ program
 			'After this operation,',
 			newSizeSum > oldSizeSum
 				? formatBytes(newSizeSum - oldSizeSum) + ' extra will be used'
-				: formatBytes(newSizeSum - oldSizeSum) + ' will be freed',
+				: formatBytes(oldSizeSum - newSizeSum) + ' will be freed',
 			`(install ${formatBytes(newSizeSum)}, remove ${formatBytes(oldSizeSum)}).`
 		);
 
