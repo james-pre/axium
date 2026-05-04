@@ -50,7 +50,7 @@
 
 			const [a, b] = sort.descending ? [_b, _a] : [_a, _b];
 			// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
-			return sort.by == 'name' ? a.name.localeCompare(b.name) : a[sort.by] - b[sort.by];
+			return sort.by == 'name' ? a.name.localeCompare(b.name) : Number(a[sort.by] - b[sort.by]);
 		})
 	);
 
