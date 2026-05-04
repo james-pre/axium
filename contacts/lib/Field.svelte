@@ -7,6 +7,8 @@
 	}
 
 	const { text, isDefault, label, link }: Props = $props();
+
+	const protocolPattern = /^\w+:(\/\/)?/i;
 </script>
 
 {#snippet content()}
@@ -18,7 +20,11 @@
 
 <span>
 	{#if link}
-		<a href={link} target="_blank" rel="noopener noreferrer">{@render content()}</a>
+		{#if protocolPattern.test(link)}
+			<a href={link} target="_blank" rel="noopener noreferrer">{@render content()}</a>
+		{:else}
+			<a href={link}>{@render content()}</a>
+		{/if}
 	{:else}
 		{@render content()}
 	{/if}
