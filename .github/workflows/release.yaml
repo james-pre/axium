@@ -45,7 +45,7 @@ jobs:
             - name: Build (TypeScript)
               run: npx tsc -b
 
-            - name: Build server (Vite)
+            - name: Build server
               run: cd server && npx patch-package && npx axium build
 
             - name: Export schemas
