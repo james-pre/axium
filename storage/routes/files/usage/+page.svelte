@@ -25,4 +25,4 @@
 
 <p><NumberBar max={Number(limits.user_size * 1_000_000n)} value={Number(usedBytes)} text={barText} /></p>
 
-<List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} />
+<List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} sort={{ by: 'size', descending: true }} />

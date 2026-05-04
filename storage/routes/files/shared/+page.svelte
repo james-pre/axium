@@ -10,4 +10,10 @@
 	<title>{text('page.files.shared.title')}</title>
 </svelte:head>
 
-<List appMode bind:items emptyText={text('page.files.shared.empty')} user={data.session?.user} />
+<List
+	appMode
+	bind:items
+	emptyText={text('page.files.shared.empty')}
+	user={data.session?.user}
+	sort={{ by: 'modifiedAt', descending: true }}
+/>

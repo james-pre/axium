@@ -13,24 +13,30 @@
 	import { StorageItemSorting, UserStoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
 
+	const search = new URLSearchParams(location.search);
+
 	let {
 		items = $bindable(),
 		appMode,
 		emptyText = text('storage.List.empty'),
 		user,
-	}: { appMode?: boolean; items: (StorageItemMetadata & AccessControllable)[]; emptyText?: string; user?: UserPublic } = $props();
+		sort = $bindable<StorageItemSorting | undefined>(
+			StorageItemSorting.safeParse({
+				by: search.get('sortBy'),
+				descending: search.has('descending'),
+			}).data
+		),
+	}: {
+		appMode?: boolean;
+		items: (StorageItemMetadata & AccessControllable)[];
+		emptyText?: string;
+		user?: UserPublic;
+		sort?: StorageItemSorting;
+	} = $props();
 
 	let activeId = $state<string>();
 	const activeItem = $derived(items.find(item => item.id === activeId));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
-
-	const search = new URLSearchParams(location.search);
-	let sort = $state<StorageItemSorting | undefined>(
-		StorageItemSorting.safeParse({
-			by: search.get('sortBy'),
-			descending: search.has('descending'),
-		}).data
-	);
 
 	const { sort_folders_first } = user ? await getAppPreferences(user.id, 'files') : UserStoragePreferences.safeParse({}).data || {};
 
