@@ -17,10 +17,12 @@ export async function load({ parent, url }) {
 		redirect(307, '/login?after=/calendar');
 	}
 
-	const filter: EventFilter = getSpanFilter('week', new Date());
+	const filter: EventFilter = getSpanFilter('week');
 	try {
+		// @todo simplify after https://github.com/colinhacks/zod/issues/4016
 		const parsed = EventFilter.partial().parse(Object.fromEntries(url.searchParams));
-		Object.assign(filter, parsed);
+		if (parsed.start) filter.start = Temporal.ZonedDateTime.from(parsed.start.toJSON());
+		if (parsed.end) filter.end = Temporal.ZonedDateTime.from(parsed.end.toJSON());
 	} catch (e: any) {
 		throw prettifyError(e);
 	}

@@ -14,59 +14,38 @@ export function withOrdinalSuffix(val: number): string {
 	return val + 'th';
 }
 
-export function toRRuleDate(date: Date) {
-	return new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate(), date.getHours(), date.getMinutes()));
+export function toRRuleDate(date: Temporal.ZonedDateTime): Date {
+	return new Date(Date.UTC(date.year, date.month - 1, date.day, date.hour, date.minute));
 }
 
-export function fromRRuleDate(d: Date) {
-	return new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
+export function fromRRuleDate(d: Date): Temporal.ZonedDateTime {
+	const fromUTC = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes());
+	return Temporal.ZonedDateTime.from(fromUTC.toJSON());
 }
 
-export function dayOfYear(date: Date): number {
-	const yearStart = new Date(date.getFullYear(), 0, 1);
-	return Math.round((date.getTime() - yearStart.getTime()) / 86400000 + 1);
-}
-
-/**
- *
- * @param date
- * @param baseOnWeeks Whether to use day-based (w1 = 1-7, w2 = 8-14), or week-based (Sat-Sun)
- * @returns
- */
-export function weekOfYear(date: Date, baseOnWeeks: boolean = false): number {
-	let day = dayOfYear(date);
-	if (baseOnWeeks) {
-		day += new Date(date.getFullYear(), 0, 1).getDay();
-	}
-	const week = Math.ceil(day / 7);
-	return week > 52 ? week % 52 : week;
-}
-
-export function weekDaysFor(date: Date): Date[] {
-	const days = [];
-	for (let i = 0; i < 7; i++) {
-		days.push(new Date(date.getFullYear(), date.getMonth(), date.getDate() - date.getDay() + i, 0, 0, 0, 0));
+export function weekDaysFor(date: Temporal.ZonedDateTime): Temporal.ZonedDateTime[] {
+	const days: Temporal.ZonedDateTime[] = [];
+	for (let i = 1; i <= date.daysInWeek; i++) {
+		days.push(date.with({ day: date.day - date.dayOfWeek + i }));
 	}
 	return days;
 }
 
-export function longWeekDay(date: Date): string {
+export function longWeekDay(date: Temporal.ZonedDateTime): string {
 	return date.toLocaleString('default', { weekday: 'long' });
 }
 
-export function weekDayOfMonth(date: Date): string {
-	const weekOfMonth = Math.ceil(date.getDate() / 7);
+export function weekDayOfMonth(date: Temporal.ZonedDateTime): string {
+	const weekOfMonth = Math.ceil(date.day / date.daysInWeek);
 	return `${withOrdinalSuffix(weekOfMonth)} ${longWeekDay(date)}`;
 }
 
 /**
  * Converts a date to the format expected by `<input type="datetime-local">`
  */
-export function dateToInputValue(date?: Date): string | null {
-	if (!date?.toISOString) return null;
-	const offset = date.getTimezoneOffset() * 60_000;
-	const localDate = new Date(date.getTime() - offset);
-	return localDate.toISOString().slice(0, -1);
+export function dateToInputValue(date?: Temporal.ZonedDateTime): string | null {
+	if (!date) return null;
+	return date.withTimeZone('UTC').toPlainDateTime().round('second').toJSON();
 }
 
 /**
@@ -93,24 +72,24 @@ export const Attendee = AttendeeInit.extend({
 export interface Attendee extends z.infer<typeof Attendee> {}
 
 export const EventFilter = z.object({
-	start: z.coerce.date(),
-	end: z.coerce.date(),
+	start: z.instant(),
+	end: z.instant(),
 });
 export interface EventFilter extends z.infer<typeof EventFilter> {}
 
-export function getSpanFilter(span: 'week' | 'month', at: Date): EventFilter {
+export function getSpanFilter(span: 'week' | 'month', at: Temporal.ZonedDateTime = Temporal.Now.zonedDateTimeISO()): EventFilter {
 	switch (span) {
 		case 'week': {
-			const startDay = at.getDate() - at.getDay();
+			const startDay = at.day - at.dayOfWeek;
 			return {
-				start: new Date(at.getFullYear(), at.getMonth(), startDay),
-				end: new Date(at.getFullYear(), at.getMonth(), startDay + 7),
+				start: at.with({ day: startDay }).toInstant(),
+				end: at.with({ day: startDay + at.daysInWeek }).toInstant(),
 			};
 		}
 		case 'month':
 			return {
-				start: new Date(at.getFullYear(), at.getMonth(), 1),
-				end: new Date(at.getFullYear(), at.getMonth() + 1, 0),
+				start: at.with({ day: 1 }).toInstant(),
+				end: at.with({ day: at.daysInMonth }).toInstant(),
 			};
 	}
 }
@@ -119,8 +98,8 @@ export const EventData = z.object({
 	calId: z.uuid(),
 	summary: z.string().max(250),
 	location: z.string().max(250).nullish(),
-	start: z.coerce.date(),
-	end: z.coerce.date(),
+	start: z.zonedDateTime(),
+	end: z.zonedDateTime(),
 	isAllDay: z.coerce.boolean(),
 	description: z.string().max(2000).nullish(),
 	color: Color.nullish(),
@@ -148,13 +127,13 @@ export interface Event extends z.infer<typeof Event> {
 	calendar?: Calendar;
 }
 
-const format: Intl.DateTimeFormatOptions = {
+const timeFormatter = new Intl.DateTimeFormat(undefined, {
 	hour: '2-digit',
 	minute: '2-digit',
-};
+});
 
 export function formatEventTimes(event: Event): string {
-	return `${event.start.toLocaleTimeString('default', format)} - ${event.end.toLocaleTimeString('default', format)}`;
+	return timeFormatter.formatRange(event.start.epochMilliseconds, event.end.epochMilliseconds);
 }
 
 export const CalendarInit = z.object({
@@ -235,16 +214,20 @@ Object.assign($API, CalendarAPI);
 /**
  * Convert a `Date` to an iCalendar datetime
  */
-export function toDateTime(date: Date): string {
-	return date
-		.toISOString()
+export function toDateTime(date: Temporal.ZonedDateTime): string {
+	const base = date
+		.round('second')
+		.withTimeZone('UTC')
+		.toPlainDateTime()
+		.round('second')
+		.toJSON()
 		.replaceAll('-', '')
-		.replaceAll(':', '')
-		.replace(/\.\d+Z$/, 'Z');
+		.replaceAll(':', '');
+	return base + 'Z';
 }
 
 /** e.g. `FR`, `SA` */
-export function toByDay(date: Date): string {
+export function toByDay(date: Temporal.ZonedDateTime): string {
 	return date.toLocaleString('en', { weekday: 'short' }).slice(0, 2).toUpperCase();
 }
 
@@ -256,7 +239,7 @@ export function eventToICS(event: Event): string {
 		'CALSCALE:GREGORIAN',
 		'BEGIN:VEVENT',
 		'UID:' + event.id,
-		'DTSTAMP:' + toDateTime(new Date()),
+		'DTSTAMP:' + toDateTime(Temporal.Now.zonedDateTimeISO()),
 		'DTSTART:' + toDateTime(event.start),
 		'DTEND:' + toDateTime(event.end),
 		'SUMMARY:' + event.summary,

@@ -21,7 +21,6 @@
 	import { colorHashHex, encodeColor } from '@axium/core/color';
 	import { rrulestr } from 'rrule';
 	import { useSwipe } from 'svelte-gestures';
-	import { SvelteDate } from 'svelte/reactivity';
 	import { _throw } from 'utilium';
 	import * as z from 'zod';
 	import './cal.css';
@@ -30,29 +29,26 @@
 
 	const { user } = data.session;
 
-	const now = new SvelteDate();
-	now.setMilliseconds(0);
-	setInterval(() => now.setTime(Date.now()), 60_000);
-	const today = $derived(new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0));
-	const defaultStart = $derived(
-		new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0, 0)
-	);
+	let now = $state(Temporal.Now.zonedDateTimeISO().round('second'));
+	setInterval(() => (now = Temporal.Now.zonedDateTimeISO().round('second')), 60_000);
+	const today = $derived(now.round('day'));
+	const defaultStart = $derived(now.with({ minute: Math.round(now.minute / 30) * 30, second: 0 }));
 
-	let start = new SvelteDate(data.filter.start);
-	let end = new SvelteDate(data.filter.end);
+	let start = $state(data.filter.start);
+	let end = $state(data.filter.end);
 	let calendars = $state(data.calendars);
 	let events = $state<Event[]>([]);
 
 	$effect(() => {
 		for (const cal of calendars) cal.color ||= encodeColor(colorHashHex(cal.name));
-		getEvents(calendars, { start: new Date(start.getTime()), end: new Date(end.getTime()) }).then(e => (events = e));
+		getEvents(calendars, { start, end }).then(e => (events = e));
 		calSidebar?.classList.remove('active');
 	});
 
 	const tz = new Date().toLocaleString('en', { timeStyle: 'long' }).split(' ').slice(-1)[0];
 
 	const span = $state('week');
-	const spanDays = $derived(span == 'week' ? 7 : _throw('Invalid span value'));
+	const spanDiff: Temporal.DurationLike = $derived(span == 'week' ? { weeks: 1 } : _throw('Invalid span value'));
 	const weekDays = $derived(weekDaysFor(start));
 
 	let dialogs = $state<Record<string, HTMLDialogElement>>({});
@@ -62,8 +58,8 @@
 		recurrenceExcludes: [],
 		recurrenceId: null,
 		calId: calendars[0]?.id,
-		start: new Date(defaultStart),
-		end: new Date(defaultStart.getTime() + 3600_000),
+		start: defaultStart,
+		end: defaultStart.with({ hour: defaultStart.hour + 1 }),
 	});
 
 	let eventInit = $state<EventInitProp>(defaultEventInit),
@@ -84,9 +80,7 @@
 			.filter(ev => ev.recurrence)
 			.map(ev => {
 				const rule = rrulestr('RRULE:' + ev.recurrence, { dtstart: toRRuleDate(ev.start) });
-				const recurrences = rule
-					.between(toRRuleDate(new Date(start.getTime())), toRRuleDate(new Date(end.getTime())), true)
-					.map(fromRRuleDate);
+				const recurrences = rule.between(toRRuleDate(start), toRRuleDate(end), true).map(fromRRuleDate);
 				return { ...ev, rule, recurrences };
 			})
 	);
@@ -110,19 +104,19 @@
 	</div>
 	<div class="bar">
 		<!-- desktop -->
-		<button class="mobile-hide" onclick={() => start.setTime(today.getTime())}>{text('calendar.today')}</button>
+		<button class="mobile-hide" onclick={() => (start = today)}>{text('calendar.today')}</button>
 		<button
 			class="reset mobile-hide"
 			onclick={() => {
-				start.setDate(start.getDate() - spanDays);
-				end.setDate(end.getDate() - spanDays);
+				start = start.subtract(spanDiff);
+				end = end.subtract(spanDiff);
 			}}><Icon i="chevron-left" /></button
 		>
 		<button
 			class="reset mobile-hide"
 			onclick={() => {
-				start.setDate(start.getDate() + spanDays);
-				end.setDate(end.getDate() + spanDays);
+				start = start.add(spanDiff);
+				end = end.add(spanDiff);
 			}}><Icon i="chevron-right" /></button
 		>
 
@@ -133,8 +127,8 @@
 		<span class="label">{weekDays[0].toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
 
 		<!-- mobile -->
-		<button class="reset mobile-only" onclick={() => start.setTime(today.getTime())}>
-			<span class="day-number today">{today.getDate()}</span>
+		<button class="reset mobile-only" onclick={() => (start = today)}>
+			<span class="day-number today">{today.day}</span>
 		</button>
 		<button class="reset mobile-only icon-text" command="show-modal" commandfor="event-init"><Icon i="plus" /></button>
 	</div>
@@ -217,12 +211,12 @@
 				if (e.detail.pointerType != 'touch') return;
 				switch (e.detail.direction) {
 					case 'left':
-						start.setDate(start.getDate() + spanDays);
-						end.setDate(end.getDate() + spanDays);
+						start = start.add(spanDiff);
+						end = end.add(spanDiff);
 						break;
 					case 'right':
-						start.setDate(start.getDate() - spanDays);
-						end.setDate(end.getDate() - spanDays);
+						start = start.subtract(spanDiff);
+						end = end.subtract(spanDiff);
 						break;
 					case 'top':
 					case 'bottom':
@@ -245,17 +239,17 @@
 			{@const eventsForWeekDays = Object.groupBy(
 				events.filter(
 					e =>
-						e.start < new Date(weekDays[6].getFullYear(), weekDays[6].getMonth(), weekDays[6].getDate() + 1) &&
-						e.end > weekDays[0]
+						Temporal.ZonedDateTime.compare(e.start.toJSON(), weekDays[6].add({ days: 1 })) === -1 &&
+						Temporal.ZonedDateTime.compare(e.end.toJSON(), weekDays[0]) === 1
 				),
-				ev => ev.start.getDay()
+				ev => ev.start.dayOfWeek
 			)}
 			<div class="cal-content week">
 				{#each weekDays as day, i}
 					<div class="day">
 						<div class="day-header">
 							<span class="subtle">{day.toLocaleString('en', { weekday: 'short' })}</span>
-							<span class={['day-number', today.getTime() == day.getTime() && 'today']}>{day.getDate()}</span>
+							<span class={['day-number', !Temporal.PlainDate.compare(today, day) && 'today']}>{day.day}</span>
 						</div>
 
 						<div class="day-content">
@@ -264,13 +258,13 @@
 							{/each}
 
 							{#each recurringEvents.flatMap(ev => ev.recurrences
-									.filter(r => r.getFullYear() == day.getFullYear() && r.getMonth() == day.getMonth() && r.getDate() == day.getDate())
-									.map( r => [ev, { ...ev, start: r, end: new Date(r.getTime() + ev.end.getTime() - ev.start.getTime()) }] )) as [initData, event]}
+									.filter(r => !Temporal.PlainDate.compare(r, day))
+									.map(r => [ev, { ...ev, start: r, end: r.add(ev.start.until(ev.end)) }])) as [initData, event]}
 								<Cal.Event bind:eventEditId bind:eventEditCalId bind:eventInit {event} {initData} />
 							{/each}
 
-							{#if today.getTime() == day.getTime()}
-								<div class="now" style:top="{(now.getHours() * 60 + now.getMinutes()) / 14.4}%"></div>
+							{#if !Temporal.PlainDate.compare(today, day)}
+								<div class="now" style:top="{(now.hour * 60 + now.minute) / 14.4}%"></div>
 							{/if}
 						</div>
 					</div>
@@ -317,7 +311,7 @@
 				name="start"
 				id="eventInit.start"
 				bind:value={eventInitStart}
-				onchange={e => (eventInit.start = new Date(e.currentTarget.value))}
+				onchange={e => (eventInit.start = Temporal.ZonedDateTime.from(e.currentTarget.value))}
 				required
 			/>
 			<input
@@ -325,7 +319,7 @@
 				name="end"
 				id="eventInit.end"
 				bind:value={eventInitEnd}
-				onchange={e => (eventInit.end = new Date(e.currentTarget.value))}
+				onchange={e => (eventInit.end = Temporal.ZonedDateTime.from(e.currentTarget.value))}
 				required
 			/>
 			<div class="event-time-options">
@@ -341,15 +335,15 @@
 					<option value="FREQ=WEEKLY;BYDAY={toByDay(eventInit.start)}">
 						{text('event_init.recurrence.weekly', { day: longWeekDay(eventInit.start) })}
 					</option>
-					<option value="FREQ=MONTHLY;BYDAY={Math.ceil(eventInit.start.getDate() / 7) + toByDay(eventInit.start)}"
+					<option value="FREQ=MONTHLY;BYDAY={Math.ceil(eventInit.start.day / 7) + toByDay(eventInit.start)}"
 						>{text('event_init.recurrence.monthly_on', { day: weekDayOfMonth(eventInit.start) })}
 					</option>
-					<option value="FREQ=MONTHLY;BYMONTHDAY={eventInit.start.getDate()}">
-						{text('event_init.recurrence.monthly_on', { day: withOrdinalSuffix(eventInit.start.getDate()) })}
+					<option value="FREQ=MONTHLY;BYMONTHDAY={eventInit.start.day}">
+						{text('event_init.recurrence.monthly_on', { day: withOrdinalSuffix(eventInit.start.day) })}
 					</option>
-					<option value="FREQ=YEARLY;BYMONTH={eventInit.start.getMonth()};BYMONTHDAY={eventInit.start.getDate()}">
+					<option value="FREQ=YEARLY;BYMONTH={eventInit.start.month};BYMONTHDAY={eventInit.start.day}">
 						{text('event_init.recurrence.yearly', {
-							date: eventInit.start.toLocaleDateString('default', { month: 'long', day: 'numeric' }),
+							date: eventInit.start.toLocaleString('default', { month: 'long', day: 'numeric' }),
 						})}
 					</option>
 					<!-- @todo <option value="">Custom</option> -->

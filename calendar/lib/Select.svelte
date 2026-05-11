@@ -1,64 +1,54 @@
 <script lang="ts">
-	import { weekOfYear, type EventFilter } from '@axium/calendar/common';
+	import type { EventFilter } from '@axium/calendar/common';
 	import { Icon } from '@axium/client/components';
-	import { SvelteDate } from 'svelte/reactivity';
 
 	let { start = $bindable(), end = $bindable() }: Required<EventFilter> = $props();
 
-	const today = new Date();
-	today.setHours(0, 0, 0, 0);
+	const today = Temporal.Now.zonedDateTimeISO();
 
-	let view = new SvelteDate(start);
+	let view = $state(Temporal.ZonedDateTime.from(start));
 	$effect(() => {
-		view.setTime(start.getTime());
+		view = Temporal.ZonedDateTime.from(start);
 	});
 
-	const firstOfMonth = $derived(new Date(view.getFullYear(), view.getMonth(), 1));
-	const firstWeekOfMonth = $derived(weekOfYear(firstOfMonth, true));
-	const lastOfMonth = $derived(new Date(view.getFullYear(), view.getMonth() + 1, 0));
-	const sameMonth = (d: Date) => view.getFullYear() == d.getFullYear() && view.getMonth() == d.getMonth();
+	const firstOfMonth = $derived(view.with({ day: 1 }));
+	const firstWeekOfMonth = $derived(firstOfMonth.weekOfYear);
+	const sameMonth = (d: Temporal.ZonedDateTimeLike) => !Temporal.PlainYearMonth.compare(view, d);
 </script>
 
 <div class="CalendarSelect">
 	<div class="bar">
 		<span class="label">{view.toLocaleString('default', { month: 'long', year: 'numeric' })}</span>
-		<button style:display="contents" onclick={() => view.setMonth(view.getMonth() - 1)}><Icon i="chevron-left" /></button>
-		<button style:display="contents" onclick={() => view.setMonth(view.getMonth() + 1)}><Icon i="chevron-right" /></button>
+		<button style:display="contents" onclick={() => (view = view.subtract({ months: 1 }))}><Icon i="chevron-left" /></button>
+		<button style:display="contents" onclick={() => (view = view.add({ months: 1 }))}><Icon i="chevron-right" /></button>
 	</div>
 
 	<div class="month-grid">
 		<div></div>
 		{#each ['S', 'M', 'T', 'W', 'T', 'F', 'S'] as day, i}
-			<div class={['d-of-w', sameMonth(today) && today.getDay() == i && 'current']}>{day}</div>
+			<div class={['d-of-w', sameMonth(today) && today.dayOfWeek == i && 'current']}>{day}</div>
 		{/each}
 
-		<div class={['w-of-y', firstWeekOfMonth == weekOfYear(today, true) && 'current']}>{firstWeekOfMonth}</div>
+		<div class={['w-of-y', firstWeekOfMonth == today.weekOfYear && 'current']}>{firstWeekOfMonth}</div>
 
-		{#each { length: firstOfMonth.getDay() }}
+		{#each { length: firstOfMonth.dayOfWeek }}
 			<div class="empty"></div>
 		{/each}
-		{#each { length: lastOfMonth.getDate() }, i}
+		{#each { length: view.daysInMonth }, i}
 			{@const day = i + 1}
-			{@const year = view.getFullYear()}
-			{@const month = view.getMonth()}
-			{@const date = new Date(year, month, day)}
-			{@const WofY = weekOfYear(date, true)}
-			{#if date.getDay() == 0 && WofY != firstWeekOfMonth}
-				<div class={['w-of-y', WofY == weekOfYear(today, true) && 'current']}>{WofY}</div>
+			{@const date = view.with({ day })}
+			{#if date.dayOfWeek == 0 && date.weekOfYear != firstWeekOfMonth}
+				<div class={['w-of-y', date.weekOfYear == today.weekOfYear && 'current']}>{date.weekOfYear}</div>
 			{/if}
 			<div
 				class={[
 					'grid-day',
-					sameMonth(today) && day == today.getDate() && 'today',
-					sameMonth(start) && day >= start.getDate() && day < end.getDate() && 'selected',
+					sameMonth(today) && day == today.day && 'today',
+					sameMonth(start) && day >= start.day && day < end.day && 'selected',
 				]}
 				onclick={() => {
-					start.setFullYear(year);
-					start.setMonth(month);
-					start.setDate(day - date.getDay());
-					end.setFullYear(year);
-					end.setMonth(month);
-					end.setDate(day - date.getDay() + 7);
+					start = start.with({ ...view, day: day - date.dayOfWeek });
+					end = end.with({ ...view, day: day - date.dayOfWeek + date.daysInWeek });
 				}}
 			>
 				{day}

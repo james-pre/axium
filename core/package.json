@@ -29,7 +29,8 @@
 		"data"
 	],
 	"scripts": {
-		"build": "tsc"
+		"build": "tsc",
+		"postinstall": "node patches/patch.js"
 	},
 	"peerDependencies": {
 		"utilium": "^3.1.0",
@@ -39,6 +40,7 @@
 		"@types/semver": "^7.7.1",
 		"ioium": "^1.0.2",
 		"mime": "^4.0.7",
+		"patch-package": "^8.0.1",
 		"semver": "^7.7.3"
 	}
 }

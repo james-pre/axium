@@ -4,7 +4,7 @@ import * as z from 'zod';
 
 export const ClientConfig = z.looseObject({
 	token: z.base64().nullish(),
-	server: z.url().nullish(),
+	server: z.httpUrl().nullish(),
 	// Cache to reduce server load:
 	cache: z
 		.looseObject({
