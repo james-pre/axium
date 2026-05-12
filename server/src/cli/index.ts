@@ -80,7 +80,13 @@ axiumApps
 		}
 
 		if (!opt.long) {
-			console.log(Array.from(apps.values().map(app => app.name)).join(', '));
+			console.log(
+				apps
+					.values()
+					.map(app => app.name)
+					.toArray()
+					.join(', ')
+			);
 			return;
 		}
 
@@ -119,7 +125,7 @@ program
 		console.log(
 			styleText('whiteBright', 'Loaded plugins:'),
 			styleText(['dim', 'bold'], `(${plugins.size || 'none'})`),
-			Array.from(plugins.keys()).join(', ')
+			plugins.keys().toArray().join(', ')
 		);
 
 		for (const plugin of plugins.values()) {
@@ -330,6 +336,7 @@ program
 	.description('Develop with axium')
 	.argument('[dir]', 'The project directory', searchForWorkspaceRoot(process.cwd()))
 	.option('-g, --git', 'Use .gitignore to ignore files (can improve performance)')
+	.option('-l, --follow-links', 'Follow symbolic links')
 	.action(async (dir, opts) => {
 		let buildId = 0,
 			server: Http2Server | undefined;

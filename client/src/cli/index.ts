@@ -199,7 +199,7 @@ axiumPlugin
 		}
 
 		if (!opt.long) {
-			console.log(Array.from(plugins.keys()).join(', '));
+			console.log(plugins.keys().toArray().join(', '));
 			return;
 		}
 

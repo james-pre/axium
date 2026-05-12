@@ -108,7 +108,7 @@ export function computeDelta(sync: Sync): Delta {
 
 	const delta: Delta = {
 		_items: items,
-		items: Array.from(items.values()),
+		items: items.values().toArray(),
 		synced: Array.from(synced.difference(modified)).map(p => items.get(p)!),
 		modified: Array.from(modified).map(p => items.get(p)!),
 		local_only: Array.from(new Set(files.keys()).difference(items)).map(p => files.get(p)!),

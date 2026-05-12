@@ -62,7 +62,10 @@ addRoute({
 	path: '/api/admin/plugins',
 	async GET(req): AsyncResult<'GET', 'admin/plugins'> {
 		await assertAdmin(this, req);
-		return await Array.fromAsync(plugins.values().map(p => omit(p, '_hooks', '_client')));
+		return plugins
+			.values()
+			.map(p => omit(p, '_hooks', '_client'))
+			.toArray();
 	},
 	async POST(req): AsyncResult<'POST', 'admin/plugins'> {
 		await assertAdmin(this, req);

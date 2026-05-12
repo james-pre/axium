@@ -100,7 +100,7 @@ axiumDB
 			}
 		}
 
-		const maxTableName = Math.max(5, ...Array.from(tables.keys()).map(t => t.length));
+		const maxTableName = Math.max(5, ...tables.keys().map(t => t.length));
 
 		console.log('Table' + ' '.repeat(maxTableName - 5), '|', 'Plugin(s)');
 		console.log('-'.repeat(maxTableName), '|', '-'.repeat(20));
@@ -110,7 +110,7 @@ axiumDB
 
 		await rlConfirm('Are you sure you want to wipe these tables and any dependents');
 
-		await db.database.deleteFrom(Array.from(tables.keys())).execute();
+		await db.database.deleteFrom(tables.keys().toArray()).execute();
 	});
 
 axiumDB

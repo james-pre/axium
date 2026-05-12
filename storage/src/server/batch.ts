@@ -146,6 +146,6 @@ addRoute({
 			throw withError('Could not update item', 500)(error);
 		}
 
-		return Array.from(results.values());
+		return results.values().toArray();
 	},
 });

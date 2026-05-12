@@ -319,12 +319,12 @@ export async function loadDefaultConfigs(safe: boolean = false) {
 }
 
 export async function reloadConfigs(safe: boolean = false) {
-	const paths = Array.from(
-		configFiles
-			.entries()
-			.filter(([, cfg]) => !cfg[kWasIncluded as any])
-			.map(([p]) => p)
-	);
+	const paths = configFiles
+		.entries()
+		.filter(([, cfg]) => !cfg[kWasIncluded as any])
+		.map(([p]) => p)
+		.toArray();
+
 	configFiles.clear();
 	setConfig(defaultConfig);
 	for (const path of paths) await loadConfig(path, { safe });
