@@ -7,6 +7,7 @@ import * as z from 'zod';
 import * as db from '../db/index.js';
 import { Option } from 'commander';
 import { createInterface } from 'node:readline/promises';
+import { matchesGlob } from 'node:path';
 
 export function userText(user: UserInternal, bold: boolean = false): string {
 	const text = `${user.name} <${user.email}> (${user.id})`;
@@ -57,6 +58,31 @@ export function diffUpdate(
 		});
 
 	return [!!diffs.length, original, diffs.join(', ')];
+}
+
+export function matchesGitGlob(path: string, pattern: string): boolean {
+	pattern = pattern.at(-1) === '/' ? pattern.slice(0, -1) : pattern;
+
+	const isRooted = pattern[0] === '/';
+	const rel = isRooted ? pattern.slice(1) : pattern;
+
+	return rel.includes('/') || isRooted
+		? path === rel || path.startsWith(rel + '/') || matchesGlob(path, rel) || matchesGlob(path, rel + '/**')
+		: path.split('/').includes(rel) || matchesGlob(path, '**/' + rel) || matchesGlob(path, '**/' + rel + '/**');
+}
+
+/**
+ * Matches a path against a set of patterns.
+ * Negated patterns clear previous matches.
+ */
+export function matchesGitGlobs(path: string, patterns: string[]): boolean {
+	let matched = false;
+	for (let pattern of patterns) {
+		const negated = pattern.startsWith('!');
+		if (negated) pattern = pattern.slice(1);
+		if (matchesGitGlob(path, pattern)) matched = !negated;
+	}
+	return matched;
 }
 
 // Options shared by multiple (sub)commands

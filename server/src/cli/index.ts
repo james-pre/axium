@@ -12,9 +12,9 @@ import * as io from 'ioium/node';
 import { allLogLevels } from 'logzen';
 import { execFileSync, execSync } from 'node:child_process';
 import { createWriteStream, readFileSync } from 'node:fs';
-import { access, watch } from 'node:fs/promises';
+import { access, readdir, stat, watch } from 'node:fs/promises';
 import type { Http2Server } from 'node:http2';
-import { join, resolve } from 'node:path/posix';
+import { join, relative, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { lte, major } from 'semver';
 import type { Entries } from 'utilium';
@@ -28,7 +28,7 @@ import * as db from '../db/index.js';
 import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from '../io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
 import { serve } from '../serve.js';
-import { sharedOptions as opts, rlConfirm } from './common.js';
+import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts, rlConfirm } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
 import './config.js';
@@ -335,7 +335,8 @@ program
 	.alias('dev')
 	.description('Develop with axium')
 	.argument('[dir]', 'The project directory', searchForWorkspaceRoot(process.cwd()))
-	.option('-g, --git', 'Use .gitignore to ignore files (can improve performance)')
+	.option('-g, --git', 'Use .gitignore to ignore files (can improve performance)', true)
+	.option('-w, --watch <path...>', 'Also watch a specific path for changes, bypassing ignore rules')
 	.option('-l, --follow-links', 'Follow symbolic links')
 	.action(async (dir, opts) => {
 		let buildId = 0,
@@ -348,7 +349,11 @@ program
 		// eslint-disable-next-line @typescript-eslint/no-misused-promises
 		process.on('beforeExit', () => db.database.destroy());
 
+		let building = false;
+
 		async function rebuild() {
+			if (building) return;
+			building = true;
 			server?.close();
 			process.stdout.clearLine(0);
 			process.stdout.cursorTo(0);
@@ -360,9 +365,10 @@ program
 			server = await serve(config.web);
 			server.listen(config.web.port);
 			process.stdout.write(`Build #${buildId} finished in ${formatMs(time)}`);
+			building = false;
 		}
 
-		const ignore = ['node_modules', '.git'];
+		const ignored = ['node_modules', '.git'];
 		try {
 			if (!opts.git) throw null;
 			const gitignore = readFileSync(join(dir, '.gitignore'), 'utf8');
@@ -370,20 +376,54 @@ program
 			for (const rawLine of gitignore.split('\n')) {
 				const line = rawLine.trim();
 				if (!line || line[0] == '#') continue;
-				ignore.push(line);
+				ignored.push(line);
 			}
 		} catch {
 			// It's fine if we don't have a .gitignore
 		}
 
-		io.debug('Watching', dir);
+		const dirsToWatch = [dir];
+
+		if (opts.followLinks) {
+			const stack = [dir];
+			while (stack.length) {
+				const current = stack.pop()!;
+				const entries = await readdir(current, { withFileTypes: true }).catch(() => []);
+				for (const entry of entries) {
+					const path = join(current, entry.name);
+					const rel = relative(dir, path);
+					if (!opts.watch?.some(watchPath => matchesGitGlob(rel, watchPath)) && matchesGitGlobs(rel, ignored)) continue;
+
+					if (!entry.isSymbolicLink()) stack.push(path);
+					else {
+						const s = await stat(path).catch(() => null);
+						if (s?.isDirectory()) dirsToWatch.push(path);
+					}
+				}
+			}
+		}
+
+		io.debug('Watching', dir, dirsToWatch.length > 1 ? `+ ${dirsToWatch.length - 1} linked directories` : '');
 
 		await rebuild();
 		try {
-			for await (const _event of watch(dir, { recursive: true, ignore })) {
-				// @todo see if we can be more efficient based on event data
-				await rebuild();
-			}
+			const ac = new AbortController();
+			await Promise.all(
+				dirsToWatch.map(async watched => {
+					for await (let { filename } of watch(watched, { recursive: true, signal: ac.signal })) {
+						if (!filename) continue;
+
+						filename = filename.replace(/\\/g, '/');
+						if (watched !== dir) filename = join(relative(dir, watched), filename);
+
+						if (!opts.watch?.some(watchPath => matchesGitGlob(filename, watchPath)) && matchesGitGlobs(filename, ignored))
+							continue;
+
+						// @todo see if we can be more efficient based on event data
+						await rebuild();
+					}
+				})
+			);
 		} catch (err: any) {
 			if (err.name === 'AbortError') return;
 			throw err;
