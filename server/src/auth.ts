@@ -91,7 +91,7 @@ export async function createVerification(
 	userId: string,
 	expires: number
 ): Promise<VerificationInternal> {
-	const token = randomBytes(64).toString('base64url');
+	const token = randomBytes(64).toBase64({ alphabet: 'base64url', omitPadding: true });
 	const verification: VerificationInternal = { userId, token, expires: new Date(Date.now() + expires * 60_000), role };
 	await (this || db).insertInto('verifications').values(verification).executeTakeFirstOrThrow();
 	setTimeout(() => {

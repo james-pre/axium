@@ -3,7 +3,7 @@ import { App, Session, User } from '@axium/core';
 import * as z from 'zod';
 
 export const ClientConfig = z.looseObject({
-	token: z.base64().nullish(),
+	token: z.base64url().nullish(),
 	server: z.url().nullish(),
 	// Cache to reduce server load:
 	cache: z

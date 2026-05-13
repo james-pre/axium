@@ -23,7 +23,7 @@ export const VerificationRole = z.literal(['email', 'login']);
 export type VerificationRole = z.infer<typeof VerificationRole>;
 
 export const VerificationInternal = Verification.extend({
-	token: z.string(),
+	token: z.base64url(),
 	role: VerificationRole,
 });
 
@@ -31,7 +31,7 @@ export interface VerificationInternal extends z.infer<typeof VerificationInterna
 
 export const NewSessionResponse = z.object({
 	userId: z.uuid(),
-	token: z.string(),
+	token: z.base64url(),
 });
 
 export interface NewSessionResponse extends z.infer<typeof NewSessionResponse> {}

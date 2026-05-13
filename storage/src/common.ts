@@ -203,7 +203,7 @@ export const UploadInitResult = z.discriminatedUnion('status', [
 	StoragePublicConfig.safeExtend({
 		status: z.literal('accepted'),
 		/** Used for chunked uploads */
-		token: z.base64(),
+		token: z.base64url(),
 	}),
 	z.object({
 		status: z.literal('created'),
