@@ -201,7 +201,8 @@ const inProgress = new Map<string, UploadInfo>();
 export function startUpload(init: StorageItemInit, session: Session, itemId: string | null): string {
 	const { temp_dir, upload_timeout } = getConfig('@axium/storage');
 
-	const token = randomBytes(32);
+	const token = randomBytes(32),
+		tokenB64 = token.toBase64({ alphabet: 'base64url', omitPadding: true });
 
 	mkdirSync(temp_dir, { recursive: true });
 	const file = join(temp_dir, token.toHex());
@@ -211,7 +212,7 @@ export function startUpload(init: StorageItemInit, session: Session, itemId: str
 	function remove() {
 		if (removed) return;
 		removed = true;
-		inProgress.delete(token.toBase64());
+		inProgress.delete(tokenB64);
 		void stream.close();
 		hash.end();
 	}
@@ -219,7 +220,7 @@ export function startUpload(init: StorageItemInit, session: Session, itemId: str
 	const hash = createHash('BLAKE2b512'),
 		stream = Writable.toWeb(createWriteStream(file));
 
-	inProgress.set(token.toBase64(), {
+	inProgress.set(tokenB64, {
 		hash,
 		file,
 		stream,
@@ -235,7 +236,7 @@ export function startUpload(init: StorageItemInit, session: Session, itemId: str
 		remove();
 	}, upload_timeout * 60_000);
 
-	return token.toBase64();
+	return tokenB64;
 }
 
 export async function requireUpload(request: Request): Promise<UploadInfo> {
