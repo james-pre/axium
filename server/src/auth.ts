@@ -29,7 +29,7 @@ export async function createSession(userId: string, name: string | null, elevate
 		id: randomUUID(),
 		userId,
 		name,
-		token: randomBytes(64).toString('base64'),
+		token: randomBytes(64).toBase64({ alphabet: 'base64url', omitPadding: true }),
 		expires: elevated ? in10minutes() : in30days(),
 		elevated,
 		created: new Date(),
