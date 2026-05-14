@@ -1,4 +1,3 @@
-import { getConfig } from '@axium/core';
 import { authRequestForItem } from '@axium/server/auth';
 import { error } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -8,6 +7,7 @@ import { Readable } from 'node:stream';
 import { crc32, createDeflateRaw } from 'node:zlib';
 import * as z from 'zod';
 import '../polyfills.js';
+import storage from './bind.js';
 import { getRecursive } from './db.js';
 import { _contentDispositionFor } from './raw.js';
 
@@ -27,8 +27,7 @@ addRoute({
 	path: '/raw/storage/directory-zip/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }) {
-		const config = getConfig('@axium/storage');
-		if (!config.enabled) error(503, 'User storage is disabled');
+		const config = storage.getConfig();
 
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 

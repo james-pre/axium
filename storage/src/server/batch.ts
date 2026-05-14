@@ -1,24 +1,23 @@
-import { checkACL, getConfig, type AsyncResult } from '@axium/core';
+import { checkACL, type AsyncResult } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { audit } from '@axium/server/audit';
 import { requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { withError } from '@axium/server/requests';
-import { addRoute } from '@axium/server/routes';
 import { error } from '@sveltejs/kit';
 import { createHash } from 'node:crypto';
 import { unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import { StorageBatchUpdate, type StorageItemMetadata } from '../common.js';
+import storage from './bind.js';
 import { getLimits } from './config.js';
 import { getRecursiveIds, getUserStats, parseItem } from './db.js';
 
-addRoute({
+storage.addRoute({
 	path: '/api/storage/batch',
 	async POST(req): AsyncResult<'POST', 'storage/batch'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-		if (!getConfig('@axium/storage').batch.enabled) error(503, 'Batch updates are disabled');
+		if (!storage.getConfig().batch.enabled) error(503, 'Batch updates are disabled');
 
 		const { userId, user } = await requireSession(req);
 
@@ -109,7 +108,7 @@ addRoute({
 					.returningAll()
 					.executeTakeFirstOrThrow();
 
-				writeFileSync(join(getConfig('@axium/storage').data, result.id), content);
+				writeFileSync(join(storage.getConfig().data, result.id), content);
 
 				await tx.commit().execute();
 				results.set(itemId, parseItem(result));
@@ -120,7 +119,7 @@ addRoute({
 			);
 
 			const deleted = await tx.deleteFrom('storage').where('id', 'in', header.deleted).returningAll().execute();
-			for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
+			for (const id of toDelete) unlinkSync(join(storage.getConfig().data, id));
 			for (const item of deleted) results.set(item.id, parseItem(item));
 
 			for (const [itemId, update] of Object.entries(header.metadata)) {

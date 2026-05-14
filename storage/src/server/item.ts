@@ -1,4 +1,4 @@
-import { getConfig, type Session } from '@axium/core';
+import type { Session } from '@axium/core';
 import { audit } from '@axium/server/audit';
 import { authRequestForItem, authSessionForItem, requireSession, type SessionAndUser, type SessionInternal } from '@axium/server/auth';
 import { database } from '@axium/server/database';
@@ -10,6 +10,7 @@ import { Writable } from 'node:stream';
 import * as z from 'zod';
 import type { StorageItemInit, StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
+import storage from './bind.js';
 import { defaultCASMime, getLimits } from './config.js';
 import { getUserStats, parseItem } from './db.js';
 
@@ -19,7 +20,7 @@ export interface NewItemResult {
 }
 
 export function useCAS(type: string) {
-	const { cas } = getConfig('@axium/storage');
+	const { cas } = storage.getConfig();
 
 	return !!(
 		cas.enabled &&
@@ -75,7 +76,7 @@ export async function createNewItem(
 ): Promise<StorageItemMetadata> {
 	const tx = await database.startTransaction().execute();
 
-	const { data: dataDir } = getConfig('@axium/storage');
+	const { data: dataDir } = storage.getConfig();
 
 	const immutable = useCAS(init.type);
 
@@ -132,7 +133,7 @@ export interface ItemUpdateCheckResult {
 }
 
 export async function checkItemUpdate(request: Request, itemId: string): Promise<ItemUpdateCheckResult> {
-	if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
+	if (!storage.getConfig().enabled) error(503, 'User storage is disabled');
 
 	const { item, session } = await authRequestForItem(request, 'storage', itemId, { write: true }, true);
 
@@ -158,7 +159,7 @@ export async function finishItemUpdate(
 ): Promise<StorageItemMetadata> {
 	const tx = await database.startTransaction().execute();
 
-	const { data: dataDir } = getConfig('@axium/storage');
+	const { data: dataDir } = storage.getConfig();
 
 	const path = join(dataDir, itemId);
 
@@ -202,7 +203,7 @@ export interface UploadInfo {
 const inProgress = new Map<string, UploadInfo>();
 
 export function startUpload(init: StorageItemInit, session: Session, itemId: string | null): string {
-	const { temp_dir, upload_timeout } = getConfig('@axium/storage');
+	const { temp_dir, upload_timeout } = storage.getConfig();
 
 	const token = randomBytes(32),
 		tokenB64 = token.toBase64({ alphabet: 'base64url', omitPadding: true });

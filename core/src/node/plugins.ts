@@ -61,7 +61,7 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 					Object.assign(plugin, { _db: dbSchema.default });
 				}
 			}
-		}
+		} else if (plugin.cli || plugin[mode].hooks) io.warn('Ignoring CLI integration and hooks for', plugin.name);
 
 		if (plugins.has(plugin.name)) throw 'Plugin already loaded';
 

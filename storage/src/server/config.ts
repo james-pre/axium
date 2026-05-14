@@ -1,9 +1,9 @@
-import { getConfig, Severity } from '@axium/core';
-import { addEvent } from '@axium/server/audit';
+import { Severity } from '@axium/core';
 import { statfsSync } from 'node:fs';
 import * as z from 'zod';
 import type { StorageLimits } from '../common.js';
 import '../polyfills.js';
+import storage from './bind.js';
 import { getTotalUse } from './db.js';
 
 export const defaultCASMime = [/video\/.*/, /audio\/.*/];
@@ -23,19 +23,18 @@ declare module '@axium/server/audit' {
 }
 
 function getSystemAvailable(): bigint {
-	const { bavail, bsize } = statfsSync(getConfig('@axium/storage').data, { bigint: true });
+	const { bavail, bsize } = statfsSync(storage.getConfig().data, { bigint: true });
 	return (bavail * bsize) / 1_000_000n;
 }
 
-addEvent({
-	source: '@axium/storage',
+storage.addEvent({
 	name: 'storage_type_mismatch',
 	severity: Severity.Warning,
 	tags: ['mimetype'],
 	extra: { item: z.string() },
 });
-addEvent({
-	source: '@axium/storage',
+
+storage.addEvent({
 	name: 'storage_size_mismatch',
 	severity: Severity.Warning,
 	tags: [],
@@ -72,7 +71,7 @@ export async function getLimits(userId?: string): Promise<StorageLimits> {
 	try {
 		limits = await _getLimits!(userId);
 	} catch {
-		limits = structuredClone(getConfig('@axium/storage').limits);
+		limits = structuredClone(storage.getConfig().limits);
 	}
 
 	limits.user_size ||= await _unlimitedLimit();

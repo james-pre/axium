@@ -76,7 +76,7 @@ export interface AuditEventConfig {
 
 export const events = new Map<EventName, AuditEventConfig>();
 
-export function addEvent(init: AuditEventConfigInit) {
+export function addEvent(init: AuditEventConfigInit): void {
 	if (events.has(init.name)) throw io.error(`Can not register multiple events with the same name ("${init.name}")`);
 	const config = {
 		...init,

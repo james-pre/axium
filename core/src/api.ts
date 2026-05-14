@@ -142,7 +142,7 @@ const _API = {
 
 type _API = typeof _API;
 export interface $API extends _API {}
-export const $API = _API as $API;
+export const $API = _API;
 
 export type APIValues = {
 	[Endpoint in keyof $API]: {

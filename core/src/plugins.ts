@@ -110,7 +110,9 @@ export interface $PluginConfigs {}
 
 export const serverConfigs = new Map<string, z.ZodObject>();
 
-export function getConfig<T extends string>(pluginName: T): T extends keyof $PluginConfigs ? $PluginConfigs[T] : Record<string, unknown> {
+export type PluginConfig<T extends string> = T extends keyof $PluginConfigs ? $PluginConfigs[T] : Record<string, unknown>;
+
+export function getConfig<T extends string>(pluginName: T): PluginConfig<T> {
 	const plugin = _findPlugin(pluginName);
 	return plugin.config as any;
 }
@@ -118,6 +120,7 @@ export function getConfig<T extends string>(pluginName: T): T extends keyof $Plu
 export const PluginUpdate = z.object({
 	plugin: z.string(),
 	config: z.record(z.string(), z.any()).optional(),
+	enabled: z.boolean().optional(),
 });
 
 /**

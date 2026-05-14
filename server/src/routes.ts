@@ -6,7 +6,7 @@ import type z from 'zod';
 import config from './config.js';
 import { _unique } from './state.js';
 
-type RouteParams = Record<string, z.ZodType>;
+export type RouteParams = Record<string, z.ZodType>;
 
 type ParamValues<P extends RouteParams> = { [K in keyof P]: z.infer<P[K]> };
 
@@ -25,6 +25,7 @@ export interface ServerRouteInit<Params extends RouteParams = RouteParams> exten
 > {
 	path: string;
 	params?: Params;
+	plugin?: string;
 	api?: boolean;
 }
 
@@ -41,6 +42,7 @@ export type RouteInit<Params extends RouteParams = RouteParams> = ServerRouteIni
 export interface RouteCommon<Params extends RouteParams = RouteParams> {
 	path: string;
 	params?: Params;
+	plugin?: string;
 }
 
 export interface ServerRoute<Params extends RouteParams = RouteParams> extends RouteCommon<Params>, EndpointHandlers<ParamValues<Params>> {

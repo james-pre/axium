@@ -13,6 +13,7 @@ import '../polyfills.js';
 import { getLimits } from './config.js';
 import { getUserStats } from './db.js';
 import { checkItemUpdate, checkNewItem, createNewItem, finishItemUpdate, requireUpload } from './item.js';
+import storage from './bind.js';
 
 export function _contentDispositionFor(name: string, suffix: string = '') {
 	const fallback =
@@ -30,11 +31,9 @@ export function _contentDispositionFor(name: string, suffix: string = '') {
 	return `attachment; filename="${fallback}${suffix}"; filename*=UTF-8''${encoded}${suffix}`;
 }
 
-addRoute({
+storage.addRoute({
 	path: '/raw/storage',
 	async PUT(request): Promise<StorageItemMetadata> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const session = await requireSession(request);
 		const { userId } = session;
 
@@ -60,11 +59,9 @@ addRoute({
 	},
 });
 
-addRoute({
+storage.addRoute({
 	path: '/raw/storage/upload',
 	async POST(request) {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const upload = await requireUpload(request);
 
 		const size = BigInt(request.headers.get('x-chunk-size') || -1);
@@ -129,8 +126,6 @@ addRoute({
 		}
 	},
 	async DELETE(request): Promise<Response> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const upload = await requireUpload(request);
 
 		upload.remove();
@@ -158,12 +153,11 @@ function parseRange(itemSize: bigint, range?: string | null): { start: number; e
 	return { start, end, length };
 }
 
-addRoute({
+storage.addRoute({
 	path: '/raw/storage/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }) {
-		const config = getConfig('@axium/storage');
-		if (!config.enabled) error(503, 'User storage is disabled');
+		const config = storage.getConfig();
 
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 

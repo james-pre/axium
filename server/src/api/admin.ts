@@ -70,7 +70,7 @@ addRoute({
 	async POST(req): AsyncResult<'POST', 'admin/plugins'> {
 		await assertAdmin(this, req);
 
-		const { plugin: name, config } = await parseBody(req, PluginUpdate);
+		const { plugin: name, config, enabled } = await parseBody(req, PluginUpdate);
 
 		let plugin: PluginInternal;
 		try {

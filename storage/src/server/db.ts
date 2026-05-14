@@ -1,4 +1,3 @@
-import { getConfig } from '@axium/core';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { withError } from '@axium/server/requests';
@@ -8,6 +7,7 @@ import { join } from 'node:path/posix';
 import type schema from '../../db.json';
 import type { StorageItemMetadata, StorageStats } from '../common.js';
 import '../polyfills.js';
+import storage from './bind.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -91,7 +91,7 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 
 	await database.deleteFrom('storage').where('id', '=', itemId).returningAll().execute().catch(withError('Could not delete item'));
 
-	for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
+	for (const id of toDelete) unlinkSync(join(storage.getConfig().data, id));
 }
 
 export async function getParents(itemId: string): Promise<{ id: string; name: string }[]> {
