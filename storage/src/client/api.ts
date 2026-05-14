@@ -49,9 +49,17 @@ async function _upload(
 	upload: UploadInitResult,
 	stream: ReadableStream<Uint8Array<ArrayBuffer>>,
 	itemSize: number,
-	onProgress?: ProgressHandler
+	onProgress?: ProgressHandler,
+	signal?: AbortSignal
 ): Promise<StorageItemMetadata> {
 	if (upload.status == 'created') return upload.item;
+
+	signal?.addEventListener('abort', () => {
+		void fetch(rawStorage('upload'), {
+			method: 'DELETE',
+			headers: { 'x-upload': upload.token },
+		});
+	});
 
 	const targetChunkSize = upload.max_transfer_size * 1_000_000;
 
@@ -133,10 +141,11 @@ async function _upload(
 			onProgress?.(offset + bytesReadForChunk, itemSize);
 		}
 
-		response = await fetch(rawStorage('chunk'), {
+		response = await fetch(rawStorage('upload'), {
 			method: 'POST',
 			headers,
 			body,
+			signal,
 			...init,
 		}).catch(handleFetchFailed);
 
@@ -162,6 +171,7 @@ export interface CreateItemInit {
 	name: string;
 	size: number;
 	type: string;
+	signal?: AbortSignal;
 }
 
 export async function createItem(stream: ReadableStream<Uint8Array<ArrayBuffer>>, init: CreateItemInit): Promise<StorageItemMetadata> {
@@ -171,7 +181,7 @@ export async function createItem(stream: ReadableStream<Uint8Array<ArrayBuffer>>
 
 	const upload = await fetchAPI('PUT', 'storage', { ...init, hash: null });
 
-	return await _upload(upload, stream, init.size, init.onProgress);
+	return await _upload(upload, stream, init.size, init.onProgress, init.signal);
 }
 
 export async function createItemFromFile(file: File, init: Partial<CreateItemInit>): Promise<StorageItemMetadata> {
@@ -182,10 +192,11 @@ export async function updateItem(
 	fileId: string,
 	newSize: number | bigint,
 	stream: ReadableStream<Uint8Array<ArrayBuffer>>,
-	onProgress?: ProgressHandler
+	onProgress?: ProgressHandler,
+	signal?: AbortSignal
 ): Promise<StorageItemMetadata> {
 	const upload = await fetchAPI('POST', 'storage/item/:id', newSize, fileId);
-	return await _upload(upload, stream, Number(newSize), onProgress);
+	return await _upload(upload, stream, Number(newSize), onProgress, signal);
 }
 
 export async function getItemMetadata(fileId: string, options: GetItemOptions = {}): Promise<StorageItemMetadata> {

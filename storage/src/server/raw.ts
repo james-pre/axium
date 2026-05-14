@@ -4,7 +4,7 @@ import { authRequestForItem, requireSession } from '@axium/server/auth';
 import { error, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { copyFileSync, renameSync, unlinkSync, writeFileSync } from 'node:fs';
+import { copyFileSync, renameSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
@@ -61,7 +61,7 @@ addRoute({
 });
 
 addRoute({
-	path: '/raw/storage/chunk',
+	path: '/raw/storage/upload',
 	async POST(request) {
 		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 
@@ -79,7 +79,7 @@ addRoute({
 		if (!request.body) error(400, 'Missing request body');
 
 		let actualSize = 0n;
-		const counter = new TransformStream({
+		const counter = new TransformStream<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>>({
 			transform(chunk, controller) {
 				actualSize += BigInt(chunk.length);
 				upload.hash.update(chunk);
@@ -105,8 +105,6 @@ addRoute({
 		upload.init.hash ??= hash.toHex();
 		if (hash.toHex() != upload.init.hash) error(409, 'Hash mismatch');
 
-		upload.remove();
-
 		function writeContent(path: string) {
 			try {
 				renameSync(upload.file, path);
@@ -116,17 +114,24 @@ addRoute({
 			}
 		}
 
-		const item = upload.itemId
-			? await finishItemUpdate(upload.itemId, upload.init.size, hash, writeContent)
-			: await createNewItem(upload.init, upload.userId, writeContent);
-
 		try {
-			unlinkSync(upload.file);
-		} catch {
-			// probably renamed
-		}
+			const item = upload.itemId
+				? await finishItemUpdate(upload.itemId, upload.init.size, hash, writeContent)
+				: await createNewItem(upload.init, upload.userId, writeContent);
 
-		return item;
+			return item;
+		} finally {
+			upload.remove();
+		}
+	},
+	async DELETE(request): Promise<Response> {
+		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
+
+		const upload = await requireUpload(request);
+
+		upload.remove();
+
+		return new Response(null, { status: 204 });
 	},
 });
 

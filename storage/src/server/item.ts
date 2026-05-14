@@ -4,7 +4,7 @@ import { authRequestForItem, authSessionForItem, requireSession, type SessionAnd
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { createHash, randomBytes, type Hash } from 'node:crypto';
-import { createWriteStream, linkSync, mkdirSync } from 'node:fs';
+import { createWriteStream, linkSync, mkdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { Writable } from 'node:stream';
 import * as z from 'zod';
@@ -215,6 +215,11 @@ export function startUpload(init: StorageItemInit, session: Session, itemId: str
 		inProgress.delete(tokenB64);
 		void stream.close();
 		hash.end();
+		try {
+			unlinkSync(file);
+		} catch {
+			// probably renamed
+		}
 	}
 
 	const hash = createHash('BLAKE2b512'),
