@@ -4,16 +4,19 @@
 	import { createItemFromFile } from '@axium/storage/client';
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { text } from '@axium/client';
+	import { toast } from '@axium/client/toast';
 
 	const { parentId, onAdd }: { parentId?: string; onAdd?(item: StorageItemMetadata): void } = $props();
 
-	let uploadDialog = $state<HTMLDialogElement>()!;
-	let uploadProgress = $state<[number, number][]>([]);
-	let files = $state<FileList>()!;
+	let uploadDialog = $state<HTMLDialogElement>()!,
+		uploadProgress = $state<[number, number][]>([]),
+		uploading = $state(false),
+		controller = $state(new AbortController()),
+		files = $state<FileList>()!;
 
-	let createDialog = $state<HTMLDialogElement>()!;
-	let createType = $state<string>();
-	let createIncludesContent = $state(false);
+	let createDialog = $state<HTMLDialogElement>()!,
+		createType = $state<string>(),
+		createIncludesContent = $state(false);
 </script>
 
 {#snippet _item(type: string, text: string, includeContent: boolean = false)}
@@ -37,23 +40,41 @@
 
 	<span class="menu-item" onclick={() => uploadDialog.showModal()}><Icon i="upload" />{text('storage.Add.upload')}</span>
 	{@render _item('inode/directory', text('storage.Add.new_folder'))}
-	{@render _item('text/plain', text('storage.Add.plain_text'))}
+	{@render _item('text/plain', text('storage.Add.plain_text'), true)}
 </Popover>
 
 <FormDialog
 	bind:dialog={uploadDialog}
 	submitText={text('storage.Add.upload')}
-	cancel={() => (files = new DataTransfer().files)}
+	cancel={() => {
+		files = new DataTransfer().files;
+		if (!uploading) return;
+		uploading = false;
+		uploadProgress = [];
+		controller.abort();
+		toast('info', text('storage.Add.cancelled'));
+		controller = new AbortController();
+	}}
 	submit={async () => {
+		uploading = true;
 		for (const [i, file] of Array.from(files!).entries()) {
-			const item = await createItemFromFile(file, {
-				parentId,
-				onProgress(uploaded, total) {
-					uploadProgress[i] = [uploaded, total];
-				},
-			});
-			onAdd?.(item);
+			try {
+				const item = await createItemFromFile(file, {
+					parentId,
+					onProgress(uploaded, total) {
+						uploadProgress[i] = [uploaded, total];
+					},
+					signal: controller.signal,
+				});
+				onAdd?.(item);
+			} catch (e) {
+				if (e && e instanceof DOMException && e.name == 'AbortError') return;
+				throw e;
+			}
 		}
+		uploading = false;
+		uploadProgress = [];
+		files = new DataTransfer().files;
 	}}
 >
 	<Upload bind:files bind:progress={uploadProgress} multiple />

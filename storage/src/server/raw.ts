@@ -91,6 +91,10 @@ addRoute({
 		Right now an error with this chunk cancels the streams but may not cleanly fail the upload */
 		await request.body.pipeThrough(counter).pipeTo(upload.stream, { preventClose: true });
 
+		if (request.signal.aborted) {
+			return;
+		}
+
 		if (actualSize != size) {
 			upload.remove();
 			await audit('storage_size_mismatch', upload.userId, { item: null });
@@ -121,7 +125,7 @@ addRoute({
 
 			return item;
 		} finally {
-			upload.remove();
+			upload.remove(true);
 		}
 	},
 	async DELETE(request): Promise<Response> {

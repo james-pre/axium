@@ -192,8 +192,11 @@ export interface UploadInfo {
 	/** If set we are updating an existing item. Explicit null used to avoid bugs */
 	itemId: string | null;
 
-	/** Remove the upload from pending and clean up resources */
-	remove(): void;
+	/**
+	 * Remove the upload from pending and clean up resources
+	 * @param isSuccess whether the upload was successful. If not, abort-style behavior will be used instead.
+	 */
+	remove(isSuccess?: boolean): void;
 }
 
 const inProgress = new Map<string, UploadInfo>();
@@ -209,11 +212,12 @@ export function startUpload(init: StorageItemInit, session: Session, itemId: str
 
 	let removed = false;
 
-	function remove() {
+	function remove(isSuccess: boolean = false) {
 		if (removed) return;
 		removed = true;
 		inProgress.delete(tokenB64);
-		void stream.close();
+		if (isSuccess) void stream.close();
+		else void stream.abort();
 		hash.end();
 		try {
 			unlinkSync(file);

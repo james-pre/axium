@@ -68,6 +68,8 @@ async function _upload(
 	let buffer = new Uint8Array(0);
 
 	for (let offset = 0; offset < itemSize; offset += targetChunkSize) {
+		signal?.throwIfAborted();
+
 		const chunkSize = Math.min(targetChunkSize, itemSize - offset);
 		let bytesReadForChunk = 0;
 

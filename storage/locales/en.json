@@ -78,7 +78,8 @@
 			"new_folder": "New Folder",
 			"plain_text": "Plain Text",
 			"text": "Add",
-			"upload": "Upload"
+			"upload": "Upload",
+			"cancelled": "Upload cancelled"
 		},
 		"List": {
 			"copy_link": "Copy Link",
