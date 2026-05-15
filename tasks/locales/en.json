@@ -25,6 +25,13 @@
 		"toast_all_completed": "All tasks marked as complete",
 		"toast_all_pending": "All tasks marked as pending",
 		"toast_task_deleted": "Task deleted",
-		"toast_list_deleted": "Task list deleted"
+		"toast_list_deleted": "Task list deleted",
+		"preferences": {
+			"show_completed_subtasks": "Show completed subtasks"
+		},
+		"show_completed_subtasks": {
+			"inline": "Inline with pending",
+			"mirror": "In completed section"
+		}
 	}
 }

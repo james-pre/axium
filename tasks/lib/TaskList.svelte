@@ -1,25 +1,33 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { copy } from '@axium/client/gui';
-	import type { UserPublic } from '@axium/core';
+	import { fetchAPI, getAppPreferences, text } from '@axium/client';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
-	import { fetchAPI, text } from '@axium/client';
-	import type { Task, TaskList } from '@axium/tasks/common';
+	import { copy } from '@axium/client/gui';
+	import { toastStatus } from '@axium/client/toast';
+	import { buildTaskTree, type Task, type TaskList, type TaskTreeNode } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';
 	import { download } from 'utilium/dom';
-	import { toastStatus } from '@axium/client/toast';
 
 	let {
 		list = $bindable(),
 		lists = $bindable(),
-		user,
-	}: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[]; user?: UserPublic } = $props();
+	}: {
+		list: WithRequired<TaskList, 'tasks'>;
+		lists?: WithRequired<TaskList, 'tasks'>[];
+	} = $props();
+
+	const { user } = page.data.session;
 
 	let tasks = $state(list.tasks),
 		open = $state(false);
 
-	const completed: Task[] = $derived(tasks.filter(task => !task.parentId && task.completed));
+	const preferences = await getAppPreferences(user.id, 'tasks');
+	const showCompletedInline = preferences.show_completed_subtasks == 'inline';
+
+	const tree = $derived(buildTaskTree(tasks));
+
+	const completed: TaskTreeNode[] = $derived(tree.filter(node => node.all == 'completed'));
 
 	function exportTask(task: Task): string {
 		const children = tasks
@@ -34,22 +42,29 @@
 	let acl = $state<HTMLDialogElement>();
 </script>
 
-{#snippet task_tree(task: Task)}
-	<div class="task">
-		<label for="task-completed#{task.id}" style:cursor="pointer">
-			<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="1.25em" />
-		</label>
-		<input
-			type="checkbox"
-			name="completed"
-			bind:checked={task.completed}
-			id="task-completed#{task.id}"
-			style:display="none"
-			oninput={e => {
-				task.completed = e.currentTarget.checked;
-				fetchAPI('PATCH', 'tasks/:id', { completed: task.completed }, task.id);
-			}}
-		/>
+{#snippet task_tree(node: TaskTreeNode, depth: number = 0, isCompletedMirror: boolean = false)}
+	{@const task = node.task}
+	<div class="task" style:margin-left="{depth * 1.75}em">
+		{#if !showCompletedInline && isCompletedMirror != task.completed}
+			<span class="mirror-marker">
+				<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="1.25em" />
+			</span>
+		{:else}
+			<label for="task-completed#{task.id}" style:cursor="pointer">
+				<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="1.25em" />
+			</label>
+			<input
+				type="checkbox"
+				name="completed"
+				bind:checked={task.completed}
+				id="task-completed#{task.id}"
+				style:display="none"
+				oninput={e => {
+					task.completed = e.currentTarget.checked;
+					fetchAPI('PATCH', 'tasks/:id', { completed: task.completed }, task.id);
+				}}
+			/>
+		{/if}
 		<input
 			type="text"
 			name="summary"
@@ -83,17 +98,37 @@
 				<Icon i="trash" />
 				<span>{text('generic.delete')}</span>
 			</div>
-			{#if page.data.session?.user.preferences.debug}
+			{#if user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', task.id)}>
 					<Icon i="hashtag" --size="14px" />
 					<span>{text('tasks.copy_id')}</span>
 				</div>
 			{/if}
 		</Popover>
-		{#each tasks.filter(t => t.parentId === task.id) as subtask (subtask.id)}
-			{@render task_tree(subtask)}
-		{/each}
 	</div>
+	{#each node.children as sub (sub.task.id)}
+		{#if sub.all != (isCompletedMirror ? 'pending' : 'completed')}
+			{@render task_tree(sub, depth + 1, isCompletedMirror)}
+		{/if}
+	{/each}
+	{@const completedSubs = node.children.filter(sub => sub.all == 'completed')}
+	{#if showCompletedInline && completedSubs.length}
+		{#snippet inside()}
+			{#each completedSubs as sub (sub.task.id)}
+				{@render task_tree(sub, depth + 1, isCompletedMirror)}
+			{/each}
+		{/snippet}
+		{#if node.all == 'completed'}
+			{@render inside()}
+		{:else}
+			<details>
+				<summary style:margin-left="{depth * 1.75 + 1}em" class="completed-subtasks subtle"
+					>{text('tasks.completed_heading', { count: completedSubs.length })}</summary
+				>
+				{@render inside()}
+			</details>
+		{/if}
+	{/if}
 {/snippet}
 
 <div class="task-list">
@@ -183,7 +218,7 @@
 					<span>{text('tasks.open_new_tab')}</span>
 				</div>
 			{/if}
-			{#if page.data.session?.user.preferences.debug}
+			{#if user.preferences.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', list.id)}>
 					<Icon i="hashtag" --size="14px" />
 					<span>{text('tasks.copy_id')}</span>
@@ -199,18 +234,28 @@
 		</button>
 	</div>
 
-	{#each tasks.filter(task => !task.parentId && !task.completed) as task (task.id)}
-		{@render task_tree(task)}
+	{#each tree.filter(node => node.all != 'completed') as node (node.task.id)}
+		{@render task_tree(node)}
 	{:else}
 		<i class="subtle">{text('tasks.pending_empty')}</i>
 	{/each}
 
-	{#if completed.length}
+	{#if completed.length || (!showCompletedInline && tasks.some(t => t.completed))}
 		<details bind:open>
-			<summary>{text('tasks.completed_heading', { count: completed.length })}</summary>
-			{#each completed as task (task.id)}
-				{@render task_tree(task)}
-			{/each}
+			<summary
+				>{text('tasks.completed_heading', {
+					count: (showCompletedInline ? completed : tasks.filter(t => t.completed)).length,
+				})}</summary
+			>
+			{#if showCompletedInline}
+				{#each completed as node (node.task.id)}
+					{@render task_tree(node)}
+				{/each}
+			{:else}
+				{#each tree.filter(node => node.all != 'pending') as node (node.task.id)}
+					{@render task_tree(node, 0, true)}
+				{/each}
+			{/if}
 		</details>
 	{/if}
 </div>
@@ -227,18 +272,19 @@
 		align-items: center;
 		gap: 0.5em;
 
-		label {
+		label,
+		.mirror-marker {
 			display: flex;
 			align-items: center;
 			justify-content: center;
 		}
 
-		input {
-			padding: 0.125em 0.25em;
+		.mirror-marker {
+			opacity: 69%;
 		}
 
-		.task {
-			grid-column: 2 / -1;
+		input {
+			padding: 0.125em 0.25em;
 		}
 	}
 
@@ -265,7 +311,10 @@
 	}
 
 	summary {
-		font-weight: bold;
 		margin-bottom: 0.5em;
+	}
+
+	summary:not(.completed-subtasks) {
+		font-weight: bold;
 	}
 </style>

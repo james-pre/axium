@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { FormDialog, Icon } from '@axium/client/components';
+	import { FormDialog, Icon, AppPreferencesDialog } from '@axium/client/components';
 	import { fetchAPI, text } from '@axium/client';
-	import { TaskListInit } from '@axium/tasks/common';
+	import { TaskListInit, TasksPreferences } from '@axium/tasks/common';
 	import { TaskList } from '@axium/tasks/components';
 
 	const { data } = $props();
@@ -17,14 +17,18 @@
 <div id="tasks-main">
 	<h1>{text('app_name.tasks')}</h1>
 
-	<button id="create-task-list" class="icon-text mobile-float-right" onclick={() => dialog!.showModal()}>
-		<Icon i="plus" />
-		<span>{text('tasks.new_list')}</span>
-	</button>
+	<div>
+		<AppPreferencesDialog appId="tasks" userId={data.session.userId} schema={TasksPreferences} />
+
+		<button id="create-task-list" class="icon-text mobile-float-right" onclick={() => dialog!.showModal()}>
+			<Icon i="plus" />
+			<span>{text('tasks.new_list')}</span>
+		</button>
+	</div>
 
 	<div class="lists-container">
 		{#each lists as list}
-			<TaskList {list} bind:lists user={data.session?.user} />
+			<TaskList {list} bind:lists />
 		{/each}
 	</div>
 </div>

@@ -10,5 +10,5 @@ export async function load({ parent }) {
 
 	const lists = await fetchAPI('GET', 'users/:id/task_lists', {}, session.userId);
 
-	return { lists };
+	return { session, lists };
 }
