@@ -42,15 +42,21 @@
 	let acl = $state<HTMLDialogElement>();
 </script>
 
-{#snippet task_tree(node: TaskTreeNode, depth: number = 0, isCompletedMirror: boolean = false)}
+{#snippet task_checkbox(node: TaskTreeNode, isMirror: boolean = false)}
 	{@const task = node.task}
-	<div class="task" style:margin-left="{depth * 1.75}em">
-		{#if !showCompletedInline && isCompletedMirror != task.completed}
-			<span class="mirror-marker">
-				<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="1.25em" />
-			</span>
+	{@const directCompletion = node.subtasks.length ? node.subtasks.filter(s => s.task.completed).length / node.subtasks.length : 0}
+
+	<span
+		class="task-checkbox"
+		class:has-progress={node.subtasks.length && node.completion}
+		class:mirror-marker={isMirror}
+		style:--completion="{node.completion * 100}%"
+		style:--direct-completion="{directCompletion * 100}%"
+	>
+		{#if isMirror}
+			<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="1.25em" />
 		{:else}
-			<label for="task-completed#{task.id}" style:cursor="pointer">
+			<label for="task-completed#{task.id}" style:cursor="pointer" style:display="contents">
 				<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="1.25em" />
 			</label>
 			<input
@@ -65,6 +71,13 @@
 				}}
 			/>
 		{/if}
+	</span>
+{/snippet}
+
+{#snippet task_tree(node: TaskTreeNode, depth: number = 0, isCompletedMirror: boolean = false)}
+	{@const task = node.task}
+	<div class="task" style:margin-left="{depth * 1.75}em">
+		{@render task_checkbox(node, !showCompletedInline && isCompletedMirror != task.completed)}
 		<input
 			type="text"
 			name="summary"
@@ -106,12 +119,12 @@
 			{/if}
 		</Popover>
 	</div>
-	{#each node.children as sub (sub.task.id)}
+	{#each node.subtasks as sub (sub.task.id)}
 		{#if sub.all != (isCompletedMirror ? 'pending' : 'completed')}
 			{@render task_tree(sub, depth + 1, isCompletedMirror)}
 		{/if}
 	{/each}
-	{@const completedSubs = node.children.filter(sub => sub.all == 'completed')}
+	{@const completedSubs = node.subtasks.filter(sub => sub.all == 'completed')}
 	{#if showCompletedInline && completedSubs.length}
 		{#snippet inside()}
 			{#each completedSubs as sub (sub.task.id)}
@@ -272,15 +285,31 @@
 		align-items: center;
 		gap: 0.5em;
 
-		label,
-		.mirror-marker {
+		.task-checkbox {
 			display: flex;
 			align-items: center;
 			justify-content: center;
-		}
+			position: relative;
+			border-radius: 50%;
 
-		.mirror-marker {
-			opacity: 69%;
+			&.mirror-marker {
+				opacity: 69%;
+			}
+
+			&.has-progress::before {
+				content: '';
+				position: absolute;
+				inset: 2px;
+				border-radius: 50%;
+				background: conic-gradient(
+					var(--fg-strong) 0% var(--completion),
+					var(--fg-accent) 0% var(--direct-completion),
+					transparent 0% 100%
+				);
+				opacity: 0.65;
+				z-index: 0;
+				pointer-events: none;
+			}
 		}
 
 		input {

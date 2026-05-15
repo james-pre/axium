@@ -19,41 +19,44 @@ export const Task = TaskInit.extend({
 
 export interface Task extends z.infer<typeof Task> {}
 
-export type TreeStatus = 'completed' | 'pending' | null;
+export type TaskTreeStatus = 'completed' | 'pending' | null;
 
 export interface TaskTreeNode {
 	task: Task;
-	children: TaskTreeNode[];
-	all: TreeStatus;
+	subtasks: TaskTreeNode[];
+	all: TaskTreeStatus;
+	completion: number;
 }
 
-export function fillAllStatus(node: TaskTreeNode, force: boolean = false): TreeStatus {
-	if (node.all && !force) return node.all;
+function computeStats(node: TaskTreeNode, force: boolean = false): void {
+	if (node.all && node.completion !== undefined && !force) return;
 
-	let all: TreeStatus = node.task.completed ? 'completed' : 'pending';
+	let all: TaskTreeStatus = node.task.completed ? 'completed' : 'pending',
+		completion = node.subtasks.length ? 0 : node.task.completed ? 1 : 0;
 
-	for (const child of node.children) {
-		const childStatus = fillAllStatus(child, force);
-		if (!childStatus || childStatus !== all) all = null;
+	for (const sub of node.subtasks) {
+		computeStats(sub, force);
+		if (!sub.all || sub.all !== all) all = null;
+		completion += sub.completion / node.subtasks.length;
 	}
 
 	node.all = all;
-	return all;
+	node.completion = completion;
 }
 
 export function buildTaskTree(tasks: Task[]): TaskTreeNode[] {
 	const nodes = new Map<string, TaskTreeNode>();
 	const roots: TaskTreeNode[] = [];
 
-	for (const task of tasks) nodes.set(task.id, { task, children: [], all: null });
+	for (const task of tasks) nodes.set(task.id, { task, subtasks: [], all: null, completion: 0 });
 
 	for (const task of tasks) {
 		const node = nodes.get(task.id)!;
-		if (task.parentId) nodes.get(task.parentId)?.children.push(node);
+		if (task.parentId) nodes.get(task.parentId)?.subtasks.push(node);
 		else roots.push(node);
 	}
 
-	for (const node of roots) fillAllStatus(node);
+	for (const node of roots) computeStats(node);
 
 	return roots;
 }
