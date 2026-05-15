@@ -375,9 +375,9 @@ addRoute({
 		const data = await parseBody(request, schema);
 
 		await db
-			.updateTable('app_preferences')
-			.set('data', data)
-			.where(eb => eb.and({ userId, appId }))
+			.insertInto('app_preferences')
+			.values({ userId, appId, data })
+			.onConflict(oc => oc.columns(['userId', 'appId']).doUpdateSet({ data }))
 			.executeTakeFirstOrThrow();
 
 		return data;
