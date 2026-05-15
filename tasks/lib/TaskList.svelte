@@ -16,7 +16,10 @@
 		user,
 	}: { list: WithRequired<TaskList, 'tasks'>; lists?: WithRequired<TaskList, 'tasks'>[]; user?: UserPublic } = $props();
 
-	let tasks = $state(list.tasks);
+	let tasks = $state(list.tasks),
+		open = $state(false);
+
+	const completed: Task[] = $derived(tasks.filter(task => !task.parentId && task.completed));
 
 	function exportTask(task: Task): string {
 		const children = tasks
@@ -34,7 +37,7 @@
 {#snippet task_tree(task: Task)}
 	<div class="task">
 		<label for="task-completed#{task.id}" style:cursor="pointer">
-			<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="20px" />
+			<Icon i="regular/circle{task.completed ? '-check' : ''}" --size="1.25em" />
 		</label>
 		<input
 			type="checkbox"
@@ -60,6 +63,15 @@
 		<Popover showToggle="hover">
 			<div
 				class="menu-item"
+				onclick={() => {
+					fetchAPI('PUT', 'task_lists/:id', { summary: '', parentId: task.id }, list.id).then(t => tasks.push(t));
+				}}
+			>
+				<Icon i="arrow-turn-down-right" />
+				<span>{text('tasks.add_subtask')}</span>
+			</div>
+			<div
+				class="menu-item"
 				onclick={() =>
 					toastStatus(
 						fetchAPI('DELETE', 'tasks/:id', {}, task.id).then(() => {
@@ -78,11 +90,10 @@
 				</div>
 			{/if}
 		</Popover>
+		{#each tasks.filter(t => t.parentId === task.id) as subtask (subtask.id)}
+			{@render task_tree(subtask)}
+		{/each}
 	</div>
-
-	{#each tasks.filter(task => task.parentId == task.id) as task (task.id)}
-		{@render task_tree(task)}
-	{/each}
 {/snippet}
 
 <div class="task-list">
@@ -167,7 +178,7 @@
 				<span>{text('tasks.copy_link')}</span>
 			</div>
 			{#if lists}
-				<div class="menu-item" onclick={() => open(`/tasks/${list.id}`)}>
+				<div class="menu-item" onclick={() => window.open(`/tasks/${list.id}`)}>
 					<Icon i="arrow-up-right-from-square" />
 					<span>{text('tasks.open_new_tab')}</span>
 				</div>
@@ -187,18 +198,21 @@
 			<span>{text('tasks.new_task')}</span>
 		</button>
 	</div>
-	<h4>{text('tasks.pending_heading')}</h4>
+
 	{#each tasks.filter(task => !task.parentId && !task.completed) as task (task.id)}
 		{@render task_tree(task)}
 	{:else}
 		<i class="subtle">{text('tasks.pending_empty')}</i>
 	{/each}
-	<h4>{text('tasks.completed_heading')}</h4>
-	{#each tasks.filter(task => !task.parentId && task.completed) as task (task.id)}
-		{@render task_tree(task)}
-	{:else}
-		<i class="subtle">{text('tasks.completed_empty')}</i>
-	{/each}
+
+	{#if completed.length}
+		<details bind:open>
+			<summary>{text('tasks.completed_heading', { count: completed.length })}</summary>
+			{#each completed as task (task.id)}
+				{@render task_tree(task)}
+			{/each}
+		</details>
+	{/if}
 </div>
 
 <style>
@@ -209,12 +223,22 @@
 
 	.task {
 		display: grid;
-		grid-template-columns: 1em 1fr 2em;
+		grid-template-columns: 1.25em 1fr 2em;
 		align-items: center;
-		gap: 1em;
+		gap: 0.5em;
+
+		label {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+		}
+
+		input {
+			padding: 0.125em 0.25em;
+		}
 
 		.task {
-			padding-left: 1em;
+			grid-column: 2 / -1;
 		}
 	}
 
@@ -238,5 +262,10 @@
 			font-weight: bold;
 			padding: 0;
 		}
+	}
+
+	summary {
+		font-weight: bold;
+		margin-bottom: 0.5em;
 	}
 </style>
