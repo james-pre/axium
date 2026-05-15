@@ -68,7 +68,7 @@ export const TaskListInit = z.object({
 export type TaskListInit = z.infer<typeof TaskListInit>;
 
 export const TaskListUpdate = z.object({
-	action: z.literal(['mark_all_completed', 'mark_all_pending', 'delete_completed']),
+	action: z.literal(['mark_all_pending', 'delete_completed']),
 });
 export type TaskListUpdate = z.infer<typeof TaskListUpdate>;
 

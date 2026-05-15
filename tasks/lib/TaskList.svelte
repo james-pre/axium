@@ -194,21 +194,6 @@
 				<Icon i="user-group" />
 				<span>{text('tasks.share_list')}</span>
 			</div>
-			{#if tasks.some(t => !t.completed)}
-				<div
-					class="menu-item"
-					onclick={() => {
-						for (const task of tasks) task.completed = true;
-						toastStatus(
-							fetchAPI('POST', 'task_lists/:id', { action: 'mark_all_completed' }, list.id),
-							text('tasks.toast_all_completed')
-						);
-					}}
-				>
-					<Icon i="regular/circle-check" />
-					<span>{text('tasks.mark_all_complete')}</span>
-				</div>
-			{/if}
 			{#if tasks.some(t => t.completed)}
 				<div
 					class="menu-item"

@@ -107,11 +107,10 @@ addRoute({
 		await authRequestForItem(request, 'task_lists', id, { edit: true });
 
 		switch (body.action) {
-			case 'mark_all_completed':
 			case 'mark_all_pending':
 				await database
 					.updateTable('tasks')
-					.set('completed', body.action === 'mark_all_completed')
+					.set('completed', false)
 					.where('listId', '=', id)
 					.executeTakeFirstOrThrow()
 					.catch(withError('Could not update task list'));
