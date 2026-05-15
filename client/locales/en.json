@@ -13,6 +13,12 @@
 		"failed": "Couldn't load apps.",
 		"none": "No apps available."
 	},
+	"AppPreferences": {
+		"title": "Preferences for {name}",
+		"save": "Save",
+		"toast_saved": "Preferences saved",
+		"dialog_toggle": "Settings"
+	},
 	"Discovery": {
 		"no_results": "No results"
 	},
@@ -23,10 +29,6 @@
 	"Logout": {
 		"back": "Take me back",
 		"question": "Are you sure you want to log out?"
-	},
-	"AppPreferences": {
-		"title": "Preferences for {name}",
-		"save": "Save"
 	},
 	"Register": {
 		"email": "Email",

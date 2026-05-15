@@ -3,18 +3,28 @@
 	import { structurallyEqual } from 'utilium';
 	import type { ZodObject } from 'zod';
 	import ZodInput from './ZodInput.svelte';
+	import { toast } from './toast.js';
 
-	const { userId, appId, schema }: { userId: string; appId: string; schema: ZodObject } = $props();
+	const {
+		userId,
+		appId,
+		schema,
+		_parentDialog,
+	}: { userId: string; appId: string; schema: ZodObject; _parentDialog?: HTMLDialogElement } = $props();
 
 	let initialValue = $state(await getAppPreferences(userId, appId));
 	let currentValue = $state({ ...initialValue });
 
 	function cancel() {
 		currentValue = { ...initialValue };
+		_parentDialog?.close();
 	}
 
 	async function save() {
 		initialValue = await setAppPreferences(userId, appId, currentValue);
+		if (!_parentDialog) return;
+		_parentDialog.close();
+		toast('success', text('AppPreferences.toast_saved'));
 	}
 </script>
 
