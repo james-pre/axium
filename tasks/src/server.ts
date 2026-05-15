@@ -1,6 +1,7 @@
 import type { AsyncResult } from '@axium/core/api';
+import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
-import { database } from '@axium/server/database';
+import { database, type Schema } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
@@ -17,17 +18,21 @@ addRoute({
 	path: '/api/users/:id/task_lists',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/task_lists'> {
-		await checkAuthForUser(request, userId);
+		const { user } = await checkAuthForUser(request, userId);
+
+		const shared = acl.existsIn('task_lists', user, { alias: 'list' });
 
 		const lists = await database
-			.selectFrom('task_lists')
-			.selectAll()
+			.selectFrom('task_lists as list')
+			.selectAll('list')
 			.select(eb =>
-				jsonArrayFrom(eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'task_lists.id'))
+				jsonArrayFrom(eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'list.id'))
 					.$castTo<Task[]>()
 					.as('tasks')
 			)
-			.where('userId', '=', userId)
+			.select(acl.from<'task_lists', Schema & { list: Schema['task_lists'] }>('task_lists', { alias: 'list' }))
+			.select(eb => shared(eb).$castTo<boolean>().as('isShared'))
+			.where(eb => eb.or([eb('userId', '=', userId), shared(eb)]))
 			.execute()
 			.catch(withError('Could not get task lists'));
 
@@ -38,12 +43,15 @@ addRoute({
 
 		await checkAuthForUser(request, userId);
 
-		return await database
-			.insertInto('task_lists')
-			.values({ ...init, userId })
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not create task list'));
+		return Object.assign(
+			await database
+				.insertInto('task_lists')
+				.values({ ...init, userId })
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not create task list')),
+			{ isShared: false, acl: [] }
+		);
 	},
 });
 
@@ -51,7 +59,7 @@ addRoute({
 	path: '/api/task_lists/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id }): AsyncResult<'GET', 'task_lists/:id'> {
-		const { item } = await authRequestForItem(request, 'task_lists', id, { read: true });
+		const { item, fromACL } = await authRequestForItem(request, 'task_lists', id, { read: true });
 
 		const tasks = await database
 			.selectFrom('tasks')
@@ -60,32 +68,38 @@ addRoute({
 			.execute()
 			.catch(withError('Could not get tasks'));
 
-		return Object.assign(item, { tasks });
+		return Object.assign(item, { tasks, isShared: fromACL });
 	},
 	async PUT(request, { id: listId }): AsyncResult<'PUT', 'task_lists/:id'> {
 		const init = await parseBody(request, TaskInit.omit({ listId: true }));
 
-		await authRequestForItem(request, 'task_lists', listId, { edit: true });
+		const { fromACL } = await authRequestForItem(request, 'task_lists', listId, { edit: true });
 
-		return await database
-			.insertInto('tasks')
-			.values({ summary: '', ...init, listId })
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not update task list'));
+		return Object.assign(
+			await database
+				.insertInto('tasks')
+				.values({ summary: '', ...init, listId })
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not update task list')),
+			{ isShared: fromACL }
+		);
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'task_lists/:id'> {
-		await authRequestForItem(request, 'task_lists', id, { edit: true });
-
 		const init = await parseBody(request, TaskListInit);
 
-		return await database
-			.updateTable('task_lists')
-			.set(init)
-			.where('id', '=', id)
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not update task list'));
+		const { item, fromACL } = await authRequestForItem(request, 'task_lists', id, { edit: true });
+
+		return Object.assign(
+			await database
+				.updateTable('task_lists')
+				.set(init)
+				.where('id', '=', id)
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not update task list')),
+			{ isShared: fromACL, acl: item.acl }
+		);
 	},
 	async POST(request, { id }): AsyncResult<'POST', 'task_lists/:id'> {
 		const body = await parseBody(request, TaskListUpdate);
@@ -106,14 +120,17 @@ addRoute({
 		return {};
 	},
 	async DELETE(request, { id }): AsyncResult<'DELETE', 'task_lists/:id'> {
-		await authRequestForItem(request, 'task_lists', id, { manage: true });
+		const { item, fromACL } = await authRequestForItem(request, 'task_lists', id, { manage: true });
 
-		return await database
-			.deleteFrom('task_lists')
-			.where('id', '=', id)
-			.returningAll()
-			.executeTakeFirstOrThrow()
-			.catch(withError('Could not delete task list'));
+		return Object.assign(
+			await database
+				.deleteFrom('task_lists')
+				.where('id', '=', id)
+				.returningAll()
+				.executeTakeFirstOrThrow()
+				.catch(withError('Could not delete task list')),
+			{ isShared: fromACL, acl: item.acl }
+		);
 	},
 });
 

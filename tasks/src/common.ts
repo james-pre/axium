@@ -1,4 +1,4 @@
-import { $API } from '@axium/core';
+import { $API, AccessControl } from '@axium/core';
 import * as z from 'zod';
 
 export const TaskInit = z.object({
@@ -34,6 +34,8 @@ export const TaskList = TaskListInit.extend({
 	userId: z.uuid(),
 	created: z.coerce.date(),
 	tasks: Task.array().optional(),
+	isShared: z.boolean(),
+	acl: AccessControl.array(),
 });
 
 export interface TaskList extends z.infer<typeof TaskList> {}
