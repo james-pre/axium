@@ -6,12 +6,15 @@
 		toggle,
 		showToggle,
 		popover,
+		cascadeHover = false,
 		...rest
 	}: {
 		children(): any;
 		toggle?(): any;
 		showToggle?: 'hover' | 'always';
 		popover?: 'auto' | 'hint' | 'manual';
+		/** If set, popover toggles for parent elements will also be shown on hover (only applies for `showToggle="hover"`) */
+		cascadeHover?: boolean;
 	} & HTMLAttributes<HTMLDivElement> = $props();
 
 	let popoverElement = $state<HTMLDivElement>();
@@ -27,7 +30,7 @@
 	{#if toggle}
 		{@render toggle()}
 	{:else}
-		<span class={[showToggle == 'hover' && 'toggle-hover']}>
+		<span class={[showToggle == 'hover' && 'toggle-hover', cascadeHover && 'cascade-hover']}>
 			<Icon i="ellipsis" />
 		</span>
 	{/if}
@@ -58,6 +61,10 @@
 
 		:global(:hover) > div > .toggle-hover {
 			visibility: visible;
+		}
+
+		:global(:hover:has(:hover > .Popover > .toggle-hover)) > div > .toggle-hover:not(.cascade-hover) {
+			visibility: hidden;
 		}
 	}
 
