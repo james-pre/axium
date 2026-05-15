@@ -473,12 +473,13 @@ program
 				{
 					name: 'New Version',
 					text: pkg => pkg.latest,
-					format: (latest, pkg) => styleText(major(latest) != major(pkg.version) ? 'red' : 'white', latest),
+					format: (latest, pkg) => styleText(major(latest) != major(pkg.version) ? 'red' : 'reset', latest),
 				},
 				{
 					name: 'Size',
 					text: pkg => formatBytes(pkg.latestSize),
 					format: (size, pkg) => styleText(pkg.size > pkg.latestSize ? 'green' : 'yellow', size),
+					padStart: true,
 					grow: 0,
 				},
 			],
