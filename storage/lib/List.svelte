@@ -10,7 +10,7 @@
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
-	import { StorageItemSorting, UserStoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
+	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
 	import Preview from './Preview.svelte';
 
 	const search = new URLSearchParams(location.search);
@@ -38,7 +38,7 @@
 	const activeItem = $derived(items.find(item => item.id === activeId));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	const { sort_folders_first } = user ? await getAppPreferences(user.id, 'files') : UserStoragePreferences.safeParse({}).data || {};
+	const { sort_folders_first } = user ? await getAppPreferences(user.id, 'files') : StoragePreferences.safeParse({}).data || {};
 
 	const sortedItems = $derived(
 		items.toSorted((_a, _b) => {
