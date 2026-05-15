@@ -1,6 +1,6 @@
 import type { AccessControl, AccessTarget } from '@axium/core';
+import * as cache from './cache.js';
 import { fetchAPI } from './requests.js';
-import { useCache } from './cache.js';
 
 export async function updateACL(
 	itemType: string,
@@ -8,17 +8,23 @@ export async function updateACL(
 	target: AccessTarget,
 	permissions: Partial<Record<string, any>>
 ): Promise<AccessControl> {
-	return await fetchAPI('PATCH', 'acl/:itemType/:itemId', { target, permissions }, itemType, itemId);
+	const result = await fetchAPI('PATCH', 'acl/:itemType/:itemId', { target, permissions }, itemType, itemId);
+	cache.invalidate('acl', `${itemType}/${itemId}`);
+	return result;
 }
 
 export async function getACL(itemType: string, itemId: string): Promise<AccessControl[]> {
-	return await useCache('acl', `${itemType}/${itemId}`, () => fetchAPI('GET', 'acl/:itemType/:itemId', {}, itemType, itemId));
+	return await cache.use('acl', `${itemType}/${itemId}`, () => fetchAPI('GET', 'acl/:itemType/:itemId', {}, itemType, itemId));
 }
 
 export async function addToACL(itemType: string, itemId: string, target: AccessTarget): Promise<AccessControl> {
-	return await fetchAPI('PUT', 'acl/:itemType/:itemId', target, itemType, itemId);
+	const result = await fetchAPI('PUT', 'acl/:itemType/:itemId', target, itemType, itemId);
+	cache.invalidate('acl', `${itemType}/${itemId}`);
+	return result;
 }
 
 export async function removeFromACL(itemType: string, itemId: string, target: AccessTarget): Promise<AccessControl> {
-	return await fetchAPI('DELETE', 'acl/:itemType/:itemId', target, itemType, itemId);
+	const result = await fetchAPI('DELETE', 'acl/:itemType/:itemId', target, itemType, itemId);
+	cache.invalidate('acl', `${itemType}/${itemId}`);
+	return result;
 }

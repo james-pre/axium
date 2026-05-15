@@ -2,7 +2,7 @@ import type { NewSessionResponse, Passkey, PasskeyChangeable, Session, User, Use
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import * as z from 'zod';
 import { fetchAPI } from './requests.js';
-import { useCache } from './cache.js';
+import * as cache from './cache.js';
 
 export async function login(userId: string): Promise<NewSessionResponse> {
 	const options = await fetchAPI('PUT', 'users/:id/auth', { type: 'login' }, userId);
@@ -27,8 +27,11 @@ export async function loginByEmail(email: string): Promise<NewSessionResponse> {
 	return await login(userId);
 }
 
+let _currentSession: (Session & { user: User }) | null = null;
+
 export async function getCurrentSession(): Promise<Session & { user: User }> {
-	return await fetchAPI('GET', 'session');
+	_currentSession ||= await fetchAPI('GET', 'session');
+	return _currentSession;
 }
 
 export async function getSessions(userId: string): Promise<Session[]> {
@@ -76,12 +79,14 @@ function _checkId(userId: string): void {
 
 export async function userInfo(userId: string): Promise<UserPublic & Partial<User>> {
 	_checkId(userId);
-	return await useCache('user', userId, () => fetchAPI('GET', 'users/:id', {}, userId));
+	return await cache.use('user', userId, () => fetchAPI('GET', 'users/:id', {}, userId));
 }
 
 export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>): Promise<User> {
 	_checkId(userId);
-	return await fetchAPI('PATCH', 'users/:id', data, userId);
+	const result = await fetchAPI('PATCH', 'users/:id', data, userId);
+	cache.update('user', userId, result);
+	return result;
 }
 
 export async function fullUserInfo(userId: string): Promise<User & { sessions: Session[] }> {
@@ -98,7 +103,9 @@ export async function deleteUser(userId: string, deletingId: string = userId): P
 	const options = await fetchAPI('PUT', 'users/:id/auth', { type: 'action' }, deletingId);
 	const response = await startAuthentication({ optionsJSON: options });
 	await fetchAPI('POST', 'users/:id/auth', response, deletingId);
-	return await fetchAPI('DELETE', 'users/:id', response, userId);
+	const result = await fetchAPI('DELETE', 'users/:id', response, userId);
+	cache.invalidate('user', userId);
+	return result;
 }
 
 export async function emailVerificationEnabled(userId: string): Promise<boolean> {
