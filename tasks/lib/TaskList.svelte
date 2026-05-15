@@ -200,7 +200,7 @@
 					onclick={() => {
 						for (const task of tasks) task.completed = true;
 						toastStatus(
-							fetchAPI('POST', 'task_lists/:id', { all_completed: true }, list.id),
+							fetchAPI('POST', 'task_lists/:id', { action: 'mark_all_completed' }, list.id),
 							text('tasks.toast_all_completed')
 						);
 					}}
@@ -214,11 +214,27 @@
 					class="menu-item"
 					onclick={() => {
 						for (const task of tasks) task.completed = false;
-						toastStatus(fetchAPI('POST', 'task_lists/:id', { all_completed: false }, list.id), text('tasks.toast_all_pending'));
+						toastStatus(
+							fetchAPI('POST', 'task_lists/:id', { action: 'mark_all_pending' }, list.id),
+							text('tasks.toast_all_pending')
+						);
 					}}
 				>
 					<Icon i="regular/circle" />
 					<span>{text('tasks.mark_all_pending')}</span>
+				</div>
+				<div
+					class="menu-item"
+					onclick={() => {
+						tasks = tasks.filter(task => !task.completed);
+						toastStatus(
+							fetchAPI('POST', 'task_lists/:id', { action: 'delete_completed' }, list.id),
+							text('tasks.toast_delete_completed')
+						);
+					}}
+				>
+					<Icon i="regular/trash-can-check" />
+					<span>{text('tasks.delete_completed')}</span>
 				</div>
 			{/if}
 			<div class="menu-item" onclick={() => copy('text/plain', `${location.origin}/tasks/${list.id}`)}>

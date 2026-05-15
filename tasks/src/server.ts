@@ -106,15 +106,24 @@ addRoute({
 
 		await authRequestForItem(request, 'task_lists', id, { edit: true });
 
-		if (typeof body.all_completed == 'boolean') {
-			await database
-				.updateTable('tasks')
-				.set('completed', body.all_completed)
-				.where('listId', '=', id)
-				.where('completed', '=', !body.all_completed)
-				.returningAll()
-				.executeTakeFirstOrThrow()
-				.catch(withError('Could not update task list'));
+		switch (body.action) {
+			case 'mark_all_completed':
+			case 'mark_all_pending':
+				await database
+					.updateTable('tasks')
+					.set('completed', body.action === 'mark_all_completed')
+					.where('listId', '=', id)
+					.executeTakeFirstOrThrow()
+					.catch(withError('Could not update task list'));
+				break;
+			case 'delete_completed':
+				await database
+					.deleteFrom('tasks')
+					.where('listId', '=', id)
+					.where('completed', '=', true)
+					.executeTakeFirstOrThrow()
+					.catch(withError('Could not update task list'));
+				break;
 		}
 
 		return {};
