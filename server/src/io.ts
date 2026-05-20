@@ -52,7 +52,7 @@ export interface PortOptions {
  * Use of these ports is needed so the origin doesn't have a port.
  * If the origin has a port, passkeys do not work correctly with some password managers.
  */
-export async function restrictedPorts(opt: PortOptions) {
+export function restrictedPorts(opt: PortOptions) {
 	io.track(
 		'Checking for root privileges',
 		() => process.getuid?.() != 0 && _throw('root privileges are needed to change restricted ports.')
@@ -62,32 +62,33 @@ export async function restrictedPorts(opt: PortOptions) {
 
 	switch (opt.method) {
 		case 'node-cap': {
-			const setcap = await io
-				.runShell('Finding setcap', 'command -v setcap')
-				.then(e => e.trim())
-				.catch(() => {
-					io.warn('not in path.');
-					io.track('Checking for /usr/sbin/setcap', () => fs.accessSync('/usr/sbin/setcap', fs.constants.X_OK));
-					return '/usr/sbin/setcap';
-				});
+			let setcap;
+			try {
+				setcap = io.trackCommand('Finding setcap', 'command', '-v', 'setcap').trim();
+			} catch {
+				io.warn('not in path.');
+				io.track('Checking for /usr/sbin/setcap', () => fs.accessSync('/usr/sbin/setcap', fs.constants.X_OK));
+				setcap = '/usr/sbin/setcap';
+			}
 
 			io.debug('Using setcap at ' + setcap);
 
 			let { node } = opt;
-			node ||= await io
-				.runShell('Finding node', 'command -v node')
-				.then(e => e.trim())
-				.catch(() => {
+
+			if (!node)
+				try {
+					node = io.trackCommand('Finding node', 'command', '-v', 'node').trim();
+				} catch {
 					io.warn('not in path.');
 					io.track('Checking for /usr/bin/node', () => fs.accessSync('/usr/bin/node', fs.constants.X_OK));
-					return '/usr/bin/node';
-				});
+					node = '/usr/bin/node';
+				}
 
 			node = io.track('Resolving real path for node', () => fs.realpathSync(node!));
 
 			io.debug('Using node at ' + node);
 
-			await io.runShell('Setting ports capability', `${setcap} cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep ${node}`);
+			io.trackCommand('Setting ports capability', setcap, `cap_net_bind_service=${opt.action == 'enable' ? '+' : '-'}ep`, node);
 
 			break;
 		}

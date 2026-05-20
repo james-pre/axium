@@ -141,8 +141,8 @@ program
 	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
 	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
 	.option('-N, --node <path>', 'the path to the node binary')
-	.action(async (action: PortOptions['action'], opt) => {
-		await restrictedPorts({ ...opt, action });
+	.action((action: PortOptions['action'], opt) => {
+		restrictedPorts({ ...opt, action });
 	});
 
 program
@@ -154,7 +154,7 @@ program
 	.action(async opt => {
 		await db.init(opt);
 		await dbInitTables();
-		await restrictedPorts({ method: 'node-cap', action: 'enable' });
+		restrictedPorts({ method: 'node-cap', action: 'enable' });
 	});
 
 program

@@ -62,18 +62,14 @@ axiumDB
 				process.exit(2);
 			}
 
-		await db._sql('DROP DATABASE axium', 'Dropping database');
-		await db._sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
-		await db._sql('DROP USER axium', 'Dropping user');
+		db._sql('DROP DATABASE axium', 'Dropping database');
+		db._sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
+		db._sql('DROP USER axium', 'Dropping user');
 
-		await db
-			.getHBA()
-			.then(([content, writeBack]) => {
-				io.track('Checking for Axium HBA configuration', () => !content.includes(db._pgHba) && _throw('missing.'));
-				const newContent = io.track('Removing Axium HBA configuration', () => content.replace(db._pgHba, ''));
-				writeBack(newContent);
-			})
-			.catch(io.warn);
+		db.updateHBA(content => {
+			io.track('Checking for Axium HBA configuration', () => !content.includes(db._pgHba) && _throw('missing.'));
+			return io.track('Removing Axium HBA configuration', () => content.replace(db._pgHba, ''));
+		});
 	});
 
 axiumDB
@@ -118,17 +114,16 @@ axiumDB
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
 	.action(async opt => {
-		await io.runShell('Checking for sudo', 'which sudo');
-		await io.runShell('Checking for psql', 'which psql');
+		io.trackCommand('Checking for sudo', 'which', 'sudo');
+		io.trackCommand('Checking for psql', 'which', 'psql');
 
 		const throwUnlessRows = (text: string) => {
 			if (text.includes('(0 rows)')) throw 'missing.';
 			return text;
 		};
 
-		await db._sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database').then(throwUnlessRows);
-
-		await db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user').then(throwUnlessRows);
+		throwUnlessRows(db._sql(`SELECT 1 FROM pg_database WHERE datname = 'axium'`, 'Checking for database'));
+		throwUnlessRows(db._sql(`SELECT 1 FROM pg_roles WHERE rolname = 'axium'`, 'Checking for user'));
 
 		await using _ = io.track('Connecting to database', db.connect);
 

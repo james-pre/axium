@@ -138,8 +138,8 @@ export function shouldRecreate(opt: InitOptions): boolean {
 	throw 2;
 }
 
-export async function getHBA(): Promise<[content: string, writeBack: (newContent: string) => void]> {
-	const hbaShowResult = await io.runShell('Finding pg_hba.conf', `sudo -u postgres psql -c "SHOW hba_file"`);
+export function findHBA(): string {
+	const hbaShowResult = io.trackCommand('Finding pg_hba.conf', 'sudo', '-u', 'postgres', 'psql', '-c', 'SHOW hba_file');
 
 	const hbaPath = io.track('Resolving pg_hba.conf path', () => {
 		const result = hbaShowResult.match(/^\s*(.+\.conf)\s*$/m)?.[1]?.trim();
@@ -149,11 +149,26 @@ export async function getHBA(): Promise<[content: string, writeBack: (newContent
 
 	io.debug(`Found pg_hba.conf at ${hbaPath}`);
 
-	const content = io.track('Reading HBA configuration', () => readFileSync(hbaPath, 'utf-8'));
+	return hbaPath;
+}
 
-	const writeBack = (newContent: string): void => io.track('Writing HBA configuration', () => writeFileSync(hbaPath, newContent));
+export function getHBA(): string {
+	return io.track('Reading HBA configuration', () => readFileSync(findHBA(), 'utf-8'));
+}
 
-	return [content, writeBack];
+export function updateHBA(transform: (content: string) => string) {
+	let path: string, newContent: string;
+
+	try {
+		path = findHBA();
+		const content = io.track('Reading HBA configuration', () => readFileSync(path, 'utf-8'));
+		newContent = transform(content);
+	} catch (e) {
+		io.warn(e);
+		return;
+	}
+
+	io.track('Writing HBA configuration', () => writeFileSync(path, newContent));
 }
 
 /** @internal @hidden */
@@ -164,7 +179,7 @@ host  axium axium ::1/128 md5
 `;
 
 /** @internal @hidden */
-export const _sql = (command: string, message: string) => io.runShell(message, `sudo -u postgres psql -c "${command}"`);
+export const _sql = (command: string, message: string) => io.trackCommand(message, 'sudo', '-u', 'postgres', 'psql', '-c', `"${command}"`);
 /** Shortcut to output a warning if an error is thrown because relation already exists */
 export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'already exists.']);
 
@@ -174,44 +189,44 @@ export async function init(opt: InitOptions): Promise<void> {
 		io.debug('Generated password and wrote to global config');
 	}
 
-	await io.runShell('Checking for sudo', 'which sudo');
-	await io.runShell('Checking for psql', 'which psql');
+	io.trackCommand('Checking for sudo', 'which', 'sudo');
+	io.trackCommand('Checking for psql', 'which', 'psql');
 
-	await _sql('CREATE DATABASE axium', 'Creating database').catch(async (error: string) => {
+	try {
+		_sql('CREATE DATABASE axium', 'Creating database');
+	} catch (error) {
 		if (error != 'database "axium" already exists') throw error;
-		if (shouldRecreate(opt)) return;
-
-		await _sql('DROP DATABASE axium', 'Dropping database');
-		await _sql('CREATE DATABASE axium', 'Re-creating database');
-	});
+		if (!shouldRecreate(opt)) {
+			_sql('DROP DATABASE axium', 'Dropping database');
+			_sql('CREATE DATABASE axium', 'Re-creating database');
+		}
+	}
 
 	const createQuery = `CREATE USER axium WITH ENCRYPTED PASSWORD '${config.db.password}' LOGIN`;
-	await _sql(createQuery, 'Creating user').catch(async (error: string) => {
+	try {
+		_sql(createQuery, 'Creating user');
+	} catch (error: any) {
 		if (error != 'role "axium" already exists') throw error;
-		if (shouldRecreate(opt)) return;
+		if (!shouldRecreate(opt)) {
+			_sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
+			_sql('DROP USER axium', 'Dropping user');
+			_sql(createQuery, 'Re-creating user');
+		}
+	}
 
-		await _sql('REVOKE ALL PRIVILEGES ON SCHEMA public FROM axium', 'Revoking schema privileges');
-		await _sql('DROP USER axium', 'Dropping user');
-		await _sql(createQuery, 'Re-creating user');
+	_sql('GRANT ALL PRIVILEGES ON DATABASE axium TO axium', 'Granting database privileges');
+	_sql('GRANT ALL PRIVILEGES ON SCHEMA public TO axium', 'Granting schema privileges');
+	_sql('ALTER DATABASE axium OWNER TO axium', 'Setting database owner');
+
+	updateHBA(content => {
+		io.track('Checking for Axium HBA configuration', () => {
+			if (content.includes(_pgHba)) throw 'already exists.';
+		});
+
+		return io.track('Adding Axium HBA configuration', () => content.replace(/^local\s+all\s+all.*$/m, `$&\n${_pgHba}`));
 	});
 
-	await _sql('GRANT ALL PRIVILEGES ON DATABASE axium TO axium', 'Granting database privileges');
-	await _sql('GRANT ALL PRIVILEGES ON SCHEMA public TO axium', 'Granting schema privileges');
-	await _sql('ALTER DATABASE axium OWNER TO axium', 'Setting database owner');
-
-	await getHBA()
-		.then(([content, writeBack]) => {
-			io.track('Checking for Axium HBA configuration', () => {
-				if (content.includes(_pgHba)) throw 'already exists.';
-			});
-
-			const newContent = io.track('Adding Axium HBA configuration', () => content.replace(/^local\s+all\s+all.*$/m, `$&\n${_pgHba}`));
-
-			writeBack(newContent);
-		})
-		.catch(io.warn);
-
-	await _sql('SELECT pg_reload_conf()', 'Reloading configuration');
+	_sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
 	await using _ = io.track('Connecting to database', connect);
 
@@ -397,10 +412,10 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 	}
 }
 
-export async function rotatePassword() {
+export function rotatePassword() {
 	const password = io.track('Generating new password', () => randomBytes(32).toString('base64'));
 
 	io.track('Updating global config', () => config.save({ db: { password } }, true));
 
-	await _sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
+	_sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
 }

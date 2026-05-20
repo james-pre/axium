@@ -64,7 +64,7 @@
 		"@types/semver": "^7.7.1",
 		"commander": "^14.0.0",
 		"cookie_v1": "npm:cookie@^1.0.2",
-		"ioium": "^1.4.3",
+		"ioium": "^1.5.0",
 		"logzen": "^0.7.0",
 		"patch-package": "^8.0.1",
 		"pg": "^8.14.1",
