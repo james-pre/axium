@@ -49,23 +49,23 @@
 		</button>
 	</a>
 
-	<span></span>
+	<span class="mobile-hide"></span>
 
-	<a href="/contacts/{contact.id}/edit">
+	<a class="mobile-hide" href="/contacts/{contact.id}/edit">
 		<button class="icon-text">
 			<Icon i="pencil" />
 			<span>{text('contacts.edit')}</span>
 		</button>
 	</a>
 
-	<button class="icon-text" command="show-modal" commandfor="delete-contact">
-		<Icon i="trash" />
-		<span>{text('contacts.delete')}</span>
-	</button>
-
-	<button class="icon-text" onclick={() => download(contactFileName + '.vcard', toVCard(contact))}>
+	<button class="icon-text mobile-hide" onclick={() => download(contactFileName + '.vcard', toVCard(contact))}>
 		<Icon i="file-export" />
 		<span>{text('contacts.export')}</span>
+	</button>
+
+	<button class="icon-text mobile-hide" command="show-modal" commandfor="delete-contact">
+		<Icon i="trash" />
+		<span>{text('contacts.delete')}</span>
 	</button>
 </div>
 
@@ -182,6 +182,25 @@
 	{@render part('regular/note', contact.notes)}
 </div>
 
+<div class="contact-actions mobile-only">
+	<a href="/contacts/{contact.id}/edit">
+		<button class="icon-text">
+			<Icon i="pencil" />
+			<span>{text('contacts.edit')}</span>
+		</button>
+	</a>
+
+	<button class="icon-text" onclick={() => download(contactFileName + '.vcard', toVCard(contact))}>
+		<Icon i="file-export" />
+		<span>{text('contacts.export')}</span>
+	</button>
+
+	<button class="icon-text danger" command="show-modal" commandfor="delete-contact">
+		<Icon i="trash" />
+		<span>{text('contacts.delete')}</span>
+	</button>
+</div>
+
 <FormDialog
 	id="delete-contact"
 	submitDanger
@@ -214,6 +233,11 @@
 	.contact-name-title {
 		margin-left: 2em;
 		font-size: 2em;
+
+		@media (width < 700px) {
+			margin-left: 0;
+			margin-top: 0.5em;
+		}
 	}
 
 	.contact-header,
@@ -229,10 +253,42 @@
 	}
 
 	.contact-header,
-	.contact-actions {
+	.contact-actions:not(.mobile-only) {
 		display: flex;
 		gap: 1em;
 		align-items: center;
+		flex-wrap: wrap;
+	}
+
+	.contact-actions.mobile-only {
+		background-color: var(--bg-menu);
+		border-radius: 1em;
+		flex-direction: column;
+
+		@media (width < 700px) {
+			display: flex;
+		}
+
+		> :not(:first-child) {
+			border-top: var(--border-alt);
+		}
+
+		button {
+			background-color: var(--bg-menu);
+			border: none;
+			display: flex;
+			justify-content: flex-start;
+			width: 100%;
+			border-radius: 0;
+			padding: 1em;
+		}
+	}
+
+	.contact-header {
+		@media (width < 700px) {
+			flex-direction: column;
+			text-align: center;
+		}
 	}
 
 	.contact-actions a {
@@ -245,7 +301,7 @@
 
 	.contact {
 		display: grid;
-		grid-template-columns: 1em 1fr;
+		grid-template-columns: 1em minmax(0, 1fr);
 		gap: 1em;
 		border-radius: 1em;
 		background-color: var(--bg-menu);

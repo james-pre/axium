@@ -21,9 +21,9 @@
 		<div class="list-item" onclick={() => (location.href = `/contacts/${contact.id}`)}>
 			<ContactPicture {contact} />
 			<span>{format.name(contact)}</span>
-			<span>{format.emailDefault(contact)}</span>
-			<span>{format.phoneDefault(contact)}</span>
-			<span>{format.job(contact)}</span>
+			<span class="mobile-hide">{format.emailDefault(contact)}</span>
+			<span class="mobile-hide">{format.phoneDefault(contact)}</span>
+			<span class="mobile-hide">{format.job(contact)}</span>
 		</div>
 	{:else}
 		<p class="list-empty">{text('contacts.list.empty')}</p>
@@ -33,5 +33,11 @@
 <style>
 	.list-item {
 		grid-template-columns: 2em 2fr minmax(10em, 25em) minmax(10em, 20em) 1fr;
+	}
+
+	@media (width < 700px) {
+		.list-item {
+			grid-template-columns: 2em 1fr;
+		}
 	}
 </style>
