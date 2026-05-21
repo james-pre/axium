@@ -63,6 +63,7 @@
 	@media (width < 700px) {
 		#notes-main {
 			padding: 1em;
+			padding-bottom: 5em;
 			align-content: center;
 		}
 

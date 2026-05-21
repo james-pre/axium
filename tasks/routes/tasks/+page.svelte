@@ -75,6 +75,7 @@
 	@media (width < 700px) {
 		#tasks-main {
 			padding: 1em;
+			padding-bottom: 5em;
 			align-content: center;
 		}
 
