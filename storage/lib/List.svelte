@@ -178,6 +178,11 @@
 </FormDialog>
 
 <style>
+	.name {
+		overflow: hidden;
+		text-overflow: ellipsis;
+	}
+
 	.item-actions {
 		display: contents;
 	}
@@ -203,6 +208,10 @@
 		.list-item {
 			grid-template-columns: 1em 2fr 1fr;
 			row-gap: 0.25em;
+
+			.name {
+				grid-column: 2 / -1;
+			}
 
 			.modified {
 				grid-row: 2;
