@@ -113,6 +113,7 @@ axiumDB
 	.command('check')
 	.description('Check the structure of the database')
 	.option('-s, --strict', 'Throw errors instead of emitting warnings for most column problems')
+	.option('-C, --use-current', 'Check against the schema currently in use rather than what is expected at runtime')
 	.action(async opt => {
 		io.trackCommand('Checking for sudo', 'which', 'sudo');
 		io.trackCommand('Checking for psql', 'which', 'psql');
@@ -142,7 +143,9 @@ axiumDB
 
 		const tables = Object.fromEntries(tableMetadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
 
-		const schema = io.track('Resolving database schemas', () => db.schema.getFull());
+		const schema = io.track('Resolving database schemas', () =>
+			db.schema.getFull(opt.useCurrent ? { overrideVersions: db.getUpgradeInfo().current } : {})
+		);
 
 		for (const [name, table] of Object.entries(schema.tables)) {
 			await db.checkTableTypes(name as keyof db.Schema, table, opt, tableMetadata);
@@ -186,9 +189,10 @@ axiumDB
 	.alias('update')
 	.alias('up')
 	.description('Upgrade the database to the latest version')
+	.argument('[plugins...]', 'Filter plugins to upgrade')
 	.option('--dry-run', 'Rollback changes instead of committing them')
-	.action(async function axium_db_upgrade(opt) {
-		const upgrade = db.initUpgrade();
+	.action(async function axium_db_upgrade(filter, opt) {
+		const upgrade = db.initUpgrade(filter);
 
 		if (!upgrade) {
 			console.log('Already up to date.');

@@ -284,7 +284,7 @@ export interface Upgrade {
 	entry: UpgradesInfoEntry;
 }
 
-export function initUpgrade(): Upgrade | null {
+export function initUpgrade(filter?: string[]): Upgrade | null {
 	const deltas: delta.Version[] = [];
 
 	const info = getUpgradeInfo();
@@ -295,6 +295,7 @@ export function initUpgrade(): Upgrade | null {
 		to: Record<string, number> = {};
 
 	for (const [name, vSchema] of schema.getFiles()) {
+		if (filter?.length && !filter.includes(name)) continue;
 		if (!(name in info.current)) throw 'Plugin is not initialized: ' + name;
 
 		const currentVersion = info.current[name];

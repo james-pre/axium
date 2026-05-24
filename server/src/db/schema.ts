@@ -128,16 +128,25 @@ export type DatabaseFromSchemaFile<S extends ReadonlyRecursive<z.input<typeof Sc
 /** @internal @hidden */
 export type Raw = FromFile<typeof raw>;
 
+export interface GetFullOptions {
+	/** Exclude the given plugins */
+	exclude?: string[];
+	/** Get the specified versions rather than the schema that should be used at runtime. */
+	overrideVersions?: Record<string, number>;
+}
+
 /**
  * Get the active schema
  */
-export function getFull(opt: { exclude?: string[] } = {}): SchemaDecl & { versions: Record<string, number> } {
+export function getFull(opt: GetFullOptions = {}): SchemaDecl & { versions: Record<string, number> } {
 	const fullSchema: SchemaDecl & { versions: Record<string, number> } = { tables: {}, indexes: {}, versions: {} };
 
 	for (const [pluginName, file] of getFiles()) {
 		if (opt.exclude?.includes(pluginName)) continue;
 
 		file.latest ??= file.versions.length - 1;
+
+		const target = opt.overrideVersions?.[pluginName] ?? file.latest;
 
 		let currentSchema: SchemaDecl = { tables: {}, indexes: {} };
 
@@ -152,7 +161,7 @@ export function getFull(opt: { exclude?: string[] } = {}): SchemaDecl & { versio
 				}
 			}
 
-			if (version === file.latest) break;
+			if (version === target) break;
 		}
 
 		for (const name of Object.keys(currentSchema.tables)) {
