@@ -79,7 +79,7 @@ axiumPlugin
 		const exclude = Object.keys(info.current);
 		if (exclude.includes(plugin.name)) io.exit('Plugin is already initialized (database)');
 		const schema = db.schema.getFull({ exclude });
-		const delta = db.delta.compute({ tables: {}, indexes: {} }, schema);
+		const delta = db.delta.compute({ tables: {}, indexes: {}, scripts: [] }, schema);
 		if (db.delta.isEmpty(delta)) {
 			io.info('Plugin does not define any database schema.');
 			return;

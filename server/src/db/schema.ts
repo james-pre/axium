@@ -1,17 +1,20 @@
-import * as io from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
+import * as io from 'ioium/node';
 import { sql } from 'kysely';
+import { statSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import type { Expand, MutableRecursive, ReadonlyRecursive } from 'utilium';
 import * as z from 'zod';
-import raw from './schema.json' with { type: 'json' };
 import { database } from './connection.js';
-import { buildColumn, Index, Table, type Column, type TableValue } from './data.js';
+import { buildColumn, Index, Script, Table, type Column, type TableValue } from './data.js';
 import * as delta from './delta.js';
+import raw from './schema.json' with { type: 'json' };
 export * from './data.js';
 
 export const SchemaDecl = z.strictObject({
 	tables: z.record(z.string(), Table),
 	indexes: z.record(z.string(), Index),
+	scripts: Script.array().default([]),
 });
 export interface SchemaDecl extends z.infer<typeof SchemaDecl> {}
 
@@ -27,9 +30,23 @@ export const SchemaFile = z.object({
 });
 export interface SchemaFile extends z.infer<typeof SchemaFile> {}
 
+export function resolveScripts(file: SchemaFile, from: string) {
+	for (const script of file.versions.flatMap(v => v.scripts)) {
+		script.path = resolve(from, script.path);
+		const stats = statSync(script.path);
+		if (!stats.isFile()) throw new Error('DB scripts must be files: ' + script.path);
+	}
+}
+
 const { data, error } = SchemaFile.safeParse(raw);
 if (error) io.error('Invalid base database schema:\n' + z.prettifyError(error));
 const schema = data!;
+
+try {
+	resolveScripts(schema, import.meta.dirname);
+} catch (e) {
+	io.error('Failed to resolve base database scripts:\n' + io.errorText(e));
+}
 
 export function* getFiles(): Generator<[string, SchemaFile]> {
 	yield ['@axium/server', schema];
@@ -37,7 +54,9 @@ export function* getFiles(): Generator<[string, SchemaFile]> {
 	for (const [name, plugin] of plugins) {
 		if (!plugin._db) continue;
 		try {
-			yield [name, SchemaFile.parse(plugin._db)];
+			const parsed = SchemaFile.parse(plugin._db);
+			if (plugin.server?.db) resolveScripts(parsed, dirname(resolve(plugin.dirname, plugin.server.db)));
+			yield [name, parsed];
 		} catch (e) {
 			throw `Invalid database configuration for plugin "${name}":\n${io.errorText(e)}`;
 		}
@@ -80,6 +99,11 @@ export type ApplyTableDelta<T extends z.input<typeof Table>, D extends z.input<t
 			? never
 			: K]: T['constraints'][K];
 	} & (D extends { add_constraints: infer A } ? A : {});
+	triggers: {
+		[K in keyof T['triggers'] as K extends (D extends { drop_triggers: any[] } ? D['drop_triggers'][number] : never)
+			? never
+			: K]: T['triggers'][K];
+	} & (D extends { add_triggers: infer A } ? A : {});
 };
 
 export type ApplySchemaDelta<S extends z.input<typeof SchemaDecl>, D extends z.input<typeof delta.Version>> = {
@@ -94,12 +118,12 @@ export type ApplySchemaDelta<S extends z.input<typeof SchemaDecl>, D extends z.i
 		[K in keyof S['indexes'] as K extends (D extends { drop_indexes: any[] } ? D['drop_indexes'][number] : never)
 			? never
 			: K]: S['indexes'][K];
-	};
+	} & (D extends { add_indexes: infer A } ? A : {});
 };
 
 type ResolveVersions<
 	V extends readonly any[],
-	Current extends z.input<typeof SchemaDecl> = { tables: {}; indexes: {} },
+	Current extends z.input<typeof SchemaDecl> = { tables: {}; indexes: {}; triggers: {} },
 > = V extends readonly [
 	infer Head extends z.input<typeof delta.Version> | (z.input<typeof SchemaDecl> & { delta: false }),
 	...infer Tail extends (z.input<typeof delta.Version> | (z.input<typeof SchemaDecl> & { delta: false }))[],
@@ -139,7 +163,12 @@ export interface GetFullOptions {
  * Get the active schema
  */
 export function getFull(opt: GetFullOptions = {}): SchemaDecl & { versions: Record<string, number> } {
-	const fullSchema: SchemaDecl & { versions: Record<string, number> } = { tables: {}, indexes: {}, versions: {} };
+	const fullSchema: SchemaDecl & { versions: Record<string, number> } = {
+		tables: {},
+		indexes: {},
+		scripts: [],
+		versions: {},
+	};
 
 	for (const [pluginName, file] of getFiles()) {
 		if (opt.exclude?.includes(pluginName)) continue;
@@ -148,7 +177,7 @@ export function getFull(opt: GetFullOptions = {}): SchemaDecl & { versions: Reco
 
 		const target = opt.overrideVersions?.[pluginName] ?? file.latest;
 
-		let currentSchema: SchemaDecl = { tables: {}, indexes: {} };
+		let currentSchema: SchemaDecl = { tables: {}, indexes: {}, scripts: [] };
 
 		fullSchema.versions[pluginName] = file.latest;
 		for (const [version, schema] of file.versions.entries()) {
@@ -193,6 +222,16 @@ export function* toSQL(schema: SchemaDecl): Generator<string> {
 		}
 
 		yield query.compile().sql.replace('(', '(\n\t').replaceAll(', ', ',\n\t').replace(/\)$/, '\n);\n');
+
+		for (const [triggerName, trigger] of Object.entries(table.triggers)) {
+			let query = `CREATE TRIGGER "${triggerName}" ${trigger.when.toUpperCase()} ${trigger.events.map(e => e.toUpperCase()).join(' OR ')} ON "${tableName}"`;
+			if (trigger.from) query += ` FROM "${trigger.from}"`;
+			if (trigger.referenceOldAs) query += ` REFERENCING OLD TABLE AS ${trigger.referenceOldAs}`;
+			if (trigger.referenceNewAs) query += ` REFERENCING NEW TABLE AS ${trigger.referenceNewAs}`;
+			query += ` FOR EACH ${trigger.forEach.toUpperCase()}`;
+			query += ` EXECUTE FUNCTION ${trigger.execute}()`;
+			yield query + ';\n';
+		}
 	}
 
 	for (const [indexName, index] of Object.entries(schema.indexes)) {
@@ -280,10 +319,3 @@ export function* toGraph(schema: SchemaDecl): Generator<string> {
 
 	yield '}\n';
 }
-
-export const toIntrospected = {
-	boolean: 'bool',
-	integer: 'int4',
-	bigint: 'int8',
-	'text[]': '_text',
-};

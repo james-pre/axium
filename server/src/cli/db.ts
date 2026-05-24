@@ -12,7 +12,7 @@ const axiumDB = program.command('db').alias('database').description('Manage the 
 export async function dbInitTables() {
 	const info = db.getUpgradeInfo();
 	const schema = db.schema.getFull({ exclude: Object.keys(info.current) });
-	const delta = db.delta.compute({ tables: {}, indexes: {} }, schema);
+	const delta = db.delta.compute({ tables: {}, indexes: {}, scripts: [] }, schema);
 	if (db.delta.isEmpty(delta)) return;
 	for (const text of db.delta.display(delta)) console.log(text);
 	await rlConfirm();

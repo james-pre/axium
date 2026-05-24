@@ -1,11 +1,12 @@
 import * as io from 'ioium/node';
 import { sql } from 'kysely';
-import { styleText } from 'node:util';
+import { styleText, type InspectColor } from 'node:util';
 import type { WithRequired } from 'utilium';
 import * as z from 'zod';
 import { database } from './connection.js';
 import * as data from './data.js';
 import type { SchemaDecl } from './schema.js';
+import { readFileSync } from 'node:fs';
 
 export const Column = z.strictObject({
 	type: data.ColumnType.optional(),
@@ -38,6 +39,8 @@ export const Table = z.strictObject({
 	alter_columns: z.record(z.string(), Column).optional().default({}),
 	add_constraints: z.record(z.string(), data.Constraint).optional().default({}),
 	drop_constraints: z.string().array().optional().default([]),
+	add_triggers: z.record(z.string(), data.Trigger).optional().default({}),
+	drop_triggers: z.string().array().default([]),
 });
 export interface Table extends z.infer<typeof Table> {}
 
@@ -67,6 +70,16 @@ export function applyToTable(table: data.Table, delta: Table): void {
 		if (table.constraints[name]) throw `can't add constraint ${name} because it already exists`;
 		table.constraints[name] = constraint;
 	}
+
+	for (const triggerName of delta.drop_triggers) {
+		if (triggerName in table.triggers) delete table.triggers[triggerName];
+		else throw `can't drop trigger ${triggerName} because it does not exist`;
+	}
+
+	for (const [triggerName, trigger] of Object.entries(delta.add_triggers)) {
+		if (triggerName in table.triggers) throw `can't add trigger ${triggerName} because it already exists`;
+		else table.triggers[triggerName] = trigger;
+	}
 }
 
 export const Version = z.strictObject({
@@ -76,6 +89,7 @@ export const Version = z.strictObject({
 	alter_tables: z.record(z.string(), Table).optional().default({}),
 	add_indexes: z.record(z.string(), data.Index).optional().default({}),
 	drop_indexes: z.string().array().optional().default([]),
+	scripts: data.Script.array().default([]),
 });
 export interface Version extends z.infer<typeof Version> {}
 
@@ -136,6 +150,8 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 	const toTables = new Set(Object.keys(to.tables));
 	const fromIndexes = new Set(Object.keys(from.indexes));
 	const toIndexes = new Set(Object.keys(to.indexes));
+	const fromScripts = new Set(from.scripts);
+	const toScripts = new Set(to.scripts);
 
 	const add_tables = Object.fromEntries(
 		toTables
@@ -190,12 +206,24 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 				.map(constName => [constName, toTable.constraints[constName]])
 		);
 
+		const fromTriggers = new Set(Object.keys(fromTable.triggers));
+		const toTriggers = new Set(Object.keys(toTable.triggers));
+
+		const add_triggers = Object.fromEntries(
+			toTriggers
+				.difference(fromTriggers)
+				.keys()
+				.map(name => [name, toTable.triggers[name]])
+		);
+
 		alter_tables[name] = {
 			add_columns,
 			drop_columns: Array.from(drop_columns),
 			alter_columns,
 			add_constraints,
 			drop_constraints: Array.from(drop_constraints),
+			drop_triggers: Array.from(fromTriggers.difference(toTriggers)),
+			add_triggers,
 		};
 	}
 
@@ -213,6 +241,7 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 		alter_tables,
 		drop_indexes: Array.from(fromIndexes.difference(toIndexes)),
 		add_indexes,
+		scripts: Array.from(fromScripts.difference(toScripts)),
 	};
 }
 
@@ -246,6 +275,15 @@ export function collapse(deltas: Version[]): Version {
 			for (const colName of table.drop_columns) {
 				if (colName in existing.add_columns) delete existing.add_columns[colName];
 				else existing.drop_columns.push(colName);
+			}
+
+			for (const [triggerName, trigger] of Object.entries(table.add_triggers)) {
+				existing.add_triggers[triggerName] = trigger;
+			}
+
+			for (const triggerName of table.drop_triggers) {
+				if (triggerName in existing.add_triggers) delete existing.add_triggers[triggerName];
+				else existing.drop_triggers.push(triggerName);
 			}
 
 			for (const [colName, delta] of Object.entries(table.alter_columns)) {
@@ -313,7 +351,15 @@ export function collapse(deltas: Version[]): Version {
 		}
 	}
 
-	return { delta: true, add_tables, drop_tables, alter_tables, add_indexes, drop_indexes };
+	return {
+		delta: true,
+		add_tables,
+		drop_tables,
+		alter_tables,
+		add_indexes,
+		drop_indexes,
+		scripts: deltas.flatMap(v => v.scripts),
+	};
 }
 
 export function isEmpty(delta: Version): boolean {
@@ -330,7 +376,7 @@ const deltaColors = {
 	'+': 'green',
 	'-': 'red',
 	'*': 'white',
-} as const;
+} as const satisfies Record<string, InspectColor>;
 
 export function* display(delta: Version): Generator<string> {
 	const tables = [
@@ -374,6 +420,17 @@ export function* display(delta: Version): Generator<string> {
 		for (const con of constraints) {
 			yield '\t' + styleText(deltaColors[con.op], `${con.op} constraint ${con.name}`);
 		}
+
+		const triggers = [
+			...Object.keys(table.changes.add_triggers).map(name => ({ op: '+' as const, name })),
+			...table.changes.drop_triggers.map(name => ({ op: '-' as const, name })),
+		];
+
+		triggers.sort((a, b) => a.name.localeCompare(b.name));
+
+		for (const trigger of triggers) {
+			yield '\t' + styleText(deltaColors[trigger.op], `${trigger.op} trigger ${trigger.name}`);
+		}
 	}
 
 	const indexes = [
@@ -386,12 +443,25 @@ export function* display(delta: Version): Generator<string> {
 	for (const index of indexes) {
 		yield styleText(deltaColors[index.op], `${index.op} index ${index.name}`);
 	}
+
+	for (const script of delta.scripts) {
+		yield styleText('magentaBright', `! script at ${script.path}`);
+	}
 }
 
 export async function apply(delta: Version, forceAbort: boolean = false): Promise<void> {
 	const tx = await database.startTransaction().execute();
 
+	const ForceAbort = Symbol('%ForceAbort%');
+
 	try {
+		for (const script of delta.scripts.filter(s => s.when === 'before')) {
+			using _ = io.start('Running script at ' + script.path);
+			const content = readFileSync(script.path, 'utf-8');
+			await sql.raw(content).execute(tx);
+			io.done();
+		}
+
 		for (const [tableName, table] of Object.entries(delta.add_tables)) {
 			using _ = io.start('Adding table ' + tableName);
 			let query = tx.schema.createTable(tableName);
@@ -465,6 +535,24 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 			}
 
 			io.done();
+
+			for (const triggerName of tableDelta.drop_triggers) {
+				await io.track(
+					'Dropping trigger ' + triggerName,
+					sql`DROP TRIGGER ${sql.raw(`"${triggerName}"`)} ON ${sql.raw(`"${tableName}"`)}`.execute(tx)
+				);
+			}
+
+			for (const [triggerName, trigger] of Object.entries(tableDelta.add_triggers)) {
+				let query = `CREATE TRIGGER "${triggerName}" ${trigger.when.toUpperCase()} ${trigger.events.map(e => e.toUpperCase()).join(' OR ')} ON "${tableName}"`;
+				if (trigger.from) query += ` FROM "${trigger.from}"`;
+				if (trigger.referenceOldAs) query += ` REFERENCING OLD TABLE AS ${trigger.referenceOldAs}`;
+				if (trigger.referenceNewAs) query += ` REFERENCING NEW TABLE AS ${trigger.referenceNewAs}`;
+				query += ` FOR EACH ${trigger.forEach.toUpperCase()}`;
+				query += ` EXECUTE FUNCTION ${trigger.execute}()`;
+
+				await io.track('Creating trigger ' + triggerName, sql.raw(query).execute(tx));
+			}
 		}
 
 		for (const [indexName, index] of Object.entries(delta.add_indexes)) {
@@ -475,12 +563,19 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 			await io.track('Dropping index ' + index, tx.schema.dropIndex(index).execute());
 		}
 
-		if (forceAbort) throw '%forceAbort%';
+		for (const script of delta.scripts.filter(s => s.when === 'after')) {
+			using _ = io.start('Running script at ' + script.path);
+			const content = readFileSync(script.path, 'utf-8');
+			await sql.raw(content).execute(tx);
+			io.done();
+		}
+
+		if (forceAbort) throw ForceAbort;
 
 		await io.track('Committing', tx.commit().execute());
 	} catch (e) {
 		await tx.rollback().execute();
-		if (e === '%forceAbort%') return;
+		if (e === ForceAbort) return;
 		if (e instanceof SuppressedError) io.error(e.suppressed);
 		throw e;
 	}

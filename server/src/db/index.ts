@@ -351,6 +351,14 @@ export interface CheckOptions extends OpOptions {
 	extra?: boolean;
 }
 
+const toIntrospected: Record<string, [string, hasDefault?: boolean]> = {
+	boolean: ['bool'],
+	integer: ['int4'],
+	serial: ['int4', true],
+	bigint: ['int8'],
+	bigserial: ['int8', true],
+};
+
 /**
  * Checks that a table has the expected column types, nullability, and default values.
  */
@@ -368,14 +376,19 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 	const columns = Object.fromEntries(table.columns.map(c => [c.name, c]));
 	const _types = Object.entries(types.columns) as Entries<typeof types.columns>;
 
-	for (const [i, [key, { type, required = false, default: _default }]] of _types.entries()) {
-		io.progress(i + 1, _types.length, key);
+	for (const [i, [key, { type: rawType, required = false, default: _default }]] of _types.entries()) {
 		const col = columns[key];
-		const actualType = type in schema.toIntrospected ? schema.toIntrospected[type as keyof typeof schema.toIntrospected] : type;
-		const hasDefault = _default !== undefined;
+		let type: string = rawType;
+		if (type.endsWith('[]')) type = '_' + type.slice(0, -2);
+		let hasDefault = _default !== undefined;
+		if (type in toIntrospected) {
+			const [newType, _hasDefault] = toIntrospected[type];
+			type = newType;
+			if (typeof _hasDefault === 'boolean') hasDefault = _hasDefault;
+		}
 		try {
 			if (!col) throw 'missing.';
-			if (col.dataType != actualType) throw `incorrect type "${col.dataType}", expected ${actualType} (${type})`;
+			if (col.dataType != type) throw `incorrect type "${col.dataType}", expected ${type} (${rawType})`;
 			if (col.isNullable != !required) throw required ? 'nullable' : 'not nullable';
 			if (col.hasDefaultValue != hasDefault) throw hasDefault ? 'missing default' : 'has default';
 		} catch (e: any) {
@@ -383,6 +396,7 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 			io.warn(`${tableName}.${key}: ${e}`);
 		}
 		delete columns[key];
+		io.progress(i + 1, _types.length, key);
 	}
 
 	if (!opt.extra) return;

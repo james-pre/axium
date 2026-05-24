@@ -94,9 +94,21 @@ export const Constraint = z.discriminatedUnion('type', [
 
 export type Constraint = z.infer<typeof Constraint>;
 
+export const Trigger = z.strictObject({
+	from: z.string().optional(),
+	when: z.literal(['before', 'after']),
+	events: z.literal(['insert', 'update', 'delete']).array(),
+	referenceOldAs: z.string().optional(),
+	referenceNewAs: z.string().optional(),
+	forEach: z.literal(['row', 'statement']).default('statement'),
+	execute: z.string(),
+});
+export interface Trigger extends z.infer<typeof Trigger> {}
+
 export const Table = z.strictObject({
 	columns: z.record(z.string(), Column),
 	constraints: z.record(z.string(), Constraint).optional().default({}),
+	triggers: z.record(z.string(), Trigger).optional().default({}),
 });
 export interface Table extends z.infer<typeof Table> {}
 
@@ -105,6 +117,12 @@ export const Index = z.strictObject({
 	columns: z.string().array(),
 });
 export interface Index extends z.infer<typeof Index> {}
+
+export const Script = z.strictObject({
+	when: z.literal(['before', 'after']),
+	path: z.string(),
+});
+export interface Script extends z.infer<typeof Script> {}
 
 type __RangeContent = string | number | bigint | boolean | null | undefined;
 
