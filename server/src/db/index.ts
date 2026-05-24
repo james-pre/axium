@@ -179,7 +179,7 @@ host  axium axium ::1/128 md5
 `;
 
 /** @internal @hidden */
-export const _sql = (command: string, message: string) => io.trackCommand(message, 'sudo', '-u', 'postgres', 'psql', '-c', `"${command}"`);
+export const _sql = (command: string, message: string) => io.trackCommand(message, 'sudo', '-u', 'postgres', 'psql', '-c', command);
 /** Shortcut to output a warning if an error is thrown because relation already exists */
 export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'already exists.']);
 
@@ -359,7 +359,7 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 	opt: CheckOptions,
 	tableMetadata?: kysely.TableMetadata[]
 ): Promise<void> {
-	io.start(`Checking table ${tableName}`);
+	using _ = io.start(`Checking table ${tableName}`);
 	tableMetadata ||= await database.introspection.getTables();
 	const table = tableMetadata.find(t => (t.schema == 'public' ? t.name : `${t.schema}.${t.name}`) === tableName);
 	if (!table) throw 'missing.';
@@ -368,7 +368,7 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 	const _types = Object.entries(types.columns) as Entries<typeof types.columns>;
 
 	for (const [i, [key, { type, required = false, default: _default }]] of _types.entries()) {
-		io.progress(i, _types.length, key);
+		io.progress(i + 1, _types.length, key);
 		const col = columns[key];
 		const actualType = type in schema.toIntrospected ? schema.toIntrospected[type as keyof typeof schema.toIntrospected] : type;
 		const hasDefault = _default !== undefined;
@@ -386,7 +386,7 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 
 	if (!opt.extra) return;
 
-	io.start('Checking for extra columns in ' + tableName);
+	using _2 = io.start('Checking for extra columns in ' + tableName);
 	const unchecked = Object.keys(columns)
 		.map(c => `${tableName}.${c}`)
 		.join(', ');
