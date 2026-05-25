@@ -281,7 +281,7 @@ export function setUpgradeInfo(info: UpgradesInfo): void {
 
 export interface Upgrade {
 	delta: delta.Version;
-	entry: UpgradesInfoEntry;
+	info: UpgradesInfo;
 }
 
 export function initUpgrade(filter?: string[]): Upgrade | null {
@@ -332,7 +332,9 @@ export function initUpgrade(filter?: string[]): Upgrade | null {
 		for (const text of delta.display(vDelta)) console.log(text);
 	}
 
-	return empty ? null : { delta: delta.collapse(deltas), entry: { timestamp: new Date(), from, to } };
+	info.upgrades.push({ timestamp: new Date(), from, to });
+
+	return empty ? null : { delta: delta.collapse(deltas), info };
 }
 
 export interface CheckOptions extends OpOptions {
