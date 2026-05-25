@@ -40,8 +40,10 @@ export const AdminSummary = z.object({
 	}),
 });
 
+const SyncIndex = z.coerce.bigint().nonnegative();
+
 export const SyncOptions = z.object({
-	since: z.coerce.bigint().positive().default(0n),
+	since: SyncIndex.default(0n),
 });
 export interface SyncOptions extends z.infer<typeof SyncOptions> {}
 
@@ -52,13 +54,13 @@ export const SyncDiff = z.object({
 	deleted: z.uuid().array(),
 	created: SyncDiffObject.array(),
 	updated: SyncDiffObject.array(),
-	index: z.bigint().nonnegative(),
+	index: SyncIndex,
 });
 export interface SyncDiff extends z.infer<typeof SyncDiff> {}
 
 export const SyncState = z.object({
 	objects: SyncDiffObject.array(),
-	index: z.coerce.bigint().nonnegative(),
+	index: SyncIndex,
 });
 export interface SyncState extends z.infer<typeof SyncState> {}
 
@@ -78,6 +80,9 @@ const _API = {
 	},
 	sync: {
 		GET: [SyncOptions, SyncDiff],
+	},
+	'sync/metadata': {
+		GET: z.object({ index: SyncIndex }),
 	},
 	'sync/init': {
 		GET: SyncState,

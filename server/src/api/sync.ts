@@ -28,3 +28,11 @@ addRoute({
 		return { objects, index };
 	},
 });
+
+addRoute({
+	path: '/api/sync/metadata',
+	async GET(): AsyncResult<'GET', 'sync/metadata'> {
+		const index = await sync.getCurrentIndex();
+		return { index };
+	},
+});
