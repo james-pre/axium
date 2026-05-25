@@ -45,10 +45,13 @@ export const SyncOptions = z.object({
 });
 export interface SyncOptions extends z.infer<typeof SyncOptions> {}
 
+export const SyncDiffObject = z.looseObject({ $type: z.string(), id: z.uuid() });
+export interface SyncDiffObject extends z.infer<typeof SyncDiffObject> {}
+
 export const SyncDiff = z.object({
 	deleted: z.uuid().array(),
-	created: z.looseObject({ $type: z.string(), id: z.uuid() }).array(),
-	updated: z.looseObject({ $type: z.string(), id: z.uuid() }).array(),
+	created: SyncDiffObject.array(),
+	updated: SyncDiffObject.array(),
 	index: z.bigint().nonnegative(),
 });
 export interface SyncDiff extends z.infer<typeof SyncDiff> {}
