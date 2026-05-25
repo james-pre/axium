@@ -5,7 +5,6 @@ import { database } from '../db/connection.js';
 import { addRoute } from '../routes.js';
 import { requireSession } from '../auth.js';
 import { parseSearch } from '../requests.js';
-import { count } from '../db/index.js';
 
 export interface GetSyncEventsOptions {
 	since?: bigint;
@@ -72,6 +71,11 @@ export async function getSyncEvents<T extends { id: string }>(
 	return events;
 }
 
+export async function getCurrentIndex(): Promise<bigint> {
+	const last = await database.selectFrom('sync_events').select('index').orderBy('index', 'desc').limit(1).executeTakeFirst();
+	return last?.index || 0n;
+}
+
 addRoute({
 	path: '/api/sync',
 	async GET(req): AsyncResult<'GET', 'sync'> {
@@ -81,10 +85,7 @@ addRoute({
 
 		const events = await getSyncEvents(session.user, options);
 
-		if (!events.length) {
-			const index = BigInt((await count('sync_events')).sync_events);
-			return { deleted: [], created: [], updated: [], index };
-		}
+		if (!events.length) return { deleted: [], created: [], updated: [], index: await getCurrentIndex() };
 
 		const grouped = Object.groupBy(events, ev => ev.op);
 
