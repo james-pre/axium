@@ -20,7 +20,7 @@ export async function load({ parent, url }: Omit<PageLoadEvent, 'parent'> & { pa
 	try {
 		if (Number.isNaN(port)) throw new Error('Invalid port number provided by local client');
 		localCallback.port = port.toString();
-		options = await fetchAPI('OPTIONS', 'users/:id/auth', { type: 'client_login', client }, session.userId);
+		options = await fetchAPI('PUT', 'users/:id/auth', { type: 'client_login', client }, session.userId);
 	} catch (e: any) {
 		error = e.message;
 	}
