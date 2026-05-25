@@ -56,6 +56,12 @@ export const SyncDiff = z.object({
 });
 export interface SyncDiff extends z.infer<typeof SyncDiff> {}
 
+export const SyncState = z.object({
+	objects: SyncDiffObject.array(),
+	index: z.coerce.bigint().nonnegative(),
+});
+export interface SyncState extends z.infer<typeof SyncState> {}
+
 /**
  * Schemas for all API endpoints
  * @internal
@@ -74,10 +80,7 @@ const _API = {
 		GET: [SyncOptions, SyncDiff],
 	},
 	'sync/init': {
-		GET: z.object({
-			objects: SyncDiffObject.array(),
-			index: z.coerce.bigint().nonnegative(),
-		}),
+		GET: SyncState,
 	},
 	session: {
 		GET: z.object({ ...Session.shape, user: User }),
