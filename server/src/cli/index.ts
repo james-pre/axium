@@ -542,9 +542,7 @@ program
 			if (opt.dryRun) {
 				io.warn('--dry-run: No changes were applied.');
 			} else {
-				const info = db.getUpgradeInfo();
-				info.upgrades.push(upgrade.entry);
-				db.setUpgradeInfo(info);
+				db.setUpgradeInfo(upgrade.info);
 			}
 		}
 
