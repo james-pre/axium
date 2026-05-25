@@ -1,18 +1,34 @@
+import type { UserInternal } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
 import { database, type Schema } from '@axium/server/database';
+import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
+import { addObjectType as addSyncObjectType } from '@axium/server/sync';
+import type { ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import * as z from 'zod';
 import type schema from '../db.json';
 import { TaskInit, TaskListInit, TaskListUpdate, type Task } from './common.js';
-import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
 }
+
+function listExtraFields(user: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
+	return (eb: ExpressionBuilder<Schema, 'task_lists'>) => [
+		jsonArrayFrom(eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'task_lists.id'))
+			.$castTo<Task[]>()
+			.as('tasks'),
+		acl.existsIn('task_lists', user)(eb).$castTo<boolean>().as('isShared'),
+	];
+}
+
+addSyncObjectType('task_lists', {
+	queryAdditions: (qb, user) => qb.select(listExtraFields(user)),
+});
 
 addRoute({
 	path: '/api/users/:id/task_lists',
@@ -20,19 +36,12 @@ addRoute({
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/task_lists'> {
 		const { user } = await checkAuthForUser(request, userId);
 
-		const shared = acl.existsIn('task_lists', user, { alias: 'list' });
-
 		const lists = await database
-			.selectFrom('task_lists as list')
-			.selectAll('list')
-			.select(eb =>
-				jsonArrayFrom(eb.selectFrom('tasks').selectAll().whereRef('tasks.listId', '=', 'list.id'))
-					.$castTo<Task[]>()
-					.as('tasks')
-			)
-			.select(acl.from<'task_lists', Schema & { list: Schema['task_lists'] }>('task_lists', { alias: 'list' }))
-			.select(eb => shared(eb).$castTo<boolean>().as('isShared'))
-			.where(eb => eb.or([eb('userId', '=', userId), shared(eb)]))
+			.selectFrom('task_lists')
+			.selectAll()
+			.select(listExtraFields(user))
+			.select(acl.from<'task_lists', Schema>('task_lists'))
+			.where(acl.userHasAccess('task_lists', user))
 			.execute()
 			.catch(withError('Could not get task lists'));
 

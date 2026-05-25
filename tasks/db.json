@@ -71,6 +71,21 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"task_lists": {
+					"add_triggers": {
+						"sync_events": {
+							"forEach": "row",
+							"when": "after",
+							"events": ["insert", "update", "delete"],
+							"execute": "add_sync_event"
+						}
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["task_lists", "tasks", "acl.task_lists"],
