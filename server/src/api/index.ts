@@ -5,4 +5,5 @@ import './passkeys.js';
 import './images.js';
 import './register.js';
 import './session.js';
+import './sync.js';
 import './users.js';

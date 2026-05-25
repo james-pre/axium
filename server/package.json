@@ -29,6 +29,7 @@
 	},
 	"files": [
 		"assets",
+		"db-scripts",
 		"dist",
 		"patches",
 		"routes",

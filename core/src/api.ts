@@ -40,6 +40,19 @@ export const AdminSummary = z.object({
 	}),
 });
 
+export const SyncOptions = z.object({
+	since: z.coerce.bigint().positive().default(0n),
+});
+export interface SyncOptions extends z.infer<typeof SyncOptions> {}
+
+export const SyncDiff = z.object({
+	deleted: z.uuid().array(),
+	created: z.looseObject({ $type: z.string(), id: z.uuid() }).array(),
+	updated: z.looseObject({ $type: z.string(), id: z.uuid() }).array(),
+	index: z.bigint().nonnegative(),
+});
+export interface SyncDiff extends z.infer<typeof SyncDiff> {}
+
 /**
  * Schemas for all API endpoints
  * @internal
@@ -53,6 +66,9 @@ const _API = {
 	},
 	apps: {
 		GET: App.array(),
+	},
+	sync: {
+		GET: [SyncOptions, SyncDiff],
 	},
 	session: {
 		GET: z.object({ ...Session.shape, user: User }),

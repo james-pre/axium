@@ -1,4 +1,5 @@
 import { getConfig } from '@axium/core';
+import { syncEventObjectParsers } from '@axium/server/api/sync';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { withError } from '@axium/server/requests';
@@ -29,6 +30,8 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
 		hash: item.hash?.toHex?.(),
 	};
 }
+
+syncEventObjectParsers.set('storage', parseItem);
 
 /**
  * Returns the current usage of the storage for a user in bytes.

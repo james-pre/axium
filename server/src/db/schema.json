@@ -117,6 +117,20 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"add_tables": {
+				"sync_events": {
+					"columns": {
+						"index": { "type": "bigserial", "required": true, "primary": true },
+						"type": { "type": "text", "required": true },
+						"id": { "type": "uuid", "required": true },
+						"op": { "type": "char(1)", "required": true }
+					}
+				}
+			},
+			"scripts": [{ "when": "before", "path": "../../db-scripts/add_sync_event.sql" }]
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]
