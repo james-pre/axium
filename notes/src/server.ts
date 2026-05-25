@@ -5,6 +5,7 @@ import { database } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
+import { addObjectType as addSyncObjectType } from '@axium/server/sync';
 import * as z from 'zod';
 import type schema from '../db.json';
 import { NoteInit } from './common.js';
@@ -12,6 +13,8 @@ import { NoteInit } from './common.js';
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
 }
+
+addSyncObjectType('notes');
 
 addRoute({
 	path: '/api/users/:id/notes',
