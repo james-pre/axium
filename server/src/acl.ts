@@ -23,7 +23,7 @@ type _TargetNames = keyof db.Schema &
 	};
 
 /**
- * `never` causes a ton of problems, so we use `string` if none of the tables are shareable.
+ * `never` causes a ton of problems, so we use `keyof db.Schema` if none of the tables are shareable.
  */
 export type TableName = _TableNames extends never ? keyof db.Schema : _TableNames;
 export type TargetName = _TargetNames extends never ? keyof db.Schema : _TargetNames;
