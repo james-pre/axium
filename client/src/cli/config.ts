@@ -1,24 +1,21 @@
-import * as io from 'ioium/node';
 import { loadPlugin } from '@axium/core/node/plugins';
+import * as io from 'ioium/node';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path/posix';
 import { ClientConfig, config } from '../config.js';
-import { fetchAPI, setPrefix, setToken } from '../requests.js';
-import { getCurrentSession } from '../user.js';
+import { setPrefix, setToken } from '../requests.js';
+import * as cache from './cache.js';
 
 export const configDir = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'axium');
 mkdirSync(configDir, { recursive: true });
 const axcConfig = join(configDir, 'config.json');
 if (!existsSync(axcConfig)) writeFileSync(axcConfig, '{}');
 
-export const cacheDir = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'axium');
-mkdirSync(cacheDir, { recursive: true });
-
 export function session() {
 	if (!config.token) io.exit('Not logged in.', 4);
-	if (!config.cache) io.exit('No session data available.', 3);
-	return config.cache.session;
+	if (!cache.meta.data) io.exit('No session data available.', 3);
+	return cache.meta.data.session;
 }
 
 export async function loadConfig(safe: boolean) {
@@ -35,21 +32,4 @@ export async function loadConfig(safe: boolean) {
 export function saveConfig() {
 	io.writeJSON(axcConfig, config);
 	io.debug('Saved config to ' + axcConfig);
-}
-
-export const _dayMs = 24 * 3600_000;
-
-export async function updateCache(force: boolean) {
-	if (!force && config.cache && config.cache.fetched + _dayMs > Date.now()) return;
-
-	const [session, apps] = await io.track('Fetching metadata', Promise.all([getCurrentSession(), fetchAPI('GET', 'apps')]));
-
-	config.cache = { fetched: Date.now(), session, apps };
-
-	try {
-		io.writeJSON(axcConfig, config);
-	} catch (e) {
-		io.error(e);
-		return;
-	}
 }

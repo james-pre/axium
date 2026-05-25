@@ -1,18 +1,9 @@
 import { debug, warn } from 'ioium';
-import { App, Session, User } from '@axium/core';
 import * as z from 'zod';
 
 export const ClientConfig = z.looseObject({
 	token: z.base64url().nullish(),
 	server: z.url().nullish(),
-	// Cache to reduce server load:
-	cache: z
-		.looseObject({
-			fetched: z.int(),
-			session: Session.extend({ user: User }),
-			apps: App.array(),
-		})
-		.nullish(),
 	plugins: z.string().array().default([]),
 });
 

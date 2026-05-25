@@ -1,4 +1,5 @@
-import { cacheDir, session } from '@axium/client/cli/config';
+import { dir as cacheDir } from '@axium/client/cli/cache';
+import { session } from '@axium/client/cli/config';
 import { userInfo } from '@axium/client/user';
 import { UserPublic } from '@axium/core';
 import * as io from 'ioium/node';

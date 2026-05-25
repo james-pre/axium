@@ -15,7 +15,8 @@ import $pkg from '../../package.json' with { type: 'json' };
 import { config, resolveServerURL } from '../config.js';
 import { prefix, setPrefix, setToken, useUserAgent } from '../requests.js';
 import { getCurrentSession, logout } from '../user.js';
-import { loadConfig, saveConfig, updateCache } from './config.js';
+import { loadConfig, saveConfig, session } from './config.js';
+import * as cache from './cache.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) || process.argv.includes('--debug');
@@ -26,6 +27,7 @@ const clientUA = `Axium Client/${$pkg.version} (${os.type()}; ${process.arch})`;
 useUserAgent(clientUA);
 
 await loadConfig(safe);
+cache.load();
 
 process.on('SIGHUP', () => {
 	io.info('Reloading configuration due to SIGHUP.');
@@ -47,7 +49,7 @@ program
 		const opt = axc.optsWithGlobals();
 
 		if (!config.token) return;
-		if (!opt.cacheOnly && action.name() != 'login') await updateCache(opt.refreshSession);
+		if (!opt.cacheOnly && action.name() != 'login') await cache.update(opt.refreshSession);
 	});
 
 program.on('option:debug', () => io._setDebugOutput(true));
@@ -142,21 +144,20 @@ program
 		config.token = token;
 		config.server = url;
 		saveConfig();
-		await updateCache(true);
+		await cache.update(true);
 	});
 
 program.command('logout').action(async () => {
-	if (!config.token) io.exit('Not logged in.', 4);
-	if (!config.cache) io.exit('No session data available.', 3);
+	const { id, userId } = session();
 
-	await logout(config.cache.session.userId, config.cache.session.id);
+	await logout(userId, id);
 });
 
 program.command('status').action(() => {
 	if (!config.token) return console.log('Not logged in.');
 	if (!config.cache) return console.log('No session data available.');
 
-	const { session } = config.cache;
+	const { session } = cache.meta.data;
 
 	console.log('Logged in to', new URL(prefix).host);
 	console.log(
