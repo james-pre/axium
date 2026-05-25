@@ -2,6 +2,7 @@ import { getConfig, type Country } from '@axium/core';
 import { database, type Schema as DB } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { error } from '@axium/server/requests';
+import { addObjectType as addSyncObjectType } from '@axium/server/sync';
 import type { AliasedRawBuilder, ControlledTransaction, ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type schema from '../../db.json';
@@ -29,6 +30,10 @@ export function contactsFields(eb: ExpressionBuilder<DB, 'contacts'>) {
 
 	return [select('addresses'), select('emails'), select('phones'), select('dates'), select('relationships'), select('custom')] as const;
 }
+
+addSyncObjectType('contacts', {
+	queryAdditions: qb => qb.select(contactsFields),
+});
 
 /**
  * Try to automatically link the contact to a user

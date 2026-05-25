@@ -116,6 +116,21 @@
 				"contact_dates_id": { "on": "contact_dates", "columns": ["id"] },
 				"contact_custom_id": { "on": "contact_custom", "columns": ["id"] }
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"contacts": {
+					"add_triggers": {
+						"sync_events": {
+							"forEach": "row",
+							"when": "after",
+							"events": ["insert", "update", "delete"],
+							"execute": "add_sync_event"
+						}
+					}
+				}
+			}
 		}
 	],
 	"wipe": [
