@@ -33,7 +33,7 @@ export interface ObjectTypeConfig<K extends keyof Schema> {
 	userId?: ReferenceExpression<Schema, K>;
 }
 
-export function addObjectType<K extends keyof Schema>(type: K, config: ObjectTypeConfig<K>): void {
+export function addObjectType<K extends keyof Schema>(type: K, config: ObjectTypeConfig<K> = {}): void {
 	targets.set(type, {
 		parse: obj => obj,
 		...config,
