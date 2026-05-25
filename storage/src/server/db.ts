@@ -1,8 +1,8 @@
 import { getConfig } from '@axium/core';
-import { syncEventObjectParsers } from '@axium/server/api/sync';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { withError } from '@axium/server/requests';
+import { targets as syncTargets, objectParsers as syncObjectParsers } from '@axium/server/sync';
 import type { Selectable } from 'kysely';
 import { unlinkSync } from 'node:fs';
 import { join } from 'node:path/posix';
@@ -31,7 +31,8 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
 	};
 }
 
-syncEventObjectParsers.set('storage', parseItem);
+syncTargets.add('storage');
+syncObjectParsers.set('storage', parseItem);
 
 /**
  * Returns the current usage of the storage for a user in bytes.
