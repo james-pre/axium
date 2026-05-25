@@ -4,6 +4,7 @@ import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { WithRequired } from 'utilium';
 import * as db from './db/index.js';
+import { sql } from 'kysely';
 
 export interface DBAccessControllable extends Omit<AccessControllable, 'id'> {
 	id: string | kysely.Generated<string>;
@@ -58,6 +59,9 @@ export interface ACLSelectionOptions {
 
 	/** If set, only ACLs that match the provided info will be selected. */
 	filterByUser?: Pick<UserInternal, 'id' | 'roles' | 'tags'>;
+
+	/** If set, nothing will be returned when an ACL table doesn't exist (rather than throwing) */
+	optional?: boolean;
 }
 
 /**
@@ -69,6 +73,9 @@ export function from<const TB extends TargetName, const DB = db.Schema>(
 	table: TB,
 	opt: ACLSelectionOptions = {}
 ): (eb: kysely.ExpressionBuilder<DB, any>) => kysely.AliasedRawBuilder<Result<`acl.${TB}`>[], 'acl'> {
+	// Note this is valid to pass to `.select()` however including it as a return type is problematic
+	if (opt.optional && !listTables()[table]) return [] as any;
+
 	return (eb: kysely.ExpressionBuilder<DB, any>) =>
 		jsonArrayFrom(
 			(eb as kysely.ExpressionBuilder<db.Schema, any>)
@@ -141,17 +148,20 @@ export interface OptionsForWhere<TB extends TargetName> {
 	itemId?: keyof db.Schema[TB] & string;
 	/** Alias for the item table/value */
 	alias?: string;
+	/** If set, nothing will be returned when an ACL table doesn't exist (rather than throwing) */
+	optional?: boolean;
 }
 
 /**
  * Use in a `where` to filter by items a user can access because of an ACL entry.
- *
  */
 export function existsIn<const TB extends TargetName, const O extends OptionsForWhere<TB>>(
 	table: TB,
 	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
 	options: O = {} as any
 ) {
+	if (options.optional && !listTables()[table]) return () => sql.val(false);
+
 	type DB = db.Schema & { [K in O['alias'] extends string ? O['alias'] : never]: db.Schema[TB] };
 	type EB = kysely.ExpressionBuilder<DB, O['alias'] extends string ? O['alias'] & keyof DB : TB>;
 
