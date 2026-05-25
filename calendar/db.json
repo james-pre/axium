@@ -82,6 +82,31 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"calendars": {
+					"add_triggers": {
+						"sync_events": {
+							"forEach": "row",
+							"when": "after",
+							"events": ["insert", "update", "delete"],
+							"execute": "add_sync_event"
+						}
+					}
+				},
+				"events": {
+					"add_triggers": {
+						"sync_events": {
+							"forEach": "row",
+							"when": "after",
+							"events": ["insert", "update", "delete"],
+							"execute": "add_sync_event"
+						}
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["calendars", "events", "acl.calendars"],

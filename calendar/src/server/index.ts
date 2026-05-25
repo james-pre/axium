@@ -5,6 +5,7 @@ import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { error, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
+import { addObjectType as addSyncObjectType } from '@axium/server/sync';
 import { sql, type AliasedRawBuilder, type ExpressionBuilder } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import type { Omit } from 'utilium';
@@ -28,6 +29,15 @@ function withEncoded<T>(value: Omit<T, 'color'> & { color?: number | null }): T 
 function withDecoded<T>(value: T & { color?: string | null }): Omit<T, 'color'> & { color?: number | null } {
 	return (value.color === undefined || value.color === null ? value : Object.assign(value, { color: parseInt(value.color, 16) })) as any;
 }
+
+addSyncObjectType('calendars', {
+	parse: withEncoded,
+});
+
+addSyncObjectType('events', {
+	parse: withEncoded,
+	userId: eb => eb.selectFrom('calendars').select('userId').whereRef('id', '=', 'events.calId'),
+});
 
 addRoute({
 	path: '/api/users/:id/calendars',
