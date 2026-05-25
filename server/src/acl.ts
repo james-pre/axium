@@ -4,7 +4,6 @@ import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { WithRequired } from 'utilium';
 import * as db from './db/index.js';
-import { sql } from 'kysely';
 
 export interface DBAccessControllable extends Omit<AccessControllable, 'id'> {
 	id: string | kysely.Generated<string>;
@@ -152,6 +151,19 @@ export interface OptionsForWhere<TB extends TargetName> {
 	optional?: boolean;
 }
 
+type _DB<TB extends TargetName, O extends OptionsForWhere<TB>> = db.Schema & {
+	[K in O['alias'] extends string ? O['alias'] : never]: db.Schema[TB];
+};
+
+export interface FilterExpression<TB extends TargetName, O extends OptionsForWhere<TB>> extends kysely.ExpressionBuilder<
+	_DB<TB, O>,
+	O['alias'] extends string ? O['alias'] & keyof _DB<TB, O> : TB
+> {}
+
+export type FilterCallback<TB extends TargetName, O extends OptionsForWhere<TB>> = (
+	eb: FilterExpression<TB, O>
+) => kysely.ExpressionWrapper<_DB<TB, O>, O['alias'] extends string ? O['alias'] & keyof _DB<TB, O> : TB, kysely.SqlBool>;
+
 /**
  * Use in a `where` to filter by items a user can access because of an ACL entry.
  */
@@ -159,13 +171,10 @@ export function existsIn<const TB extends TargetName, const O extends OptionsFor
 	table: TB,
 	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
 	options: O = {} as any
-) {
-	if (options.optional && !listTables()[table]) return () => sql.val(false);
+): FilterCallback<TB, O> {
+	if (options.optional && !listTables()[table]) return eb => eb.val(false);
 
-	type DB = db.Schema & { [K in O['alias'] extends string ? O['alias'] : never]: db.Schema[TB] };
-	type EB = kysely.ExpressionBuilder<DB, O['alias'] extends string ? O['alias'] & keyof DB : TB>;
-
-	return (eb: EB) =>
+	return eb =>
 		eb.exists(
 			eb
 				.selectFrom<TableName>(`acl.${table}`)
@@ -178,10 +187,10 @@ export function existsIn<const TB extends TargetName, const O extends OptionsFor
 /**
  * Use in a `where` to filter by items a user has access to
  */
-export function userHasAccess<const TB extends TargetName>(
+export function userHasAccess<const TB extends TargetName, const O extends OptionsForWhere<TB>>(
 	table: TB,
 	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
-	options: OptionsForWhere<TB> = {}
-) {
-	return (eb: kysely.ExpressionBuilder<db.Schema, TB>) => eb.or([eb('userId', '=', user.id as any), existsIn(table, user, options)(eb)]);
+	options: O = {} as any
+): FilterCallback<TB, O> {
+	return eb => eb.or([eb('userId', '=', user.id as any), existsIn(table, user, options)(eb)]);
 }
