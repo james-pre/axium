@@ -1,7 +1,9 @@
 import type { SyncDiff, SyncDiffObject, UserInternal } from '@axium/core';
-import type { SelectQueryBuilder } from 'kysely';
+import { warnOnce } from 'ioium';
+import type { ReferenceExpression, SelectQueryBuilder } from 'kysely';
+import type { WithRequired } from 'utilium';
 import type { TargetName } from './acl.js';
-import { userHasAccess, from as aclFrom } from './acl.js';
+import { from as aclFrom, existsIn } from './acl.js';
 import { database } from './db/connection.js';
 import type { Schema } from './db/index.js';
 
@@ -19,15 +21,38 @@ export interface Event<T> {
 	object?: T;
 }
 
-export const objectParsers: Map<TargetName, (obj: any) => any> = new Map();
+const targets: Map<keyof Schema, WithRequired<ObjectTypeConfig<any>, 'parse'>> = new Map();
 
-export const queryAdditions: Map<
-	TargetName,
-	(
-		qb: SelectQueryBuilder<Schema, TargetName, any>,
+export interface ObjectTypeConfig<K extends keyof Schema> {
+	parse?(this: void, obj: any): any;
+	queryAdditions?(
+		this: void,
+		qb: SelectQueryBuilder<Schema, K, any>,
 		user: Pick<UserInternal, 'id' | 'roles' | 'tags'>
-	) => SelectQueryBuilder<Schema, TargetName, any>
-> = new Map();
+	): SelectQueryBuilder<Schema, K, any>;
+	userId?: ReferenceExpression<Schema, K>;
+}
+
+export function addObjectType<K extends keyof Schema>(type: K, config: ObjectTypeConfig<K>): void {
+	targets.set(type, {
+		parse: obj => obj,
+		...config,
+	});
+}
+
+function selectObject<K extends keyof Schema>(type: K, user: Pick<UserInternal, 'id' | 'roles' | 'tags'>, cfg: ObjectTypeConfig<K>) {
+	return database
+		.selectFrom(type as TargetName)
+		.selectAll()
+		.$if(!!cfg.queryAdditions, qb => cfg.queryAdditions!(qb as any, user))
+		.select(aclFrom(type as TargetName, { optional: true }))
+		.where(eb =>
+			eb.or([
+				eb((cfg.userId as ReferenceExpression<Schema, TargetName>) || 'userId', '=', user.id),
+				existsIn(type as TargetName, user, { optional: true })(eb),
+			])
+		);
+}
 
 export async function getEvents<T extends { id: string }>(
 	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
@@ -50,27 +75,19 @@ export async function getEvents<T extends { id: string }>(
 			ev => ev.type
 		)
 	) as [TargetName, Event<T>[]][]) {
+		const cfg = targets.get(type) || (warnOnce('Missing sync config for', type), { parse: obj => obj });
+
 		const nonDeletedIds = typeEvents.map(e => e.id);
 		const objectsById = new Map<string, T>();
 
-		const parser = objectParsers.get(type) || (obj => obj);
-
-		const objects = await database
-			.selectFrom(type)
-			.selectAll()
-			.select(aclFrom(type, { optional: true }))
-			.where('id', 'in', nonDeletedIds)
-			.where(userHasAccess(type, user, { optional: true }))
-			.$if(queryAdditions.has(type), qb => queryAdditions.get(type)!(qb, user))
-			.$castTo<T>()
-			.execute();
+		const objects = await selectObject(type, user, cfg).where('id', 'in', nonDeletedIds).$castTo<T>().execute();
 
 		for (const obj of objects) objectsById.set(obj.id, obj);
 
 		for (const ev of typeEvents) {
 			const obj = objectsById.get(ev.id);
 			if (obj) {
-				ev.object = parser(obj);
+				ev.object = cfg.parse(obj);
 				events.push(ev);
 			}
 		}
@@ -124,24 +141,13 @@ export async function getCurrentIndex(): Promise<bigint> {
 	return last?.index || 0n;
 }
 
-export const targets: Set<TargetName> = new Set();
-
 export async function getInit<T extends { id: string }>(user: Pick<UserInternal, 'id' | 'roles' | 'tags'>): Promise<SyncDiffObject[]> {
 	const objects: SyncDiffObject[] = [];
 
-	for (const target of targets) {
-		const parser = objectParsers.get(target) || (obj => obj);
+	for (const [target, cfg] of targets) {
+		const items = await selectObject(target, user, cfg).$castTo<T>().execute();
 
-		const items = await database
-			.selectFrom(target)
-			.selectAll()
-			.select(aclFrom(target, { optional: true }))
-			.where(userHasAccess(target, user, { optional: true }))
-			.$if(queryAdditions.has(target), qb => queryAdditions.get(target)!(qb, user))
-			.$castTo<T>()
-			.execute();
-
-		for (const obj of items) objects.push(Object.assign(parser(obj), { $type: target }));
+		for (const obj of items) objects.push(Object.assign(cfg.parse(obj), { $type: target }));
 	}
 
 	return objects;
