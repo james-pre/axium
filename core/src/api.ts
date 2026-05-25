@@ -73,6 +73,12 @@ const _API = {
 	sync: {
 		GET: [SyncOptions, SyncDiff],
 	},
+	'sync/init': {
+		GET: z.object({
+			objects: SyncDiffObject.array(),
+			index: z.coerce.bigint().nonnegative(),
+		}),
+	},
 	session: {
 		GET: z.object({ ...Session.shape, user: User }),
 		DELETE: Session,
