@@ -23,7 +23,10 @@ export const objectParsers: Map<TargetName, (obj: any) => any> = new Map();
 
 export const queryAdditions: Map<
 	TargetName,
-	(qb: SelectQueryBuilder<Schema, TargetName, any>) => SelectQueryBuilder<Schema, TargetName, any>
+	(
+		qb: SelectQueryBuilder<Schema, TargetName, any>,
+		user: Pick<UserInternal, 'id' | 'roles' | 'tags'>
+	) => SelectQueryBuilder<Schema, TargetName, any>
 > = new Map();
 
 export async function getEvents<T extends { id: string }>(
@@ -58,7 +61,7 @@ export async function getEvents<T extends { id: string }>(
 			.select(aclFrom(type, { optional: true }))
 			.where('id', 'in', nonDeletedIds)
 			.where(userHasAccess(type, user, { optional: true }))
-			.$if(queryAdditions.has(type), queryAdditions.get(type)!)
+			.$if(queryAdditions.has(type), qb => queryAdditions.get(type)!(qb, user))
 			.$castTo<T>()
 			.execute();
 
@@ -134,7 +137,7 @@ export async function getInit<T extends { id: string }>(user: Pick<UserInternal,
 			.selectAll()
 			.select(aclFrom(target, { optional: true }))
 			.where(userHasAccess(target, user, { optional: true }))
-			.$if(queryAdditions.has(target), queryAdditions.get(target)!)
+			.$if(queryAdditions.has(target), qb => queryAdditions.get(target)!(qb, user))
 			.$castTo<T>()
 			.execute();
 
