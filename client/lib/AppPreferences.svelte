@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { getAppPreferences, setAppPreferences, text } from '@axium/client';
+	import { text } from '@axium/client';
+	import { preferences as uap } from '@axium/client';
 	import { structurallyEqual } from 'utilium';
 	import type { ZodObject } from 'zod';
 	import ZodInput from './ZodInput.svelte';
@@ -12,7 +13,7 @@
 		_parentDialog,
 	}: { userId: string; appId: string; schema: ZodObject; _parentDialog?: HTMLDialogElement } = $props();
 
-	let initialValue = $state(await getAppPreferences(userId, appId));
+	let initialValue = $state(await uap.get(userId, appId));
 	let currentValue = $state({ ...initialValue });
 
 	function cancel() {
@@ -21,7 +22,7 @@
 	}
 
 	async function save() {
-		initialValue = await setAppPreferences(userId, appId, currentValue);
+		initialValue = await uap.set(userId, appId, currentValue);
 		if (!_parentDialog) return;
 		_parentDialog.close();
 		toast('success', text('AppPreferences.toast_saved'));

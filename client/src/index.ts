@@ -1,5 +1,5 @@
 export * from './access.js';
-export * from './apps.js';
+export * as preferences from './preferences.js';
 export * as cache from './cache.js';
 export * from './config.js';
 export * from './locales.js';

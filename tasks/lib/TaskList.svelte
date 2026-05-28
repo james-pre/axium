@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
-	import { fetchAPI, getAppPreferences, text } from '@axium/client';
+	import { fetchAPI, preferences, text } from '@axium/client';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import { toastStatus } from '@axium/client/toast';
@@ -22,8 +22,8 @@
 	let tasks = $state(list.tasks),
 		open = $state(false);
 
-	const preferences = await getAppPreferences(user.id, 'tasks');
-	const showCompletedInline = preferences.show_completed_subtasks == 'inline';
+	const { show_completed_subtasks } = await preferences.get(user.id, 'tasks');
+	const showCompletedInline = show_completed_subtasks == 'inline';
 
 	const tree = $derived(buildTaskTree(tasks));
 

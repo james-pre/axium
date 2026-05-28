@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { getAppPreferences, text } from '@axium/client';
+	import { preferences, text } from '@axium/client';
 	import { closeOnBackGesture, contextMenu } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
@@ -38,7 +38,7 @@
 	const activeItem = $derived(items.find(item => item.id === activeId));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	const { sort_folders_first } = user ? await getAppPreferences(user.id, 'files') : StoragePreferences.safeParse({}).data || {};
+	const { sort_folders_first } = user ? await preferences.get(user.id, 'files') : StoragePreferences.safeParse({}).data || {};
 
 	const sortedItems = $derived(
 		items.toSorted((_a, _b) => {
