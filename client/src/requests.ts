@@ -1,4 +1,4 @@
-import type { APIParameters, APIValues, Endpoint, RequestBody } from '@axium/core/api';
+import type { APIParameters, Endpoint, RequestBody, Result } from '@axium/core/api';
 import { $API } from '@axium/core/api';
 import { errorText } from 'ioium';
 import type { RequestMethod } from '@axium/core/requests';
@@ -37,7 +37,7 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 	endpoint: E,
 	data?: RequestBody<M, E>,
 	...params: APIParameters<E>
-): Promise<M extends keyof APIValues[E] ? (APIValues[E][M] extends readonly [unknown, infer R] ? R : APIValues[E][M]) : unknown> {
+): Promise<Result<M, E>> {
 	const options: RequestInit & { headers: Record<string, string> } = {
 		method,
 		headers: {
