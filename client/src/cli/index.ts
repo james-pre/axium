@@ -1,9 +1,11 @@
 #! /usr/bin/env node
 
+import { formatBytes } from '@axium/core';
 import { outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { CommanderError, program } from 'commander';
 import * as io from 'ioium/node';
+import { basename } from 'node:path';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
@@ -136,6 +138,46 @@ axcPlugin
 
 		plugins.delete(plugin.name);
 		saveConfig();
+	});
+
+const axcCache = program.command('cache').description('Manage the local cache');
+
+axcCache
+	.command('info')
+	.description('Show information about what is being cached')
+	.action(async () => {
+		let size = 0n,
+			files = 0;
+
+		for await (const info of cache.info()) {
+			process.stdout.write(basename(info.path) + ':');
+
+			if (!info.exists) {
+				console.log(styleText('dim', ' (missing)'));
+				continue;
+			}
+
+			files++;
+			size += info.size!;
+
+			console.log(
+				'',
+				styleText('blue', formatBytes(info.size!)) + ',',
+				info.fromAPI ? info.entries + ' entries' : info.valid ? styleText('green', 'valid') : styleText('yellow', 'invalid')
+			);
+		}
+
+		console.log('Caching', styleText('blue', formatBytes(size)), 'across', styleText('blueBright', files.toString()), 'files');
+	});
+
+axcCache.command('clear').description('Clear the local cache').action(cache.clear);
+
+axcCache
+	.command('refresh')
+	.description('Update local caches')
+	.option('-f, --force', 'Force a refresh even if the cache is still valid')
+	.action(async opt => {
+		await cache.update(opt.force);
 	});
 
 try {
