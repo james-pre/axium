@@ -2,7 +2,7 @@ import type { NewSessionResponse, Passkey, PasskeyChangeable, Session, User, Use
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import * as z from 'zod';
 import { fetchAPI } from './requests.js';
-import * as cache from './cache.js';
+import Cache from './cache.js';
 
 export async function login(userId: string): Promise<NewSessionResponse> {
 	const options = await fetchAPI('PUT', 'users/:id/auth', { type: 'login' }, userId);
@@ -77,15 +77,19 @@ function _checkId(userId: string): void {
 	}
 }
 
-export async function userInfo(userId: string): Promise<UserPublic & Partial<User>> {
+const userCache = new Cache<[string], UserPublic>((userId: string) => fetchAPI('GET', 'users/:id', {}, userId), { ttl: 86400_000 });
+
+export { userCache as apiUserCache };
+
+export async function userInfo(userId: string): Promise<UserPublic> {
 	_checkId(userId);
-	return await cache.use('user', userId, () => fetchAPI('GET', 'users/:id', {}, userId));
+	return await userCache.get(userId);
 }
 
 export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>): Promise<User> {
 	_checkId(userId);
 	const result = await fetchAPI('PATCH', 'users/:id', data, userId);
-	cache.update('user', userId, result);
+	userCache.set(userId, result);
 	return result;
 }
 
@@ -104,7 +108,7 @@ export async function deleteUser(userId: string, deletingId: string = userId): P
 	const response = await startAuthentication({ optionsJSON: options });
 	await fetchAPI('POST', 'users/:id/auth', response, deletingId);
 	const result = await fetchAPI('DELETE', 'users/:id', response, userId);
-	cache.invalidate('user', userId);
+	userCache.invalidate(userId);
 	return result;
 }
 

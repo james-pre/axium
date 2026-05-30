@@ -1,56 +1,135 @@
-export interface Options {
+import * as z from 'zod';
+
+export interface CacheOptions {
 	/** Maximum number of items the cache can hold */
 	itemLimit: number;
-}
 
-interface Cache<K = any, T = any> extends Options {
-	items: Map<K, T>;
+	/** @todo replace with `Temporal.DurationLike` */
+	ttl: number;
 }
-
-const _caches: Record<string, Cache> = Object.create(null);
 
 const defaultCacheOptions = {
 	itemLimit: 10_000,
+	ttl: 3600_000,
 };
 
-/**
- * Create a cache manually. Only useful when you want to specify different options.
- */
-export function create(cacheName: string, options: Partial<Options> = {}): void {
-	if (_caches[cacheName]) throw new Error('Multiple caches with the same name are not allowed');
-	_caches[cacheName] = {
-		items: new Map(),
-		...defaultCacheOptions,
-		...options,
-	};
+export const CacheData = z.record(
+	z.string(),
+	z.looseObject({
+		/** @todo replace with temporal instant */
+		$timestamp: z.coerce.date(),
+	})
+);
+
+/** @todo replace `$timestamp` with `Temporal.InstantLike` */
+export interface CacheData<V> extends Record<string, V & { $timestamp: number }> {}
+
+function isThenable(value: unknown): value is PromiseLike<unknown> {
+	return !!(value && typeof value == 'object' && 'then' in value && typeof value.then == 'function');
 }
 
+const kTimestamp = Symbol('kTimestamp');
+
 /**
- * Use a cache for some arbitrary operation.
+ * Cache some arbitrary operation.
  * This is primarily intended for de-duplicating API requests
- * @param cacheName The name of the cache to use, e.g. `'users'`
- * @param key The key for the item in the cache. This can be anything used for the key of a `Map`
- * @param miss The function to run on a cache miss
- * @remarks
- * Note that a cache will automatically be created if it doesn't already exist
  */
-export function use<Key, Result>(cacheName: string, key: Key, miss: () => Result): Result {
-	const cache: Cache<Key, Result> = (_caches[cacheName] ||= { items: new Map(), ...defaultCacheOptions });
-	const cached = cache.items.get(key);
-	if (cached) return cached;
-	const result = miss();
-	cache.items.set(key, result);
-	return result;
+export class Cache<Keys extends string[], V extends object> {
+	protected items = new Map<string, V & { [kTimestamp]: number }>();
+	protected pending = new Map<string, Promise<V>>();
+	public readonly options: CacheOptions;
+
+	private onWrite?: (data: CacheData<V>) => void;
+
+	constructor(
+		/**
+		 * Function to run when there is a cache miss
+		 * @
+		 */
+		protected readonly miss: (...keys: Keys) => V | Promise<V>,
+		options: Partial<CacheOptions> = {}
+	) {
+		this.options = { ...defaultCacheOptions, ...options };
+	}
+
+	protected key(keys: Keys): string {
+		return keys.join(':');
+	}
+
+	public get size(): number {
+		return this.items.size;
+	}
+
+	protected valid(timestamp?: number) {
+		return !this.options.ttl || !timestamp || timestamp.valueOf() + this.options.ttl < Date.now();
+	}
+
+	protected write(key: string, value: V | Promise<V>) {
+		if (isThenable(value)) {
+			this.pending.set(key, value);
+			void value.then(resolved => {
+				this.write(key, resolved);
+				this.pending.delete(key);
+			});
+			return;
+		}
+
+		if (this.items.size >= this.options.itemLimit) {
+			const [key] = this.items.entries().next().value!;
+			this.items.delete(key);
+		}
+
+		this.items.set(key, Object.assign(value, { [kTimestamp]: Date.now() }));
+		this.onWrite?.(this.toJSON());
+	}
+
+	public get(...keys: Keys): V | Promise<V> {
+		const key = this.key(keys);
+		const pending = this.pending.get(key);
+		if (pending) return pending;
+		const cached = this.items.get(key);
+		if (cached) {
+			if (this.valid(cached[kTimestamp])) return cached;
+			this.items.delete(key);
+		}
+		const result = this.miss(...keys);
+		this.write(key, result);
+		return result;
+	}
+
+	public set(...args: [...keys: Keys, value: V | Promise<V>]) {
+		const value = args.pop() as V | Promise<V>;
+		const key = this.key(args as any);
+		this.write(key, value);
+	}
+
+	public invalidate(...keys: Keys): void {
+		this.items.delete(this.key(keys));
+	}
+
+	public persist(
+		onWrite: (data: CacheData<V>) => void,
+		/** @todo replace `$timestamp` with `Temporal.InstantLike` */
+		existingContent?: Record<string, V & { $timestamp?: number }>
+	): void {
+		this.onWrite = onWrite;
+
+		if (!existingContent) return;
+
+		for (const [key, value] of Object.entries(existingContent)) {
+			const { $timestamp = Date.now() } = value;
+
+			if (!this.valid($timestamp)) continue;
+
+			delete value.$timestamp;
+
+			this.items.set(key, Object.assign(value, { [kTimestamp]: $timestamp }));
+		}
+	}
+
+	public toJSON(): CacheData<V> {
+		return Object.fromEntries(this.items.entries().map(([k, v]) => [k, { ...v, $timestamp: v[kTimestamp] }]));
+	}
 }
 
-export function invalidate(cacheName: string, key: any): void {
-	const cache = _caches[cacheName];
-	if (!cache) throw new ReferenceError("Can't invalidate key in non-existent cache: " + cacheName);
-	if (cache) cache.items.delete(key);
-}
-
-export function update(cacheName: string, key: any, value: any): void {
-	const cache = _caches[cacheName];
-	if (!cache) throw new ReferenceError("Can't update key in non-existent cache: " + cacheName);
-	if (cache) cache.items.set(key, value);
-}
+export default Cache;

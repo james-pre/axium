@@ -1,23 +1,24 @@
 import type { AppPreferences } from '@axium/core';
 import { appPreferences } from '@axium/core';
-import * as cache from './cache.js';
+import Cache from './cache.js';
 import { fetchAPI } from './requests.js';
 
-export async function get<A extends string>(userId: string, appId: A): Promise<AppPreferences<A>> {
+const cache = new Cache<[string, string], object>(async (userId: string, appId: string): Promise<object> => {
 	const schema = appPreferences.get(appId);
 	if (!schema) throw new Error(`Missing schema for "${appId}"`);
-	const pref = await cache.use('app_preferences', userId + ':' + appId, async () => {
-		const result = await fetchAPI('GET', 'users/:id/preferences/:appId', {}, userId, appId);
-		return schema.parse(result);
-	});
-	return pref as AppPreferences<A>;
+	const result = await fetchAPI('GET', 'users/:id/preferences/:appId', {}, userId, appId);
+	return schema.parse(result);
+});
+
+export async function get<A extends string>(userId: string, appId: A): Promise<AppPreferences<A>> {
+	return (await cache.get(userId, appId)) as AppPreferences<A>;
 }
 
 export async function set<A extends string>(userId: string, appId: A, preferences: AppPreferences<A>): Promise<AppPreferences<A>> {
 	const schema = appPreferences.get(appId);
 	if (!schema) throw new Error(`Missing schema for "${appId}"`);
 	const result = await fetchAPI('POST', 'users/:id/preferences/:appId', preferences, userId, appId);
-	cache.update('app_preferences', userId + ':' + appId, result);
+	cache.set(userId, appId, result);
 	return schema.parse(result) as AppPreferences<A>;
 }
 
@@ -25,7 +26,7 @@ export async function clear<A extends string>(userId: string, appId: A): Promise
 	const schema = appPreferences.get(appId);
 	if (!schema) throw new Error(`Missing schema for "${appId}"`);
 	const result = await fetchAPI('DELETE', 'users/:id/preferences/:appId', {}, userId, appId);
-	cache.invalidate('app_preferences', userId + ':' + appId);
+	cache.invalidate(userId, appId);
 	return schema.parse(result) as AppPreferences<A>;
 }
 
