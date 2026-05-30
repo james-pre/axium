@@ -6,10 +6,9 @@ import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
-import { formatItems } from '../../node.js';
 import * as api from '../api.js';
 import { config, saveConfig } from '../config.js';
-import { cachePath, resolveItem, syncCache } from '../local.js';
+import { resolveItem } from '../local.js';
 import { computeDelta, doSync, fetchSyncItems } from '../sync.js';
 import * as commands from './commands.js';
 import filesShell from './shell.js';
@@ -71,7 +70,7 @@ cli.command('trash')
 	.description('Trash a file or folder')
 	.argument('<path>', 'remote path to trash')
 	.action(async (path: string) => {
-		const item = await resolveItem(path);
+		const item = resolveItem(path);
 		if (!item) io.exit('Could not resolve path.');
 		await api.updateItemMetadata(item.id, { trash: true });
 	});
@@ -80,7 +79,7 @@ cli.command('untrash')
 	.description('Restore a trashed file or folder')
 	.argument('<path>', 'remote path to restore')
 	.action(async (path: string) => {
-		const item = await resolveItem(path);
+		const item = resolveItem(path);
 		if (!item) io.exit('Could not resolve path.');
 		await api.updateItemMetadata(item.id, { trash: false });
 	});
@@ -104,7 +103,7 @@ cli.command('add')
 		const local = await stat(localPath).catch(e => io.exit(e.toString()));
 		if (!local.isDirectory()) io.exit('Local path is not a directory.');
 
-		const remote = await resolveItem(remoteName);
+		const remote = resolveItem(remoteName);
 		if (!remote) io.exit('Could not resolve remote path.');
 		if (remote.type != 'inode/directory') io.exit('Remote path is not a directory.');
 
@@ -155,45 +154,4 @@ cli.command('sync')
 			if (!sync) io.exit('Can not find a Sync with that name.');
 			await doSync(sync, opt);
 		} else for (const sync of config.sync) await doSync(sync, opt);
-	});
-
-const cliCache = cli.command('cache').description('Manage the local cache');
-
-cliCache
-	.command('clear')
-	.description('Clear the local cache')
-	.action(() => unlinkSync(cachePath));
-
-cliCache
-	.command('refresh')
-	.description('Force a refresh of the local cache from the server')
-	.action(async () => {
-		await syncCache(true);
-	});
-
-cliCache
-	.command('dump')
-	.description('Dump the local cache')
-	.option('-v, --verbose', 'Show more details')
-	.addOption(new Option('-j, --json', 'Output as JSON').conflicts(['verbose', 'quiet']))
-	.action(async function axium_files_cache_dump(this) {
-		const opt = this.optsWithGlobals();
-
-		const data = await syncCache(false);
-
-		if (opt.json) {
-			console.log(JSON.stringify(data));
-			return;
-		}
-
-		console.log(`Cache contains ${data.items.length} items and ${Object.keys(data.users).length} users.`);
-		if (!opt.verbose) return;
-
-		console.log(styleText('bold', 'Items:'));
-		for (const text of formatItems({ ...data, humanReadable: true })) console.log(text);
-
-		console.log(styleText('bold', 'Users:'));
-		for (const user of Object.values(data.users)) {
-			console.log(user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
-		}
 	});

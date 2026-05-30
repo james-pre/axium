@@ -3,6 +3,7 @@ import { styleText } from 'node:util';
 import type { StorageItemMetadata } from './common.js';
 import { Readable, Writable } from 'node:stream';
 import { createReadStream, createWriteStream } from 'node:fs';
+import { userInfo } from '@axium/client';
 
 const executables = ['application/x-pie-executable', 'application/x-sharedlib', 'application/vnd.microsoft.portable-executable'];
 
@@ -38,30 +39,26 @@ const __formatter = new Intl.DateTimeFormat('en-US', {
 });
 const formatDate = __formatter.format.bind(__formatter);
 
-interface FormatItemsConfig {
-	items: (StorageItemMetadata & { __size?: string })[];
-	users: Record<string, { name: string }>;
-	humanReadable: boolean;
-}
-
-export function* formatItems({ items, users, humanReadable }: FormatItemsConfig): Generator<string> {
+export async function* formatItems(
+	items: (StorageItemMetadata & { __size?: string; __owner?: string })[],
+	humanReadable: boolean
+): AsyncGenerator<string> {
 	let sizeWidth = 0,
 		nameWidth = 0;
 
 	for (const item of items) {
 		item.__size = item.type == 'inode/directory' ? '-' : humanReadable ? formatBytes(item.size) : item.size.toString();
+		item.__owner = (await userInfo(item.userId).catch(() => ({ name: 'Unknown' }))).name;
 
 		sizeWidth = Math.max(sizeWidth, item.__size.length);
-		nameWidth = Math.max(nameWidth, users[item.userId].name.length);
+		nameWidth = Math.max(nameWidth, item.__owner.length);
 	}
 
 	for (const item of items) {
-		const owner = users[item.userId].name;
-
 		const type = item.type == 'inode/directory' ? 'd' : '-';
 		const ownerPerm = `r${item.immutable ? '-' : 'w'}x`;
 
-		yield `${type}${ownerPerm}${ownerPerm}. ${owner.padEnd(nameWidth)} ${item.__size!.padStart(sizeWidth)} ${formatDate(item.modifiedAt)} ${colorItem(item)}`;
+		yield `${type}${ownerPerm}${ownerPerm}. ${item.__owner!.padEnd(nameWidth)} ${item.__size!.padStart(sizeWidth)} ${formatDate(item.modifiedAt)} ${colorItem(item)}`;
 	}
 }
 

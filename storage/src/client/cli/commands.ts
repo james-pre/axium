@@ -9,7 +9,7 @@ import { stringbool } from 'zod';
 import type { StorageItemMetadata } from '../../common.js';
 import { colorItem, formatItems, streamRead } from '../../node.js';
 import * as api from '../api.js';
-import { getDirectory, resolveItem, resolvePathWithParent, syncCache, writeCache } from '../local.js';
+import { getDirectory, resolveItem, resolvePathWithParent, getItems, writeItems } from '../local.js';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -18,26 +18,25 @@ export const ls = new Command('ls')
 	.option('-l, --long', 'show more details')
 	.option('-h, --human-readable', 'show sizes in human readable format', false)
 	.action(async function axium_files_ls(path = '', { long, humanReadable }) {
-		const { users } = await syncCache();
-		const items = await getDirectory(path);
+		const items = getDirectory(path);
 		if (!long) {
 			console.log(items.map(colorItem).join('\t'));
 			return;
 		}
 
 		console.log('total ' + items.length);
-		for (const text of formatItems({ items, users, humanReadable })) console.log(text);
+		for await (const text of formatItems(items, humanReadable)) console.log(text);
 	});
 
 export const mkdir = new Command('mkdir')
 	.description('Create a remote folder')
 	.argument('<path>', 'remote folder path to create')
 	.action(async (path: string) => {
-		const { parent, name } = await resolvePathWithParent(path);
+		const { parent, name } = resolvePathWithParent(path);
 		const item = await api.createDirectory(name, parent?.id);
-		const { items } = await syncCache();
+		const items = getItems();
 		items.push(item);
-		writeCache();
+		writeItems();
 	});
 
 export const remove = new Command('remove')
@@ -45,14 +44,14 @@ export const remove = new Command('remove')
 	.description('Remove a file or folder')
 	.argument('<path>', 'remote path to remove')
 	.action(async (path: string) => {
-		const item = await resolveItem(path);
+		const item = resolveItem(path);
 		if (!item) throw 'Could not resolve path.';
 		await api.deleteItem(item.id);
-		const { items } = await syncCache();
+		const items = getItems();
 		const index = items.findIndex(i => i.id === item.id);
 		if (index != -1) {
 			items.splice(index, 1);
-			writeCache();
+			writeItems();
 		}
 	});
 
@@ -73,7 +72,7 @@ async function doUpload(local: string, name: string, size: number, parentId?: st
 			);
 		},
 	});
-	const { items } = await syncCache();
+	const items = getItems();
 	items.push(item);
 	return item;
 }
@@ -87,8 +86,8 @@ export const upload = new Command('upload')
 	.option('-T, --no-target-directory', 'always treat the remote path as a file')
 	.action(async (local: string, remotePath: string, opts) => {
 		const stats = fs.statSync(local);
-		const existingTarget = await resolveItem(remotePath);
-		let { parent, name } = await resolvePathWithParent(remotePath);
+		const existingTarget = resolveItem(remotePath);
+		let { parent, name } = resolvePathWithParent(remotePath);
 
 		if (!stats.isDirectory()) {
 			if (existingTarget?.type == 'inode/directory') {
@@ -99,7 +98,7 @@ export const upload = new Command('upload')
 			} else if (existingTarget && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
 
 			await doUpload(local, name, stats.size, parent?.id);
-			writeCache();
+			writeItems();
 			return;
 		}
 
@@ -150,7 +149,7 @@ export const upload = new Command('upload')
 				await doUpload(full, base, Number(stats.size), parentId, path);
 			}
 		}
-		writeCache();
+		writeItems();
 	});
 
 export const download = new Command('download')
@@ -158,7 +157,7 @@ export const download = new Command('download')
 	.argument('<remote>', 'remote file path to download')
 	.argument('[local]', 'local path to save the file to')
 	.action(async (remotePath: string, localPath) => {
-		const item = await resolveItem(remotePath);
+		const item = resolveItem(remotePath);
 		if (!item) throw 'Could not resolve path.';
 		if (item.type == 'inode/directory') throw "Can't download directories yet.";
 		localPath ||= item.name;

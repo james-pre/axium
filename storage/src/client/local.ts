@@ -1,14 +1,16 @@
-import { dir as cacheDir } from '@axium/client/cli/cache';
-import { session } from '@axium/client/cli/config';
-import { userInfo } from '@axium/client/user';
-import { UserPublic } from '@axium/core';
+import * as sync from '@axium/client/cli/sync';
 import * as io from 'ioium/node';
 import { ENOENT, ENOTDIR } from 'node:constants';
-import { stat } from 'node:fs/promises';
-import { join, parse, resolve } from 'node:path';
-import * as z from 'zod';
+import { parse, resolve } from 'node:path';
 import { StorageItemMetadata } from '../common.js';
-import { getUserStats, getUserStorage } from './api.js';
+
+declare module '@axium/client/cli/sync' {
+	interface $Objects {
+		storage: StorageItemMetadata;
+	}
+}
+
+sync.useSchema('storage', StorageItemMetadata);
 
 export let remotePWD = '/';
 
@@ -18,19 +20,21 @@ export function resolvePath(path: string): string {
 	return path;
 }
 
-export async function setRemotePWD(path: string) {
+export function setRemotePWD(path: string) {
 	path = resolvePath(path);
 	if (path == '/') {
 		remotePWD = '/';
 		return;
 	}
-	const item = await resolveItem(path);
+	const item = resolveItem(path);
 	if (!item) throw new Error('Path not found');
 	if (item.type != 'inode/directory') throw new Error('Path is not a directory');
 	remotePWD = path;
 }
 
-export function walkItems(path: string, items: StorageItemMetadata[]): StorageItemMetadata | null {
+export function walkItems(path: string): StorageItemMetadata | null {
+	const items = getItems();
+
 	let currentItem = null,
 		currentParentId = null;
 
@@ -50,72 +54,27 @@ export function walkItems(path: string, items: StorageItemMetadata[]): StorageIt
 	return currentItem;
 }
 
-const StorageCache = z.object({
-	items: StorageItemMetadata.array(),
-	users: z.record(z.uuid(), UserPublic),
-});
+let _items: StorageItemMetadata[];
 
-interface StorageCache extends z.infer<typeof StorageCache> {}
-
-export const cachePath = join(cacheDir, 'storage.json');
-
-export let cachedData: StorageCache | null = null;
-
-/**
- * @param force true => always refresh, false => never refresh, null (default) => refresh if outdated
- */
-export async function syncCache(force: boolean | null = null): Promise<StorageCache> {
-	if (cachedData) return cachedData;
-
-	const cacheUpdated = await stat(cachePath)
-		.then(stats => stats.mtimeMs)
-		.catch(() => 0);
-
-	const { userId } = session();
-
-	let { lastModified, lastTrashed } = await getUserStats(userId);
-	lastTrashed ??= new Date(0);
-
-	if ((force || cacheUpdated < lastModified.getTime() || cacheUpdated < lastTrashed.getTime()) && force !== false) {
-		try {
-			const { items } = await getUserStorage(userId);
-			const users: Record<string, UserPublic> = {};
-			for (const item of items) {
-				users[item.userId] ||= await userInfo(item.userId);
-			}
-			cachedData = { items, users };
-			io.writeJSON(cachePath, cachedData);
-		} catch (e) {
-			io.exit('Failed to update item metadata: ' + io.errorText(e));
-		}
-	} else {
-		cachedData = io.readJSON(cachePath, StorageCache);
-	}
-
-	return cachedData;
+export function getItems(): StorageItemMetadata[] {
+	_items ||= sync.get('storage');
+	return _items;
 }
 
-/**
- * Force writing the currently cached data to disk.
- * Note you must call `syncCache` first.
- */
-export function writeCache() {
-	if (!cachedData) throw new Error('No cached data to write');
-
-	io.writeJSON(cachePath, cachedData);
+export function writeItems(): void {
+	sync.save('storage', _items);
 }
 
-export async function resolveItem(path: string): Promise<StorageItemMetadata | null> {
+export function resolveItem(path: string): StorageItemMetadata | null {
 	path = resolvePath(path);
-	const { items } = await syncCache();
-	return walkItems(path, items);
+	return walkItems(path);
 }
 
-export async function getDirectory(path: string): Promise<StorageItemMetadata[]> {
+export function getDirectory(path: string): StorageItemMetadata[] {
 	path = resolvePath(path);
-	const { items } = await syncCache();
+	const items = sync.get('storage');
 	if (path == '/') return items.filter(item => item.parentId === null);
-	const dir = walkItems(path, items);
+	const dir = walkItems(path);
 	if (!dir) throw ENOENT;
 	if (dir.type != 'inode/directory') throw ENOTDIR;
 	return items.filter(item => item.parentId === dir.id);
@@ -130,9 +89,9 @@ export interface ResolvedWithParent {
 /**
  * Resolve the name, directory path, and parent metadata for a given path.
  */
-export async function resolvePathWithParent(path: string): Promise<ResolvedWithParent> {
+export function resolvePathWithParent(path: string): ResolvedWithParent {
 	const { dir, base: name } = parse(path);
-	const parent = await resolveItem(dir);
+	const parent = resolveItem(dir);
 	if (dir) {
 		if (!parent) io.exit('Could not resolve parent folder.');
 		if (parent.type != 'inode/directory') io.exit('Parent path is not a directory.');
