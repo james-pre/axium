@@ -37,14 +37,14 @@ program
 	.configureHelp({ showGlobalOptions: true })
 	.option('--debug', 'override debug mode')
 	.option('--no-debug', 'override debug mode')
-	.option('--refresh-session', 'Force a refresh of session and user metadata from server', false)
+	.option('--refresh', 'Force an update of caches from server', false)
 	.option('--cache-only', 'Run entirely from local cache, even if it is expired.', false)
 	.option('--safe', 'do not execute code from plugins', false)
 	.hook('preAction', async (axc, action) => {
 		const opt = axc.optsWithGlobals();
 
 		if (!config.token) return;
-		if (!opt.cacheOnly && action.name() != 'login') await cache.update(opt.refreshSession);
+		if (!opt.cacheOnly && action.name() != 'login') await cache.update(opt.refresh);
 	});
 
 program.on('option:debug', () => io._setDebugOutput(true));
@@ -89,9 +89,9 @@ program
 		for (const plugin of plugins.values()) await plugin._client?.run();
 	});
 
-const axiumPlugin = program.command('plugin').alias('plugins').description('Manage plugins');
+const axcPlugin = program.command('plugin').alias('plugins').description('Manage plugins');
 
-axiumPlugin
+axcPlugin
 	.command('list')
 	.alias('ls')
 	.description('List loaded plugins')
@@ -115,7 +115,7 @@ axiumPlugin
 		}
 	});
 
-axiumPlugin
+axcPlugin
 	.command('info')
 	.description('Get information about a plugin')
 	.argument('<plugin>', 'the plugin to get information about')
@@ -124,7 +124,7 @@ axiumPlugin
 		for (const line of pluginText(plugin)) console.log(line);
 	});
 
-axiumPlugin
+axcPlugin
 	.command('remove')
 	.alias('rm')
 	.description('Remove a plugin')
