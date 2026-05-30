@@ -32,8 +32,8 @@ shell
 	.command('cd')
 	.description('Change the current remote directory')
 	.argument('<path>', 'remote directory path to change to')
-	.action(async path => {
-		await setRemotePWD(path);
+	.action(path => {
+		setRemotePWD(path);
 		readline.setPrompt(promptText());
 	});
 
@@ -53,7 +53,7 @@ export default async function filesShell() {
 		input: process.stdin,
 		output: process.stdout,
 		prompt: promptText(),
-		async completer(line) {
+		completer(line) {
 			const args = splitIntoArgs(line);
 
 			if (args.length == 1 && !line.endsWith(' ')) {
@@ -72,7 +72,7 @@ export default async function filesShell() {
 				dir = parts.join('/').replaceAll(' ', '\\ ') + '/';
 			}
 
-			const items = await getDirectory(dir);
+			const items = getDirectory(dir);
 			return [
 				items
 					.map(i => (i.type == 'inode/directory' ? i.name + '/' : i.name))
