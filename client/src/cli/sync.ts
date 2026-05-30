@@ -20,13 +20,13 @@ const schemas = new Map<string, ZodObject>();
 
 export function useSchema<Type extends ObjectType, S extends ZodObject<{ id: ZodUUID }>>(type: Type, schema: S): void {
 	schemas.set(type, schema);
-	if (_byType?.[type]) {
-		_byType[type] = _byType[type].map(obj => schema.parse(obj));
-	}
 }
 
 export function get<Type extends ObjectType>(type: Type): ObjectValues[Type] {
-	return byType()[type] || [];
+	const value = byType()[type] || [];
+	const schema = schemas.get(type);
+	if (!schema) return value;
+	return value.map(obj => schema.parse(obj) as ObjectValues[Type][number]);
 }
 
 export function save<Type extends ObjectType>(type: Type, objects: ObjectValues[Type]): void {
