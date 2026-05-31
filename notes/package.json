@@ -38,7 +38,7 @@
 	"peerDependencies": {
 		"@axium/client": ">=0.20.0",
 		"@axium/core": ">=0.23.0",
-		"@axium/server": ">=0.35.0",
+		"@axium/server": ">=0.47.0",
 		"@sveltejs/kit": "^2.27.3",
 		"utilium": "^3.0.0"
 	},
