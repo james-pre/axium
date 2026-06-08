@@ -4,7 +4,6 @@ import { error } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createReadStream } from 'node:fs';
 import { join } from 'node:path';
-import { Readable } from 'node:stream';
 import { crc32, createDeflateRaw } from 'node:zlib';
 import * as z from 'zod';
 import '../polyfills.js';
@@ -36,17 +35,18 @@ addRoute({
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 		if (item.type != 'inode/directory') error(410, 'Only folders can be downloaded as ZIP files');
 
-		const stream = new Readable({ read() {} });
-		let offset = 0;
-		const files: ZipFileMetadata[] = [];
+		async function* generateZip() {
+			let offset = 0;
+			const files: ZipFileMetadata[] = [];
 
-		const push = (b: Uint8Array) => {
-			offset += b.length;
-			stream.push(b);
-		};
+			const push = (b: Uint8Array) => {
+				offset += b.length;
+				return b;
+			};
 
-		(async () => {
 			for await (const child of getRecursive(item.id)) {
+				if (request.signal.aborted) break;
+
 				const isDir = child.type === 'inode/directory';
 				const path = child.path + (isDir ? '/' : '');
 				const name = encoder.encode(path);
@@ -69,8 +69,8 @@ addRoute({
 				head.writeUInt16LE(name.length, 26);
 
 				const recordOffset = offset;
-				push(head);
-				push(name);
+				yield push(head);
+				yield push(name);
 
 				let crc = 0,
 					usize = 0,
@@ -89,7 +89,7 @@ addRoute({
 
 					for await (const chunk of deflate) {
 						csize += chunk.length;
-						push(chunk);
+						yield push(chunk);
 					}
 
 					const useZip64DD = usize >= 0xffffffff || csize >= 0xffffffff;
@@ -99,14 +99,14 @@ addRoute({
 						desc.writeUInt32LE(crc, 4);
 						desc.writeBigUInt64LE(BigInt(csize), 8);
 						desc.writeBigUInt64LE(BigInt(usize), 16);
-						push(desc);
+						yield push(desc);
 					} else {
 						const desc = Buffer.alloc(16);
 						desc.writeUInt32LE(0x08074b50, 0);
 						desc.writeUInt32LE(crc, 4);
 						desc.writeUInt32LE(csize, 8);
 						desc.writeUInt32LE(usize, 12);
-						push(desc);
+						yield push(desc);
 					}
 				}
 
@@ -160,9 +160,9 @@ addRoute({
 				cdr.writeUInt16LE(f.name.length, 28);
 				cdr.writeUInt16LE(extraData.length, 30);
 				cdr.writeUInt32LE(offset32, 42);
-				push(cdr);
-				push(f.name);
-				if (extraData.length > 0) push(extraData);
+				yield push(cdr);
+				yield push(f.name);
+				if (extraData.length > 0) yield push(extraData);
 			}
 
 			const endOffset = offset;
@@ -186,14 +186,14 @@ addRoute({
 				zip64eocd.writeBigUInt64LE(BigInt(files.length), 32);
 				zip64eocd.writeBigUInt64LE(BigInt(cdrSize), 40);
 				zip64eocd.writeBigUInt64LE(BigInt(cdrOffset), 48);
-				push(zip64eocd);
+				yield push(zip64eocd);
 
 				const locator = Buffer.alloc(20);
 				locator.writeUInt32LE(0x07064b50, 0);
 				locator.writeUInt32LE(0, 4);
 				locator.writeBigUInt64LE(BigInt(endOffset), 8);
 				locator.writeUInt32LE(1, 16);
-				push(locator);
+				yield push(locator);
 			}
 
 			// EOCD
@@ -203,12 +203,30 @@ addRoute({
 			end.writeUInt16LE(numFiles16, 10);
 			end.writeUInt32LE(cdrSize32, 12);
 			end.writeUInt32LE(cdrOffset32, 16);
-			push(end);
+			yield push(end);
+		}
 
-			stream.push(null);
-		})().catch(err => stream.destroy(err));
+		const iterator = generateZip();
 
-		return new Response(Readable.toWeb(stream) as ReadableStream, {
+		const stream = new ReadableStream({
+			async pull(controller) {
+				try {
+					const { value, done } = await iterator.next();
+					if (done) {
+						controller.close();
+					} else {
+						controller.enqueue(value);
+					}
+				} catch (err) {
+					controller.error(err);
+				}
+			},
+			async cancel() {
+				await iterator.return();
+			},
+		});
+
+		return new Response(stream, {
 			status: 200,
 			headers: {
 				'Content-Type': item.type,
