@@ -4,11 +4,11 @@ import tseslint from 'typescript-eslint';
 import { defineConfig } from 'eslint/config';
 
 export default defineConfig(
-	{ ignores: ['*/{dist,build}/', '*/.*', '*.js', '*.d.ts'] },
+	{ ignores: ['packages/*/{dist,build}/', '*/.*', '*.js', '*.d.ts'] },
 	{
 		name: 'Axium',
 		extends: [eslint.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
-		files: ['./*/src/**/*.ts'],
+		files: ['./packages/*/src/**/*.ts'],
 		languageOptions: {
 			globals: { ...globals.browser, ...globals.node },
 			ecmaVersion: 'latest',

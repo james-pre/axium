@@ -6,7 +6,7 @@ secrets.*
 logs
 *.log
 *.tsbuildinfo
-server/schemas
+packages/server/schemas
 .*
 !.gitignore
 !.prettierignore

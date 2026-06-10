@@ -5,20 +5,26 @@ set -euo pipefail
 script_dir="$(dirname "${BASH_SOURCE[0]}")"
 root="$(realpath "$script_dir")"
 
-packages=("calendar" "client" "contacts" "core" "notes" "server" "storage" "tasks")
+packages=()
+for _dir in "$root/packages"/*/; do
+    _base=$(basename "$_dir")
+    if [[ ! "$_base" == .* ]]; then
+        packages+=("$_base")
+    fi
+done
 
 sub="${1:-help}"
 
 case "$sub" in
 	"list" | "ls")
 		{ for pkg in "${packages[@]}"; do
-			echo "$pkg" $(jq ".version" "$root/$pkg/package.json" | tr -d '\"')
+			echo "$pkg" $(jq ".version" "$root/packages/$pkg/package.json" | tr -d '\"')
 		done
 		} | column -t
 		;;
 	"create-tags")
 		for pkg in "${packages[@]}"; do
-			v="$(jq -r ".version" "$root/$pkg/package.json")"
+			v="$(jq -r ".version" "$root/packages/$pkg/package.json")"
 			tag="$pkg@$v"
 			if ! git -C "$root" rev-parse "$tag" >/dev/null 2>&1; then
 				git -C "$root" tag "$tag" -m "$tag"
@@ -29,7 +35,7 @@ case "$sub" in
 	"force-update")
 		pkg="${2:?Package name required}"
 		pkg="${pkg%/}"
-		v="$(jq -r ".version" "$root/$pkg/package.json")"
+		v="$(jq -r ".version" "$root/packages/$pkg/package.json")"
 		tag="$pkg@$v"
 		git -C "$root" tag -f "$tag" -m "$tag"
 		;;
@@ -45,7 +51,7 @@ case "$sub" in
 			echo "No tags found for '$pkg'"
 			exit 1
 		fi
-		git diff "$tag..HEAD" -- "$pkg"
+		git diff "$tag..HEAD" -- "packages/$pkg"
 		;;
 	"changed")
 		for pkg in "${packages[@]}"; do
@@ -54,7 +60,7 @@ case "$sub" in
 				echo "$pkg (no releases)"
 				continue
 			fi
-			if ! git diff --quiet "$latest_tag..HEAD" -- "$pkg"; then
+			if ! git diff --quiet "$latest_tag..HEAD" -- "packages/$pkg"; then
 				echo "$pkg"
 			fi
 		done
@@ -68,7 +74,7 @@ case "$sub" in
 				echo "No tags found for '$pkg'"
 				exit 1
 			fi
-			git -C "$root" log "$latest_tag..HEAD" --format=%B -- "$pkg" | sed '/^$/d'
+			git -C "$root" log "$latest_tag..HEAD" --format=%B -- "packages/$pkg" | sed '/^$/d'
 		else
 			for pkg in "${packages[@]}"; do
 				latest_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
@@ -76,7 +82,7 @@ case "$sub" in
 					echo "No tags found for '$pkg'"
 					continue
 				fi
-				output="$(git -C "$root" log "$latest_tag..HEAD" --format=%B -- "$pkg" | sed '/^$/d')"
+				output="$(git -C "$root" log "$latest_tag..HEAD" --format=%B -- "packages/$pkg" | sed '/^$/d')"
 				if [ -z "$output" ]; then
 					continue
 				fi
@@ -94,16 +100,16 @@ case "$sub" in
 			echo "Working directory is not clean."
 			exit 1
 		fi
-		tag=$(cd "$root/$pkg" && npm version "$sub" --tag-version-prefix="$pkg@" --message "$pkg@%s" 2>/dev/null | sed -n 2p)
+		tag=$(cd "$root/packages/$pkg" && npm version "$sub" --tag-version-prefix="$pkg@" --message "$pkg@%s" 2>/dev/null | sed -n 2p)
 		if [[ "$tag" != "$pkg@"* ]]; then
 			echo "Got invalid tag name from 'npm version': $tag"
 			exit 1
 		fi
 		last_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
-		git -C "$root" add "$pkg/package.json" "package-lock.json"
+		git -C "$root" add "packages/$pkg/package.json" "package-lock.json"
 		git -C "$root" commit -m "$tag"
 		git -C "$root" tag "$tag" -m "$tag"
-		changelog="+ $(git -C "$root" log ${last_tag:+"$last_tag..HEAD"} --format=%B -- "$pkg" | sed '/^$/d')"
+		changelog="+ $(git -C "$root" log ${last_tag:+"$last_tag..HEAD"} --format=%B -- "packages/$pkg" | sed '/^$/d')"
 		git -C "$root" push --follow-tags
 		echo ""
 		echo "$changelog"

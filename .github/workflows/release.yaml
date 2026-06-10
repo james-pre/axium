@@ -35,21 +35,21 @@ jobs:
               id: resolve
               run: |
                   PACKAGE="$(echo ${{ github.event.release.tag_name }} | sed 's/@.*$//')"
-                  if [ ! -d "$PACKAGE" ]; then
+                  if [ ! -d "packages/$PACKAGE" ]; then
                       echo "Package directory not found"
                       exit 1
                   fi
-                  echo "path=$PACKAGE" >> $GITHUB_OUTPUT
-                  echo "::debug::Resolved package to '$PACKAGE'"
+                  echo "path=packages/$PACKAGE" >> $GITHUB_OUTPUT
+                  echo "::debug::Resolved package to 'packages/$PACKAGE'"
 
             - name: Build (TypeScript)
               run: npx tsc -b
 
             - name: Build server
-              run: cd server && npx patch-package && npx axium build
+              run: cd packages/server && npx patch-package && npx axium build
 
             - name: Export schemas
-              run: cd server && npm run build:schemas
+              run: cd packages/server && npm run build:schemas
 
             - name: Publish
               run: npm publish --access=public --provenance

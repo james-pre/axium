@@ -18,33 +18,24 @@
 		"url": "https://github.com/james-pre/axium/issues"
 	},
 	"main": "dist/index.js",
-	"bin": {
-		"axium": "server/dist/main.js"
-	},
 	"scripts": {
 		"format": "prettier --write .",
 		"format:check": "prettier --check .",
-		"lint": "eslint */src",
-		"build:schemas": "(cd server && npm run build:schemas)",
-		"build": "tsc -b && for pkg in server storage calendar contacts notes tasks; do (cd $pkg && axium build); done",
+		"lint": "eslint packages/*/src",
+		"build:schemas": "(cd packages/server && npm run build:schemas)",
+		"build": "tsc -b && for pkg in server storage calendar contacts notes tasks; do (cd packages/$pkg && axium build); done",
 		"watch": "tsc -b -w",
-		"clean": "rm -rf */tsconfig.tsbuildinfo */dist server/node_modules/{.vite,.vite-temp} server/build",
+		"clean": "rm -rf packages/*/tsconfig.tsbuildinfo packages/*/dist packages/server/node_modules/{.vite,.vite-temp} packages/server/build",
 		"postinstall": "patch-package",
-		"wc-source": "wc -l $(git ls-files | grep -v package-lock.json | grep -v client/assets/icons | grep -v LICENSE.md) | sort -h"
+		"wc-source": "wc -l $(git ls-files | grep -v package-lock.json | grep -v packages/client/assets/icons | grep -v LICENSE.md) | sort -h"
 	},
 	"workspaces": [
-		"calendar",
-		"client",
-		"contacts",
-		"core",
-		"notes",
-		"server",
-		"storage",
-		"tasks"
+		"packages/*"
 	],
 	"keywords": [],
 	"type": "module",
 	"devDependencies": {
+		"@axium/server": "workspace:*",
 		"@commander-js/extra-typings": "^14.0.0",
 		"@eslint/js": "^10.0.1",
 		"@types/node": "^25.5.0",
@@ -70,5 +61,9 @@
 		"tabWidth": 4,
 		"printWidth": 140,
 		"arrowParens": "avoid"
+	},
+	"allowScripts": {
+		"sharp": true,
+		"esbuild": true
 	}
 }
