@@ -143,8 +143,8 @@ interface ColumnValueMap
 		Record<(typeof multirangeTypes)[number], _MultiRange> {
 	int8range: _Range<bigint>;
 	uuid: string;
-	json: any;
-	jsonb: any;
+	json: {};
+	jsonb: {};
 }
 
 type ColumnTypeToValue<T extends ColumnType> = T extends `${infer CT extends z.infer<typeof _ColumnType>}[${infer N extends '' | number}]`

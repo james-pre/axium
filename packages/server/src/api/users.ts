@@ -358,12 +358,12 @@ addRoute({
 		if (!schema) error(404, noAppError);
 		await checkAuthForUser(request, userId);
 
-		const { data } =
+		const { data = schema.safeParse({}) } =
 			(await db
 				.selectFrom('app_preferences')
 				.selectAll()
 				.where(eb => eb.and({ userId, appId }))
-				.executeTakeFirst()) ?? schema.safeParse({});
+				.executeTakeFirst()) ?? {};
 
 		return data;
 	},
