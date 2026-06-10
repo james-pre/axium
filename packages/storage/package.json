@@ -44,9 +44,9 @@
 		"@axium/core": ">=0.32.0",
 		"@axium/server": ">=0.47.0",
 		"@sveltejs/kit": "^2.27.3",
-		"commander": "^14.0.0",
+		"commander": "^15.0.0",
 		"ioium": "^1.3.0",
-		"kysely": "^0.28.15",
+		"kysely": "^0.29.0",
 		"mime": "^4.1.0",
 		"utilium": "^3.1.0"
 	},
