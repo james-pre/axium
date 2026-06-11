@@ -5,8 +5,9 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
-	import type { PageProps } from './$types';
 	import { formatItemName } from '@axium/storage/client/frontend';
+	import Path from '@axium/storage/components/Path';
+	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
 	let items = $state(data.items);
@@ -51,7 +52,11 @@
 	{#each items as item (item.id)}
 		<div class="list-item">
 			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
-			<span class="name">{item.name}</span>
+			{#if data.full_path_in_special}
+				<Path {item} />
+			{:else}
+				<span class="name">{item.name}</span>
+			{/if}
 			<span>{item.modifiedAt.toLocaleString()}</span>
 			<span>{formatBytes(item.size)}</span>
 			<span class="action" onclick={action(item.id, () => restoreDialog)}>

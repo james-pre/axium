@@ -72,6 +72,7 @@ export interface StorageLimits extends z.infer<typeof StorageLimits> {}
 export const StorageStats = z.object({
 	usedBytes: z.coerce.bigint().nonnegative(),
 	itemCount: z.int().nonnegative(),
+	fileCount: z.int().nonnegative(),
 	lastModified: z.coerce.date(),
 	lastTrashed: z.coerce.date().nullable(),
 });
@@ -103,6 +104,8 @@ export interface UserStorageOptions extends z.infer<typeof UserStorageOptions> {
 export const StoragePreferences = z
 	.object({
 		sort_folders_first: z.boolean().default(true),
+		/** Whether to show the full path in usage and trash */
+		full_path_in_special: z.boolean().default(true),
 	})
 	.register(zKeys, { prefix: 'storage.preferences' });
 

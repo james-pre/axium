@@ -5,10 +5,8 @@
 	import { List } from '@axium/storage/components';
 
 	const { data } = $props();
-	const { limits } = data.info;
-
-	let items = $state(data.info.items.filter(i => i.type != 'inode/directory'));
-	const usedBytes = $state(data.info.usedBytes);
+	const { fileCount, usedBytes, limits } = data.info;
+	let items = $state(data.info.items);
 
 	let barText = $derived(
 		limits.user_size
@@ -25,4 +23,8 @@
 
 <p><NumberBar max={Number(limits.user_size * 1_000_000n)} value={Number(usedBytes)} text={barText} /></p>
 
-<List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} sort={{ by: 'size', descending: true }} />
+<List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} sort={{ by: 'size', descending: true }} special />
+
+{#if fileCount > items.length}
+	<p>{text('page.files.usage.more_files', { count: fileCount - items.length })}</p>
+{/if}

@@ -41,7 +41,8 @@
 				"heading": "Storage Usage",
 				"bar_text": "Using {used} of {total}",
 				"bar_text_unlimited": "Using {used}",
-				"empty": "You have not uploaded any files yet."
+				"empty": "You have not uploaded any files yet.",
+				"more_files": "{count} more file(s) not shown"
 			},
 			"settings": {
 				"title": "Files — Settings"
@@ -70,7 +71,8 @@
 			"delete_confirm_named": "Are you sure you want to delete {name}?"
 		},
 		"preferences": {
-			"sort_folders_first": "Sort folders before other files"
+			"sort_folders_first": "Sort folders before other files",
+			"full_path_in_special": "Show full path in usage and trash"
 		},
 		"Add": {
 			"content": "Content",

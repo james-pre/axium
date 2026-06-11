@@ -1,3 +1,4 @@
+import { preferences } from '@axium/client';
 import { getUserTrash } from '@axium/storage/client';
 import { redirect } from '@sveltejs/kit';
 
@@ -8,5 +9,7 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/files/trash');
 
-	return { items: await getUserTrash(session.userId) };
+	const [items, { full_path_in_special }] = await Promise.all([getUserTrash(session.userId), preferences.get(session.userId, 'files')]);
+
+	return { items, full_path_in_special };
 }

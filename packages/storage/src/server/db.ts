@@ -4,7 +4,7 @@ import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { withError } from '@axium/server/requests';
 import { addObjectType as addSyncObjectType } from '@axium/server/sync';
 import type {
-	AliasedSelectQueryBuilder,
+	AliasedRawBuilder,
 	ExpressionBuilder,
 	ExpressionOrFactory,
 	QueryCreator,
@@ -12,6 +12,7 @@ import type {
 	SelectQueryBuilder,
 	SqlBool,
 } from 'kysely';
+import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import { unlinkSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import type schema from '../../db.json';
@@ -50,6 +51,7 @@ export async function getUserStats(userId: string): Promise<StorageStats> {
 		.where('userId', '=', userId)
 		.select(eb => [
 			eb.fn.countAll<number>().as('itemCount'),
+			eb.fn.countAll<number>().filterWhere('type', '!=', 'inode/directory').as('fileCount'),
 			eb.fn.sum('size').as('usedBytes'),
 			eb.fn.max('modifiedAt').as('lastModified'),
 			eb.fn.max('trashedAt').as('lastTrashed'),
@@ -142,14 +144,15 @@ export function parentsCTE(
 
 export function withParents(
 	eb: ExpressionBuilder<DBWithParentsCTE, 'storage'>
-): AliasedSelectQueryBuilder<{ name: string; id: string }, 'parents'> {
-	return eb
-		.selectFrom('parents')
-		.select(['name', 'id'])
-		.where('depth', '>', 0)
-		.orderBy('depth', 'desc')
-		.whereRef('parents._baseId', '=', 'storage.id')
-		.as('parents');
+): AliasedRawBuilder<{ name: string; id: string }[], 'parents'> {
+	return jsonArrayFrom(
+		eb
+			.selectFrom('parents')
+			.select(['name', 'id'])
+			.where('depth', '>', 0)
+			.orderBy('depth', 'desc')
+			.whereRef('parents._baseId', '=', 'storage.id')
+	).as('parents');
 }
 
 export async function getParents(itemId: string): Promise<{ id: string; name: string }[]> {

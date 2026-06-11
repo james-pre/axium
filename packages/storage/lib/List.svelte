@@ -11,6 +11,7 @@
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
+	import Path from './Path.svelte';
 	import Preview from './Preview.svelte';
 
 	const search = new URLSearchParams(location.search);
@@ -18,6 +19,7 @@
 	let {
 		items = $bindable(),
 		appMode,
+		special,
 		emptyText = text('storage.List.empty'),
 		user,
 		sort = $bindable<StorageItemSorting | undefined>(
@@ -28,6 +30,7 @@
 		),
 	}: {
 		appMode?: boolean;
+		special?: boolean;
 		items: (StorageItemMetadata & AccessControllable)[];
 		emptyText?: string;
 		user?: UserPublic;
@@ -38,7 +41,9 @@
 	const activeItem = $derived(items.find(item => item.id === activeId));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	const { sort_folders_first } = user ? await preferences.get(user.id, 'files') : StoragePreferences.safeParse({}).data || {};
+	const { sort_folders_first, full_path_in_special } = user
+		? await preferences.get(user.id, 'files')
+		: StoragePreferences.safeParse({}).data || {};
 
 	const sortedItems = $derived(
 		items.toSorted((_a, _b) => {
@@ -122,7 +127,11 @@
 			)}
 		>
 			<dfn class="type" title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
-			<span class="name">{item.name}</span>
+			{#if special && full_path_in_special}
+				<Path {item} />
+			{:else}
+				<span class="name">{item.name}</span>
+			{/if}
 			<span class="modified mobile-subtle">{item.modifiedAt.toLocaleString()}</span>
 			<span class={['size', item.type != 'inode/directory' && 'file-size', 'mobile-subtle']}
 				>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span

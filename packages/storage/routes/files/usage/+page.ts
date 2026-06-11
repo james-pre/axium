@@ -1,3 +1,4 @@
+import { preferences } from '@axium/client';
 import { getUserUsage } from '@axium/storage/client';
 import { redirect } from '@sveltejs/kit';
 
@@ -8,7 +9,7 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/files/usage');
 
-	const info = await getUserUsage(session.userId);
+	const [info, { full_path_in_special }] = await Promise.all([getUserUsage(session.userId), preferences.get(session.userId, 'files')]);
 
-	return info;
+	return { info, full_path_in_special };
 }
