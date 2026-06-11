@@ -2,9 +2,10 @@
 	import { text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
+	import { toastStatus } from '@axium/client/toast';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
+	import { clearUserTrash, deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import { formatItemName } from '@axium/storage/client/frontend';
 	import Path from '@axium/storage/components/Path';
 	import type { PageProps } from './$types';
@@ -41,6 +42,8 @@
 <svelte:head>
 	<title>{text('page.files.trash_page.title')}</title>
 </svelte:head>
+
+<button command="show-modal" commandfor="clear-trash">{text('page.files.trash_page.clear')}</button>
 
 <div class="list">
 	<div class="list-item list-header">
@@ -85,6 +88,20 @@
 	submit={useAndClearActive(() => deleteItem(activeId!))}
 >
 	<p>{text('page.files.trash_page.delete_confirm', { name: activeItemName })}</p>
+</FormDialog>
+<FormDialog
+	id="clear-trash"
+	submitText={text('page.files.trash_page.delete')}
+	submitDanger
+	submit={async () => {
+		items = [];
+		toastStatus(clearUserTrash(data.session.userId), text('page.files.trash_page.clear_success'));
+	}}
+>
+	<p>
+		{text('page.files.trash_page.clear_confirm', { count: items.length })}
+		{text('generic.action_irreversible')}
+	</p>
 </FormDialog>
 
 <style>

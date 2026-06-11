@@ -268,4 +268,16 @@ addRoute({
 
 		return items.map(parseItem);
 	},
+	async DELETE(request, { id: userId }): AsyncResult<'DELETE', 'users/:id/storage/trash'> {
+		await checkAuthForUser(request, userId);
+
+		const deletedItems = await database
+			.deleteFrom('storage')
+			.where('userId', '=', userId)
+			.where('trashedAt', 'is not', null)
+			.execute()
+			.catch(withError('Could not clear trash'));
+
+		return deletedItems.length;
+	},
 });

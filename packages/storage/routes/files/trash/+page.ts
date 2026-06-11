@@ -11,5 +11,5 @@ export async function load({ parent }) {
 
 	const [items, { full_path_in_special }] = await Promise.all([getUserTrash(session.userId), preferences.get(session.userId, 'files')]);
 
-	return { items, full_path_in_special };
+	return { session, items, full_path_in_special };
 }

@@ -1,10 +1,10 @@
 import { fetchAPI, origin, prefix, token } from '@axium/client/requests';
+import { warnOnce } from 'ioium';
 import { pick } from 'utilium';
 import { prettifyError } from 'zod';
 import type { GetItemOptions, StorageItemUpdate, UploadInitResult, UserStorage, UserStorageInfo, UserStorageOptions } from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
-import { warnOnce } from 'ioium';
 
 function rawStorage(suffix?: string): string | URL {
 	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
@@ -252,6 +252,10 @@ export async function getUserStats(userId: string): Promise<UserStorageInfo> {
 
 export async function getUserTrash(userId: string): Promise<StorageItemMetadata[]> {
 	return await fetchAPI('GET', 'users/:id/storage/trash', undefined, userId);
+}
+
+export async function clearUserTrash(userId: string): Promise<number> {
+	return await fetchAPI('DELETE', 'users/:id/storage/trash', undefined, userId);
 }
 
 export async function itemsSharedWith(userId: string): Promise<StorageItemMetadata[]> {

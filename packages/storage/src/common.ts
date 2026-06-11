@@ -227,6 +227,7 @@ const StorageAPI = {
 	},
 	'users/:id/storage/trash': {
 		GET: StorageItemMetadata.array(),
+		DELETE: z.int().nonnegative(),
 	},
 	'users/:id/storage/shared': {
 		GET: StorageItemMetadata.array(),

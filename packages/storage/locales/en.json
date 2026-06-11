@@ -34,7 +34,10 @@
 				"restore": "Restore",
 				"restore_confirm": "Restore {name}?",
 				"delete": "Delete",
-				"delete_confirm": "Are you sure you want to permanently delete {name}?"
+				"delete_confirm": "Are you sure you want to permanently delete {name}?",
+				"clear": "Clear trash",
+				"clear_confirm": "Permanently delete {count} item(s)?",
+				"clear_success": "Trash cleared"
 			},
 			"usage": {
 				"title": "Your Storage Usage",
