@@ -61,9 +61,9 @@ program.command('logout').action(async () => {
 
 program.command('status').action(() => {
 	if (!config.token) return console.log('Not logged in.');
-	if (!config.cache) return console.log('No session data available.');
 
-	const { session } = cache.meta.data;
+	const { session } = cache.meta.data || {};
+	if (!session) return console.log('No session data available.');
 
 	console.log('Logged in to', new URL(prefix).host);
 	console.log(

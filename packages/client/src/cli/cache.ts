@@ -63,8 +63,8 @@ export class Handle<S extends z.ZodObject> {
 		return this.init.isValid(this._data, statSync(this.path).mtimeMs);
 	}
 
-	public get data(): z.infer<S> {
-		return this._data!;
+	public get data(): z.infer<S> | undefined {
+		return this._data;
 	}
 
 	static [create]<S extends z.ZodObject>(init: Init<S>) {

@@ -12,7 +12,7 @@ type ObjectValues = keyof $Objects extends never
 let _byType: Partial<ObjectValues>;
 
 function byType(): Partial<ObjectValues> {
-	_byType ||= Object.groupBy(syncCache.data.objects, o => o.$type);
+	_byType ||= Object.groupBy(syncCache.data!.objects, o => o.$type);
 	return _byType;
 }
 
@@ -32,6 +32,6 @@ export function get<Type extends ObjectType>(type: Type): ObjectValues[Type] {
 export function save<Type extends ObjectType>(type: Type, objects: ObjectValues[Type]): void {
 	_byType ||= {};
 	_byType[type] = objects;
-	syncCache.data.objects = syncCache.data.objects.filter(o => o.$type !== type);
-	for (const object of objects) syncCache.data.objects.push(Object.assign(object, { $type: type }));
+	syncCache.data!.objects = syncCache.data!.objects.filter(o => o.$type !== type);
+	for (const object of objects) syncCache.data!.objects.push(Object.assign(object, { $type: type }));
 }
