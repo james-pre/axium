@@ -169,8 +169,6 @@ export const StorageConfig = StoragePublicConfig.safeExtend({
 		.partial(),
 	/** Path to data directory */
 	data: z.string(),
-	/** Whether the storage API endpoints are enabled */
-	enabled: z.boolean(),
 	/** Default limits */
 	limits: StorageLimits,
 	/** How many days files are kept in the trash */

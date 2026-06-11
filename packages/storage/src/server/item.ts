@@ -132,8 +132,6 @@ export interface ItemUpdateCheckResult {
 }
 
 export async function checkItemUpdate(request: Request, itemId: string): Promise<ItemUpdateCheckResult> {
-	if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 	const { item, session } = await authRequestForItem(request, 'storage', itemId, { write: true }, true);
 
 	if (item.immutable) error(405, 'Item is immutable');

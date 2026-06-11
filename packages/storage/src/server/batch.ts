@@ -17,7 +17,6 @@ import { getRecursiveIds, getUserStats, parseItem } from './db.js';
 addRoute({
 	path: '/api/storage/batch',
 	async POST(req): AsyncResult<'POST', 'storage/batch'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
 		if (!getConfig('@axium/storage').batch.enabled) error(503, 'Batch updates are disabled');
 
 		const { userId, user } = await requireSession(req);

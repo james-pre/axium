@@ -27,8 +27,7 @@ addRoute({
 	path: '/raw/storage/directory-zip/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }) {
-		const config = getConfig('@axium/storage');
-		if (!config.enabled) error(503, 'User storage is disabled');
+		const { data: dataDir } = getConfig('@axium/storage');
 
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
@@ -77,7 +76,7 @@ addRoute({
 					csize = 0;
 
 				if (!isDir) {
-					const rs = createReadStream(join(config.data, child.id));
+					const rs = createReadStream(join(dataDir, child.id));
 					const deflate = createDeflateRaw();
 
 					rs.on('data', (b: Buffer) => {

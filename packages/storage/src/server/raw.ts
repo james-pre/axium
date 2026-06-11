@@ -33,8 +33,6 @@ export function _contentDispositionFor(name: string, suffix: string = '') {
 addRoute({
 	path: '/raw/storage',
 	async PUT(request): Promise<StorageItemMetadata> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const session = await requireSession(request);
 		const { userId } = session;
 
@@ -63,8 +61,6 @@ addRoute({
 addRoute({
 	path: '/raw/storage/upload',
 	async POST(request) {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const upload = await requireUpload(request);
 
 		const size = BigInt(request.headers.get('x-chunk-size') || -1);
@@ -129,8 +125,6 @@ addRoute({
 		}
 	},
 	async DELETE(request): Promise<Response> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const upload = await requireUpload(request);
 
 		upload.remove();
@@ -162,14 +156,11 @@ addRoute({
 	path: '/raw/storage/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }) {
-		const config = getConfig('@axium/storage');
-		if (!config.enabled) error(503, 'User storage is disabled');
-
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 
-		const path = join(config.data, item.id);
+		const path = join(getConfig('@axium/storage').data, item.id);
 
 		const { start, end, length } = parseRange(item.size, request.headers.get('range'));
 

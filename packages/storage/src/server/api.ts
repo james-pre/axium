@@ -2,7 +2,6 @@ import { getConfig, type AsyncResult, type Result } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
-import type { Schema as DBSchema } from '@axium/server/database';
 import { error, json, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { pick } from 'utilium';
@@ -34,10 +33,6 @@ addRoute({
 	async PUT(request): Promise<Response> {
 		type R = Result<'PUT', 'storage'>;
 
-		const { enabled, ...rest } = getConfig('@axium/storage');
-
-		if (!enabled) error(503, 'User storage is disabled');
-
 		const session = await requireSession(request);
 
 		const init = await parseBody(request, StorageItemInit);
@@ -50,7 +45,7 @@ addRoute({
 
 		return json(
 			{
-				...pick(rest, 'batch', 'max_transfer_size'),
+				...pick(getConfig('@axium/storage'), 'batch', 'max_transfer_size'),
 				status: 'accepted',
 				token: startUpload(init, session, null),
 			} satisfies R,
@@ -63,8 +58,6 @@ addRoute({
 	path: '/api/storage/item/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/item/:id'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const options = parseSearch(request, GetItemOptions);
 
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
@@ -76,8 +69,6 @@ addRoute({
 		return result;
 	},
 	async PATCH(request, { id: itemId }): AsyncResult<'PATCH', 'storage/item/:id'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const body = await parseBody(request, StorageItemUpdate);
 
 		await authRequestForItem(request, 'storage', itemId, { manage: true }, true);
@@ -102,10 +93,6 @@ addRoute({
 	async POST(request, { id: itemId }): Promise<Response> {
 		type R = Result<'POST', 'storage/item/:id'>;
 
-		const { enabled, ...rest } = getConfig('@axium/storage');
-
-		if (!enabled) error(503, 'User storage is disabled');
-
 		const size = await parseBody(request, StorageItemSize);
 
 		const { item, session } = await checkItemUpdate(request, itemId);
@@ -114,7 +101,7 @@ addRoute({
 
 		return json(
 			{
-				...pick(rest, 'batch', 'max_transfer_size'),
+				...pick(getConfig('@axium/storage'), 'batch', 'max_transfer_size'),
 				status: 'accepted',
 				token: startUpload({ ...item, size }, session, itemId),
 			} satisfies R,
@@ -122,8 +109,6 @@ addRoute({
 		);
 	},
 	async DELETE(request, { id: itemId }): AsyncResult<'DELETE', 'storage/item/:id'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const auth = await authRequestForItem(request, 'storage', itemId, { manage: true }, true);
 		const item = parseItem(auth.item);
 
@@ -137,8 +122,6 @@ addRoute({
 	path: '/api/storage/directory/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
@@ -159,8 +142,6 @@ addRoute({
 	path: '/api/storage/directory/:id/recursive',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id/recursive'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
@@ -174,8 +155,6 @@ addRoute({
 	path: '/api/users/:id/storage',
 	params: { id: z.uuid() },
 	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/storage'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		await checkAuthForUser(request, userId);
 
 		const [stats, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(withError('Could not fetch data'));
@@ -183,8 +162,6 @@ addRoute({
 		return Object.assign(stats, { limits });
 	},
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const { sort } = parseSearch(request, UserStorageOptions);
 
 		await checkAuthForUser(request, userId);
@@ -210,8 +187,6 @@ addRoute({
 	path: '/api/users/:id/storage/root',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/root'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		await checkAuthForUser(request, userId);
 
 		const items = await database
@@ -232,14 +207,12 @@ addRoute({
 	path: '/api/users/:id/storage/shared',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/shared'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		const { user } = await checkAuthForUser(request, userId);
 
 		const items = await database
 			.selectFrom('storage as item')
 			.selectAll('item')
-			.select(acl.from<'storage', DBSchema & { item: DBSchema['storage'] }>('storage', { alias: 'item' }))
+			.select(acl.from('storage', { alias: 'item' }))
 			.where('trashedAt', 'is', null)
 			.where(acl.existsIn('storage', user, { alias: 'item' }))
 			.where(eb => eb.not(acl.existsIn('storage', user, { alias: 'item', itemId: 'parentId' })))
@@ -254,8 +227,6 @@ addRoute({
 	path: '/api/users/:id/storage/trash',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/trash'> {
-		if (!getConfig('@axium/storage').enabled) error(503, 'User storage is disabled');
-
 		await checkAuthForUser(request, userId);
 
 		const items = await database
