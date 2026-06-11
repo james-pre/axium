@@ -3,7 +3,15 @@ import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { withError } from '@axium/server/requests';
 import { addObjectType as addSyncObjectType } from '@axium/server/sync';
-import type { Selectable } from 'kysely';
+import type {
+	AliasedSelectQueryBuilder,
+	ExpressionBuilder,
+	ExpressionOrFactory,
+	QueryCreator,
+	Selectable,
+	SelectQueryBuilder,
+	SqlBool,
+} from 'kysely';
 import { unlinkSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import type schema from '../../db.json';
@@ -97,24 +105,62 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 	for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
 }
 
+export interface ParentFromCTE {
+	parentId: string | null;
+	name: string;
+	id: string;
+	depth: number;
+	/** Used when the parent query can return multiple rows */
+	_baseId: string;
+}
+
+export interface DBParentsInsideCTE extends Schema {
+	parents: { [k: string]: any };
+}
+
+export interface DBWithParentsCTE extends Schema {
+	parents: ParentFromCTE;
+}
+
+export function parentsCTE(
+	filter: ExpressionOrFactory<Schema, 'storage', SqlBool>
+): (qb: QueryCreator<DBParentsInsideCTE>) => SelectQueryBuilder<DBWithParentsCTE, 'storage', ParentFromCTE> {
+	return (qb: QueryCreator<DBParentsInsideCTE>): SelectQueryBuilder<DBWithParentsCTE, 'storage', ParentFromCTE> =>
+		qb
+			.selectFrom('storage')
+			.select(['id as _baseId', 'id', 'name', 'parentId'])
+			.select(eb => eb.lit(0).as('depth'))
+			.where(filter)
+			.unionAll(
+				qb
+					.selectFrom('storage as s')
+					.innerJoin('parents as p', 's.id', 'p.parentId')
+					.select(['p._baseId as _baseId', 's.id', 's.name', 's.parentId'])
+					.select(eb => eb(eb.ref('p.depth'), '+', eb.lit(1)).as('depth'))
+			);
+}
+
+export function withParents(
+	eb: ExpressionBuilder<DBWithParentsCTE, 'storage'>
+): AliasedSelectQueryBuilder<{ name: string; id: string }, 'parents'> {
+	return eb
+		.selectFrom('parents')
+		.select(['name', 'id'])
+		.where('depth', '>', 0)
+		.orderBy('depth', 'desc')
+		.whereRef('parents._baseId', '=', 'storage.id')
+		.as('parents');
+}
+
 export async function getParents(itemId: string): Promise<{ id: string; name: string }[]> {
 	const rows = await database
-		.withRecursive('parents', qb =>
-			qb
-				.selectFrom('storage')
-				.select(['id', 'name', 'parentId'])
-				.select(eb => eb.lit(0).as('depth'))
-				.where('id', '=', itemId)
-				.unionAll(
-					qb
-						.selectFrom('storage as s')
-						.innerJoin('parents as p', 's.id', 'p.parentId')
-						.select(['s.id', 's.name', 's.parentId'])
-						.select(eb => eb(eb.ref('p.depth'), '+', eb.lit(1)).as('depth'))
-				)
+		.withRecursive(
+			'parents',
+			parentsCTE(eb => eb('id', '=', itemId))
 		)
 		.selectFrom('parents')
 		.select(['name', 'id'])
+		.where('depth', '>', 0)
 		.orderBy('depth', 'desc')
 		.execute();
 

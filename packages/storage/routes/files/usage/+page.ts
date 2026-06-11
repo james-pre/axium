@@ -1,4 +1,4 @@
-import { getUserStorage } from '@axium/storage/client';
+import { getUserUsage } from '@axium/storage/client';
 import { redirect } from '@sveltejs/kit';
 
 export const ssr = false;
@@ -8,7 +8,7 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/files/usage');
 
-	const info = await getUserStorage(session.userId, { sort: { by: 'size', descending: true } });
+	const info = await getUserUsage(session.userId);
 
-	return { info };
+	return info;
 }

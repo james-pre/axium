@@ -1,9 +1,10 @@
 import { getConfig, type AsyncResult, type Result } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
-import { database } from '@axium/server/database';
+import { database, type Schema } from '@axium/server/database';
 import { error, json, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
+import { expressionBuilder } from 'kysely';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
@@ -18,7 +19,7 @@ import {
 } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { deleteRecursive, getParents, getRecursive, getUserStats, parseItem } from './db.js';
+import { deleteRecursive, getParents, getRecursive, getUserStats, parentsCTE, parseItem, withParents } from './db.js';
 import { checkItemUpdate, checkNewItem, createNewItem, startUpload } from './item.js';
 
 addRoute({
@@ -174,6 +175,34 @@ addRoute({
 				.where('userId', '=', userId)
 				.where('trashedAt', 'is', null)
 				.$if(!!sort, qb => qb.orderBy(sort!.by, sort!.descending ? 'desc' : 'asc'))
+				.execute(),
+			getUserStats(userId),
+			getLimits(userId),
+		]).catch(withError('Could not fetch data'));
+
+		return Object.assign(stats, { limits, items: items.map(parseItem) });
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/storage/usage',
+	params: { id: z.uuid() },
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/usage'> {
+		await checkAuthForUser(request, userId);
+
+		const eb = expressionBuilder<Schema, 'storage'>();
+		const matching = eb.and([eb('userId', '=', userId), eb('trashedAt', 'is', null), eb('size', '>', 0n)]);
+
+		const [items, stats, limits] = await Promise.all([
+			database
+				.withRecursive('parents', parentsCTE(matching))
+				.selectFrom('storage')
+				.selectAll('storage')
+				.select(acl.from('storage'))
+				.select(withParents)
+				.where(matching)
+				.orderBy('size', 'desc')
+				.limit(100)
 				.execute(),
 			getUserStats(userId),
 			getLimits(userId),

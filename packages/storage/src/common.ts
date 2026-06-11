@@ -216,6 +216,9 @@ const StorageAPI = {
 		OPTIONS: UserStorageInfo,
 		GET: [UserStorageOptions, UserStorage],
 	},
+	'users/:id/storage/usage': {
+		GET: UserStorage,
+	},
 	'users/:id/storage/root': {
 		GET: StorageItemMetadata.array(),
 	},

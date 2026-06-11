@@ -242,6 +242,10 @@ export async function getUserStorage(userId: string, options: UserStorageOptions
 	return await fetchAPI('GET', 'users/:id/storage', options, userId);
 }
 
+export async function getUserUsage(userId: string): Promise<UserStorage> {
+	return await fetchAPI('GET', 'users/:id/storage/usage', {}, userId);
+}
+
 export async function getUserStats(userId: string): Promise<UserStorageInfo> {
 	return await fetchAPI('OPTIONS', 'users/:id/storage', undefined, userId);
 }
