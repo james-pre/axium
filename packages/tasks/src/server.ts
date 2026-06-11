@@ -40,7 +40,7 @@ addRoute({
 			.selectFrom('task_lists')
 			.selectAll()
 			.select(listExtraFields(user))
-			.select(acl.from<'task_lists', Schema>('task_lists'))
+			.select(acl.from('task_lists'))
 			.where(acl.userHasAccess('task_lists', user))
 			.execute()
 			.catch(withError('Could not get task lists'));

@@ -1,6 +1,6 @@
 import type { Passkey, Session, UserInternal, VerificationInternal, VerificationRole } from '@axium/core';
 import { checkACL, controlMatchesUser } from '@axium/core';
-import type { Insertable, Kysely, SelectQueryBuilder } from 'kysely';
+import type { AliasedRawBuilder, ExpressionBuilder, Insertable, Kysely, SelectQueryBuilder } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit, type WithRequired } from 'utilium';
 import * as acl from './acl.js';
@@ -157,7 +157,7 @@ export interface ItemAuthResult<TB extends acl.TargetName> {
 	session?: SessionInternal;
 }
 
-export async function authSessionForItem<const TB extends acl.TargetName>(
+export async function authSessionForItem<const TB extends keyof Schema & acl.TargetName>(
 	itemType: TB,
 	itemId: string,
 	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
@@ -170,8 +170,8 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 	const item = (await db
 		.selectFrom<acl.TargetName>(itemType)
 		.selectAll()
+		.select(acl.from(itemType) as (eb: ExpressionBuilder<Schema, any>) => AliasedRawBuilder<acl.Result<`acl.${TB}`>[], 'acl'>)
 		.where('id', '=', itemId)
-		.select(acl.from(itemType))
 		.executeTakeFirstOrThrow()
 		.catch(e => {
 			if (e.constructor.name == 'NoResultError' || e.message.includes('no rows')) error(404, 'Not found');
@@ -208,14 +208,14 @@ export async function authSessionForItem<const TB extends acl.TargetName>(
 					(qc.selectFrom<acl.TargetName>(itemType) as SelectQueryBuilder<DB_QC, '$implicit$', any>)
 						.select(['id', 'parentId'])
 						.$castTo<acl.DBAccessControllable>()
-						.select(acl.from<TB, DB_QC>(itemType))
+						.select(acl.from<TB, '$implicit$', DB_QC>(itemType))
 						.select(eb => eb.lit(0).as('depth'))
 						.where('id', '=', itemId)
 						.unionAll(
 							(qc.selectFrom(`${itemType} as item`) as SelectQueryBuilder<DB_Union, acl.TargetName | 'item', any>)
 								.select(['item.id', 'item.parentId'])
 								.innerJoin('parents as p', 'item.id', 'p.parentId')
-								.select(acl.from<TB, DB_Union>(itemType, { alias: 'item', filterByUser: user }))
+								.select(acl.from<TB, 'item', DB_Union>(itemType, { alias: 'item', filterByUser: user }))
 								.select(eb => eb(eb.ref('p.depth'), '+', eb.lit(1)).as('depth'))
 						)
 				)

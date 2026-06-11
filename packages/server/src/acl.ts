@@ -52,9 +52,9 @@ export function match(user?: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
 	};
 }
 
-export interface ACLSelectionOptions {
+export interface ACLSelectionOptions<A = string> {
 	/** Instead of using the `id` from `table`, use the `id` from this instead */
-	alias?: string;
+	alias?: A;
 
 	/** If set, only ACLs that match the provided info will be selected. */
 	filterByUser?: Pick<UserInternal, 'id' | 'roles' | 'tags'>;
@@ -68,14 +68,18 @@ export interface ACLSelectionOptions {
  * Optionally filter for the entries applicable to a specific user.
  * This includes entries matching the user's ID, roles, or tags along with the "public" entry where all three "target" columns are null.
  */
-export function from<const TB extends TargetName, const DB = db.Schema>(
+export function from<
+	const TB extends TargetName,
+	const A extends string = TB,
+	const DB extends db.Schema & { [K in A]: DBAccessControllable } = db.Schema & { [K in A]: db.Schema[TB] },
+>(
 	table: TB,
-	opt: ACLSelectionOptions = {}
-): (eb: kysely.ExpressionBuilder<DB, any>) => kysely.AliasedRawBuilder<Result<`acl.${TB}`>[], 'acl'> {
+	opt: ACLSelectionOptions<A> = {}
+): (eb: kysely.ExpressionBuilder<DB, A>) => kysely.AliasedRawBuilder<Result<`acl.${TB}`>[], 'acl'> {
 	// Note this is valid to pass to `.select()` however including it as a return type is problematic
 	if (opt.optional && !listTables()[table]) return [] as any;
 
-	return (eb: kysely.ExpressionBuilder<DB, any>) =>
+	return (eb: kysely.ExpressionBuilder<DB, A>) =>
 		jsonArrayFrom(
 			(eb as kysely.ExpressionBuilder<db.Schema, any>)
 				.selectFrom(`acl.${table} as _acl`)
