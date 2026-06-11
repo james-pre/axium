@@ -4,7 +4,7 @@
 	import { toastStatus } from '@axium/client/toast';
 	import { updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
-	import { Add, List, Preview } from '@axium/storage/components';
+	import { Add, List, Path, Preview } from '@axium/storage/components';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
@@ -35,12 +35,7 @@
 	</button>
 {:else}
 	<AccessControlDialog bind:dialog={shareDialog} {item} itemType="storage" {user} />
-	{#if item.parents}
-		<p class="parents" data-sveltekit-reload>
-			<a href="/files">~</a>
-			{#each item.parents as { id, name } (id)}<a href="/files/{id}">{name}</a>{/each}
-		</p>
-	{/if}
+	<Path {item} />
 	{#snippet action(i: string, text: string, handler: (e: Event) => unknown)}
 		<button
 			class="icon-text"
@@ -105,14 +100,6 @@
 		display: flex;
 		gap: 1em;
 		align-items: center;
-	}
-
-	.parents {
-		margin-top: 0;
-
-		a:not(:first-child)::before {
-			content: ' / ';
-			color: #888;
-		}
+		margin-top: 1em;
 	}
 </style>
