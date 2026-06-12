@@ -20,7 +20,7 @@
 			<Icon i={forMime(file.type)} />
 			{#if !progress[i]}
 				<div class="name">
-					<span>{file.name}</span>
+					<span>{file.webkitRelativePath || file.name}</span>
 				</div>
 				<button
 					onclick={e => {
@@ -35,12 +35,12 @@
 				</button>
 			{:else if progress[i][0] == progress[i][1]}
 				<div class="name">
-					<span>{file.name}</span>
+					<span>{file.webkitRelativePath || file.name}</span>
 				</div>
 				<Icon i="cloud-check" />
 			{:else}
 				<div class="name">
-					<span>{file.name}</span>
+					<span>{file.webkitRelativePath || file.name}</span>
 					<progress value={progress[i][0]} max={progress[i][1]}></progress>
 				</div>
 				<Icon i="cloud-arrow-up" />
