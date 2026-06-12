@@ -61,7 +61,7 @@ export class Cache<Keys extends string[], V extends object> {
 	}
 
 	protected valid(timestamp?: number) {
-		return !this.options.ttl || !timestamp || timestamp.valueOf() + this.options.ttl < Date.now();
+		return !this.options.ttl || !timestamp || timestamp + this.options.ttl > Date.now();
 	}
 
 	protected write(key: string, value: V | Promise<V>) {
