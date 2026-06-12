@@ -12,7 +12,7 @@
 			"rename": "Rename",
 			"share": "Share",
 			"download": "Download",
-			"copy_link": "Copy Link",
+			"copy_link": "Copy link",
 			"trash": "Trash",
 			"rename_submit": "Rename",
 			"trash_folder_confirm": "Are you sure you want to trash this folder?",
@@ -80,14 +80,15 @@
 		"Add": {
 			"content": "Content",
 			"create": "Create",
-			"new_folder": "New Folder",
-			"plain_text": "Plain Text",
+			"new_folder": "New folder",
+			"plain_text": "Plain text",
 			"text": "Add",
 			"upload": "Upload",
+			"upload_folder": "Upload folder",
 			"cancelled": "Upload cancelled"
 		},
 		"List": {
-			"copy_link": "Copy Link",
+			"copy_link": "Copy link",
 			"empty": "Folder is empty.",
 			"last_modified": "Last Modified",
 			"share": "Share",

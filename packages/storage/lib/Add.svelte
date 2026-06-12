@@ -1,36 +1,36 @@
 <script lang="ts">
-	import { forMime } from '@axium/core/icons';
-	import { FormDialog, Icon, Popover, Upload } from '@axium/client/components';
-	import { createItemFromFile } from '@axium/storage/client';
-	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { text } from '@axium/client';
+	import { FormDialog, Icon, Popover, Upload } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
+	import { forMime } from '@axium/core/icons';
+	import { createDirectory, createItemFromFile } from '@axium/storage/client';
+	import type { StorageItemMetadata } from '@axium/storage/common';
 
 	const { parentId, onAdd }: { parentId?: string; onAdd?(item: StorageItemMetadata): void } = $props();
 
-	let uploadDialog = $state<HTMLDialogElement>()!,
-		uploadProgress = $state<[number, number][]>([]),
+	let uploadProgress = $state<[number, number][]>([]),
 		uploading = $state(false),
 		controller = $state(new AbortController()),
-		files = $state<FileList>()!;
+		files = $state<FileList>()!,
+		isDirectoryUpload = $state(false);
 
-	let createDialog = $state<HTMLDialogElement>()!,
-		createType = $state<string>(),
+	let createType = $state<string>(),
 		createIncludesContent = $state(false);
 </script>
 
 {#snippet _item(type: string, text: string, includeContent: boolean = false)}
-	<span
-		class="menu-item"
+	<button
+		class="menu-item reset"
+		command="show-modal"
+		commandfor="create-dialog"
 		onclick={() => {
 			createType = type;
 			createIncludesContent = includeContent;
-			createDialog.showModal();
 		}}
 	>
 		<Icon i={forMime(type)} />
 		{text}
-	</span>
+	</button>
 {/snippet}
 
 <Popover>
@@ -38,13 +38,18 @@
 		<button class="icon-text StorageAdd"><Icon i="plus" />{text('storage.Add.text')}</button>
 	{/snippet}
 
-	<span class="menu-item" onclick={() => uploadDialog.showModal()}><Icon i="upload" />{text('storage.Add.upload')}</span>
+	<button class="menu-item reset" command="show-modal" commandfor="upload-dialog" onclick={() => (isDirectoryUpload = false)}>
+		<Icon i="upload" />{text('storage.Add.upload')}
+	</button>
+	<button class="menu-item reset" command="show-modal" commandfor="upload-dialog" onclick={() => (isDirectoryUpload = true)}>
+		<Icon i="folder-arrow-up" />{text('storage.Add.upload_folder')}
+	</button>
 	{@render _item('inode/directory', text('storage.Add.new_folder'))}
 	{@render _item('text/plain', text('storage.Add.plain_text'), true)}
 </Popover>
 
 <FormDialog
-	bind:dialog={uploadDialog}
+	id="upload-dialog"
 	submitText={text('storage.Add.upload')}
 	cancel={() => {
 		files = new DataTransfer().files;
@@ -57,16 +62,36 @@
 	}}
 	submit={async () => {
 		uploading = true;
+
+		const directoryIds = new Map<string, Promise<string>>();
+
 		for (const [i, file] of Array.from(files!).entries()) {
 			try {
+				const path = file.webkitRelativePath?.split('/').filter(part => part.length) || [];
+				const name = path.pop() || file.name;
+
+				let itemParentId = parentId,
+					currentDir = '';
+
+				for (const directoryName of path) {
+					currentDir = currentDir ? `${currentDir}/${directoryName}` : directoryName;
+					itemParentId = await directoryIds.getOrInsertComputed(currentDir, async () => {
+						const dir = await createDirectory(directoryName, itemParentId);
+						if (itemParentId == parentId) onAdd?.(dir);
+						return dir.id;
+					});
+				}
+
 				const item = await createItemFromFile(file, {
-					parentId,
+					parentId: itemParentId,
+					name,
 					onProgress(uploaded, total) {
 						uploadProgress[i] = [uploaded, total];
 					},
 					signal: controller.signal,
 				});
-				onAdd?.(item);
+
+				if (itemParentId == parentId) onAdd?.(item);
 			} catch (e) {
 				if (e && e instanceof DOMException && e.name == 'AbortError') return;
 				throw e;
@@ -77,11 +102,11 @@
 		files = new DataTransfer().files;
 	}}
 >
-	<Upload bind:files bind:progress={uploadProgress} multiple />
+	<Upload bind:files bind:progress={uploadProgress} multiple webkitdirectory={isDirectoryUpload} />
 </FormDialog>
 
 <FormDialog
-	bind:dialog={createDialog}
+	id="create-dialog"
 	submitText={text('storage.Add.create')}
 	submit={async (data: { name: string; content?: string }) => {
 		const file = new File(createIncludesContent ? [data.content!] : [], data.name, { type: createType });
