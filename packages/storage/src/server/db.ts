@@ -75,11 +75,14 @@ export async function get(itemId: string): Promise<StorageItemMetadata> {
 	return parseItem(result);
 }
 
+/**
+ * Recursively get all items from a set of "root" IDs. This does not include trashed items.
+ */
 export async function* getRecursive(
 	this: { path: string } | void,
 	...ids: string[]
 ): AsyncGenerator<StorageItemMetadata & { path: string }> {
-	const items = await database.selectFrom('storage').where('parentId', 'in', ids).selectAll().execute();
+	const items = await database.selectFrom('storage').where('parentId', 'in', ids).where('trashedAt', 'is', null).selectAll().execute();
 
 	for (const item of items) {
 		const path = this?.path ? this.path + '/' + item.name : item.name;
@@ -88,6 +91,9 @@ export async function* getRecursive(
 	}
 }
 
+/**
+ * Recursively get all item IDs from a set of "root" IDs. This includes trashed items.
+ */
 export async function* getRecursiveIds(...ids: string[]): AsyncGenerator<string> {
 	const items = await database.selectFrom('storage').where('parentId', 'in', ids).select(['id', 'type']).execute();
 
