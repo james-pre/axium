@@ -5,11 +5,12 @@ import { addRoute } from '@axium/server/routes';
 import { createReadStream } from 'node:fs';
 import { join } from 'node:path';
 import { crc32, createDeflateRaw } from 'node:zlib';
+import { iteratorToStream } from 'utilium/iterators-streams';
 import * as z from 'zod';
+import type { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 import { getRecursive } from './db.js';
 import { _contentDispositionFor } from './raw.js';
-import { iteratorToStream } from 'utilium/iterators-streams';
 
 const encoder = new TextEncoder();
 
@@ -24,7 +25,9 @@ interface ZipFileMetadata {
 	zip64DD?: boolean;
 }
 
-async function* generateZip(ids: string[], signal?: AbortSignal): AsyncGenerator<Uint8Array, void, unknown> {
+export interface ItemInfo extends Omit<StorageItemMetadata, 'dataURL' | 'hash'> {}
+
+async function* generateZip(ids: string[], rootItems: ItemInfo[], signal?: AbortSignal): AsyncGenerator<Uint8Array, void, unknown> {
 	const { data: dataDir } = getConfig('@axium/storage');
 
 	let offset = 0;
@@ -35,7 +38,12 @@ async function* generateZip(ids: string[], signal?: AbortSignal): AsyncGenerator
 		return b;
 	};
 
-	for await (const child of getRecursive(...ids)) {
+	const it: AsyncGenerator<ItemInfo & { path: string }> = (async function* () {
+		yield* rootItems.map(item => ({ ...item, path: item.name }));
+		yield* getRecursive(...ids);
+	})();
+
+	for await (const child of it) {
 		if (signal?.aborted) break;
 
 		const isDir = child.type === 'inode/directory';
@@ -206,15 +214,45 @@ addRoute({
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 		if (item.type != 'inode/directory') error(410, 'Only folders can be downloaded as ZIP files');
 
-		const iterator = generateZip([itemId], request.signal);
+		const iterator = generateZip([itemId], [item], request.signal);
 
-		const stream = iteratorToStream(iterator);
-
-		return new Response(stream, {
+		return new Response(iteratorToStream(iterator), {
 			status: 200,
 			headers: {
 				'Content-Type': item.type,
 				'Content-Disposition': _contentDispositionFor(item.name, '.zip'),
+			},
+		});
+	},
+});
+
+addRoute({
+	path: '/raw/storage/directory-zip',
+	async GET(request) {
+		const url = new URL(request.url);
+		const ids = z
+			.array(z.uuid())
+			.min(1)
+			.parse((url.searchParams.get('ids') ?? '').split(',').filter(v => !!v));
+
+		const items = await Promise.all(
+			ids.map(async id => {
+				const { item } = await authRequestForItem(request, 'storage', id, { read: true }, true);
+				if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
+				return item;
+			})
+		);
+
+		const iterator = generateZip(ids, items, request.signal);
+
+		return new Response(iteratorToStream(iterator), {
+			status: 200,
+			headers: {
+				'Content-Type': 'application/zip',
+				'Content-Disposition': _contentDispositionFor(
+					items.length == 1 ? items[0].name : 'files-' + new Date().toISOString().slice(0, -1).split('.')[0],
+					'.zip'
+				),
 			},
 		});
 	},
