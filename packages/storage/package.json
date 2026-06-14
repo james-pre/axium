@@ -48,7 +48,7 @@
 		"ioium": "^1.3.0",
 		"kysely": "^0.29.0",
 		"mime": "^4.1.0",
-		"utilium": "^3.1.0"
+		"utilium": "^3.4.0"
 	},
 	"dependencies": {
 		"blakejs": "^1.2.1",
