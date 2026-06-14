@@ -1,18 +1,7 @@
 <script lang="ts">
 	import { getEvents, type EventInitFormData, type EventInitProp } from '@axium/calendar/client';
 	import type { Event } from '@axium/calendar/common';
-	import {
-		CalendarInit,
-		dateToInputValue,
-		fromRRuleDate,
-		getCalPermissionsInfo,
-		longWeekDay,
-		toByDay,
-		toRRuleDate,
-		weekDayOfMonth,
-		weekDaysFor,
-		withOrdinalSuffix,
-	} from '@axium/calendar/common';
+	import { CalendarInit, dateToInputValue, fromRRuleDate, getCalPermissionsInfo, toRRuleDate, weekDaysFor } from '@axium/calendar/common';
 	import * as Cal from '@axium/calendar/components';
 	import { fetchAPI, text } from '@axium/client';
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
@@ -22,10 +11,10 @@
 	import { rrulestr } from 'rrule';
 	import { useSwipe } from 'svelte-gestures';
 	import { SvelteDate, SvelteSet } from 'svelte/reactivity';
-	import { _throw, type Entries } from 'utilium';
+	import { _throw } from 'utilium';
 	import * as z from 'zod';
 	import './cal.css';
-	import RecurrenceDialog from './RecurrenceDialog.svelte';
+	import RecurrenceSelect from './RecurrenceSelect.svelte';
 
 	const { data } = $props();
 
@@ -73,21 +62,6 @@
 		eventInitEnd = $derived(dateToInputValue(eventInit.end)),
 		eventEditId = $state<string>(),
 		eventEditCalId = $state<string>();
-
-	const recurrences = $derived({
-		none: '',
-		daily: 'FREQ=DAILY',
-		weekly: `FREQ=WEEKLY;BYDAY=${toByDay(eventInit.start)}`,
-		monthly_by_day: `FREQ=MONTHLY;BYDAY=${Math.ceil(eventInit.start.getDate() / 7) + toByDay(eventInit.start)}`,
-		monthly_by_weekday: `FREQ=MONTHLY;BYMONTHDAY=${eventInit.start.getDate()}`,
-		yearly: `FREQ=YEARLY;BYMONTH=${eventInit.start.getMonth()};BYMONTHDAY=${eventInit.start.getDate()}`,
-	});
-
-	const recurrenceKind = $derived(
-		!eventInit.recurrence
-			? 'none'
-			: (Object.entries(recurrences) as Entries<typeof recurrences>).find(([_, v]) => v === eventInit.recurrence)?.[0] || 'custom'
-	);
 
 	const defaultCalInit = {
 		color: null,
@@ -365,35 +339,7 @@
 				</label>
 				<label for="eventInit.isAllDay:checkbox">{text('event_init.all_day')}</label>
 				<div class="spacing"></div>
-				<select
-					value={recurrenceKind}
-					onchange={e => {
-						const { value } = e.currentTarget;
-						if (value === 'custom')
-							e.currentTarget.value = recurrenceKind; // to prevent "Custom..." being shown when dialog cancelled
-						else if (value in recurrences) eventInit.recurrence = recurrences[value as keyof typeof recurrences];
-					}}
-				>
-					<option value="none">{text('event_init.recurrence.none')}</option>
-					<option value="daily">{text('event_init.recurrence.daily')}</option>
-					<option value="weekly">
-						{text('event_init.recurrence.weekly', { day: longWeekDay(eventInit.start) })}
-					</option>
-					<option value="monthly_by_weekday">
-						{text('event_init.recurrence.monthly_on', { day: weekDayOfMonth(eventInit.start) })}
-					</option>
-					<option value="monthly_by_day">
-						{text('event_init.recurrence.monthly_on', { day: withOrdinalSuffix(eventInit.start.getDate()) })}
-					</option>
-					<option value="yearly">
-						{text('event_init.recurrence.yearly', {
-							date: eventInit.start.toLocaleDateString('default', { month: 'long', day: 'numeric' }),
-						})}
-					</option>
-					<option value="custom" onclick={() => dialogs.customRecurrence?.showModal()}>
-						{text('event_init.recurrence.custom')}
-					</option>
-				</select>
+				<RecurrenceSelect bind:eventInit />
 			</div>
 		</div>
 	</div>
@@ -503,5 +449,3 @@
 		<ColorPicker bind:value={calInit.color} defaultValue={defaultCalColor} />
 	</div>
 </FormDialog>
-
-<RecurrenceDialog bind:dialog={dialogs.customRecurrence} bind:eventInit />
