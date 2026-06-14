@@ -144,11 +144,13 @@
 				)}
 			{@attach contextMenu(() => {
 				// Right-clicking an unselected item acts on just that item.
-				if (!selection.has(item.id)) selection.clear();
-				const ids = selection.size ? selection : new Set([item.id]);
-				const multi = ids.size > 1;
+				if (!selection.has(item.id)) {
+					selection.clear();
+					selection.add(item.id);
+				}
+				const multi = selection.size > 1;
 				return [
-					multi && { header: text('storage.List.items_selected', { count: ids.size }) },
+					multi && { header: text('storage.List.items_selected', { count: selection.size }) },
 					!multi && {
 						i: 'pencil',
 						text: text('storage.generic.rename'),
@@ -163,20 +165,20 @@
 						action: () => ((activeId = item.id), dialogs['share:' + item.id].showModal()),
 					},
 					multi
-						? { i: 'file-zipper', text: text('storage.List.download_zip'), action: () => _downloadItems(...ids) }
+						? { i: 'file-zipper', text: text('storage.List.download_zip'), action: () => _downloadItems(...selection) }
 						: { i: 'download', text: text('storage.generic.download'), action: () => _downloadItem(item) },
 					{
 						i: 'link-horizontal',
 						text: multi ? text('storage.List.copy_links') : text('storage.List.copy_link'),
-						action: () => copyShortURL(...ids),
+						action: () => copyShortURL(...selection),
 					},
 					{
 						i: 'trash',
 						text: text('storage.generic.trash'),
 						action: () =>
 							toastStatus(
-								Promise.all(ids.values().map(id => updateItemMetadata(id, { trash: true }))).then(() => {
-									items = items.filter(item => !ids.has(item.id));
+								Promise.all(selection.values().map(id => updateItemMetadata(id, { trash: true }))).then(() => {
+									items = items.filter(item => !selection.has(item.id));
 									selection.clear();
 								}),
 								text('storage.generic.trash_success')
@@ -185,7 +187,7 @@
 					user?.preferences?.debug && {
 						i: 'hashtag',
 						text: multi ? text('storage.generic.copy_ids') : text('storage.generic.copy_id'),
-						action: () => copy('text/plain', [...ids].join(', ')),
+						action: () => copy('text/plain', [...selection].join(', ')),
 					},
 				];
 			})}
