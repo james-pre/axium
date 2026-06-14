@@ -20,3 +20,14 @@ export function _downloadItem(item?: StorageItemMetadata) {
 	if (!item) throw text('storage.generic.no_item');
 	open(new URL(item.type != 'inode/directory' ? item.dataURL : '/raw/storage/directory-zip/' + item.id, origin), '_blank');
 }
+
+/**
+ * Download multiple items together as a single ZIP file.
+ */
+export function _downloadItems(...ids: string[]) {
+	if (!ids.length) throw text('storage.generic.no_item');
+
+	const url = new URL('/raw/storage/directory-zip', origin);
+	url.searchParams.set('ids', ids.join(','));
+	open(url, '_blank');
+}
