@@ -65,14 +65,12 @@ div.attendees {
 			flex: auto;
 		}
 
-		label {
+		> label {
 			flex: none;
 		}
 	}
 
-	input,
-	select,
-	textarea {
+	:is(input, select, textarea):not(.recurrence-dialog *) {
 		width: 100%;
 	}
 
