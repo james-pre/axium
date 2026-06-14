@@ -27,7 +27,11 @@ interface ZipFileMetadata {
 
 export interface ItemInfo extends Omit<StorageItemMetadata, 'dataURL' | 'hash'> {}
 
-async function* generateZip(ids: string[], rootItems: ItemInfo[], signal?: AbortSignal): AsyncGenerator<Uint8Array, void, unknown> {
+/**
+ * Generate a zip file from a set of root items.
+ * If only one root item is provided, it will be treated as the root
+ */
+async function* generateZip(rootItems: ItemInfo[], signal?: AbortSignal): AsyncGenerator<Uint8Array, void, unknown> {
 	const { data: dataDir } = getConfig('@axium/storage');
 
 	let offset = 0;
@@ -39,8 +43,14 @@ async function* generateZip(ids: string[], rootItems: ItemInfo[], signal?: Abort
 	};
 
 	const it: AsyncGenerator<ItemInfo & { path: string }> = (async function* () {
-		yield* rootItems.map(item => ({ ...item, path: item.name }));
-		yield* getRecursive(...ids);
+		const ids = rootItems.map(item => item.id);
+		if (rootItems.length > 1) {
+			yield* rootItems.map(item => ({ ...item, path: item.name }));
+			const paths = Object.fromEntries(rootItems.map(item => [item.id, item.name]));
+			yield* getRecursive.call({ paths }, ...ids);
+		} else {
+			yield* getRecursive(...ids);
+		}
 	})();
 
 	for await (const child of it) {
@@ -214,7 +224,7 @@ addRoute({
 		if (item.trashedAt) error(410, 'Trashed items can not be downloaded');
 		if (item.type != 'inode/directory') error(410, 'Only folders can be downloaded as ZIP files');
 
-		const iterator = generateZip([itemId], [item], request.signal);
+		const iterator = generateZip([item], request.signal);
 
 		return new Response(iteratorToStream(iterator), {
 			status: 200,
@@ -243,7 +253,7 @@ addRoute({
 			})
 		);
 
-		const iterator = generateZip(ids, items, request.signal);
+		const iterator = generateZip(items, request.signal);
 
 		return new Response(iteratorToStream(iterator), {
 			status: 200,
