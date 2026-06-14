@@ -107,6 +107,16 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"calendars": {
+					"add_columns": {
+						"isDefault": { "type": "boolean", "required": true, "default": false }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["calendars", "events", "acl.calendars"],

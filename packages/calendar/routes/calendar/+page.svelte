@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { getEvents, type EventInitFormData, type EventInitProp } from '@axium/calendar/client';
-	import type { Event } from '@axium/calendar/common';
+	import type { Calendar, Event } from '@axium/calendar/common';
 	import { CalendarInit, dateToInputValue, fromRRuleDate, getCalPermissionsInfo, toRRuleDate, weekDaysFor } from '@axium/calendar/common';
 	import * as Cal from '@axium/calendar/components';
 	import { fetchAPI, text } from '@axium/client';
@@ -48,11 +48,13 @@
 	let dialogs = $state<Record<string, HTMLDialogElement>>({}),
 		hiddenCalIds = new SvelteSet<string>();
 
+	const defaultCalendar = $derived(calendars.find(cal => cal.userId == user.id && cal.isDefault) ?? calendars[0]);
+
 	const defaultEventInit = $derived<any>({
 		attendees: [],
 		recurrenceExcludes: [],
 		recurrenceId: null,
-		calId: calendars[0]?.id,
+		calId: defaultCalendar?.id,
 		start: new Date(defaultStart),
 		end: new Date(defaultStart.getTime() + 3600_000),
 	});
@@ -83,7 +85,13 @@
 	);
 
 	const defaultCalColor = encodeColor(colorHashHex(user.name));
-	const defaultEventColor = $derived((eventInit.calendar || calendars[0])?.color || defaultCalColor);
+	const defaultEventColor = $derived((eventInit.calendar || defaultCalendar)?.color || defaultCalColor);
+
+	async function makeDefault(cal: Calendar) {
+		const result = await fetchAPI('PATCH', 'calendars/:id', { ...cal, isDefault: true }, cal.id);
+		for (const other of calendars) other.isDefault = other.userId == user.id && other.id == cal.id;
+		Object.assign(cal, result);
+	}
 
 	let calSidebar = $state<HTMLDivElement>();
 </script>
@@ -147,6 +155,7 @@
 				class="cal-sidebar-item"
 				{@attach contextMenu(
 					{ i: 'pencil', text: text('calendar.edit'), action: edit },
+					...(cal.isDefault ? [] : [{ i: 'star', text: text('calendar.make_default'), action: () => makeDefault(cal) }]),
 					{ i: 'user-group', text: text('generic.share'), action: () => dialogs['share:' + cal.id].showModal() },
 					{ i: 'trash', text: text('generic.delete'), action: () => dialogs['delete:' + cal.id].showModal() }
 				)}
@@ -165,6 +174,7 @@
 						{#if !hiddenCalIds.has(cal.id)}<Icon i="check" --size="1.3em" />{/if}
 					</label>
 					<span>{cal.name}</span>
+					{#if cal.isDefault}<span class="subtle">{text('calendar.default')}</span>{/if}
 				</span>
 				<Popover showToggle="hover">
 					<button
@@ -179,6 +189,12 @@
 						<Icon i="pencil" />
 						<span>{text('calendar.edit')}</span>
 					</button>
+					{#if !cal.isDefault}
+						<div class="menu-item" onclick={() => makeDefault(cal)}>
+							<Icon i="star" />
+							<span>{text('calendar.make_default')}</span>
+						</div>
+					{/if}
 					<div class="menu-item" onclick={() => dialogs['share:' + cal.id].showModal()}>
 						<Icon i="user-group" />
 						<span>{text('generic.share')}</span>

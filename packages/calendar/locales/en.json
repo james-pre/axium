@@ -13,7 +13,9 @@
 		"list_owned": "My Calendars",
 		"list_shared": "Shared Calendars",
 		"delete_confirm": "Are you sure you want to delete the calendar \"{name}\"?",
-		"edit": "Edit"
+		"edit": "Edit",
+		"make_default": "Make default",
+		"default": "(default)"
 	},
 	"calendar_init": {
 		"name": "Name",

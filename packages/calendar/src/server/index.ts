@@ -60,10 +60,19 @@ addRoute({
 
 		await checkAuthForUser(request, userId);
 
+		// A user's first calendar becomes their default so a default always exists.
+		const existing = await database
+			.selectFrom('calendars')
+			.select('id')
+			.where('userId', '=', userId)
+			.limit(1)
+			.executeTakeFirst()
+			.catch(withError('Could not create calendar'));
+
 		return withEncoded(
 			await database
 				.insertInto('calendars')
-				.values({ ...withDecoded(init), userId })
+				.values({ ...withDecoded(init), userId, isDefault: !existing })
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not create calendar'))
@@ -81,17 +90,43 @@ addRoute({
 	async PATCH(request: Request, { id }): AsyncResult<'PATCH', 'calendars/:id'> {
 		const body = await parseBody(request, CalendarInit);
 
-		await authRequestForItem(request, 'calendars', id, { edit: true });
+		const { item } = await authRequestForItem(request, 'calendars', id, { edit: true });
 
-		return withEncoded(
-			await database
+		if (!body.isDefault) {
+			return withEncoded(
+				await database
+					.updateTable('calendars')
+					.set(withDecoded(body))
+					.where('id', '=', id)
+					.returningAll()
+					.executeTakeFirstOrThrow()
+					.catch(withError('Could not update calendar'))
+			);
+		}
+
+		const tx = await database.startTransaction().execute();
+		try {
+			// A calendar being made default must be the only default for its owner, so clear the others first.
+			await tx
+				.updateTable('calendars')
+				.set({ isDefault: false })
+				.where('userId', '=', item.userId)
+				.where('isDefault', '=', true)
+				.execute();
+
+			const calendar = await tx
 				.updateTable('calendars')
 				.set(withDecoded(body))
 				.where('id', '=', id)
 				.returningAll()
-				.executeTakeFirstOrThrow()
-				.catch(withError('Could not update calendar'))
-		);
+				.executeTakeFirstOrThrow();
+
+			await tx.commit().execute();
+			return withEncoded(calendar);
+		} catch (e: any) {
+			await tx.rollback().execute();
+			throw withError('Could not update calendar')(e);
+		}
 	},
 	async DELETE(request: Request, { id }): AsyncResult<'DELETE', 'calendars/:id'> {
 		await authRequestForItem(request, 'calendars', id, { manage: true });
