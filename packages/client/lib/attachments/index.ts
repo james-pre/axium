@@ -5,6 +5,7 @@
 import type { Attachment } from 'svelte/attachments';
 
 export * from './context-menu.js';
+export * as drag from './drag-and-drop.js';
 export * from './gestures.js';
 export * from './selection.js';
 

@@ -60,6 +60,10 @@ div.list-header {
 	background-color: var(--bg-alt);
 }
 
+.list-item.dragging {
+	opacity: 0.5;
+}
+
 p.list-empty {
 	text-align: center;
 	color: #888;
