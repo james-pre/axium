@@ -85,7 +85,7 @@ export async function* getRecursive(
 	const items = await database.selectFrom('storage').where('parentId', 'in', ids).where('trashedAt', 'is', null).selectAll().execute();
 
 	for (const item of items) {
-		const parent = this && 'paths' in this ? this.paths[item.id] : this?.path;
+		const parent = this && ('paths' in this && item.parentId ? this.paths[item.parentId] : 'path' in this ? this.path : undefined);
 		const path = parent ? parent + '/' + item.name : item.name;
 		yield Object.assign(parseItem(item), { path });
 		if (item.type == 'inode/directory') yield* getRecursive.call({ path }, item.id);
