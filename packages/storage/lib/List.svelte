@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { preferences, text } from '@axium/client';
 	import { closeOnBackGesture, contextMenu, drag, selectable, Selection } from '@axium/client/attachments';
-	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
+	import { AccessControlDialog, Icon } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import '@axium/client/styles/list';
 	import { toastStatus } from '@axium/client/toast';
@@ -38,10 +38,24 @@
 		sort?: StorageItemSorting;
 	} = $props();
 
-	/** The item targeted by single-item dialogs (rename, preview). */
+	/** The item currently being previewed. */
 	let activeId = $state<string>();
 	const activeItem = $derived(items.find(item => item.id === activeId));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
+
+	/** The item whose name is currently being edited inline, and the draft value. */
+	let editingId = $state<string>(),
+		editingName = $state('');
+
+	function commitRename(item: StorageItemMetadata) {
+		const name = editingName?.trim();
+		editingId = undefined;
+		if (!name || name == item.name) return;
+		toastStatus(
+			updateItemMetadata(item.id, { name }).then(() => (item.name = name)),
+			text('storage.generic.rename_success')
+		);
+	}
 
 	/** List-wide selection, shared with each item via the `selectable` attachment. */
 	const selection = new Selection();
@@ -66,7 +80,7 @@
 
 	$effect(() => selection.setOrder(sortedItems.map(item => item.id)));
 
-	function openItem(item: StorageItemMetadata & AccessControllable) {
+	function openItem(item: StorageItemMetadata) {
 		if (item.type != 'inode/directory') {
 			activeId = item.id;
 			dialogs.preview.showModal();
@@ -138,7 +152,10 @@
 					!multi && {
 						i: 'pencil',
 						text: text('storage.generic.rename'),
-						action: () => ((activeId = item.id), dialogs.rename.showModal()),
+						action: () => {
+							editingId = item.id;
+							editingName = item.name;
+						},
 					},
 					!multi && {
 						i: 'user-group',
@@ -176,6 +193,35 @@
 			<dfn class="type" title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 			{#if special && full_path_in_special}
 				<Path {item} />
+			{:else if editingId == item.id}
+				<span
+					class="name editing"
+					data-no-select
+					onclick={e => e.stopPropagation()}
+					{@attach wrapper => {
+						const input = wrapper.querySelector('input')!;
+						requestAnimationFrame(() => {
+							input.focus();
+							const dot = item.name.lastIndexOf('.');
+							input.setSelectionRange(0, item.type == 'inode/directory' || dot <= 0 ? item.name.length : dot);
+						});
+						const onOutside = (e: PointerEvent) => !wrapper.contains(e.target as Node) && (editingId = undefined);
+						requestAnimationFrame(() => document.addEventListener('pointerdown', onOutside, true));
+						return () => document.removeEventListener('pointerdown', onOutside, true);
+					}}
+				>
+					<input
+						class="editable-name"
+						bind:value={editingName}
+						onkeydown={e => {
+							if (e.key == 'Enter') commitRename(item);
+							else if (e.key == 'Escape') editingId = undefined;
+						}}
+					/>
+					<button class="reset confirm-rename" aria-label={text('storage.generic.rename')} onclick={() => commitRename(item)}>
+						<Icon i="check" />
+					</button>
+				</span>
 			{:else}
 				<span class="name">{item.name}</span>
 			{/if}
@@ -191,7 +237,6 @@
 					e.stopImmediatePropagation();
 				}}
 			>
-				{@render action('rename', 'pencil', item.id)}
 				{@render action('share:' + item.id, 'user-group', item.id)}
 				<span class="icon-text action" onclick={() => _downloadItem(item)}>
 					<Icon i="download" --size="14px" />
@@ -228,25 +273,36 @@
 	{/if}
 </dialog>
 
-<FormDialog
-	bind:dialog={dialogs.rename}
-	submitText={text('storage.generic.rename')}
-	submit={async (data: { name: string }) => {
-		if (!activeId || !activeItem) throw text('storage.generic.no_item');
-		await updateItemMetadata(activeId, data);
-		activeItem.name = data.name;
-	}}
->
-	<div>
-		<label for="name">{text('storage.generic.name')}</label>
-		<input name="name" type="text" required value={activeItem?.name} />
-	</div>
-</FormDialog>
-
 <style>
 	.name {
 		overflow: hidden;
 		text-overflow: ellipsis;
+
+		&.editing {
+			display: flex;
+			align-items: center;
+			gap: 0.5em;
+			overflow: visible;
+		}
+	}
+
+	.editable-name {
+		background: var(--bg-normal);
+		border: var(--border-accent);
+		border-radius: 0.25em;
+		padding: 0.1em 0.25em;
+		margin: -0.1em 0;
+		font: inherit;
+		color: inherit;
+		min-width: 0;
+		flex: 1 1 auto;
+	}
+
+	.confirm-rename {
+		display: inline-flex;
+		align-items: center;
+		flex: 0 0 auto;
+		cursor: pointer;
 	}
 
 	.item-actions {
@@ -254,7 +310,7 @@
 	}
 
 	.list-item {
-		grid-template-columns: 1em 4fr 15em 5em repeat(4, 1em);
+		grid-template-columns: 1em 4fr 15em 5em repeat(3, 1em);
 	}
 
 	.header-column {

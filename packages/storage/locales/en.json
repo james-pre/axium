@@ -71,8 +71,9 @@
 			"no_item": "No item is selected",
 			"rename": "Rename",
 			"trash": "Trash",
-			"trash_success": "Item trashed",
-			"move_success": "Items moved",
+			"trash_success": "File trashed",
+			"rename_success": "File renamed",
+			"move_success": "Files moved",
 			"delete_confirm_named": "Are you sure you want to delete {name}?"
 		},
 		"preferences": {
