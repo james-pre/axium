@@ -50,7 +50,7 @@ button {
 	cursor: pointer;
 
 	&:hover {
-		background-color: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
+		background-color: var(--bg-accent);
 	}
 }
 
@@ -145,7 +145,7 @@ details {
 dialog {
 	border-radius: 1em;
 	background: var(--bg-menu);
-	border: 1px solid #8888;
+	border: var(--border-elevated);
 	padding: 1em;
 	max-width: calc(100% - 2em);
 	word-wrap: normal;
@@ -177,11 +177,11 @@ progress::-webkit-progress-bar {
 }
 
 progress::-webkit-progress-value {
-	background-color: hsl(0 0 var(--fg-light));
+	background-color: var(--fg-normal);
 }
 
 progress::-moz-progress-bar {
-	background-color: hsl(0 0 var(--fg-light));
+	background-color: var(--fg-normal);
 }
 
 ::selection,
@@ -233,7 +233,7 @@ div.success {
 
 .danger {
 	border: var(--border-error);
-	background-color: hsl(0 20 calc(var(--bg-light) + var(--light-step)));
+	background-color: hsl(from var(--bg-strong) 0 s l);
 	color: hsl(0 33 var(--fg-light));
 	--fill: hsl(0 33 var(--fg-light));
 	accent-color: hsl(0 33 var(--fg-light));
@@ -252,8 +252,8 @@ div.success {
 }
 
 :popover-open {
-	border: 1px solid hsl(var(--hue) 10 calc(var(--fg-light) - var(--light-step)));
-	background-color: hsl(from var(--bg-menu) h s l / 95%);
+	border: var(--border-elevated);
+	background-color: var(--bg-elevated);
 	border-radius: 0.5em;
 	padding: 0.25em;
 	margin: 0;
@@ -280,7 +280,7 @@ div.success {
 		padding: 0.5em 0.75em;
 		font-size: 0.85em;
 		font-weight: bold;
-		color: var(--fg-light);
+		color: var(--fg-normal);
 		user-select: none;
 	}
 }
@@ -298,7 +298,6 @@ a:has(button, div) {
 .version {
 	font-family: monospace;
 	font-size: 0.9em;
-	color: #aaa;
 }
 
 h1,
@@ -308,13 +307,15 @@ h4,
 h5,
 h6 {
 	.version {
+		opacity: 80%;
 		margin-left: 1em;
 	}
 }
 
 .version::before {
 	content: 'v';
-	color: #888;
+	color: var(--fg-disabled);
+	opacity: 80%;
 }
 
 .inline-button {
