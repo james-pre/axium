@@ -6,7 +6,7 @@
 	import Discovery, * as discovery from './Discovery.svelte';
 	import Icon from './Icon.svelte';
 	import UserCard from './UserCard.svelte';
-	import { closeOnBackGesture } from './attachments.js';
+	import { closeOnBackGesture } from './attachments/gestures.js';
 	import { toast, toastStatus } from './toast.js';
 
 	interface Props extends HTMLDialogAttributes {

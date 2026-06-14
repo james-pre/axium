@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import type { HTMLDialogAttributes } from 'svelte/elements';
-	import { closeOnBackGesture } from './attachments.js';
+	import { closeOnBackGesture } from './attachments/gestures.js';
 
 	let {
 		children,
