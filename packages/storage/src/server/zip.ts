@@ -9,6 +9,7 @@ import * as z from 'zod';
 import '../polyfills.js';
 import { getRecursive } from './db.js';
 import { _contentDispositionFor } from './raw.js';
+import { iteratorToStream } from 'utilium/iterators-streams';
 
 const encoder = new TextEncoder();
 
@@ -207,23 +208,7 @@ addRoute({
 
 		const iterator = generateZip([itemId], request.signal);
 
-		const stream = new ReadableStream({
-			async pull(controller) {
-				try {
-					const { value, done } = await iterator.next();
-					if (done) {
-						controller.close();
-					} else {
-						controller.enqueue(value);
-					}
-				} catch (err) {
-					controller.error(err);
-				}
-			},
-			async cancel() {
-				await iterator.return();
-			},
-		});
+		const stream = iteratorToStream(iterator);
 
 		return new Response(stream, {
 			status: 200,
