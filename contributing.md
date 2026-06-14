@@ -51,7 +51,7 @@ The [Naming Things in Code](https://youtu.be/-J3wNP6u5YU) video covers everythin
 For the different functions and variables, write a short description of what it does and how it should be used.
 I certainly haven't been the best about doing this, so if you find missing or outdated documentation an issue or PR would be welcome.
 
-## NPM vs 3rd party package managers
+## Package management (npm) and workspaces
 
 `npm` is used rather than `pnpm` or `yarn` since it makes it easier for new contributors and simplifies tooling.
 
@@ -95,3 +95,10 @@ If you make changes to formatting, make sure they improve the development experi
 ## Frontend Design Guidelines
 
 - Buttons should capitalize like sentences: "Upload folder" is correct, "Upload Folder" is not.
+- Use consistent styles across UIs.
+    - Pay attention to the following files in `packages/client/assets`:
+        - `theme.css`: This contains CSS variables that are used across all UIs. These are used for most colors, and follow a predictable convention.
+        - `animation.css`: This is used to define animations. It defines keyframes, animations variables (`--A-*`), and `animation: ...` for the appropriate elements
+        - `styles.css`: This defines styles for "generic" elements (e.g. `button`) as well as specific utility classes (e.g. `.subtle` and `.danger`)
+    - For component and page level styles, these are almost always kept in the respective `.svelte` files
+    - Sometimes, generalizable styles are kept separate for de-duplication. Take for example `@axium/client/styles/list`
