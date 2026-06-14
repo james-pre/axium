@@ -13,6 +13,7 @@ export const StorageItemUpdate = z
 		name: StorageItemName,
 		owner: z.uuid(),
 		trash: z.boolean(),
+		parentId: z.uuid().nullable(),
 	})
 	.partial();
 

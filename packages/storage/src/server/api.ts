@@ -74,10 +74,23 @@ addRoute({
 
 		await authRequestForItem(request, 'storage', itemId, { manage: true }, true);
 
-		const values: Partial<Pick<StorageItemMetadata, 'trashedAt' | 'userId' | 'name'>> = {};
+		const values: Partial<Pick<StorageItemMetadata, 'trashedAt' | 'userId' | 'name' | 'parentId'>> = {};
 		if ('trash' in body) values.trashedAt = body.trash ? new Date() : null;
 		if ('owner' in body) values.userId = body.owner;
 		if ('name' in body) values.name = body.name;
+		if ('parentId' in body) {
+			if (body.parentId === itemId) error(400, 'An item can not be moved into itself');
+
+			if (body.parentId) {
+				const { item: target } = await authRequestForItem(request, 'storage', body.parentId, { write: true }, true);
+				if (target.type != 'inode/directory') error(400, 'Items can only be moved into folders');
+
+				for (const ancestor of await getParents(body.parentId))
+					if (ancestor.id == itemId) error(400, 'An item can not be moved into its own descendant');
+			}
+
+			values.parentId = body.parentId;
+		}
 
 		if (!Object.keys(values).length) error(400, 'No valid fields to update');
 
