@@ -92,13 +92,21 @@ const someObject = {
 Styling is aimed at improving developer experience.
 If you make changes to formatting, make sure they improve the development experience.
 
-## Frontend Design Guidelines
+## Frontend Design
 
-- Buttons should capitalize like sentences: "Upload folder" is correct, "Upload Folder" is not.
-- Use consistent styles across UIs.
-    - Pay attention to the following files in `packages/client/assets`:
-        - `theme.css`: This contains CSS variables that are used across all UIs. These are used for most colors, and follow a predictable convention.
-        - `animation.css`: This is used to define animations. It defines keyframes, animations variables (`--A-*`), and `animation: ...` for the appropriate elements
-        - `styles.css`: This defines styles for "generic" elements (e.g. `button`) as well as specific utility classes (e.g. `.subtle` and `.danger`)
-    - For component and page level styles, these are almost always kept in the respective `.svelte` files
-    - Sometimes, generalizable styles are kept separate for de-duplication. Take for example `@axium/client/styles/list`
+### Localization and text
+
+Localized component text is usually keyed by the component name, e.g. `AppPreferences.title` for the title of the `AppPreferences` component.
+
+Buttons should capitalize like sentences: "Upload folder" is correct, "Upload Folder" is not.
+
+### Styles
+
+In general, use consistent styles across UIs.
+
+For component and page level styles, these are almost always kept in the respective `.svelte` files. Sufficiently large styles are sometimes placed along side in a separate file though. Additionally, generalizable styles are kept separate for de-duplication; take for example `@axium/client/styles/list`.
+
+- Pay attention to the following files in `packages/client/assets`:
+    - `theme.css`: This contains CSS variables that are used across all UIs. These are used for most colors, and follow a predictable convention.
+    - `animation.css`: This is used to define animations. It defines keyframes, animations variables (`--A-*`), and `animation: ...` for the appropriate elements
+    - `styles.css`: This defines styles for "generic" elements (e.g. `button`) as well as specific utility classes (e.g. `.subtle` and `.danger`)
