@@ -79,13 +79,13 @@ export async function get(itemId: string): Promise<StorageItemMetadata> {
  * Recursively get all items from a set of "root" IDs. This does not include trashed items.
  */
 export async function* getRecursive(
-	this: { path: string } | { paths: Record<string, string> } | void,
+	this: { path: string } | { parents: Record<string, string> } | void,
 	...ids: string[]
 ): AsyncGenerator<StorageItemMetadata & { path: string }> {
 	const items = await database.selectFrom('storage').where('parentId', 'in', ids).where('trashedAt', 'is', null).selectAll().execute();
 
 	for (const item of items) {
-		const parent = this && ('paths' in this && item.parentId ? this.paths[item.parentId] : 'path' in this ? this.path : undefined);
+		const parent = this && ('parents' in this && item.parentId ? this.parents[item.parentId] : 'path' in this ? this.path : undefined);
 		const path = parent ? parent + '/' + item.name : item.name;
 		yield Object.assign(parseItem(item), { path });
 		if (item.type == 'inode/directory') yield* getRecursive.call({ path }, item.id);

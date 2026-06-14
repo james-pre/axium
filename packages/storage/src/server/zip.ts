@@ -46,8 +46,8 @@ async function* generateZip(rootItems: ItemInfo[], signal?: AbortSignal): AsyncG
 		const ids = rootItems.map(item => item.id);
 		if (rootItems.length > 1) {
 			yield* rootItems.map(item => ({ ...item, path: item.name }));
-			const paths = Object.fromEntries(rootItems.map(item => [item.id, item.name]));
-			yield* getRecursive.call({ paths }, ...ids);
+			const parents = Object.fromEntries(rootItems.map(item => [item.id, item.name]));
+			yield* getRecursive.call({ parents }, ...ids);
 		} else {
 			yield* getRecursive(...ids);
 		}
