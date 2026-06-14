@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { preferences, text } from '@axium/client';
-	import { closeOnBackGesture, contextMenu, Selection, selectable } from '@axium/client/attachments';
+	import { closeOnBackGesture, contextMenu, drag, selectable, Selection } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import '@axium/client/styles/list';
@@ -9,8 +9,9 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
-	import { _downloadItem, _downloadItems, copyShortURL } from '@axium/storage/client/frontend';
+	import { _downloadItem, _downloadItems, copyShortURL, moveItems } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
+	import { pick } from 'utilium';
 	import Path from './Path.svelte';
 	import Preview from './Preview.svelte';
 
@@ -112,10 +113,21 @@
 	</div>
 	{#each sortedItems as item (item.id)}
 		<div
-			class={['list-item', selection.has(item.id) && 'selected']}
+			class={['list-item', selection.has(item.id) && 'selected', drag.controller.has(item.id) && 'dragging']}
 			onclick={() => open_with_single_click && openItem(item)}
 			ondblclick={() => !open_with_single_click && openItem(item)}
+			{@attach drag.source(Object.assign(pick(item, 'id', 'name'), { icon: iconForMime(item.type) }), selection)}
 			{@attach selectable(selection, item.id)}
+			{@attach item.type == 'inode/directory' &&
+				drag.target(ids =>
+					toastStatus(
+						moveItems(ids, item.id).then(moved => {
+							items = items.filter(item => !moved.includes(item.id));
+							selection.clear();
+						}),
+						text('storage.generic.move_success')
+					)
+				)}
 			{@attach contextMenu(() => {
 				// Right-clicking an unselected item acts on just that item.
 				if (!selection.has(item.id)) selection.clear();

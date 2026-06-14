@@ -1,10 +1,12 @@
 <script lang="ts">
 	import { text } from '@axium/client';
+	import { drag } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
 	import { toastStatus } from '@axium/client/toast';
-	import { updateItemMetadata } from '@axium/storage/client';
-	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
+	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { _downloadItem, copyShortURL, moveItems } from '@axium/storage/client/frontend';
 	import { Add, List, Path, Preview } from '@axium/storage/components';
+	import type { Attachment } from 'svelte/attachments';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
@@ -16,6 +18,15 @@
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
 	const parentHref = $derived('/files' + (item.parentId ? '/' + item.parentId : ''));
+
+	function moveTo(ids: string[], parentId: string | null) {
+		toastStatus(
+			moveItems(ids, parentId).then(async () => {
+				if (item.type == 'inode/directory') items = await getDirectoryMetadata(item.id);
+			}),
+			text('storage.generic.move_success')
+		);
+	}
 </script>
 
 <svelte:head>
@@ -35,14 +46,15 @@
 	</button>
 {:else}
 	<AccessControlDialog bind:dialog={shareDialog} {item} itemType="storage" {user} />
-	<Path {item} />
-	{#snippet action(i: string, text: string, handler: (e: Event) => unknown)}
+	<Path {item} onDropMove={moveTo} />
+	{#snippet action(i: string, text: string, handler: (e: Event) => unknown, attachment?: Attachment<HTMLElement>)}
 		<button
 			class="icon-text"
 			onclick={e => {
 				e.preventDefault();
 				handler(e);
 			}}
+			{@attach attachment}
 		>
 			<Icon {i} />
 			<span class="mobile-hide">{text}</span>
@@ -50,7 +62,12 @@
 	{/snippet}
 
 	<div class="folder-actions">
-		{@render action('folder-arrow-up', text('page.files.back'), () => (location.href = parentHref))}
+		{@render action(
+			'folder-arrow-up',
+			text('page.files.back'),
+			() => (location.href = parentHref),
+			drag.target(ids => moveTo(ids, item.parentId))
+		)}
 		{@render action('pencil', text('page.files.rename'), () => dialogs.rename.showModal())}
 		{@render action('user-group', text('page.files.share'), () => shareDialog.showModal())}
 		{@render action('download', text('page.files.download'), () => _downloadItem(item))}

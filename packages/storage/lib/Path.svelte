@@ -19,10 +19,16 @@
 	 */
 
 	import type { StorageItemMetadata } from '@axium/storage/common';
+	import { drag } from '@axium/client/attachments';
 	import { tick } from 'svelte';
 	import { structurallyEqual } from 'utilium';
 
-	const { item, hideRoot }: { item: StorageItemMetadata; hideRoot?: boolean } = $props();
+	const {
+		item,
+		hideRoot,
+		/** When provided, each breadcrumb segment becomes a drop target that moves items into that folder (`null` for the root). */
+		onDropMove,
+	}: { item: StorageItemMetadata; hideRoot?: boolean; onDropMove?: (ids: string[], parentId: string | null) => unknown } = $props();
 
 	let container = $state<HTMLSpanElement>(),
 		measure = $state<HTMLSpanElement>();
@@ -171,7 +177,9 @@
 					<span class="ellipsis">...</span>
 				{/if}
 
-				<a href={part.href}>{part.name}</a>
+				<a href={part.href} {@attach onDropMove && drag.target(ids => onDropMove(ids, part.id == 'root' ? null : part.id))}>
+					{part.name}
+				</a>
 			{/each}
 
 			{#if ellipsisIndex === visibleParts.length}
