@@ -32,6 +32,12 @@ export class Selection extends SvelteSet<string> {
 		this.#anchor = undefined;
 	}
 
+	add(id: string): this {
+		super.add(id);
+		this.#anchor = id;
+		return this;
+	}
+
 	/** Apply selection behavior for a click on `id` with the given modifier keys. */
 	handleClick(id: string, e: { shiftKey: boolean; ctrlKey: boolean; metaKey: boolean }): void {
 		if (e.shiftKey && this.#anchor) {
@@ -41,7 +47,7 @@ export class Selection extends SvelteSet<string> {
 				const [lo, hi] = start < end ? [start, end] : [end, start];
 				const range = new Set(this.#order.slice(lo, hi + 1));
 				super.clear();
-				for (const rangeId of range) this.add(rangeId);
+				for (const rangeId of range) super.add(rangeId);
 				return;
 			}
 		}
@@ -49,13 +55,11 @@ export class Selection extends SvelteSet<string> {
 		if (e.ctrlKey || e.metaKey) {
 			if (this.has(id)) this.delete(id);
 			else this.add(id);
-			this.#anchor = id;
 			return;
 		}
 
 		super.clear();
 		this.add(id);
-		this.#anchor = id;
 	}
 }
 
