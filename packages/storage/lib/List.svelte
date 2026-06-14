@@ -47,6 +47,11 @@
 	let editingId = $state<string>(),
 		editingName = $state('');
 
+	function startRename(item: StorageItemMetadata) {
+		editingId = item.id;
+		editingName = item.name;
+	}
+
 	function commitRename(item: StorageItemMetadata) {
 		const name = editingName?.trim();
 		editingId = undefined;
@@ -57,8 +62,16 @@
 		);
 	}
 
-	/** List-wide selection, shared with each item via the `selectable` attachment. */
-	const selection = new Selection();
+	const selection = new Selection([
+		{
+			key: 'F2',
+			action(sel, id) {
+				if (sel.size != 1) return;
+				const item = items.find(i => i.id === id);
+				if (item) startRename(item);
+			},
+		},
+	]);
 
 	const { sort_folders_first, full_path_in_special, open_with_single_click } = user
 		? await preferences.get(user.id, 'files')
@@ -154,10 +167,7 @@
 					!multi && {
 						i: 'pencil',
 						text: text('storage.generic.rename'),
-						action: () => {
-							editingId = item.id;
-							editingName = item.name;
-						},
+						action: () => startRename(item),
 					},
 					!multi && {
 						i: 'user-group',

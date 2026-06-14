@@ -1,5 +1,9 @@
+import { controls } from '@axium/client/gui';
 import type { Attachment } from 'svelte/attachments';
 import { SvelteSet } from 'svelte/reactivity';
+
+/** A keyboard control bound to a {@link Selection}, e.g. `F2` to rename or `Ctrl+C` to copy. */
+export type SelectionControl = controls.KeyboardHandler<[selection: Selection, id: string]>;
 
 /**
  * Manages a reusable, list-wide selection across items rendered with the {@link selectable} attachment.
@@ -15,6 +19,13 @@ export class Selection extends SvelteSet<string> {
 
 	/** The id of the last item interacted with, used as the anchor for shift-click ranges. */
 	#anchor?: string;
+
+	constructor(
+		/** Keyboard controls dispatched by {@link handleKeyboard}. */
+		protected readonly controls: SelectionControl[] = []
+	) {
+		super();
+	}
 
 	/**
 	 * Update the ordered list of item ids. Call this whenever the rendered order changes
@@ -61,6 +72,17 @@ export class Selection extends SvelteSet<string> {
 		super.clear();
 		this.add(id);
 	}
+
+	/**
+	 * Dispatch a keyboard event to a matching control, if any. Returns whether a control handled it.
+	 */
+	handleKeyboard(e: KeyboardEvent, id: string): boolean {
+		const control = controls.find(this.controls, e);
+		if (!control) return false;
+
+		control.action(this, id);
+		return true;
+	}
 }
 
 /**
@@ -73,22 +95,35 @@ export class Selection extends SvelteSet<string> {
 export function selectable(selection: Selection, id: string): Attachment<HTMLElement> {
 	return function _attachSelectable(element: HTMLElement) {
 		function onclick(e: MouseEvent) {
-			// Let interactive descendants (action buttons, etc.) opt out of triggering selection.
-			for (let node = e.target as HTMLElement | null; node && node != element; node = node.parentElement) {
+			for (let node = e.target as HTMLElement | null; node && node != element; node = node.parentElement)
 				if (node.hasAttribute('data-no-select')) return;
-			}
 
 			if (e.shiftKey || e.ctrlKey || e.metaKey) {
 				e.preventDefault();
 				e.stopPropagation();
 			}
 			selection.handleClick(id, e);
+			element.focus({ preventScroll: true });
 		}
 
+		function onkeydown(e: KeyboardEvent) {
+			for (let node = e.target as HTMLElement | null; node && node != element; node = node.parentElement)
+				if (node.hasAttribute('data-no-select')) return;
+
+			if (selection.handleKeyboard(e, id)) {
+				e.preventDefault();
+				e.stopPropagation();
+			}
+		}
+
+		if (!element.hasAttribute('tabindex')) element.tabIndex = -1;
+
 		element.addEventListener('click', onclick, { capture: true });
+		element.addEventListener('keydown', onkeydown);
 
 		return () => {
 			element.removeEventListener('click', onclick, { capture: true });
+			element.removeEventListener('keydown', onkeydown);
 		};
 	};
 }
