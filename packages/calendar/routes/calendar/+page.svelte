@@ -18,10 +18,10 @@
 	import { contextMenu, dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, ColorPicker, Discovery, discovery, FormDialog, Icon, Popover } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
-	import { colorHashHex, encodeColor } from '@axium/core/color';
+	import { colorHashHex, decodeColor, encodeColor } from '@axium/core/color';
 	import { rrulestr } from 'rrule';
 	import { useSwipe } from 'svelte-gestures';
-	import { SvelteDate } from 'svelte/reactivity';
+	import { SvelteDate, SvelteSet } from 'svelte/reactivity';
 	import { _throw, type Entries } from 'utilium';
 	import * as z from 'zod';
 	import './cal.css';
@@ -56,7 +56,8 @@
 	const spanDays = $derived(span == 'week' ? 7 : _throw('Invalid span value'));
 	const weekDays = $derived(weekDaysFor(start));
 
-	let dialogs = $state<Record<string, HTMLDialogElement>>({});
+	let dialogs = $state<Record<string, HTMLDialogElement>>({}),
+		hiddenCalIds = new SvelteSet<string>();
 
 	const defaultEventInit = $derived<any>({
 		attendees: [],
@@ -97,7 +98,7 @@
 
 	const recurringEvents = $derived(
 		events
-			.filter(ev => ev.recurrence)
+			.filter(ev => ev.recurrence && !hiddenCalIds.has(ev.calId))
 			.map(ev => {
 				const rule = rrulestr('RRULE:' + ev.recurrence, { dtstart: toRRuleDate(ev.start) });
 				const recurrences = rule
@@ -176,7 +177,21 @@
 					{ i: 'trash', text: text('generic.delete'), action: () => dialogs['delete:' + cal.id].showModal() }
 				)}
 			>
-				<span>{cal.name}</span>
+				<span
+					class="icon-text"
+					role="checkbox"
+					aria-checked={!hiddenCalIds.has(cal.id)}
+					tabindex="0"
+					onclick={() => {
+						if (hiddenCalIds.has(cal.id)) hiddenCalIds.delete(cal.id);
+						else hiddenCalIds.add(cal.id);
+					}}
+				>
+					<label class="checkbox" style:--cal-color={decodeColor(cal.color || defaultCalColor)}>
+						{#if !hiddenCalIds.has(cal.id)}<Icon i="check" --size="1.3em" />{/if}
+					</label>
+					<span>{cal.name}</span>
+				</span>
 				<Popover showToggle="hover">
 					<button
 						class="reset menu-item"
@@ -261,6 +276,7 @@
 			{@const eventsForWeekDays = Object.groupBy(
 				events.filter(
 					e =>
+						!hiddenCalIds.has(e.calId) &&
 						e.start < new Date(weekDays[6].getFullYear(), weekDays[6].getMonth(), weekDays[6].getDate() + 1) &&
 						e.end > weekDays[0]
 				),

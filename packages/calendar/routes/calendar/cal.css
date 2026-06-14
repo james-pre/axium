@@ -113,7 +113,18 @@ div.attendees {
 	.cal-sidebar-item {
 		display: flex;
 		align-items: center;
+		gap: 0.5em;
 		justify-content: space-between;
+
+		label.checkbox {
+			border-color: var(--cal-color);
+			flex-shrink: 0;
+		}
+
+		& > span {
+			flex: 1;
+			cursor: pointer;
+		}
 	}
 }
 
