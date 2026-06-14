@@ -45,6 +45,7 @@ div.list-header {
 	overflow: hidden;
 	text-wrap: nowrap;
 	flex: 0 0 auto;
+	user-select: none;
 }
 
 .list-item:not(.list-header, :first-child) {
@@ -52,11 +53,11 @@ div.list-header {
 }
 
 .list-item:not(.list-header):hover {
-	background-color: var(--bg-alt);
+	background-color: var(--bg-strong);
 }
 
 .list-item.selected {
-	background-color: var(--bg-strong);
+	background-color: var(--bg-alt);
 }
 
 p.list-empty {
