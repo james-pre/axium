@@ -54,7 +54,7 @@
 		{@render action('pencil', text('page.files.rename'), () => dialogs.rename.showModal())}
 		{@render action('user-group', text('page.files.share'), () => shareDialog.showModal())}
 		{@render action('download', text('page.files.download'), () => _downloadItem(item))}
-		{@render action('link-horizontal', text('page.files.copy_link'), () => copyShortURL(item))}
+		{@render action('link-horizontal', text('page.files.copy_link'), () => copyShortURL(item.id))}
 		{@render action('trash', text('page.files.trash'), () =>
 			toastStatus(
 				updateItemMetadata(item.id, { trash: true }).then(() => (location.href = parentHref)),

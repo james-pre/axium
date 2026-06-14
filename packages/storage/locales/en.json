@@ -64,6 +64,7 @@
 	"storage": {
 		"generic": {
 			"copy_id": "Copy ID",
+			"copy_ids": "Copy IDs",
 			"download": "Download",
 			"name": "Name",
 			"no_name_in_dialog": "this",
@@ -75,7 +76,8 @@
 		},
 		"preferences": {
 			"sort_folders_first": "Sort folders before other files",
-			"full_path_in_special": "Show full path in usage and trash"
+			"full_path_in_special": "Show full path in usage and trash",
+			"open_with_single_click": "Open files with a single click"
 		},
 		"Add": {
 			"content": "Content",
@@ -89,7 +91,10 @@
 		},
 		"List": {
 			"copy_link": "Copy link",
+			"copy_links": "Copy links",
+			"download_zip": "Download as ZIP",
 			"empty": "Folder is empty.",
+			"items_selected": "{count} items selected",
 			"last_modified": "Last Modified",
 			"share": "Share",
 			"size": "Size"

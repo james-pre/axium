@@ -66,7 +66,7 @@
 			<span class="icon-text preview-action" onclick={() => _downloadItem(item)}>
 				<Icon i="download" />
 			</span>
-			<span class="icon-text preview-action" onclick={() => copyShortURL(item)}>
+			<span class="icon-text preview-action" onclick={() => copyShortURL(item.id)}>
 				<Icon i="link-horizontal" />
 			</span>
 			<span

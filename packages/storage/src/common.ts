@@ -106,6 +106,8 @@ export const StoragePreferences = z
 		sort_folders_first: z.boolean().default(true),
 		/** Whether to show the full path in usage and trash */
 		full_path_in_special: z.boolean().default(true),
+		/** Whether to open files with a single click instead of a double click */
+		open_with_single_click: z.boolean().default(false),
 	})
 	.register(zKeys, { prefix: 'storage.preferences' });
 
