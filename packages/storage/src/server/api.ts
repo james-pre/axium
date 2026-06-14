@@ -258,6 +258,7 @@ addRoute({
 			.where('trashedAt', 'is', null)
 			.where(acl.existsIn('storage', user, { alias: 'item' }))
 			.where(eb => eb.not(acl.existsIn('storage', user, { alias: 'item', itemId: 'parentId' })))
+			.where('userId', '!=', userId)
 			.execute()
 			.catch(withError('Could not get storage items'));
 
