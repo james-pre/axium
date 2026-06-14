@@ -77,7 +77,7 @@
 		const index = items.findIndex(item => item.id === activeId);
 		if (index == -1) return console.warn('Can not remove active item because it does not exist');
 		items.splice(index, 1);
-		selection.ids.delete(activeId!);
+		selection.delete(activeId!);
 		activeId = undefined;
 		dialogs.preview.close();
 	}
@@ -112,17 +112,17 @@
 	</div>
 	{#each sortedItems as item (item.id)}
 		<div
-			class={['list-item', selection.ids.has(item.id) && 'selected']}
+			class={['list-item', selection.has(item.id) && 'selected']}
 			onclick={() => open_with_single_click && openItem(item)}
 			ondblclick={() => !open_with_single_click && openItem(item)}
 			{@attach selectable(selection, item.id)}
 			{@attach contextMenu(() => {
 				// Right-clicking an unselected item acts on just that item.
-				if (!selection.ids.has(item.id)) selection.clear();
-				const ids = selection.ids.size ? [...selection.ids] : [item.id];
-				const multi = ids.length > 1;
+				if (!selection.has(item.id)) selection.clear();
+				const ids = selection.size ? selection : new Set([item.id]);
+				const multi = ids.size > 1;
 				return [
-					multi && { header: text('storage.List.items_selected', { count: ids.length }) },
+					multi && { header: text('storage.List.items_selected', { count: ids.size }) },
 					!multi && {
 						i: 'pencil',
 						text: text('storage.generic.rename'),
@@ -146,8 +146,8 @@
 						text: text('storage.generic.trash'),
 						action: () =>
 							toastStatus(
-								Promise.all(ids.map(id => updateItemMetadata(id, { trash: true }))).then(() => {
-									items = items.filter(item => !ids.includes(item.id));
+								Promise.all(ids.values().map(id => updateItemMetadata(id, { trash: true }))).then(() => {
+									items = items.filter(item => !ids.has(item.id));
 									selection.clear();
 								}),
 								text('storage.generic.trash_success')
@@ -156,7 +156,7 @@
 					user?.preferences?.debug && {
 						i: 'hashtag',
 						text: multi ? text('storage.generic.copy_ids') : text('storage.generic.copy_id'),
-						action: () => copy('text/plain', ids.join(', ')),
+						action: () => copy('text/plain', [...ids].join(', ')),
 					},
 				];
 			})}
