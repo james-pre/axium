@@ -14,10 +14,21 @@ export interface ContextMenuItem {
 	action(): unknown;
 }
 
+/** A non-interactive label, e.g. to describe what it acts on. */
+export interface ContextMenuHeader {
+	header: string;
+}
+
+export type ContextMenuEntry = ContextMenuItem | ContextMenuHeader | false | null | undefined;
+
 /**
- * Attach a context menu to an element with the given actions
+ * Attach a context menu to an element with the given actions.
+ *
+ * Pass a function instead of a fixed list to have the menu rebuilt every time it opens — useful when
+ * the available actions or their labels depend on state that changes after the menu is attached (e.g. a
+ * selection).
  */
-export function contextMenu(...menuItems: (ContextMenuItem | false | null | undefined)[]): Attachment<HTMLElement> {
+export function contextMenu(...menuItems: ContextMenuEntry[] | [() => ContextMenuEntry[]]): Attachment<HTMLElement> {
 	return function _attachContextMenu(element: HTMLElement) {
 		const menu = document.createElement('div');
 		menu.popover = 'auto';
@@ -25,24 +36,37 @@ export function contextMenu(...menuItems: (ContextMenuItem | false | null | unde
 
 		const mountedIcons = new Set<Record<string, any>>();
 
-		for (const item of menuItems) {
-			if (!item) continue;
-			const div = document.createElement('div');
-			div.classList.add('icon-text', 'menu-item');
-			if (item.danger) div.classList.add('danger');
+		function build(items: ContextMenuEntry[]) {
+			for (const item of items) {
+				if (!item) continue;
 
-			div.onclick = e => {
-				e.stopPropagation();
-				menu.hidePopover();
-				item.action();
-			};
+				if ('header' in item) {
+					const header = document.createElement('div');
+					header.classList.add('menu-header');
+					header.appendChild(document.createTextNode(item.header));
+					menu.appendChild(header);
+					continue;
+				}
 
-			if (item.i) mountedIcons.add(mount<any, {}>(Icon, { target: div, props: { i: item.i } }));
+				const div = document.createElement('div');
+				div.classList.add('icon-text', 'menu-item');
+				if (item.danger) div.classList.add('danger');
 
-			div.appendChild(document.createTextNode(item.text));
+				div.onclick = e => {
+					e.stopPropagation();
+					menu.hidePopover();
+					item.action();
+				};
 
-			menu.appendChild(div);
+				if (item.i) mountedIcons.add(mount<any, {}>(Icon, { target: div, props: { i: item.i } }));
+
+				div.appendChild(document.createTextNode(item.text));
+
+				menu.appendChild(div);
+			}
 		}
+
+		if (typeof menuItems[0] != 'function') build(menuItems as ContextMenuEntry[]);
 
 		document.body.appendChild(menu);
 
@@ -55,6 +79,13 @@ export function contextMenu(...menuItems: (ContextMenuItem | false | null | unde
 
 			e.preventDefault();
 			e.stopPropagation();
+
+			if (typeof menuItems[0] == 'function') {
+				for (const icon of mountedIcons) unmount(icon);
+				mountedIcons.clear();
+				menu.replaceChildren();
+				build(menuItems[0]());
+			}
 
 			menu.showPopover();
 			_forcePopover = true;
