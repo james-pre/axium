@@ -17,7 +17,12 @@ import { getRecursiveIds, getUserStats, parseItem } from './db.js';
 addRoute({
 	path: '/api/storage/batch',
 	async POST(req): AsyncResult<'POST', 'storage/batch'> {
-		if (!getConfig('@axium/storage').batch.enabled) error(503, 'Batch updates are disabled');
+		const {
+			batch: { enabled },
+			data: dataDir,
+		} = getConfig('@axium/storage');
+
+		if (!enabled) error(503, 'Batch updates are disabled');
 
 		const { userId, user } = await requireSession(req);
 
@@ -108,7 +113,7 @@ addRoute({
 					.returningAll()
 					.executeTakeFirstOrThrow();
 
-				writeFileSync(join(getConfig('@axium/storage').data, result.id), content);
+				writeFileSync(join(dataDir, result.id), content);
 
 				await tx.commit().execute();
 				results.set(itemId, parseItem(result));
@@ -119,7 +124,7 @@ addRoute({
 			);
 
 			const deleted = await tx.deleteFrom('storage').where('id', 'in', header.deleted).returningAll().execute();
-			for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
+			for (const id of toDelete) unlinkSync(join(dataDir, id));
 			for (const item of deleted) results.set(item.id, parseItem(item));
 
 			for (const [itemId, update] of Object.entries(header.metadata)) {
