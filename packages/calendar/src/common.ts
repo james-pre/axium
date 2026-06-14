@@ -124,7 +124,6 @@ export const EventData = z.object({
 	isAllDay: z.coerce.boolean(),
 	description: z.string().max(2000).nullish(),
 	color: Color.nullish(),
-	// note: recurrences are not support yet
 	recurrence: z.string().max(1000).nullish(),
 	recurrenceExcludes: z.string().max(100).array().max(100).nullish(),
 	recurrenceId: z.uuid().nullish(),
@@ -243,10 +242,24 @@ export function toDateTime(date: Date): string {
 		.replace(/\.\d+Z$/, 'Z');
 }
 
+export type ByDay = 'SU' | 'MO' | 'TU' | 'WE' | 'TH' | 'FR' | 'SA';
+
 /** e.g. `FR`, `SA` */
-export function toByDay(date: Date): string {
-	return date.toLocaleString('en', { weekday: 'short' }).slice(0, 2).toUpperCase();
+export function toByDay(date: Date): ByDay {
+	return date.toLocaleString('en', { weekday: 'short' }).slice(0, 2).toUpperCase() as ByDay;
 }
+
+// Generate weekday labels/names via Intl — Sunday-anchored (getDay() === 0)
+const sunday = new Date(2000, 0, 2); // a known Sunday
+export const weekdayInfo = Array.from({ length: 7 }, (_, i) => {
+	const d = new Date(sunday);
+	d.setDate(sunday.getDate() + i);
+	return {
+		narrow: d.toLocaleString('default', { weekday: 'narrow' }),
+		short: d.toLocaleString('default', { weekday: 'short' }),
+		rrule: toByDay(d),
+	};
+});
 
 export function eventToICS(event: Event): string {
 	const lines: string[] = [

@@ -23,6 +23,29 @@
 	"event_delete": {
 		"confirm": "Are you sure you want to delete this event?"
 	},
+	"RecurrenceDialog": {
+		"title": "Custom recurrence",
+		"confirm": "Done",
+		"repeat_every": "Repeat every",
+		"on": "On",
+		"freq": {
+			"day": "day",
+			"week": "week",
+			"month": "month",
+			"year": "year"
+		},
+		"monthly": {
+			"on_day": "On the {day}",
+			"on_weekday": "On the {day}"
+		},
+		"end": {
+			"label": "End",
+			"never": "Never",
+			"on": "On",
+			"after": "After",
+			"occurrences": "occurrences"
+		}
+	},
 	"event_init": {
 		"all_day": "All day",
 		"description_placeholder": "Add description",
@@ -32,7 +55,8 @@
 			"monthly_on": "Every month on the {day}",
 			"none": "Does not repeat",
 			"weekly": "Every week on {day}",
-			"yearly": "Every year on {date}"
+			"yearly": "Every year on {date}",
+			"custom": "Custom..."
 		},
 		"submit_edit": "Update",
 		"title_placeholder": "Add title",
