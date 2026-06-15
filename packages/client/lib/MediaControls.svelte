@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { formatDuration } from '@axium/core';
 	import Icon from './Icon.svelte';
-	import type { MediaState } from './media.svelte.js';
+	import type { MediaState } from './reactive/media.svelte.js';
 	import type { Snippet } from 'svelte';
 
 	interface Props {

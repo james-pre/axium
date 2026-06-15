@@ -2,7 +2,7 @@
 	import type { Snippet } from 'svelte';
 	import Icon from './Icon.svelte';
 	import MediaControls from './MediaControls.svelte';
-	import { MediaState, type MediaProps } from './media.svelte.js';
+	import { MediaState, type MediaProps } from './reactive/media.svelte.js';
 
 	interface Props extends MediaProps {
 		extraControls?: Snippet;

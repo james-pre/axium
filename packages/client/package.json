@@ -39,6 +39,7 @@
 		"./components/*": "./lib/*.svelte",
 		"./toast": "./lib/toast.js",
 		"./attachments": "./lib/attachments/index.js",
+		"./reactive": "./lib/reactive/index.svelte.js",
 		"./styles/*": "./styles/*.css"
 	},
 	"scripts": {
