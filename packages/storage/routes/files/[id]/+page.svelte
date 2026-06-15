@@ -80,7 +80,7 @@
 		)}
 	</div>
 	{#if item.type == 'inode/directory'}
-		<List appMode bind:items user={data.session?.user} />
+		<List appMode bind:items user={data.session?.user} folderId={item.id} />
 		<Add parentId={item.id} onAdd={item => items.push(item)} />
 	{:else}
 		<div class="preview-container">

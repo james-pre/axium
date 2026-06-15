@@ -1,14 +1,15 @@
 <script lang="ts">
 	import { preferences, text } from '@axium/client';
 	import { closeOnBackGesture, contextMenu, drag, selectable, selectionControls, Selection } from '@axium/client/attachments';
+	import { SyncedClipboard } from '@axium/client/reactive';
 	import { AccessControlDialog, Icon } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import '@axium/client/styles/list';
-	import { toastStatus } from '@axium/client/toast';
+	import { toast, toastStatus } from '@axium/client/toast';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { getDirectoryMetadata, getUserStorageRoot, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, _downloadItems, copyShortURL, moveItems } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
 	import { pick } from 'utilium';
@@ -22,6 +23,7 @@
 		appMode,
 		special,
 		emptyText = text('storage.List.empty'),
+		folderId = null,
 		user,
 		sort = $bindable<StorageItemSorting | undefined>(
 			StorageItemSorting.safeParse({
@@ -34,6 +36,7 @@
 		special?: boolean;
 		items: (StorageItemMetadata & AccessControllable)[];
 		emptyText?: string;
+		folderId?: string | null;
 		user?: UserPublic;
 		sort?: StorageItemSorting;
 	} = $props();
@@ -62,6 +65,8 @@
 		);
 	}
 
+	const clipboard = new SyncedClipboard<string>('storage.clipboard');
+
 	const selection = new Selection([
 		{
 			key: 'F2',
@@ -69,6 +74,48 @@
 				if (sel.size != 1) return;
 				const item = items.find(i => i.id === sel.values().next().value);
 				if (item) startRename(item);
+			},
+		},
+		{
+			key: 'a',
+			ctrl: true,
+			action() {
+				for (const item of sortedItems) selection.add(item.id);
+			},
+		},
+		{
+			key: 'x',
+			ctrl: true,
+			action(sel) {
+				if (sel.size) clipboard.cut(sel);
+			},
+		},
+		{
+			key: 'c',
+			ctrl: true,
+			action(sel) {
+				if (sel.size) toast('warning', text('storage.List.copy_unsupported'));
+			},
+		},
+		{
+			key: 'v',
+			ctrl: true,
+			action() {
+				if (clipboard.isCopy || !clipboard.size) return;
+
+				// Pasting into the folder the items already live in is a no-op.
+				const ids = [...clipboard].filter(id => !items.some(item => item.id == id && item.parentId == folderId));
+				clipboard.clear();
+				if (!ids.length) return;
+
+				toastStatus(
+					moveItems(ids, folderId).then(async () => {
+						// Reload this folder so the pasted items appear.
+						if (folderId) items = await getDirectoryMetadata(folderId);
+						else if (user) items = await getUserStorageRoot(user.id);
+					}),
+					text('storage.generic.move_success')
+				);
 			},
 		},
 	]);
@@ -140,7 +187,11 @@
 	</div>
 	{#each sortedItems as item (item.id)}
 		<div
-			class={['list-item', selection.has(item.id) && 'selected', drag.controller.has(item.id) && 'dragging']}
+			class={[
+				'list-item',
+				selection.has(item.id) && 'selected',
+				(drag.controller.has(item.id) || (!clipboard.isCopy && clipboard.has(item.id))) && 'dragging',
+			]}
 			onclick={() => open_with_single_click && openItem(item)}
 			ondblclick={() => !open_with_single_click && openItem(item)}
 			{@attach drag.source(Object.assign(pick(item, 'id', 'name'), { icon: iconForMime(item.type) }), selection)}

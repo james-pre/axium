@@ -94,6 +94,7 @@
 		"List": {
 			"copy_link": "Copy link",
 			"copy_links": "Copy links",
+			"copy_unsupported": "Copying items isn't supported yet",
 			"download_zip": "Download as ZIP",
 			"empty": "Folder is empty.",
 			"items_selected": "{count} items selected",
