@@ -478,7 +478,20 @@ program
 				{
 					name: 'Size',
 					text: pkg => formatBytes(pkg.latestSize),
-					format: (size, pkg) => styleText(pkg.size > pkg.latestSize ? 'green' : 'yellow', size),
+					padStart: true,
+					grow: 0,
+				},
+				{
+					name: 'Change',
+					text(pkg) {
+						const changedBytes = pkg.latestSize - pkg.size;
+						return (changedBytes < 0n ? '-' : '+') + formatBytes(changedBytes < 0n ? -changedBytes : changedBytes);
+					},
+					format(text, pkg) {
+						const changedBytes = pkg.latestSize - pkg.size;
+						const abs = changedBytes < 0n ? -changedBytes : changedBytes;
+						return styleText(changedBytes < 0n ? 'green' : abs < 1000n ? 'reset' : abs < 1000000n ? 'yellow' : 'red', text);
+					},
 					padStart: true,
 					grow: 0,
 				},
