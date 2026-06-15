@@ -3,7 +3,7 @@ import type { Attachment } from 'svelte/attachments';
 import { SvelteSet } from 'svelte/reactivity';
 
 /** A keyboard control bound to a {@link Selection}, e.g. `F2` to rename or `Ctrl+C` to copy. */
-export type SelectionControl = controls.KeyboardHandler<[selection: Selection, id: string]>;
+export type SelectionControl = controls.KeyboardHandler<[selection: Selection]>;
 
 /**
  * Manages a reusable, list-wide selection across items rendered with the {@link selectable} attachment.
@@ -76,11 +76,11 @@ export class Selection extends SvelteSet<string> {
 	/**
 	 * Dispatch a keyboard event to a matching control, if any. Returns whether a control handled it.
 	 */
-	handleKeyboard(e: KeyboardEvent, id: string): boolean {
+	handleKeyboard(e: KeyboardEvent): boolean {
 		const control = controls.find(this.controls, e);
 		if (!control) return false;
 
-		control.action(this, id);
+		control.action(this);
 		return true;
 	}
 }
@@ -103,27 +103,36 @@ export function selectable(selection: Selection, id: string): Attachment<HTMLEle
 				e.stopPropagation();
 			}
 			selection.handleClick(id, e);
-			element.focus({ preventScroll: true });
 		}
 
-		function onkeydown(e: KeyboardEvent) {
-			for (let node = e.target as HTMLElement | null; node && node != element; node = node.parentElement)
-				if (node.hasAttribute('data-no-select')) return;
+		element.addEventListener('click', onclick, { capture: true });
+		return () => element.removeEventListener('click', onclick, { capture: true });
+	};
+}
 
-			if (selection.handleKeyboard(e, id)) {
+/** Elements that consume keyboard input themselves, and so should suppress selection controls. */
+function isTypingTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) return false;
+	return target.isContentEditable || target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
+}
+
+/**
+ * Register a {@link Selection}'s keyboard controls (e.g. `F2` to rename) on the document.
+ *
+ * This is separate from {@link selectable} so the controls work regardless of which element is focused.
+ * Controls are ignored while the user is typing in an input, textarea, or other editable element.
+ */
+export function selectionControls(selection: Selection): Attachment {
+	return function _attachSelectionControls() {
+		function onkeydown(e: KeyboardEvent) {
+			if (isTypingTarget(e.target)) return;
+			if (selection.handleKeyboard(e)) {
 				e.preventDefault();
 				e.stopPropagation();
 			}
 		}
 
-		if (!element.hasAttribute('tabindex')) element.tabIndex = -1;
-
-		element.addEventListener('click', onclick, { capture: true });
-		element.addEventListener('keydown', onkeydown);
-
-		return () => {
-			element.removeEventListener('click', onclick, { capture: true });
-			element.removeEventListener('keydown', onkeydown);
-		};
+		document.addEventListener('keydown', onkeydown);
+		return () => document.removeEventListener('keydown', onkeydown);
 	};
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { preferences, text } from '@axium/client';
-	import { closeOnBackGesture, contextMenu, drag, selectable, Selection } from '@axium/client/attachments';
+	import { closeOnBackGesture, contextMenu, drag, selectable, selectionControls, Selection } from '@axium/client/attachments';
 	import { AccessControlDialog, Icon } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import '@axium/client/styles/list';
@@ -65,9 +65,9 @@
 	const selection = new Selection([
 		{
 			key: 'F2',
-			action(sel, id) {
+			action(sel) {
 				if (sel.size != 1) return;
-				const item = items.find(i => i.id === id);
+				const item = items.find(i => i.id === sel.values().next().value);
 				if (item) startRename(item);
 			},
 		},
@@ -123,7 +123,7 @@
 	</span>
 {/snippet}
 
-<div class="list">
+<div class="list" {@attach selectionControls(selection)}>
 	<div class="list-item list-header">
 		<span></span>
 		{#each [['name', 'storage.generic.name'], ['modifiedAt', 'storage.List.last_modified'], ['size', 'storage.List.size']] as const as [key, translation]}
