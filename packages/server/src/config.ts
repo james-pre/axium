@@ -346,7 +346,7 @@ export function saveConfig(changed: Config, global: boolean = false) {
 export function saveConfigTo(path: string, changed: Config) {
 	setConfig(changed);
 	const config = configFiles.get(path) ?? {};
-	Object.assign(config, { ...changed, db: { ...config.db, ...changed.db } });
+	deepAssign(config, changed);
 
 	io.debug(`Wrote config to ${path}`);
 	writeFileSync(path, JSON.stringify(config));
