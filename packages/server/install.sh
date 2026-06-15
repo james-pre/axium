@@ -567,17 +567,7 @@ fi
 # ===========================================================================
 
 step 'Initializing Axium'
-axium_cli db init
-ok 'Database initialized'
-
-_node_path=$(command -v "$NODE" 2>/dev/null || true)
-if command -v axium >/dev/null 2>&1 \
-	&& run_root axium ports enable --node "$_node_path" >/dev/null 2>&1; then
-	ok 'Granted permission to bind privileged ports (e.g. 443)'
-else
-	warn 'Could not grant privileged-port capability; run the server on a high port or behind a proxy, or retry `axium ports enable` as root.'
-fi
-
+run_root axium_cli init
 ok 'Axium initialized'
 
 # ===========================================================================
