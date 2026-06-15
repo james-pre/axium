@@ -592,6 +592,9 @@ configure_value() {
 
 step 'Configuration'
 
+# Preset config values
+axium_cli config set web.build "$INSTALL_DIR/build/handler.js" $CONFIG_SET_FLAG >/dev/null
+
 configure_value origin 'Public origin (the URL users will visit)'
 case "$(axium_cli config get origin 2>/dev/null)" in
 	http:*) warn 'Origin uses regular http, passkeys/WebAuthn require HTTPS (or localhost). Set up SSL or a TLS-terminating proxy.' ;;
@@ -606,6 +609,10 @@ info 'web.ssl_key to your certificate paths (e.g. from certbot/Let'\''s Encrypt)
 info 'If you sit behind a reverse proxy that terminates TLS (Cloudflare, nginx,'
 info 'Caddy, Traefik, ...), you can disable Axium-level TLS with:'
 info "    ${C_DIM}axium config set web.secure false${C_RESET}"
+
+step 'Building'
+axium_cli build
+ok 'Finished build'
 
 # ===========================================================================
 # Normalize permissions
@@ -625,9 +632,6 @@ if [ -d "$_cfg" ]; then
 	run_root find "$_cfg" -type f -exec chmod g+w {} + 2>/dev/null || true
 fi
 ok "Ownership normalized to '${SERVICE_USER}'"
-
-step 'Building'
-axium_cli build
 
 # ===========================================================================
 # Commit the initial instance
