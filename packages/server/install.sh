@@ -511,9 +511,12 @@ plugin_packages() {
 
 # Also install the server globally so a system-wide `axium` binary exists
 # Used for root-only steps like `ports enable`, and convenient for admins.
-info 'Installing the global axium CLI'
-run_root npm install -g --no-fund --no-audit @axium/server
+info 'Symlinking the global axium CLI'
 
+_axium_bin_target="$INSTALL_DIR/node_modules/@axium/server/dist/main.js"		
+run_root ln -sf "$_axium_bin_target" "/usr/local/bin/axium" \
+	&& ok "Linked /usr/local/bin/axium -> ${_axium_bin_target}"
+					
 run_root chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 if [ "$CONFIG_SCOPE" = global ]; then
 	run_root mkdir -p /etc/axium
