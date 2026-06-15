@@ -558,7 +558,7 @@ if [ -n "$SELECTED_PLUGINS" ]; then
 	done
 	_json="$_json]"
 
-	axium_cli config set plugins "$_json" --json $CONFIG_SET_FLAG >/dev/null
+	axium_cli config set plugins "$_json" --json $CONFIG_SET_FLAG
 	ok "Registered plugins:${SELECTED_PLUGINS}"
 fi
 
@@ -584,7 +584,7 @@ configure_value() {
 	_answer=$(ask "$_prompt" "$_current")
 	# Only persist when the user changed it from the current value.
 	if [ -n "$_answer" ] && [ "$_answer" != "$_current" ]; then
-		axium_cli config set "$_key" "$_answer" $CONFIG_SET_FLAG >/dev/null
+		axium_cli config set "$_key" "$_answer" $CONFIG_SET_FLAG
 	fi
 	# Report the effective value as Axium parses/normalizes it.
 	ok "${_key} = $(axium_cli config get "$_key" 2>/dev/null)"
@@ -593,7 +593,7 @@ configure_value() {
 step 'Configuration'
 
 # Preset config values
-axium_cli config set web.build "$INSTALL_DIR/build/handler.js" $CONFIG_SET_FLAG >/dev/null
+axium_cli config set web.build "$INSTALL_DIR/build/handler.js" $CONFIG_SET_FLAG
 
 configure_value origin 'Public origin (the URL users will visit)'
 case "$(axium_cli config get origin 2>/dev/null)" in
@@ -603,12 +603,23 @@ esac
 configure_value web.port 'Port to listen on'
 
 printf '\n'
-warn 'SSL/TLS is not configured automatically.'
-info 'If Axium is exposed directly to the internet, set web.ssl_cert and'
-info 'web.ssl_key to your certificate paths (e.g. from certbot/Let'\''s Encrypt).'
-info 'If you sit behind a reverse proxy that terminates TLS (Cloudflare, nginx,'
-info 'Caddy, Traefik, ...), you can disable Axium-level TLS with:'
-info "    ${C_DIM}axium config set web.secure false${C_RESET}"
+info 'Axium can use HTTPS itself, or you can run it behind a reverse proxy. (Cloudflare, nginx, Caddy, Traefik, etc.)'
+info 'Either way the public origin must be https since passkeys require it.'
+if ask_yn 'Should Axium use HTTPS (needs a certificate and key)?' n; then
+	axium_cli config set web.secure true $CONFIG_SET_FLAG
+	ok 'Using HTTPS'
+	configure_value web.ssl_cert 'Path to the SSL certificate (PEM)'
+	configure_value web.ssl_key 'Path to the SSL private key (PEM)'
+	# Warn if the paths don't exist yet since the daemon will fail to start without them.
+	for _key in "web.ssl_cert" "web.ssl_key"; do
+		_f="$(axium_cli config get "$_key" 2>/dev/null)"
+		[ -n "$_f" ] && [ ! -e "$_f" ] && warn "Missing '${_f}'. Please create it before starting the daemon."
+	done
+else
+	axium_cli config set web.secure false $CONFIG_SET_FLAG
+	ok 'Using HTTP'
+	info 'A reverse proxy will be required.'
+fi
 
 step 'Building'
 axium_cli build
