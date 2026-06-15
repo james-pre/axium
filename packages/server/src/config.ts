@@ -14,9 +14,11 @@ const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warni
 	keyof typeof Severity
 >[];
 
+const cfgBool = z.union([z.stringbool(), z.boolean()]);
+
 export const ImageUploadConfig = z.object({
 	/** Whether images can be uploaded */
-	enabled: z.coerce.boolean(),
+	enabled: cfgBool,
 	/** Max image size in KB. Set to zero for no limit */
 	max_size: z.coerce.number().min(0),
 	/** Max dimensions on a side. Set to zero for no limit */
@@ -27,8 +29,8 @@ export interface ImageUploadConfig extends z.infer<typeof ImageUploadConfig> {}
 export const Config = z
 	.looseObject({
 		/** Whether /api/admin is enabled */
-		admin_api: z.coerce.boolean(),
-		allow_new_users: z.coerce.boolean(),
+		admin_api: cfgBool,
+		allow_new_users: cfgBool,
 		apps: z
 			.looseObject({
 				disabled: z.array(z.string()),
@@ -36,7 +38,7 @@ export const Config = z
 			.partial(),
 		audit: z
 			.looseObject({
-				allow_raw: z.coerce.boolean(),
+				allow_raw: cfgBool,
 				/** How many days to keep events in the audit log */
 				retention: z.coerce.number().min(0),
 				/** Minimum severity level. Less severe events will be ignored. */
@@ -50,9 +52,9 @@ export const Config = z
 				passkey_probation: z.coerce.number(),
 				rp_id: z.string(),
 				rp_name: z.string(),
-				secure_cookies: z.coerce.boolean(),
+				secure_cookies: cfgBool,
 				/** Whether only the `Authorization` header can be used to authenticate requests. */
-				header_only: z.coerce.boolean(),
+				header_only: cfgBool,
 			})
 			.partial(),
 		db: z
@@ -64,18 +66,18 @@ export const Config = z
 				database: z.string(),
 			})
 			.partial(),
-		debug: z.coerce.boolean(),
+		debug: cfgBool,
 		/** Whether to show a default home page for debugging */
-		debug_home: z.coerce.boolean(),
+		debug_home: cfgBool,
 		log: z
 			.looseObject({
 				level: z.enum(levelText),
-				console: z.coerce.boolean(),
+				console: cfgBool,
 			})
 			.partial(),
 		origin: z.string(),
 		request_size_limit: z.coerce.number().min(0).optional(),
-		show_duplicate_state: z.coerce.boolean(),
+		show_duplicate_state: cfgBool,
 		/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
 		user_discovery: z.literal(['disabled', 'admin', 'user', 'public']),
 		/** Configuration for user profile pictures */
@@ -85,16 +87,16 @@ export const Config = z
 				/** In minutes */
 				timeout: z.coerce.number(),
 				/** Whether users can verify emails */
-				email: z.coerce.boolean(),
+				email: cfgBool,
 			})
 			.partial(),
 		web: z
 			.looseObject({
-				disable_cache: z.coerce.boolean(),
+				disable_cache: cfgBool,
 				port: z.coerce.number().min(1).max(65535),
 				prefix: z.string(),
 				routes: z.string(),
-				secure: z.coerce.boolean(),
+				secure: cfgBool,
 				ssl_key: z.string(),
 				ssl_cert: z.string(),
 				build: z.string(),
