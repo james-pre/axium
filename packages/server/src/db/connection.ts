@@ -27,6 +27,18 @@ export function connect(): Database {
 		},
 	});
 
+	const dispose = database[Symbol.asyncDispose].bind(database);
+
+	Object.assign(database, {
+		async [Symbol.asyncDispose]() {
+			await dispose();
+			// @ts-expect-error 2322
+			database = null;
+			// @ts-expect-error 2322
+			globalThis[sym] = null;
+		},
+	});
+
 	globalThis[sym] = database;
 	io.debug('Connected to database!');
 	return database;
