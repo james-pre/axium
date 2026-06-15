@@ -3,7 +3,7 @@
 #
 #   curl -sS https://jamespre.dev/axium-install.sh | sh
 #
-# v1 (2026 June 15)
+# v2 (2026 June 15)
 #
 # Environment overrides (all optional):
 #   AXIUM_INSTALL_DIR  Where to install Axium (default: /var/lib/axium). The
@@ -333,8 +333,17 @@ if [ "$_node_ready" = 0 ]; then
 				info "Installing ${_versioned}"
 				run_root dnf install -y "$_versioned"
 				# The versioned package installs `node-NN` alongside any default node.
+				# Also symlinks to that unversioned node/npm/npx work
 				if command -v "node-${NODEJS_V_RECOMMENDED}" >/dev/null 2>&1; then
 					NODE="node-${NODEJS_V_RECOMMENDED}"
+					for _bin in node npm npx; do
+						_target="/usr/bin/${_bin}-${NODEJS_V_RECOMMENDED}"
+						command -v "$_bin" >/dev/null 2>&1 && continue
+						[ -e "$_target" ] || continue
+						run_root ln -sf "$_target" "/usr/local/bin/${_bin}" \
+							&& ok "Linked /usr/local/bin/${_bin} -> ${_target}"
+					done
+					command -v node >/dev/null 2>&1 && NODE=node
 				fi
 			else
 				info 'Installing nodejs'
