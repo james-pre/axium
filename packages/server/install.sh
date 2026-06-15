@@ -63,7 +63,7 @@ fi
 
 step()  { printf '\n%s==>%s %s%s%s\n' "${C_BLUE}${C_BOLD}" "${C_RESET}" "${C_BOLD}" "$1" "${C_RESET}"; }
 info()  { printf '    %s\n' "$1"; }
-ok()    { printf '    %s✔%s %s\n' "${C_GREEN}" "${C_RESET}" "$1"; }
+ok()    { printf '%s✔%s %s\n' "${C_GREEN}" "${C_RESET}" "$1"; }
 warn()  { printf '%s warning:%s %s\n' "${C_YELLOW}${C_BOLD}" "${C_RESET}" "$1" >&2; }
 die()   { printf '%s error:%s %s\n' "${C_RED}${C_BOLD}" "${C_RESET}" "$1" >&2; exit 1; }
 
