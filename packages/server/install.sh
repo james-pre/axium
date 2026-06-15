@@ -3,7 +3,6 @@
 #
 #   curl -sS https://jamespre.dev/axium-install.sh | sh
 #
-# v2 (2026 June 15)
 #
 # Environment overrides (all optional):
 #   AXIUM_INSTALL_DIR  Where to install Axium (default: /var/lib/axium). The
@@ -130,6 +129,12 @@ else
 		die 'This installer needs root privileges and sudo was not found. Re-run as root.'
 	fi
 fi
+
+# The human running the installer. When invoked via sudo, $(id -un) is root, so
+# prefer $SUDO_USER. Used to grant group access to the install/config for manual
+# administration later. Empty if we genuinely started as root with no SUDO_USER.
+INVOKING_USER=${SUDO_USER:-}
+[ -z "$INVOKING_USER" ] && [ "$(id -u)" != 0 ] && INVOKING_USER=$(id -un)
 
 run_root() {
 	if [ -n "$SUDO" ]; then $SUDO "$@"; else "$@"; fi
@@ -447,6 +452,14 @@ else
 	ok "Created system user '${SERVICE_USER}' (home: ${_home}, shell: ${_shell})"
 fi
 
+# Add the invoking user to the axium group so they can read/manage the install
+# and config later (config dirs are made group-writable below).
+if [ -n "$INVOKING_USER" ] && [ "$INVOKING_USER" != "$SERVICE_USER" ]; then
+	run_root usermod -aG "$SERVICE_USER" "$INVOKING_USER" 2>/dev/null \
+		&& ok "Added '${INVOKING_USER}' to the '${SERVICE_USER}' group (effective on next login)" \
+		|| warn "Could not add '${INVOKING_USER}' to the '${SERVICE_USER}' group."
+fi
+
 # ===========================================================================
 # Install Axium
 # ===========================================================================
@@ -501,19 +514,18 @@ plugin_packages() {
 info 'Installing the global axium CLI'
 run_root npm install -g --no-fund --no-audit @axium/server
 
-run_root chown -R "$SERVICE_USER" "$INSTALL_DIR"
+run_root chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 if [ "$CONFIG_SCOPE" = global ]; then
 	run_root mkdir -p /etc/axium
-	run_root chown -R "$SERVICE_USER" /etc/axium
+	run_root chown -R "$SERVICE_USER:$SERVICE_USER" /etc/axium
 fi
 
 ok "Axium installed in ${INSTALL_DIR}"
 
 # Run the axium CLI as the service user from the install dir
 axium_cli() {
-	run_as "$SERVICE_USER" sh -c 'cd "$1" && shift && exec npx axium "$@"' _ "$INSTALL_DIR" "$@" < "$TTY"
+	( cd "$INSTALL_DIR" && run_root npx axium "$@" < "$TTY" )
 }
-
 
 # ===========================================================================
 # Enable plugins
@@ -602,6 +614,25 @@ info 'web.ssl_key to your certificate paths (e.g. from certbot/Let'\''s Encrypt)
 info 'If you sit behind a reverse proxy that terminates TLS (Cloudflare, nginx,'
 info 'Caddy, Traefik, ...), you can disable Axium-level TLS with:'
 info "    ${C_DIM}axium config set web.secure false${C_RESET}"
+
+# ===========================================================================
+# Normalize permissions
+# ===========================================================================
+#
+# The config steps above ran the CLI as root, which may have created files owned by root.
+# Hand everything back to the axium user before the commit and before the daemon starts.
+
+step 'Finalizing permissions'
+run_root chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
+[ "$CONFIG_SCOPE" = global ] && run_root chown -R "$SERVICE_USER:$SERVICE_USER" /etc/axium
+
+if [ "$CONFIG_SCOPE" = global ]; then _cfg=/etc/axium; else _cfg="$INSTALL_DIR/.axium"; fi
+if [ -d "$_cfg" ]; then
+	# g+s on dirs so files created later by either the daemon or a group member keep the axium group.
+	run_root find "$_cfg" -type d -exec chmod g+ws {} + 2>/dev/null || true
+	run_root find "$_cfg" -type f -exec chmod g+w {} + 2>/dev/null || true
+fi
+ok "Ownership normalized to '${SERVICE_USER}'"
 
 # ===========================================================================
 # Commit the initial instance
