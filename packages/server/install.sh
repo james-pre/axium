@@ -704,15 +704,14 @@ fi
 # ===========================================================================
 
 step 'Done'
-printf '    %sAxium is installed and ready.%s\n\n' "${C_GREEN}${C_BOLD}" "${C_RESET}"
 
-info "Your instance lives in ${C_BOLD}${INSTALL_DIR}${C_RESET}."
-info "Run axium commands from there, e.g.: ${C_DIM}cd ${INSTALL_DIR} && npx axium status${C_RESET}"
-info "Node.js in use: ${C_DIM}${NODE}${C_RESET}"
+info "Installation directory: ${C_BOLD}${INSTALL_DIR}${C_RESET}"
+info "Node.js in use: ${C_DIM}$(command -v $NODE), $(node --version)${C_RESET}"
+info "Use ${C_DIM}axium help${C_RESET} for more information"
 
 if [ "$SERVICE_INSTALLED" = 1 ]; then
-	info "Manage the daemon with: ${C_DIM}systemctl {start,stop,status} axium${C_RESET}"
-	info "View logs with:         ${C_DIM}journalctl -t axium -f${C_RESET}"
+	info "\tManage the daemon: ${C_DIM}systemctl {start,stop,status} axium${C_RESET}"
+	info "\tView logs:         ${C_DIM}journalctl -t axium -f${C_RESET}"
 fi
 
 printf '\n'
