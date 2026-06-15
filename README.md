@@ -8,6 +8,14 @@ Axium provides a foundation for you to work off of.
 
 ## Getting Started
 
+### Installation script
+
+```sh
+curl -LsS https://jamespre.dev/axium-install.sh | bash # or whatever shell you use
+```
+
+### Manual installation
+
 At the moment Axium only runs on Linux systems.
 
 Make sure postgresql and Node.js are installed and set up. For postgres make sure to run `postgresql-setup --initdb`.
