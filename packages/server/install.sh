@@ -487,14 +487,22 @@ plugin_packages() {
 # @axium/server (a peer of every plugin) works correctly.
 ( cd "$INSTALL_DIR" && npm install --no-fund --no-audit @axium/server $(plugin_packages) )
 
+# Also install the server globally so a system-wide `axium` binary exists
+# Used for root-only steps like `ports enable`, and convenient for admins.
+info 'Installing the global axium CLI'
+run_root npm install -g --no-fund --no-audit @axium/server
+
+run_root chown -R "$SERVICE_USER" "$INSTALL_DIR"
+if [ "$CONFIG_SCOPE" = global ]; then
+	run_root mkdir -p /etc/axium
+	run_root chown -R "$SERVICE_USER" /etc/axium
+fi
+
 ok "Axium installed in ${INSTALL_DIR}"
 
-# Run the axium CLI from the install dir so `npx` finds the locally installed `axium` binary,
-#
-# stdin is redirected from the terminal: some axium commands (e.g. `init`) ask
-# for confirmation on process.stdin, which would otherwise be the curl pipe.
+# Run the axium CLI as the service user from the install dir
 axium_cli() {
-	( cd "$INSTALL_DIR" && npx axium "$@" < "$TTY" )
+	run_as "$SERVICE_USER" sh -c 'cd "$1" && shift && exec npx axium "$@"' _ "$INSTALL_DIR" "$@" < "$TTY"
 }
 
 
@@ -535,7 +543,17 @@ fi
 # ===========================================================================
 
 step 'Initializing Axium'
-axium_cli init
+axium_cli db init
+ok 'Database initialized'
+
+_node_path=$(command -v "$NODE" 2>/dev/null || true)
+if command -v axium >/dev/null 2>&1 \
+	&& run_root axium ports enable --node "$_node_path" >/dev/null 2>&1; then
+	ok 'Granted permission to bind privileged ports (e.g. 443)'
+else
+	warn 'Could not grant privileged-port capability; run the server on a high port or behind a proxy, or retry `axium ports enable` as root.'
+fi
+
 ok 'Axium initialized'
 
 # ===========================================================================
@@ -577,18 +595,11 @@ info 'Caddy, Traefik, ...), you can disable Axium-level TLS with:'
 info "    ${C_DIM}axium config set web.secure false${C_RESET}"
 
 # ===========================================================================
-# Finalize permissions
+# Commit the initial instance
 # ===========================================================================
 #
-# Hand the install dir to the axium service user. Done after init/config (which
-# run as the invoking user) so the daemon owns its working directory at runtime.
-
-step 'Finalizing permissions'
-run_root chown -R "$SERVICE_USER" "$INSTALL_DIR" 2>/dev/null || true
-ok "Ownership of ${INSTALL_DIR} assigned to '${SERVICE_USER}'"
-
-# Offer an initial commit of the tracked instance. The tree is now owned by the
-# service user, so git must run as that user.
+# The install tree (and config, for local scope) is owned by the service user,
+# so git must run as that user.
 if [ "$USE_GIT" = 1 ] && ask_yn 'Commit the initial Axium instance to git?' y; then
 	# -c safe.directory avoids git's "dubious ownership" refusal when run as the
 	# service user; -c user.* provides an identity in case git has none configured.
