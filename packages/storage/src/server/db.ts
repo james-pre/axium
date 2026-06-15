@@ -183,5 +183,5 @@ export async function getTotalUse(): Promise<bigint> {
 		.select(eb => eb.fn.sum('size').as('size'))
 		.executeTakeFirstOrThrow();
 
-	return BigInt(size);
+	return BigInt(size || 0n);
 }
