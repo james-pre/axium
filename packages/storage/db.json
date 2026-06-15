@@ -19,7 +19,7 @@
 						"type": { "type": "text", "required": true },
 						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
 						"publicPermission": { "type": "integer", "required": true, "default": 0 },
-						"metadata": { "type": "jsonb", "required": true, "default": "{}" }
+						"metadata": { "type": "jsonb", "required": true, "default": "'{}'::jsonb" }
 					}
 				},
 				"acl.storage": {
