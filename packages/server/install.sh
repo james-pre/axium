@@ -336,7 +336,7 @@ if [ "$_node_ready" = 0 ]; then
 			_versioned="nodejs${NODEJS_V_RECOMMENDED}"
 			if dnf list --available "$_versioned" >/dev/null 2>&1 || dnf list --installed "$_versioned" >/dev/null 2>&1; then
 				info "Installing ${_versioned}"
-				run_root dnf install -y "$_versioned"
+				run_root dnf install -qy "$_versioned"
 				# The versioned package installs `node-NN` alongside any default node.
 				# Also symlinks to that unversioned node/npm/npx work
 				if command -v "node-${NODEJS_V_RECOMMENDED}" >/dev/null 2>&1; then
@@ -352,17 +352,17 @@ if [ "$_node_ready" = 0 ]; then
 				fi
 			else
 				info 'Installing nodejs'
-				run_root dnf install -y nodejs
+				run_root dnf install -qy nodejs
 			fi
 			;;
 		debian)
 			# On Debian/Ubuntu npm is a separate package; install it as a
 			# dependency so it isn't marked manually-installed.
-			run_root apt-get update
-			run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y nodejs npm
+			run_root apt-get update -qq
+			run_root env DEBIAN_FRONTEND=noninteractive apt-get install -qq -y nodejs npm
 			;;
 		arch)
-			run_root pacman -Sy --needed --noconfirm nodejs npm
+			run_root pacman -Sy --needed --noconfirm --quiet nodejs npm
 			;;
 	esac
 
@@ -389,7 +389,7 @@ enable_postgres() {
 
 case $PKG_FAMILY in
 	rhel)
-		run_root dnf install -y \
+		run_root dnf install -qy \
 			postgresql-server postgresql \
 			vips \
 			gcc-c++ make
@@ -402,8 +402,8 @@ case $PKG_FAMILY in
 		enable_postgres
 		;;
 	debian)
-		run_root apt-get update
-		run_root env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+		run_root apt-get update -qq
+		run_root env DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
 			postgresql postgresql-client \
 			libvips42 \
 			build-essential \
@@ -411,7 +411,7 @@ case $PKG_FAMILY in
 		# Debian's postgresql package initializes and starts the cluster itself.
 		;;
 	arch)
-		run_root pacman -Sy --needed --noconfirm \
+		run_root pacman -Sy --needed --noconfirm --quiet \
 			postgresql \
 			libvips \
 			base-devel
@@ -507,7 +507,7 @@ plugin_packages() {
 
 # All packages go in one local node_modules tree, so plugin resolution against
 # @axium/server (a peer of every plugin) works correctly.
-( cd "$INSTALL_DIR" && npm install --no-fund --no-audit @axium/server $(plugin_packages) )
+( cd "$INSTALL_DIR" && npm install --silent --no-fund --no-audit @axium/server $(plugin_packages) )
 
 # Also install the server globally so a system-wide `axium` binary exists
 # Used for root-only steps like `ports enable`, and convenient for admins.
