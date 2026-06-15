@@ -626,6 +626,9 @@ if [ -d "$_cfg" ]; then
 fi
 ok "Ownership normalized to '${SERVICE_USER}'"
 
+step 'Building'
+axium_cli build
+
 # ===========================================================================
 # Commit the initial instance
 # ===========================================================================
