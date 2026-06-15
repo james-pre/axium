@@ -54,11 +54,8 @@ program
 			config.set({ debug: opt.debug });
 			io._setDebugOutput(opt.debug);
 		}
-		try {
-			db.connect();
-		} catch (e) {
-			if (!noAutoDB.includes(action.name())) throw e;
-		}
+		if (noAutoDB.includes(action.name())) return;
+		db.connect();
 	})
 	.hook('postAction', async (_, action) => {
 		if (!noAutoDB.includes(action.name())) await db.database.destroy();
