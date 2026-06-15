@@ -2,7 +2,7 @@ import { program } from 'commander';
 import * as io from 'ioium/node';
 import { getByString, isJSON, setByString } from 'utilium';
 import * as z from 'zod';
-import config, { ConfigFile } from '../config.js';
+import config, { Config, ConfigFile } from '../config.js';
 import { sharedOptions as opts } from './common.js';
 
 const axiumConfig = program
@@ -47,7 +47,7 @@ axiumConfig
 		if (opt.json && !isJSON(value)) io.exit('Invalid JSON');
 		const obj: Record<string, any> = {};
 		setByString(obj, key, opt.json ? JSON.parse(value) : value);
-		config.save(obj, opt.global);
+		config.save(Config.parse(obj), opt.global);
 	});
 
 axiumConfig

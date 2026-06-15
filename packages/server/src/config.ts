@@ -16,19 +16,19 @@ const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warni
 
 export const ImageUploadConfig = z.object({
 	/** Whether images can be uploaded */
-	enabled: z.boolean(),
+	enabled: z.coerce.boolean(),
 	/** Max image size in KB. Set to zero for no limit */
-	max_size: z.number().min(0),
+	max_size: z.coerce.number().min(0),
 	/** Max dimensions on a side. Set to zero for no limit */
-	max_length: z.int().min(0),
+	max_length: z.coerce.number().int().min(0),
 });
 export interface ImageUploadConfig extends z.infer<typeof ImageUploadConfig> {}
 
 export const Config = z
 	.looseObject({
 		/** Whether /api/admin is enabled */
-		admin_api: z.boolean(),
-		allow_new_users: z.boolean(),
+		admin_api: z.coerce.boolean(),
+		allow_new_users: z.coerce.boolean(),
 		apps: z
 			.looseObject({
 				disabled: z.array(z.string()),
@@ -36,9 +36,9 @@ export const Config = z
 			.partial(),
 		audit: z
 			.looseObject({
-				allow_raw: z.boolean(),
+				allow_raw: z.coerce.boolean(),
 				/** How many days to keep events in the audit log */
-				retention: z.number().min(0),
+				retention: z.coerce.number().min(0),
 				/** Minimum severity level. Less severe events will be ignored. */
 				min_severity: z.literal(audit_severity_levels),
 				auto_suspend: z.literal(audit_severity_levels),
@@ -47,35 +47,35 @@ export const Config = z
 		auth: z
 			.looseObject({
 				/** In minutes */
-				passkey_probation: z.number(),
+				passkey_probation: z.coerce.number(),
 				rp_id: z.string(),
 				rp_name: z.string(),
-				secure_cookies: z.boolean(),
+				secure_cookies: z.coerce.boolean(),
 				/** Whether only the `Authorization` header can be used to authenticate requests. */
-				header_only: z.boolean(),
+				header_only: z.coerce.boolean(),
 			})
 			.partial(),
 		db: z
 			.looseObject({
 				host: z.string(),
-				port: z.int().min(1).max(65535),
+				port: z.coerce.number().int().min(1).max(65535),
 				password: z.string(),
 				user: z.string(),
 				database: z.string(),
 			})
 			.partial(),
-		debug: z.boolean(),
+		debug: z.coerce.boolean(),
 		/** Whether to show a default home page for debugging */
-		debug_home: z.boolean(),
+		debug_home: z.coerce.boolean(),
 		log: z
 			.looseObject({
 				level: z.enum(levelText),
-				console: z.boolean(),
+				console: z.coerce.boolean(),
 			})
 			.partial(),
 		origin: z.string(),
-		request_size_limit: z.number().min(0).optional(),
-		show_duplicate_state: z.boolean(),
+		request_size_limit: z.coerce.number().min(0).optional(),
+		show_duplicate_state: z.coerce.boolean(),
 		/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
 		user_discovery: z.literal(['disabled', 'admin', 'user', 'public']),
 		/** Configuration for user profile pictures */
@@ -83,18 +83,18 @@ export const Config = z
 		verifications: z
 			.looseObject({
 				/** In minutes */
-				timeout: z.number(),
+				timeout: z.coerce.number(),
 				/** Whether users can verify emails */
-				email: z.boolean(),
+				email: z.coerce.boolean(),
 			})
 			.partial(),
 		web: z
 			.looseObject({
-				disable_cache: z.boolean(),
-				port: z.number().min(1).max(65535),
+				disable_cache: z.coerce.boolean(),
+				port: z.coerce.number().min(1).max(65535),
 				prefix: z.string(),
 				routes: z.string(),
-				secure: z.boolean(),
+				secure: z.coerce.boolean(),
 				ssl_key: z.string(),
 				ssl_cert: z.string(),
 				build: z.string(),
