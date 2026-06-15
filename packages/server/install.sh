@@ -713,8 +713,8 @@ info "Node.js in use: ${C_DIM}$(command -v $NODE), $(node --version)${C_RESET}"
 info "Use ${C_DIM}axium help${C_RESET} for more information"
 
 if [ "$SERVICE_INSTALLED" = 1 ]; then
-	info "\tManage the daemon: ${C_DIM}systemctl {start,stop,status} axium${C_RESET}"
-	info "\tView logs:         ${C_DIM}journalctl -t axium -f${C_RESET}"
+	info "    Manage the daemon: ${C_DIM}systemctl {start,stop,status} axium${C_RESET}"
+	info "    View logs:         ${C_DIM}journalctl -t axium -f${C_RESET}"
 fi
 
 printf '\n'
