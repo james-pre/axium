@@ -147,10 +147,11 @@ program
 	.description('Install Axium server')
 	.addOption(opts.force)
 	.addOption(opts.check)
+	.addOption(opts.assumeYes)
 	.option('-s, --skip', 'Skip already initialized steps', false)
 	.action(async opt => {
 		await db.init(opt);
-		await dbInitTables();
+		await dbInitTables(opt.assumeYes);
 		restrictedPorts({ method: 'node-cap', action: 'enable' });
 	});
 

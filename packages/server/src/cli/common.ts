@@ -95,6 +95,7 @@ export const sharedOptions = {
 		if (!Number.isSafeInteger(timeout) || timeout < 0) io.warn('Invalid timeout value, using default.');
 		io.setCommandTimeout(timeout);
 	}),
+	assumeYes: new Option('-y, --assume-yes', 'assume yes for all prompts').default(false),
 };
 
 const rl = createInterface({

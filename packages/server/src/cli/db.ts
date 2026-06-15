@@ -9,13 +9,13 @@ import * as db from '../db/index.js';
 
 const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout);
 
-export async function dbInitTables() {
+export async function dbInitTables(assumeYes: boolean = false) {
 	const info = db.getUpgradeInfo();
 	const schema = db.schema.getFull({ exclude: Object.keys(info.current) });
 	const delta = db.delta.compute({ tables: {}, indexes: {}, scripts: [] }, schema);
 	if (db.delta.isEmpty(delta)) return;
 	for (const text of db.delta.display(delta)) console.log(text);
-	await rlConfirm();
+	if (!assumeYes) await rlConfirm();
 	await using _ = db.connect();
 	await db.delta.apply(delta);
 	Object.assign(info.current, schema.versions);
@@ -28,10 +28,11 @@ axiumDB
 	.addOption(opts.force)
 	.option('-s, --skip', 'If the user, database, or schema already exists, skip trying to create it.', false)
 	.addOption(opts.check)
+	.addOption(opts.assumeYes)
 	.action(async function axium_db_init() {
 		const opt = this.optsWithGlobals();
 		await db.init(opt);
-		await dbInitTables();
+		await dbInitTables(opt.assumeYes);
 	});
 
 axiumDB
