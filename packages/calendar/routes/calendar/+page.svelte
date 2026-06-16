@@ -409,8 +409,7 @@
 			id="eventInit.description"
 			placeholder={text('event_init.description_placeholder')}
 			bind:value={eventInit.description}
-			{@attach dynamicRows()}
-		></textarea>
+			{@attach dynamicRows()}></textarea>
 	</div>
 </FormDialog>
 
