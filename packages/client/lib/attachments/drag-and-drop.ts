@@ -165,3 +165,84 @@ export function target<T = string>(type: string, onDrop: (items: T[]) => unknown
 		};
 	};
 }
+
+function notUpload(e: DragEvent): boolean {
+	return !e.dataTransfer?.types.includes('Files');
+}
+
+/**
+ * Register an element as a target for files dragged in from the system file manager.
+ */
+export function uploadTarget(label: string, onDrop: (entries: FileSystemEntry[]) => unknown): Attachment<HTMLElement> {
+	return function _attachUploadTarget(element: HTMLElement) {
+		let depth = 0,
+			indicator: HTMLElement | undefined,
+			icon: {} | undefined;
+
+		function hide() {
+			depth = 0;
+			element.classList.remove('drag-over');
+			if (icon) unmount(icon);
+			indicator?.remove();
+		}
+
+		function onDragEnter(e: DragEvent) {
+			if (notUpload(e)) return;
+			// Stop drag events from bubbling so the innermost upload target wins
+			e.preventDefault();
+			e.stopPropagation();
+			if (depth++ !== 0) return;
+			element.classList.add('drag-over');
+
+			indicator = document.createElement('div');
+			indicator.className = 'drag-upload-indicator';
+			icon = mount(Icon, { target: indicator, props: { i: 'upload' } });
+
+			const text = document.createElement('span');
+			text.textContent = label;
+			indicator.appendChild(text);
+
+			document.body.appendChild(indicator);
+		}
+
+		function onDragOver(e: DragEvent) {
+			if (notUpload(e)) return;
+			e.preventDefault();
+			e.stopPropagation();
+			if (e.dataTransfer) e.dataTransfer.dropEffect = 'copy';
+		}
+
+		function onDragLeave(e: DragEvent) {
+			if (notUpload(e)) return;
+			e.stopPropagation();
+			if (--depth <= 0) hide();
+		}
+
+		function onDropEvent(e: DragEvent) {
+			if (notUpload(e)) return;
+			e.preventDefault();
+			e.stopPropagation();
+			hide();
+
+			const entries: FileSystemEntry[] = [];
+			for (const item of e.dataTransfer!.items) {
+				const entry = item.webkitGetAsEntry();
+				if (entry) entries.push(entry);
+			}
+			if (entries.length) onDrop(entries);
+		}
+
+		element.addEventListener('dragenter', onDragEnter);
+		element.addEventListener('dragover', onDragOver);
+		element.addEventListener('dragleave', onDragLeave);
+		element.addEventListener('drop', onDropEvent);
+
+		return () => {
+			hide();
+			element.removeEventListener('dragenter', onDragEnter);
+			element.removeEventListener('dragover', onDragOver);
+			element.removeEventListener('dragleave', onDragLeave);
+			element.removeEventListener('drop', onDropEvent);
+		};
+	};
+}

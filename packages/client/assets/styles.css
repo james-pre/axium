@@ -327,6 +327,24 @@ div.success {
 	border-radius: 0.5em;
 }
 
+.drag-upload-indicator {
+	position: fixed;
+	bottom: 2em;
+	left: 50%;
+	translate: -50% 0;
+	z-index: 100;
+	pointer-events: none;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.5em;
+	padding: 1em 2em;
+	border-radius: 1em;
+	background-color: var(--bg-elevated);
+	border: var(--border-accent);
+	font-weight: bold;
+	white-space: nowrap;
+}
+
 body.dragging-items,
 body.dragging-items * {
 	user-select: none;
