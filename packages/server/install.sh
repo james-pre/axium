@@ -668,21 +668,15 @@ else
 		run_root systemctl link "$_unit_src" >/dev/null
 		run_root systemctl daemon-reload
 		SERVICE_INSTALLED=1
-		ok 'systemd service installed'
 
 		if ask_yn 'Enable the service (start automatically on boot)?' y; then
 			run_root systemctl enable axium >/dev/null 2>&1 && SERVICE_ENABLED=1
-			ok 'Service enabled'
 		fi
 	fi
 fi
 
-if [ "$SERVICE_INSTALLED" = 1 ] && ask_yn 'Start the Axium daemon now?' y; then
-	if run_root systemctl start axium; then
-		ok 'Axium daemon started'
-	else
-		warn 'Failed to start the daemon. Check: journalctl -u axium -e'
-	fi
+if [ "$SERVICE_INSTALLED" = 1 ] && ask_yn 'Start the Axium daemon now?' y && ! run_root systemctl start axium; then
+	warn 'Failed to start the daemon. Check: journalctl -u axium -e'
 fi
 
 # ===========================================================================
