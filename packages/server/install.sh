@@ -522,20 +522,12 @@ axium_cli() {
 }
 
 # ===========================================================================
-# Enable plugins
+# Initialize Axium
 # ===========================================================================
-#
-# Register the selected plugins in the config, before `axium init` so it sets up
-# their DB tables in one pass. The specifier form depends on the config scope:
-#   global -> ABSOLUTE paths into the install dir's node_modules. A bare name
-#             would be resolved by Node relative to /etc/axium, which can't see
-#             the install dir's node_modules.
-#   local  -> bare specifiers (@axium/storage). The config lives in the install
-#             dir's .axium, so Node resolves them from the sibling node_modules.
+
+step 'Initializing Axium'
 
 if [ -n "$SELECTED_PLUGINS" ]; then
-	step 'Enabling plugins'
-
 	_json='['
 	_first=1
 	for _p in $SELECTED_PLUGINS; do
@@ -550,15 +542,11 @@ if [ -n "$SELECTED_PLUGINS" ]; then
 	_json="$_json]"
 
 	axium_cli config set plugins "$_json" --json $CONFIG_SET_FLAG
-	ok "Registered plugins:${SELECTED_PLUGINS}"
+	ok "Added selected plugins to config"
 fi
 
-# ===========================================================================
-# Initialize Axium
-# ===========================================================================
+axium_cli init -y >/dev/null
 
-step 'Initializing Axium'
-axium_cli init -y
 ok 'Axium initialized'
 
 # ===========================================================================
@@ -620,7 +608,7 @@ ok 'Finished build'
 # The config steps above ran the CLI as root, which may have created files owned by root.
 # Hand everything back to the axium user before the commit and before the daemon starts.
 
-step 'Finalizing permissions'
+step 'Finalizing'
 run_root chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 [ "$CONFIG_SCOPE" = global ] && run_root chown -R "$SERVICE_USER:$SERVICE_USER" /etc/axium
 
