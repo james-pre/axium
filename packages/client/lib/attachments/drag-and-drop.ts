@@ -9,7 +9,7 @@ export interface Display {
 	icon?: string;
 }
 
-function createDragImage(selection: string[], lead: Display): HTMLElement & Disposable {
+function createDragImage(lead: Display, extraItems: number): HTMLElement & Disposable {
 	const indicator = document.createElement('div');
 	indicator.className = 'drag-indicator';
 	// Keep it out of the layout/flow while it is briefly attached for snapshotting.
@@ -26,10 +26,10 @@ function createDragImage(selection: string[], lead: Display): HTMLElement & Disp
 	name.textContent = lead.name;
 	indicator.appendChild(name);
 
-	if (selection.length > 1) {
+	if (extraItems) {
 		const extra = document.createElement('b');
 		extra.className = 'drag-count';
-		extra.textContent = `+ ${selection.length - 1}`;
+		extra.textContent = `+ ${extraItems}`;
 		indicator.appendChild(extra);
 	}
 
@@ -73,7 +73,7 @@ export function source(selection: Iterable<string>, thisId: string, display: Dis
 			e.dataTransfer.setData(idsMimeType, sel.join(','));
 			e.dataTransfer.effectAllowed = 'move';
 
-			using image = createDragImage(sel, display);
+			using image = createDragImage(display, sel.length - 1);
 			e.dataTransfer.setDragImage(image, 0, -8);
 
 			isActive = true;
