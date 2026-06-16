@@ -23,7 +23,14 @@
 
 <p><NumberBar max={Number(limits.user_size * 1_000_000n)} value={Number(usedBytes)} text={barText} /></p>
 
-<List bind:items emptyText={text('page.files.usage.empty')} user={data.session?.user} sort={{ by: 'size', descending: true }} special />
+<List
+	bind:items
+	emptyText={text('page.files.usage.empty')}
+	user={data.session?.user}
+	sort={{ by: 'size', descending: true }}
+	special
+	disableDrag
+/>
 
 {#if fileCount > items.length}
 	<p>{text('page.files.usage.more_files', { count: fileCount - items.length })}</p>

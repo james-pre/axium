@@ -12,7 +12,6 @@
 	import { getDirectoryMetadata, getUserStorageRoot, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, _downloadItems, copyShortURL, moveItems } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
-	import { pick } from 'utilium';
 	import Path from './Path.svelte';
 	import Preview from './Preview.svelte';
 
@@ -22,6 +21,7 @@
 		items = $bindable(),
 		appMode,
 		special,
+		disableDrag,
 		emptyText = text('storage.List.empty'),
 		folderId = null,
 		user,
@@ -34,6 +34,7 @@
 	}: {
 		appMode?: boolean;
 		special?: boolean;
+		disableDrag?: boolean;
 		items: (StorageItemMetadata & AccessControllable)[];
 		emptyText?: string;
 		folderId?: string | null;
@@ -194,10 +195,10 @@
 			]}
 			onclick={() => open_with_single_click && openItem(item)}
 			ondblclick={() => !open_with_single_click && openItem(item)}
-			{@attach !special && drag.source('storage', selection, item.id, { name: item.name, icon: iconForMime(item.type) })}
+			{@attach disableDrag && drag.source('storage', selection, item.id, { name: item.name, icon: iconForMime(item.type) })}
 			{@attach selectable(selection, item.id)}
 			{@attach item.type == 'inode/directory' &&
-				!special &&
+				disableDrag &&
 				drag.target('storage', ids =>
 					toastStatus(
 						moveItems(ids, item.id).then(moved => {
