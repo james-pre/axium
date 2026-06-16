@@ -48,9 +48,9 @@ export let isActive = false;
  *
  * Grabs either the given selection (when non-empty) or just this item.
  */
-export function source(type: string, selection: Iterable<string>, thisId: string, display: Display): Attachment<HTMLElement> {
+export function source<T = string>(type: string, selection: Iterable<T>, thisValue: T, display: Display): Attachment<HTMLElement> {
 	const sel = Array.from(selection);
-	if (!sel.length) sel.push(thisId);
+	if (!sel.length) sel.push(thisValue);
 
 	return function _attachDraggable(element: HTMLElement) {
 		element.draggable = true;
@@ -103,7 +103,7 @@ export function source(type: string, selection: Iterable<string>, thisId: string
 /**
  * Register an element as a drop target for drags of the given kind.
  */
-export function target<T = string>(type: string, onDrop: (items: T[]) => unknown): Attachment<HTMLElement> {
+export function target<T = string>(type: string, onDrop: (items: T[]) => unknown, exclude?: T): Attachment<HTMLElement> {
 	const mime = `${mimeType}+${type.toLowerCase()}`;
 
 	return function _attachDropTarget(element: HTMLElement) {
@@ -146,7 +146,10 @@ export function target<T = string>(type: string, onDrop: (items: T[]) => unknown
 			} catch {
 				return;
 			}
-			if (Array.isArray(items) && items.length) onDrop(items);
+			if (!Array.isArray(items)) return;
+			const index = exclude ? items.indexOf(exclude) : -1;
+			if (index !== -1) items.splice(index, 1);
+			if (items.length) onDrop(items);
 		}
 
 		element.addEventListener('dragenter', onDragEnter);
