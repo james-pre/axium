@@ -292,6 +292,11 @@ div.success {
 }
 
 .drag-indicator {
+	position: fixed;
+	top: 0;
+	left: 0;
+	z-index: 100;
+	pointer-events: none;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.5em;

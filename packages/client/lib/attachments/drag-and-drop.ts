@@ -1,4 +1,4 @@
-import { mount, unmount } from 'svelte';
+import { mount, unmount, type Component } from 'svelte';
 import type { Attachment } from 'svelte/attachments';
 import Icon from '../Icon.svelte';
 
@@ -9,21 +9,15 @@ export interface Display {
 	icon?: string;
 }
 
-function createDragImage(lead: Display, extraItems: number): HTMLElement & Disposable {
+function createIndicator(display: Display, extraItems: number): HTMLElement {
 	const indicator = document.createElement('div');
 	indicator.className = 'drag-indicator';
-	// Keep it out of the layout/flow while it is briefly attached for snapshotting.
-	indicator.style.position = 'fixed';
-	indicator.style.top = '-1000px';
-	indicator.style.left = '-1000px';
-	indicator.style.pointerEvents = 'none';
 
-	let icon: Record<string, any> | undefined;
-	if (lead.icon) icon = mount<any, {}>(Icon, { target: indicator, props: { i: lead.icon } });
+	const icon = display.icon && mount(Icon, { target: indicator, props: { i: display.icon } });
 
 	const name = document.createElement('span');
 	name.className = 'drag-name';
-	name.textContent = lead.name;
+	name.textContent = display.name;
 	indicator.appendChild(name);
 
 	if (extraItems) {
@@ -35,15 +29,17 @@ function createDragImage(lead: Display, extraItems: number): HTMLElement & Dispo
 
 	document.body.appendChild(indicator);
 
+	const remove = indicator.remove.bind(indicator);
 	return Object.assign(indicator, {
-		[Symbol.dispose]() {
-			setTimeout(() => {
-				if (icon) unmount(icon);
-				indicator.remove();
-			});
+		remove() {
+			if (icon) unmount(icon);
+			remove();
 		},
 	});
 }
+
+const emptyImage = new Image();
+emptyImage.src = 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7';
 
 export let isActive = false;
 
@@ -56,13 +52,16 @@ export function source(type: string, selection: Iterable<string>, thisId: string
 	const sel = Array.from(selection);
 	if (!sel.length) sel.push(thisId);
 
-	const mime = `${mimeType}+${type.toLowerCase()}`;
-
 	return function _attachDraggable(element: HTMLElement) {
 		element.draggable = true;
 
+		let indicator: HTMLElement;
+
+		function onDragOver(e: DragEvent) {
+			indicator.style.translate = `${e.clientX}px ${e.clientY}px`;
+		}
+
 		function onDragStart(e: DragEvent) {
-			// Don't start drags from interactive descendants (action buttons, etc.).
 			for (let node = e.target as HTMLElement | null; node && node !== element; node = node.parentElement) {
 				if (node.hasAttribute('data-no-select')) {
 					e.preventDefault();
@@ -71,18 +70,22 @@ export function source(type: string, selection: Iterable<string>, thisId: string
 			}
 
 			if (!e.dataTransfer) return;
-			e.dataTransfer.setData(mime, JSON.stringify(sel));
+			e.dataTransfer.setData(`${mimeType}+${type.toLowerCase()}`, JSON.stringify(sel));
 			e.dataTransfer.effectAllowed = 'move';
 
-			using image = createDragImage(display, sel.length - 1);
-			e.dataTransfer.setDragImage(image, 0, -8);
+			e.dataTransfer.setDragImage(emptyImage, 0, 0);
 
 			isActive = true;
+			indicator = createIndicator(display, sel.length - 1);
+			indicator.style.translate = `${e.clientX}px ${e.clientY}px`;
 			document.body.classList.add('dragging-items');
+			document.addEventListener('dragover', onDragOver);
 		}
 
 		function onDragEnd() {
 			isActive = false;
+			document.removeEventListener('dragover', onDragOver);
+			indicator.remove();
 			document.body.classList.remove('dragging-items');
 		}
 
@@ -90,6 +93,7 @@ export function source(type: string, selection: Iterable<string>, thisId: string
 		element.addEventListener('dragend', onDragEnd);
 
 		return () => {
+			document.removeEventListener('dragover', onDragOver);
 			element.removeEventListener('dragstart', onDragStart);
 			element.removeEventListener('dragend', onDragEnd);
 		};
