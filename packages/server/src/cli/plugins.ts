@@ -50,6 +50,7 @@ axiumPlugin
 	.action(async (search, opt) => {
 		const plugin = _findPlugin(search);
 
+		db.connect();
 		await plugin._hooks?.remove?.(opt);
 
 		for (const [path, data] of configFiles) {

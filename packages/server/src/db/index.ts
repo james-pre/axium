@@ -228,7 +228,7 @@ export async function init(opt: InitOptions): Promise<void> {
 
 	_sql('SELECT pg_reload_conf()', 'Reloading configuration');
 
-	await using _ = io.track('Connecting to database', connect);
+	io.track('Connecting to database', connect);
 
 	await io.track('Creating schema acl', database.schema.createSchema('acl').execute()).catch(warnExists);
 }
@@ -413,14 +413,13 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 }
 
 export async function clean(opt: Partial<OpOptions>): Promise<void> {
+	const db = connect();
+
 	const now = new Date();
 
-	await io.track('Removing expired sessions', database.deleteFrom('sessions').where('sessions.expires', '<', now).execute());
+	await io.track('Removing expired sessions', db.deleteFrom('sessions').where('sessions.expires', '<', now).execute());
 
-	await io.track(
-		'Removing expired verifications',
-		database.deleteFrom('verifications').where('verifications.expires', '<', now).execute()
-	);
+	await io.track('Removing expired verifications', db.deleteFrom('verifications').where('verifications.expires', '<', now).execute());
 
 	for (const plugin of plugins.values()) {
 		if (!plugin._hooks?.clean) continue;

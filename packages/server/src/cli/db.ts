@@ -16,7 +16,7 @@ export async function dbInitTables(assumeYes: boolean = false) {
 	if (db.delta.isEmpty(delta)) return;
 	for (const text of db.delta.display(delta)) console.log(text);
 	if (!assumeYes) await rlConfirm();
-	await using _ = db.connect();
+	db.connect();
 	await db.delta.apply(delta);
 	Object.assign(info.current, schema.versions);
 	db.setUpgradeInfo(info);
@@ -41,6 +41,7 @@ axiumDB
 	.description('Check the status of the database')
 	.action(async () => {
 		try {
+			db.connect();
 			console.log(await db.statText());
 		} catch {
 			io.error('Unavailable');
@@ -53,6 +54,7 @@ axiumDB
 	.description('Drop the Axium database and user')
 	.addOption(opts.force)
 	.action(async opt => {
+		db.connect();
 		const stats = await db.count('users', 'passkeys', 'sessions');
 
 		if (!opt.force)
@@ -86,6 +88,8 @@ axiumDB
 				tables.set(table, maybePlugin ? `${maybePlugin}, ${plugin}` : plugin);
 			}
 		}
+
+		await using _ = io.track('Connecting to database', db.connect);
 
 		if (!opt.force) {
 			const stats = await db.count(...tables.keys());
@@ -193,6 +197,7 @@ axiumDB
 	.argument('[plugins...]', 'Filter plugins to upgrade')
 	.option('--dry-run', 'Rollback changes instead of committing them')
 	.action(async function axium_db_upgrade(filter, opt) {
+		db.connect();
 		const upgrade = db.initUpgrade(filter);
 
 		if (!upgrade) {

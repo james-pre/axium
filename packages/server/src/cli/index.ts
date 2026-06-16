@@ -36,8 +36,6 @@ import './db.js';
 import './plugins.js';
 import './user.js';
 
-const noAutoDB = ['init', 'serve', 'check'];
-
 program
 	.version($pkg.version)
 	.name('axium')
@@ -54,11 +52,9 @@ program
 			config.set({ debug: opt.debug });
 			io._setDebugOutput(opt.debug);
 		}
-		if (noAutoDB.includes(action.name())) return;
-		db.connect();
 	})
 	.hook('postAction', async (_, action) => {
-		if (!noAutoDB.includes(action.name())) await db.database.destroy();
+		if (db.database && !['develop', 'serve'].includes(action.name())) await db.database.destroy();
 	})
 	.on('option:debug', () => config.set({ debug: true }));
 
@@ -114,6 +110,7 @@ program
 		process.stdout.write(styleText('whiteBright', 'Database: '));
 
 		try {
+			db.connect();
 			console.log(await db.statText());
 		} catch {
 			console.log(styleText('red', 'Unavailable'));
@@ -256,6 +253,7 @@ program
 	.action(async opt => {
 		const filter = await AuditFilter.parseAsync(opt).catch(e => io.exit('Invalid filter: ' + z.prettifyError(e)));
 
+		db.connect();
 		const events: (AuditEvent & { _extra?: string; _tags?: string })[] = await getEvents(filter).execute();
 
 		if (opt.summary) {
@@ -541,6 +539,7 @@ program
 		// database //
 		console.log('Upgrading database:');
 
+		db.connect();
 		const upgrade = db.initUpgrade();
 
 		if (!upgrade) console.log('Database already up to date.');
