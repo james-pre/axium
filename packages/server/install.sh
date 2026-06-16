@@ -597,10 +597,6 @@ else
 	ok 'Using HTTP. A reverse proxy will be required.'
 fi
 
-step 'Building'
-axium_cli build
-ok 'Finished build'
-
 # ===========================================================================
 # Normalize permissions
 # ===========================================================================
@@ -609,6 +605,10 @@ ok 'Finished build'
 # Hand everything back to the axium user before the commit and before the daemon starts.
 
 step 'Finalizing'
+
+axium_cli build >/dev/null
+ok 'Finished build'
+
 run_root chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 [ "$CONFIG_SCOPE" = global ] && run_root chown -R "$SERVICE_USER:$SERVICE_USER" /etc/axium
 
