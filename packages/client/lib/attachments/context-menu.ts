@@ -54,7 +54,7 @@ export function contextMenu(...menuItems: ContextMenuEntry[] | [() => ContextMen
 					item.action();
 				};
 
-				if (item.i) mountedIcons.add(mount<any, {}>(Icon, { target: div, props: { i: item.i } }));
+				if (item.i) mountedIcons.add(mount(Icon, { target: div, props: { i: item.i } }));
 
 				div.appendChild(document.createTextNode(item.text));
 
