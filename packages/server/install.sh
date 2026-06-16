@@ -487,7 +487,7 @@ if [ "$USE_GIT" = 1 ] && [ ! -d "$INSTALL_DIR/.git" ]; then
 	EOF
 fi
 
-info 'Installing the Axium server and selected plugins'
+info 'Installing Axium npm packages...'
 
 # Expand selected plugin short names to fully-qualified npm package names.
 plugin_packages() {
@@ -500,10 +500,10 @@ plugin_packages() {
 # @axium/server (a peer of every plugin) works correctly.
 ( cd "$INSTALL_DIR" && npm install --silent --no-fund --no-audit @axium/server $(plugin_packages) )
 
+ok 'Installed npm packages'
+
 # Also install the server globally so a system-wide `axium` binary exists
 # Used for root-only steps like `ports enable`, and convenient for admins.
-info 'Symlinking the global axium CLI'
-
 _axium_bin_target="$INSTALL_DIR/node_modules/@axium/server/dist/main.js"		
 run_root ln -sf "$_axium_bin_target" "/usr/local/bin/axium" \
 	&& ok "Linked /usr/local/bin/axium -> ${_axium_bin_target}"
