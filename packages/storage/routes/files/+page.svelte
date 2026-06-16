@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { Add, List } from '@axium/storage/components';
+	import Folder from './Folder.svelte';
 
 	const { data } = $props();
 	let items = $state(data.items!);
@@ -10,5 +10,4 @@
 	<title>{text('page.files.title')}</title>
 </svelte:head>
 
-<List appMode bind:items user={data.session?.user} />
-<Add onAdd={item => items.push(item)} />
+<Folder bind:items user={data.session?.user} id={null} />

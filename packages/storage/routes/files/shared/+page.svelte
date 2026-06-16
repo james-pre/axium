@@ -16,5 +16,4 @@
 	emptyText={text('page.files.shared.empty')}
 	user={data.session?.user}
 	sort={{ by: 'modifiedAt', descending: true }}
-	disableDrag
 />

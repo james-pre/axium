@@ -10,7 +10,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, getUserStorageRoot, updateItemMetadata } from '@axium/storage/client';
-	import { _downloadItem, _downloadItems, copyShortURL, moveItems } from '@axium/storage/client/frontend';
+	import { _downloadItem, _downloadItems, copyShortURL, moveItems, uploadEntries } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
 	import Path from './Path.svelte';
 	import Preview from './Preview.svelte';
@@ -21,7 +21,7 @@
 		items = $bindable(),
 		appMode,
 		special,
-		disableDrag,
+		enableDrag = false,
 		emptyText = text('storage.List.empty'),
 		folderId = null,
 		user,
@@ -34,7 +34,7 @@
 	}: {
 		appMode?: boolean;
 		special?: boolean;
-		disableDrag?: boolean;
+		enableDrag?: boolean;
 		items: (StorageItemMetadata & AccessControllable)[];
 		emptyText?: string;
 		folderId?: string | null;
@@ -195,18 +195,26 @@
 			]}
 			onclick={() => open_with_single_click && openItem(item)}
 			ondblclick={() => !open_with_single_click && openItem(item)}
-			{@attach disableDrag && drag.source('storage', selection, item.id, { name: item.name, icon: iconForMime(item.type) })}
+			{@attach enableDrag && drag.source('storage', selection, item.id, { name: item.name, icon: iconForMime(item.type) })}
 			{@attach selectable(selection, item.id)}
 			{@attach item.type == 'inode/directory' &&
-				disableDrag &&
-				drag.target('storage', ids =>
-					toastStatus(
-						moveItems(ids, item.id).then(moved => {
-							items = items.filter(item => !moved.includes(item.id));
-							selection.clear();
-						}),
-						text('storage.generic.move_success')
-					)
+				enableDrag &&
+				drag.target(
+					'storage',
+					ids =>
+						toastStatus(
+							moveItems(ids, item.id).then(moved => {
+								items = items.filter(item => !moved.includes(item.id));
+								selection.clear();
+							}),
+							text('storage.generic.move_success')
+						),
+					item.id
+				)}
+			{@attach enableDrag &&
+				item.type == 'inode/directory' &&
+				drag.uploadTarget(text('storage.List.drop_upload_into', { name: item.name }), entries =>
+					toastStatus(uploadEntries(entries, item.id), text('storage.generic.upload_success'))
 				)}
 			{@attach contextMenu(() => {
 				// Right-clicking an unselected item acts on just that item.

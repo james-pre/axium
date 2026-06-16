@@ -74,6 +74,7 @@
 			"trash_success": "File trashed",
 			"rename_success": "File renamed",
 			"move_success": "Files moved",
+			"upload_success": "Files uploaded",
 			"delete_confirm_named": "Are you sure you want to delete {name}?"
 		},
 		"preferences": {
@@ -91,11 +92,15 @@
 			"upload_folder": "Upload folder",
 			"cancelled": "Upload cancelled"
 		},
+		"Folder": {
+			"drop_upload": "Drop to upload"
+		},
 		"List": {
 			"copy_link": "Copy link",
 			"copy_links": "Copy links",
 			"copy_unsupported": "Copying items isn't supported yet",
 			"download_zip": "Download as ZIP",
+			"drop_upload_into": "Drop to upload into {name}",
 			"empty": "Folder is empty.",
 			"items_selected": "{count} items selected",
 			"last_modified": "Last Modified",

@@ -5,8 +5,9 @@
 	import { toastStatus } from '@axium/client/toast';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, copyShortURL, moveItems } from '@axium/storage/client/frontend';
-	import { Add, List, Path, Preview } from '@axium/storage/components';
+	import { Path, Preview } from '@axium/storage/components';
 	import type { Attachment } from 'svelte/attachments';
+	import Folder from '../Folder.svelte';
 	import type { PageProps } from './$types';
 
 	const { data }: PageProps = $props();
@@ -80,8 +81,7 @@
 		)}
 	</div>
 	{#if item.type == 'inode/directory'}
-		<List appMode bind:items user={data.session?.user} folderId={item.id} />
-		<Add parentId={item.id} onAdd={item => items.push(item)} />
+		<Folder bind:items user={data.session?.user} id={item.id} />
 	{:else}
 		<div class="preview-container">
 			<Preview {item} {shareDialog} onDelete={() => (location.href = parentHref)} noTopBar />

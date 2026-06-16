@@ -29,7 +29,6 @@
 	user={data.session?.user}
 	sort={{ by: 'size', descending: true }}
 	special
-	disableDrag
 />
 
 {#if fileCount > items.length}
