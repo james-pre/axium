@@ -194,9 +194,10 @@
 			]}
 			onclick={() => open_with_single_click && openItem(item)}
 			ondblclick={() => !open_with_single_click && openItem(item)}
-			{@attach drag.source('storage', selection, item.id, { name: item.name, icon: iconForMime(item.type) })}
+			{@attach !special && drag.source('storage', selection, item.id, { name: item.name, icon: iconForMime(item.type) })}
 			{@attach selectable(selection, item.id)}
 			{@attach item.type == 'inode/directory' &&
+				!special &&
 				drag.target('storage', ids =>
 					toastStatus(
 						moveItems(ids, item.id).then(moved => {
