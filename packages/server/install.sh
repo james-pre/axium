@@ -385,6 +385,8 @@ enable_postgres() {
 		|| warn 'Could not start PostgreSQL via systemd; ensure it is running before continuing.'
 }
 
+info "Installing other system dependencies"
+
 case $PKG_FAMILY in
 	rhel)
 		run_root dnf install -qy postgresql-server postgresql vips gcc-c++ make >/dev/null
