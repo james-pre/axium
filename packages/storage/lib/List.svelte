@@ -190,11 +190,11 @@
 			class={[
 				'list-item',
 				selection.has(item.id) && 'selected',
-				(drag.controller.has(item.id) || (!clipboard.isCopy && clipboard.has(item.id))) && 'dragging',
+				((drag.isActive && selection.has(item.id)) || (!clipboard.isCopy && clipboard.has(item.id))) && 'dimmed',
 			]}
 			onclick={() => open_with_single_click && openItem(item)}
 			ondblclick={() => !open_with_single_click && openItem(item)}
-			{@attach drag.source(Object.assign(pick(item, 'id', 'name'), { icon: iconForMime(item.type) }), selection)}
+			{@attach drag.source(selection, item.id, { name: item.name, icon: iconForMime(item.type) })}
 			{@attach selectable(selection, item.id)}
 			{@attach item.type == 'inode/directory' &&
 				drag.target(ids =>

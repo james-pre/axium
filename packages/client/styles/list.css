@@ -60,7 +60,7 @@ div.list-header {
 	background-color: var(--bg-alt);
 }
 
-.list-item.dragging {
+.list-item.dimmed {
 	opacity: 0.5;
 }
 

@@ -292,17 +292,13 @@ div.success {
 }
 
 .drag-indicator {
-	position: fixed;
-	z-index: 100;
 	display: inline-flex;
 	align-items: center;
 	gap: 0.5em;
-	pointer-events: none;
 	padding: 0.5em 0.75em;
 	border-radius: 0.5em;
 	background-color: var(--bg-elevated);
 	border: var(--border-elevated);
-	transform: translate(0.75em, 0.75em);
 	max-width: 20em;
 	white-space: nowrap;
 
@@ -328,7 +324,6 @@ div.success {
 
 body.dragging-items,
 body.dragging-items * {
-	cursor: grabbing !important;
 	user-select: none;
 }
 
