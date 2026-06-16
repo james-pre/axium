@@ -109,25 +109,25 @@ export function target<T = string>(type: string, onDrop: (items: T[]) => unknown
 	return function _attachDropTarget(element: HTMLElement) {
 		let depth = 0;
 
-		function relevant(e: DragEvent): boolean {
-			return !!e.dataTransfer?.types.includes(mime);
+		function ignore(e: DragEvent): boolean {
+			return !e.dataTransfer?.types.includes(mime);
 		}
 
 		function onDragEnter(e: DragEvent) {
-			if (!relevant(e)) return;
+			if (ignore(e)) return;
 			e.preventDefault();
 			if (depth++ === 0) element.classList.add('drag-over');
 		}
 
 		function onDragOver(e: DragEvent) {
-			if (!relevant(e)) return;
+			if (ignore(e)) return;
 			// Required for the element to be a valid drop target.
 			e.preventDefault();
 			if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
 		}
 
 		function onDragLeave(e: DragEvent) {
-			if (!relevant(e)) return;
+			if (ignore(e)) return;
 			if (--depth <= 0) {
 				depth = 0;
 				element.classList.remove('drag-over');
@@ -135,7 +135,7 @@ export function target<T = string>(type: string, onDrop: (items: T[]) => unknown
 		}
 
 		function onDropEvent(e: DragEvent) {
-			if (!relevant(e)) return;
+			if (ignore(e)) return;
 			e.preventDefault();
 			depth = 0;
 			element.classList.remove('drag-over');
