@@ -629,13 +629,11 @@ ok "Ownership normalized to '${SERVICE_USER}'"
 if [ "$USE_GIT" = 1 ] && ask_yn 'Commit the initial Axium instance to git?' y; then
 	# -c safe.directory avoids git's "dubious ownership" refusal when run as the
 	# service user; -c user.* provides an identity in case git has none configured.
-	if run_as "$SERVICE_USER" git -C "$INSTALL_DIR" -c safe.directory="$INSTALL_DIR" add -A \
-		&& run_as "$SERVICE_USER" git -C "$INSTALL_DIR" -c safe.directory="$INSTALL_DIR" \
+	if ! run_as "$SERVICE_USER" git -C "$INSTALL_DIR" -c safe.directory="$INSTALL_DIR" add -A \
+		|| ! run_as "$SERVICE_USER" git -C "$INSTALL_DIR" -c safe.directory="$INSTALL_DIR" \
 			-c user.name='Axium Installer' -c user.email='axium@localhost' \
 			commit -q -m 'Initial Axium instance'
 	then
-		ok 'Committed initial instance'
-	else
 		warn 'Could not create the initial commit.'
 	fi
 fi
