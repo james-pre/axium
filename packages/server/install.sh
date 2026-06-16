@@ -62,7 +62,7 @@ fi
 
 
 step()  { printf '\n%s==>%s %s%s%s\n' "${C_BLUE}${C_BOLD}" "${C_RESET}" "${C_BOLD}" "$1" "${C_RESET}"; }
-info()  { printf '    %s\n' "$1"; }
+info()  { printf '%si%s %s\n' "${C_DIM}" "${C_RESET}" "$1"; }
 ok()    { printf '%s✔%s %s\n' "${C_GREEN}" "${C_RESET}" "$1"; }
 warn()  { printf '%s warning:%s %s\n' "${C_YELLOW}${C_BOLD}" "${C_RESET}" "$1" >&2; }
 die()   { printf '%s error:%s %s\n' "${C_RED}${C_BOLD}" "${C_RESET}" "$1" >&2; exit 1; }
@@ -336,7 +336,7 @@ if [ "$_node_ready" = 0 ]; then
 			_versioned="nodejs${NODEJS_V_RECOMMENDED}"
 			if dnf list --available "$_versioned" >/dev/null 2>&1 || dnf list --installed "$_versioned" >/dev/null 2>&1; then
 				info "Installing ${_versioned}"
-				run_root dnf install -qy "$_versioned"
+				run_root dnf install -qy "$_versioned" >/dev/null
 				# The versioned package installs `node-NN` alongside any default node.
 				# Also symlinks to that unversioned node/npm/npx work
 				if command -v "node-${NODEJS_V_RECOMMENDED}" >/dev/null 2>&1; then
@@ -352,17 +352,15 @@ if [ "$_node_ready" = 0 ]; then
 				fi
 			else
 				info 'Installing nodejs'
-				run_root dnf install -qy nodejs
+				run_root dnf install -qy nodejs >/dev/null
 			fi
 			;;
 		debian)
-			# On Debian/Ubuntu npm is a separate package; install it as a
-			# dependency so it isn't marked manually-installed.
-			run_root apt-get update -qq
-			run_root env DEBIAN_FRONTEND=noninteractive apt-get install -qq -y nodejs npm
+			run_root apt-get update -qq >/dev/null
+			run_root env DEBIAN_FRONTEND=noninteractive apt-get install -qq -y nodejs npm >/dev/null
 			;;
 		arch)
-			run_root pacman -Sy --needed --noconfirm --quiet nodejs npm
+			run_root pacman -Sy --needed --noconfirm --quiet nodejs npm >/dev/null
 			;;
 	esac
 
@@ -389,10 +387,7 @@ enable_postgres() {
 
 case $PKG_FAMILY in
 	rhel)
-		run_root dnf install -qy \
-			postgresql-server postgresql \
-			vips \
-			gcc-c++ make
+		run_root dnf install -qy postgresql-server postgresql vips gcc-c++ make >/dev/null
 		if [ ! -s /var/lib/pgsql/data/PG_VERSION ]; then
 			info 'Initializing PostgreSQL database cluster'
 			run_root postgresql-setup --initdb >/dev/null 2>&1 \
@@ -402,19 +397,13 @@ case $PKG_FAMILY in
 		enable_postgres
 		;;
 	debian)
-		run_root apt-get update -qq
+		run_root apt-get update -qq >/dev/null
 		run_root env DEBIAN_FRONTEND=noninteractive apt-get install -qq -y \
-			postgresql postgresql-client \
-			libvips42 \
-			build-essential \
-			ca-certificates curl
+			postgresql postgresql-client libvips42 build-essential ca-certificates curl >/dev/null
 		# Debian's postgresql package initializes and starts the cluster itself.
 		;;
 	arch)
-		run_root pacman -Sy --needed --noconfirm --quiet \
-			postgresql \
-			libvips \
-			base-devel
+		run_root pacman -Sy --needed --noconfirm --quiet postgresql libvips base-devel >/dev/null
 		if [ ! -s /var/lib/postgres/data/PG_VERSION ]; then
 			info 'Initializing PostgreSQL database cluster'
 			run_root -u postgres initdb -D /var/lib/postgres/data >/dev/null 2>&1 \
@@ -586,8 +575,6 @@ configure_value() {
 	if [ -n "$_answer" ] && [ "$_answer" != "$_current" ]; then
 		axium_cli config set "$_key" "$_answer" $CONFIG_SET_FLAG
 	fi
-	# Report the effective value as Axium parses/normalizes it.
-	ok "${_key} = $(axium_cli config get "$_key" 2>/dev/null)"
 }
 
 step 'Configuration'
@@ -617,8 +604,7 @@ if ask_yn 'Should Axium use HTTPS (needs a certificate and key)?' n; then
 	done
 else
 	axium_cli config set web.secure false $CONFIG_SET_FLAG
-	ok 'Using HTTP'
-	info 'A reverse proxy will be required.'
+	ok 'Using HTTP. A reverse proxy will be required.'
 fi
 
 step 'Building'
@@ -665,7 +651,7 @@ if [ "$USE_GIT" = 1 ] && ask_yn 'Commit the initial Axium instance to git?' y; t
 fi
 
 # ===========================================================================
-# Install the systemd service
+# systemd service
 # ===========================================================================
 
 step 'systemd service'
@@ -691,8 +677,7 @@ else
 			run_root systemctl daemon-reload
 		fi
 
-		info "Linking service unit from ${_unit_src}"
-		run_root systemctl link "$_unit_src"
+		run_root systemctl link "$_unit_src" >/dev/null
 		run_root systemctl daemon-reload
 		SERVICE_INSTALLED=1
 		ok 'systemd service installed'
@@ -704,12 +689,7 @@ else
 	fi
 fi
 
-# ===========================================================================
-# Start the service
-# ===========================================================================
-
 if [ "$SERVICE_INSTALLED" = 1 ] && ask_yn 'Start the Axium daemon now?' y; then
-	step 'Starting Axium'
 	if run_root systemctl start axium; then
 		ok 'Axium daemon started'
 	else
