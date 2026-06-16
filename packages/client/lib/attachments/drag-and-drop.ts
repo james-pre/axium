@@ -2,7 +2,7 @@ import { mount, unmount } from 'svelte';
 import type { Attachment } from 'svelte/attachments';
 import Icon from '../Icon.svelte';
 
-export const idsMimeType = 'application/x-axium-drag';
+const mimeType = 'text/x-axium-drag';
 
 export interface Display {
 	name: string;
@@ -48,14 +48,15 @@ function createDragImage(lead: Display, extraItems: number): HTMLElement & Dispo
 export let isActive = false;
 
 /**
- * Make an element a draggable source for a {@link Controller}.
+ * Make an element a draggable source.
  *
- * Grabs either the given selection (when non-empty) or just this item, exposes the dragged ids on the
- * drag's `DataTransfer` under {@link idsMimeType}, and shows a drag image matching the item.
+ * Grabs either the given selection (when non-empty) or just this item.
  */
-export function source(selection: Iterable<string>, thisId: string, display: Display): Attachment<HTMLElement> {
+export function source(type: string, selection: Iterable<string>, thisId: string, display: Display): Attachment<HTMLElement> {
 	const sel = Array.from(selection);
 	if (!sel.length) sel.push(thisId);
+
+	const mime = `${mimeType}+${type.toLowerCase()}`;
 
 	return function _attachDraggable(element: HTMLElement) {
 		element.draggable = true;
@@ -70,7 +71,7 @@ export function source(selection: Iterable<string>, thisId: string, display: Dis
 			}
 
 			if (!e.dataTransfer) return;
-			e.dataTransfer.setData(idsMimeType, sel.join(','));
+			e.dataTransfer.setData(mime, JSON.stringify(sel));
 			e.dataTransfer.effectAllowed = 'move';
 
 			using image = createDragImage(display, sel.length - 1);
@@ -96,17 +97,16 @@ export function source(selection: Iterable<string>, thisId: string, display: Dis
 }
 
 /**
- * Register an element as a drop target for a {@link Controller}.
- *
- * When grabbed items are released over the element, `onDrop` is called with the dragged ids. While a
- * drag hovers the element it carries the `drag-over` class.
+ * Register an element as a drop target for drags of the given kind.
  */
-export function target(onDrop: (ids: string[]) => unknown): Attachment<HTMLElement> {
+export function target<T = string>(type: string, onDrop: (items: T[]) => unknown): Attachment<HTMLElement> {
+	const mime = `${mimeType}+${type.toLowerCase()}`;
+
 	return function _attachDropTarget(element: HTMLElement) {
 		let depth = 0;
 
 		function relevant(e: DragEvent): boolean {
-			return !!e.dataTransfer?.types.includes(idsMimeType);
+			return !!e.dataTransfer?.types.includes(mime);
 		}
 
 		function onDragEnter(e: DragEvent) {
@@ -136,8 +136,13 @@ export function target(onDrop: (ids: string[]) => unknown): Attachment<HTMLEleme
 			depth = 0;
 			element.classList.remove('drag-over');
 
-			const ids = (e.dataTransfer?.getData(idsMimeType) ?? '').split(',').filter(Boolean);
-			if (ids.length) onDrop(ids);
+			let items: T[];
+			try {
+				items = JSON.parse(e.dataTransfer!.getData(mime));
+			} catch {
+				return;
+			}
+			if (Array.isArray(items) && items.length) onDrop(items);
 		}
 
 		element.addEventListener('dragenter', onDragEnter);

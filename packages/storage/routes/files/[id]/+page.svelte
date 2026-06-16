@@ -66,7 +66,7 @@
 			'folder-arrow-up',
 			text('page.files.back'),
 			() => (location.href = parentHref),
-			drag.target(ids => moveTo(ids, item.parentId))
+			drag.target('storage', ids => moveTo(ids, item.parentId))
 		)}
 		{@render action('pencil', text('page.files.rename'), () => dialogs.rename.showModal())}
 		{@render action('user-group', text('page.files.share'), () => shareDialog.showModal())}

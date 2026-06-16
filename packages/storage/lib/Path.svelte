@@ -177,7 +177,10 @@
 					<span class="ellipsis">...</span>
 				{/if}
 
-				<a href={part.href} {@attach onDropMove && drag.target(ids => onDropMove(ids, part.id == 'root' ? null : part.id))}>
+				<a
+					href={part.href}
+					{@attach onDropMove && drag.target('storage', ids => onDropMove(ids, part.id == 'root' ? null : part.id))}
+				>
 					{part.name}
 				</a>
 			{/each}
