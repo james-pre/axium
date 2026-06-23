@@ -36,6 +36,13 @@ const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
 				client: join(import.meta.dirname, '../.hooks.js'),
 			},
 		},
+		typescript: {
+			config(tsconfig) {
+				tsconfig.compilerOptions.allowArbitraryExtensions = true;
+				tsconfig.include.push('../lib/**/*');
+				return tsconfig;
+			},
+		},
 	},
 };
 
