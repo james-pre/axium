@@ -1,7 +1,7 @@
 import { capitalize, uncapitalize } from 'utilium/string';
 import * as z from 'zod';
 import { zKeys } from './locales.js';
-import { User } from './user.js';
+import { UserPublic } from './user.js';
 
 export enum Severity {
 	Emergency,
@@ -23,7 +23,7 @@ export const AuditEvent = z.object({
 	id: z.uuid(),
 	/** UUID of the user that triggered the event. `null` for events triggered via the server CLI */
 	userId: z.uuid().nullable(),
-	user: User.partial().required({ id: true, name: true }).nullish(),
+	user: UserPublic.nullish(),
 	/** When the event happened */
 	timestamp: z.coerce.date(),
 	/** How severe the event is */
