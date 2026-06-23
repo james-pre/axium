@@ -274,6 +274,15 @@ div.success {
 			background-color: var(--bg-strong);
 			cursor: pointer;
 		}
+
+		&.danger {
+			border: none;
+			background-color: transparent;
+
+			&:hover {
+				background-color: hsl(from var(--bg-strong) 0 s l);
+			}
+		}
 	}
 
 	.menu-header {

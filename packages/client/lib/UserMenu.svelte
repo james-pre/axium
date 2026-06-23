@@ -51,8 +51,8 @@
 			<i>{text('AppMenu.failed')}</i>
 		{/await}
 
-		<button class="menu-item logout reset" command="show-modal" commandfor="logout">
-			<Icon i="right-from-bracket" --size="1.5em" --fill="hsl(0 33 var(--fg-light))" />
+		<button class="menu-item danger reset" command="show-modal" commandfor="logout">
+			<Icon i="right-from-bracket" --size="1.5em" />
 			<span>{text('generic.logout')}</span>
 		</button>
 	</Popover>
@@ -71,11 +71,6 @@
 		border: var(--border-accent);
 		cursor: pointer;
 		background-color: var(--bg-alt);
-	}
-
-	.logout {
-		color: hsl(0 33 var(--fg-light));
-		font-size: 16px;
 	}
 
 	:global(.UserMenu + div:popover-open) {
