@@ -21,6 +21,7 @@
 			"@axium/notes": ["./packages/notes/*"],
 			"@axium/server": ["./packages/server/*"],
 			"@axium/storage": ["./packages/storage/*"],
+			"@axium/sysadmin": ["./packages/sysadmin/*"],
 			"@axium/tasks": ["./packages/tasks/*"]
 		},
 		"skipLibCheck": true
@@ -35,6 +36,7 @@
 		{ "path": "./packages/notes" },
 		{ "path": "./packages/server" },
 		{ "path": "./packages/storage" },
+		{ "path": "./packages/sysadmin" },
 		{ "path": "./packages/tasks" }
 	]
 }

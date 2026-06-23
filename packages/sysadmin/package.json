@@ -1,0 +1,59 @@
+{
+	"name": "@axium/sysadmin",
+	"version": "0.1.0",
+	"author": "James Prevett <axium@jamespre.dev>",
+	"description": "System administration for Axium",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"license": "LGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./*": "./dist/*.js"
+	},
+	"files": [
+		"dist",
+		"lib",
+		"routes",
+		"locales"
+	],
+	"scripts": {
+		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/client": ">=0.27.0",
+		"@axium/core": ">=0.23.0",
+		"@axium/server": ">=0.47.0",
+		"@sveltejs/kit": "^2.27.3",
+		"kysely": "^0.29.0",
+		"utilium": "^3.0.0"
+	},
+	"dependencies": {
+		"zod": "^4.0.5"
+	},
+	"axium": {
+		"server": {
+			"web_client_hooks": "./dist/web_hook.js"
+		},
+		"apps": [
+			{
+				"id": "sysadmin",
+				"name": "System Administration",
+				"icon": "screwdriver-wrench"
+			}
+		],
+		"update_checks": true
+	}
+}

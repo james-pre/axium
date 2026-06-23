@@ -1,0 +1,71 @@
+import * as z from 'zod';
+
+// Hardware + kernel //
+
+export const CPU = z.object({
+	model: z.string(),
+	cores: z.number(),
+});
+export interface CPU extends z.infer<typeof CPU> {}
+
+export const GPU = z.object({
+	model: z.string(),
+});
+export interface GPU extends z.infer<typeof GPU> {}
+
+export const Memory = z.object({
+	total: z.coerce.bigint(),
+	used: z.coerce.bigint(),
+	/** Memory speed in MT/s */
+	speed: z.int().nonnegative(),
+	/** Only available when swap is in use */
+	swap: z
+		.object({
+			total: z.coerce.bigint(),
+			used: z.coerce.bigint(),
+		})
+		.optional(),
+});
+export interface Memory extends z.infer<typeof Memory> {}
+
+export const Storage = z.object({
+	model: z.string(),
+	total: z.coerce.bigint(),
+	used: z.coerce.bigint(),
+});
+export interface Storage extends z.infer<typeof Storage> {}
+
+export const NetworkInterface = z.object({
+	name: z.string(),
+	connected: z.boolean(),
+	connection: z.string().optional(),
+	speed: z.coerce.bigint().optional(),
+});
+export interface NetworkInterface extends z.infer<typeof NetworkInterface> {}
+
+export const SystemInfo = z.object({
+	cpu: CPU.array(),
+	gpu: GPU.array(),
+	memory: Memory,
+	storage: Storage.array(),
+	networkInterfaces: NetworkInterface.array(),
+	/** e.g. 'arm', 'arm64', 'ia32', 'loong64', 'mips', 'mipsel', 'ppc64', 'riscv64', 's390x', and 'x64' */
+	arch: z.string(),
+	/** e.g. arm, arm64, aarch64, mips, mips64, ppc64, ppc64le, s390x, i386, i686, x86_64 */
+	machine: z.string(),
+	/** e.g. 'aix', 'darwin', 'freebsd','linux', 'openbsd', 'sunos', and 'win32' */
+	platform: z.string(),
+	/** OS/kernel release, e.g. 6.7.0-200.fc40.x86_64 */
+	release: z.string(),
+	/** e.g. 'Linux' on Linux, 'Darwin' on macOS, and 'Windows_NT' */
+	type: z.string(),
+	/** Uptime in seconds */
+	uptime: z.coerce.bigint(),
+	/** Kernel version, e.g. `#1 SMP PREEMPT_DYNAMIC ...` */
+	version: z.string(),
+});
+export interface SystemInfo extends z.infer<typeof SystemInfo> {}
+
+// OS //
+
+// User //

@@ -1,0 +1,172 @@
+import type { GPU, Memory, NetworkInterface, Storage, SystemInfo } from '../info.js';
+import * as fs from 'node:fs';
+import * as os from 'node:os';
+
+/** Read a sysfs/procfs file, returning the trimmed contents or undefined if unreadable. */
+function read(path: string): string | undefined {
+	try {
+		return fs.readFileSync(path, 'utf8').trim();
+	} catch {
+		return undefined;
+	}
+}
+
+function list(path: string): string[] {
+	try {
+		return fs.readdirSync(path);
+	} catch {
+		return [];
+	}
+}
+
+/** Map `vendor:device` PCI IDs (lowercase hex) to a human-readable name using the system pci.ids database. */
+function pciName(id: string): string | undefined {
+	const [vendor, device] = id.toLowerCase().split(':');
+	const db = read('/usr/share/hwdata/pci.ids') ?? read('/usr/share/misc/pci.ids');
+	if (!db || !vendor || !device) return undefined;
+
+	let inVendor = false;
+	for (const line of db.split('\n')) {
+		if (line.startsWith('#') || !line.trim()) continue;
+		if (!line.startsWith('\t')) {
+			// Vendor line: `1002  Advanced Micro Devices, Inc. [AMD/ATI]`
+			inVendor = line.slice(0, 4).toLowerCase() === vendor;
+			continue;
+		}
+		if (!inVendor || line.startsWith('\t\t')) continue;
+		// Device line: `\t7550  Device name`
+		const entry = line.slice(1);
+		if (entry.slice(0, 4).toLowerCase() === device) return entry.slice(4).trim();
+	}
+	return undefined;
+}
+
+function gpus(): GPU[] {
+	const seen = new Set<string>();
+	const result: GPU[] = [];
+
+	for (const card of list('/sys/class/drm')) {
+		// Only whole cards (`card0`), not connectors (`card0-DP-1`) or render nodes.
+		if (!/^card\d+$/.test(card)) continue;
+
+		const uevent = read(`/sys/class/drm/${card}/device/uevent`);
+		const id = uevent && /^PCI_ID=(.+)$/m.exec(uevent)?.[1];
+		if (!id || seen.has(id)) continue;
+		seen.add(id);
+
+		result.push({ model: pciName(id) ?? id });
+	}
+	return result;
+}
+
+/** Map mounted block devices to the filesystem usage (bytes) of their mount point. */
+function mountUsage(): Map<string, { total: bigint; used: bigint }> {
+	const usage = new Map<string, { total: bigint; used: bigint }>();
+	const mounts = read('/proc/mounts');
+	if (!mounts) return usage;
+
+	for (const line of mounts.split('\n')) {
+		const [source, mountPoint] = line.split(' ');
+		if (!source?.startsWith('/dev/')) continue;
+
+		let stat: fs.StatsFsBase<bigint>;
+		try {
+			stat = fs.statfsSync(mountPoint, { bigint: true });
+		} catch {
+			continue;
+		}
+
+		const total = stat.blocks * stat.bsize;
+		const used = (stat.blocks - stat.bfree) * stat.bsize;
+		usage.set(source.slice('/dev/'.length), { total, used });
+	}
+	return usage;
+}
+
+function storage(): Storage[] {
+	const usage = mountUsage();
+	const result: Storage[] = [];
+
+	for (const dev of list('/sys/block')) {
+		// Skip virtual devices (zram, loop, device-mapper) which have no backing `device`.
+		if (!fs.existsSync(`/sys/block/${dev}/device`)) continue;
+
+		const sectors = read(`/sys/block/${dev}/size`);
+		if (!sectors) continue;
+		// `size` is always in 512-byte sectors regardless of logical block size.
+		const total = BigInt(sectors) * 512n;
+
+		// Sum filesystem usage across mounted partitions of this disk.
+		let used = 0n;
+		for (const [mounted, info] of usage) {
+			if (mounted === dev || mounted.startsWith(dev + 'p') || (mounted.startsWith(dev) && /\d$/.test(mounted))) {
+				used += info.used;
+			}
+		}
+
+		const model = read(`/sys/block/${dev}/device/model`)?.trim() || dev;
+		result.push({ model, total, used });
+	}
+	return result;
+}
+
+function memory(): Memory {
+	const info: Record<string, bigint> = {};
+	const content = read('/proc/meminfo');
+	if (content)
+		for (const line of content.split('\n')) {
+			const match = /^(\w+):\s+(\d+)(?:\s+kB)?$/.exec(line.trim());
+			if (!match) continue;
+			const [, key, value] = match;
+			info[key] = BigInt(value) * (line.endsWith('kB') ? 1024n : 1n);
+		}
+
+	const total = info.MemTotal ?? BigInt(os.totalmem());
+	const available = info.MemAvailable ?? BigInt(os.freemem());
+
+	const memory: Memory = {
+		speed: 0,
+		total,
+		used: total - available,
+	};
+
+	const swapTotal = info.SwapTotal ?? 0n;
+	if (swapTotal > 0n) memory.swap = { total: swapTotal, used: swapTotal - (info.SwapFree ?? 0n) };
+
+	return memory;
+}
+
+function networkInterfaces(): NetworkInterface[] {
+	const result: NetworkInterface[] = [];
+
+	for (const name of list('/sys/class/net')) {
+		if (name === 'lo') continue;
+
+		const operstate = read(`/sys/class/net/${name}/operstate`);
+		const connected = operstate === 'up' || read(`/sys/class/net/${name}/carrier`) === '1';
+
+		// `speed` is in Mbit/s; only valid for connected links and may be -1/unreadable.
+		const raw = read(`/sys/class/net/${name}/speed`);
+		const speed = connected && raw && Number(raw) > 0 ? BigInt(raw) : undefined;
+
+		result.push({ name, connected, speed });
+	}
+	return result;
+}
+
+export function systemInfo(): SystemInfo {
+	return {
+		cpu: Object.entries(Object.groupBy(os.cpus(), cpu => cpu.model)).map(([model, info]) => ({ model, cores: info?.length || 1 })),
+		gpu: gpus(),
+		memory: memory(),
+		storage: storage(),
+		networkInterfaces: networkInterfaces(),
+		arch: os.arch(),
+		machine: os.machine(),
+		platform: os.platform(),
+		release: os.release(),
+		type: os.type(),
+		uptime: BigInt(Math.floor(os.uptime())),
+		version: os.version(),
+	};
+}
