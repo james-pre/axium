@@ -232,15 +232,18 @@ div.success {
 }
 
 .danger {
-	border: var(--border-error);
-	background-color: hsl(from var(--bg-strong) 0 s l);
-	color: hsl(0 33 var(--fg-light));
-	--fill: hsl(0 33 var(--fg-light));
-	accent-color: hsl(0 33 var(--fg-light));
-}
+	color: var(--fg-danger);
+	--fill: var(--fg-danger);
+	accent-color: var(--fg-danger);
 
-.danger:hover {
-	background-color: hsl(0 20 calc(var(--bg-light) + (var(--light-step) * 3)));
+	&:is(button, div):not(.reset) {
+		border: var(--border-error);
+		background-color: var(--bg-danger);
+
+		&:hover {
+			background-color: hsl(0 20 calc(var(--bg-light) + (var(--light-step) * 3)));
+		}
+	}
 }
 
 :disabled,
@@ -275,12 +278,12 @@ div.success {
 			cursor: pointer;
 		}
 
-		&.danger {
+		&.danger:where(button, div) {
 			border: none;
 			background-color: transparent;
 
 			&:hover {
-				background-color: hsl(from var(--bg-strong) 0 s l);
+				background-color: var(--bg-danger);
 			}
 		}
 	}

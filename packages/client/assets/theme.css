@@ -36,6 +36,7 @@ html {
 	--bg-alt: hsl(var(--hue) 5 calc(var(--bg-light) + var(--light-step)));
 	--bg-strong: hsl(var(--hue) 20 calc(var(--bg-light) + var(--light-step)));
 	--bg-elevated: hsl(from var(--bg-menu) h s l / 95%);
+	--bg-danger: hsl(from var(--bg-strong) 0 s l);
 
 	--bg-error: hsl(0 40 var(--bg-light-status));
 	--bg-warning: hsl(60 40 var(--bg-light-status));
@@ -45,6 +46,7 @@ html {
 	--fg-accent: hsl(var(--hue) 15 var(--fg-light));
 	--fg-strong: hsl(var(--hue) 25 calc(var(--fg-light) - var(--light-step)));
 	--fg-disabled: hsl(0 0 calc(var(--fg-light) - var(--light-step)));
+	--fg-danger: hsl(0 33 var(--fg-light));
 
 	--fg-error: hsl(0 50 calc(var(--fg-light) - var(--light-step)));
 	--fg-warning: hsl(60 50 calc(var(--fg-light) - var(--light-step)));
