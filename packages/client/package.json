@@ -40,7 +40,10 @@
 		"./toast": "./lib/toast.js",
 		"./attachments": "./lib/attachments/index.js",
 		"./reactive": "./lib/reactive/index.svelte.js",
-		"./styles/*": "./styles/*.css"
+		"./styles/*": {
+			"types": "./styles/styles.d.ts",
+			"default": "./styles/*.css"
+		}
 	},
 	"scripts": {
 		"build": "tsc"
