@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
+	import { contextMenu } from '@axium/client/attachments';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import { toastStatus } from '@axium/client/toast';
@@ -18,15 +19,6 @@
 	let activeId = $state<string>();
 	const activeItem = $derived(items.find(item => item.id === activeId));
 	const activeItemName = $derived(formatItemName(activeItem));
-
-	function action(id: string, dialog: () => HTMLDialogElement) {
-		return (e: Event) => {
-			e.stopPropagation();
-			e.preventDefault();
-			activeId = id;
-			dialog().showModal();
-		};
-	}
 
 	function useAndClearActive(thunk: () => any) {
 		return () => {
@@ -53,20 +45,28 @@
 		<span>{text('storage.List.size')}</span>
 	</div>
 	{#each items as item (item.id)}
-		<div class="list-item">
+		{const restore = () => ((activeId = item.id), restoreDialog.showModal()),
+			remove = () => ((activeId = item.id), deleteDialog.showModal())}
+		<div
+			class="list-item"
+			{@attach contextMenu(
+				{ i: 'rotate-left', text: text('page.files.trash_page.restore'), action: restore },
+				{ i: 'trash-can-xmark', text: text('page.files.trash_page.delete'), danger: true, action: remove }
+			)}
+		>
 			<dfn title={item.type}><Icon i={iconForMime(item.type)} /></dfn>
 			{#if data.full_path_in_special}
 				<Path {item} />
 			{:else}
 				<span class="name">{item.name}</span>
 			{/if}
-			<span>{item.modifiedAt.toLocaleString()}</span>
-			<span>{formatBytes(item.size)}</span>
-			<span class="action" onclick={action(item.id, () => restoreDialog)}>
+			<span class="modified mobile-subtle">{item.modifiedAt.toLocaleString()}</span>
+			<span class="size file-size mobile-subtle">{formatBytes(item.size)}</span>
+			<span class="action" onclick={restore}>
 				<Icon i="rotate-left" --size="14px" />
 			</span>
-			<span class="action" onclick={action(item.id, () => deleteDialog)}>
-				<Icon i="trash-can-xmark" --size="14px" --fill="#c44" />
+			<span class="action" onclick={remove}>
+				<Icon i="trash-can-xmark" --size="14px" --fill="var(--fg-error)" />
 			</span>
 		</div>
 	{:else}
@@ -107,5 +107,31 @@
 <style>
 	.list-item {
 		grid-template-columns: 1em 4fr 15em 5em 1em 1em;
+	}
+
+	@media (width < 700px) {
+		.action {
+			display: none;
+		}
+
+		.list-item {
+			grid-template-columns: 1em 2fr 1fr;
+			row-gap: 0.25em;
+
+			.name {
+				grid-column: 2 / -1;
+			}
+
+			.modified {
+				grid-row: 2;
+				grid-column: 2;
+			}
+
+			.size {
+				grid-row: 2;
+				grid-column: 3;
+				text-align: right;
+			}
+		}
 	}
 </style>
