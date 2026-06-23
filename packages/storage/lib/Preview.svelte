@@ -3,7 +3,7 @@
 	import { Audio, FormDialog, Icon, Popover, Video } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import type { AccessControllable } from '@axium/core';
-	import { downloadItem, downloadItemStream, getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
+	import { downloadItem, downloadItemStream, updateItemMetadata } from '@axium/storage/client';
 	import { openers, previews } from '@axium/storage/client/3rd-party';
 	import { _downloadItem, copyShortURL } from '@axium/storage/client/frontend';
 	import type { StorageItemMetadata } from '@axium/storage/common';
