@@ -92,15 +92,21 @@ case "$sub" in
 			done
 		fi
 		;;
-	"patch"|"minor"|"major")
-		pkg="${2:?Package name required}"
+	"patch"|"minor"|"major"|"version")
+		if [ "$sub" == "version" ]; then
+			bump="${2:?Version argument required (e.g. patch, minor, major, prerelease, 1.2.3)}"
+			pkg="${3:?Package name required}"
+		else
+			bump="$sub"
+			pkg="${2:?Package name required}"
+		fi
 		pkg="${pkg%/}"
 
 		if [ -n "$(git -C "$root" status --porcelain)" ]; then
 			echo "Working directory is not clean."
 			exit 1
 		fi
-		tag=$(cd "$root/packages/$pkg" && npm version "$sub" --tag-version-prefix="$pkg@" --message "$pkg@%s" 2>/dev/null | sed -n 2p)
+		tag=$(cd "$root/packages/$pkg" && npm version "$bump" --tag-version-prefix="$pkg@" --message "$pkg@%s" 2>/dev/null | sed -n 2p)
 		if [[ "$tag" != "$pkg@"* ]]; then
 			echo "Got invalid tag name from 'npm version': $tag"
 			exit 1
@@ -131,7 +137,8 @@ Commands:
     changed                   List packages that have changed since their last release
     log [pkg]                 List commits since the last release for the given package, or all packages if none specified
     history <pkg>             List releases for the given package
-    patch|minor|major <pkg>   Create a new release for the given package
+    version <ver> <pkg>       Create a new release for the given package, bumping by <ver> (any argument 'npm version' accepts, e.g. patch, minor, major, prerelease, premajor, 1.2.3)
+    patch|minor|major <pkg>   Shortcut for 'version patch|minor|major <pkg>'
     help                      Show this help message
 EOF
 		if [ "$sub" != "help" ]; then
