@@ -1,3 +1,4 @@
+import { isMobile } from '@axium/client/gui';
 import { mount, unmount } from 'svelte';
 import type { Attachment } from 'svelte/attachments';
 import Icon from '../Icon.svelte';
@@ -85,6 +86,8 @@ export function contextMenu(...menuItems: ContextMenuEntry[] | [() => ContextMen
 
 			menu.showPopover();
 			_forcePopover = true;
+
+			if (isMobile()) return;
 
 			const x = e.clientX;
 			const y = e.clientY;

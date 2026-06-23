@@ -1,4 +1,4 @@
-import { mount, unmount, type Component } from 'svelte';
+import { mount, unmount } from 'svelte';
 import type { Attachment } from 'svelte/attachments';
 import Icon from '../Icon.svelte';
 

@@ -66,16 +66,16 @@
 		:global(:hover:has(:hover > .Popover > .toggle-hover)) > div > .toggle-hover:not(.cascade-hover) {
 			visibility: hidden;
 		}
-	}
 
-	:popover-open {
-		position-anchor: --popover;
-		position-try-fallbacks:
-			flip-inline,
-			flip-block,
-			flip-block flip-inline;
-		position-visibility: always;
-		left: anchor(left);
-		top: anchor(bottom);
+		:popover-open {
+			position-anchor: --popover;
+			position-try-fallbacks:
+				flip-inline,
+				flip-block,
+				flip-block flip-inline;
+			position-visibility: always;
+			left: anchor(left);
+			top: anchor(bottom);
+		}
 	}
 </style>

@@ -10,7 +10,7 @@
 </script>
 
 {#if user}
-	<Popover>
+	<Popover class="mobile-top">
 		{#snippet toggle()}
 			<div class="UserMenu toggle">
 				<UserPFP {user} />
@@ -79,12 +79,15 @@
 	}
 
 	:global(.UserMenu + div:popover-open) {
-		position: fixed;
-		left: unset;
-		right: anchor(right);
-		top: calc(anchor(bottom) + 0.5em);
-		width: fit-content;
-		height: fit-content;
 		cursor: default;
+
+		@media (width > 700px) {
+			position: fixed;
+			left: unset;
+			right: anchor(right);
+			top: calc(anchor(bottom) + 0.5em);
+			width: fit-content;
+			height: fit-content;
+		}
 	}
 </style>
