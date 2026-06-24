@@ -170,8 +170,8 @@ function networkInterfaces(): NetworkInterface[] {
 
 export function systemInfo(): SystemInfo {
 	return {
-		cpu: Object.entries(Object.groupBy(os.cpus(), cpu => cpu.model)).map(([model, info]) => ({ model, cores: info?.length || 1 })),
-		gpu: gpus(),
+		cpus: Object.entries(Object.groupBy(os.cpus(), cpu => cpu.model)).map(([model, info]) => ({ model, cores: info?.length || 1 })),
+		gpus: gpus(),
 		memory: memory(),
 		storage: storage(),
 		networkInterfaces: networkInterfaces(),

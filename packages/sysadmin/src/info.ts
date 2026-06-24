@@ -47,8 +47,8 @@ export const NetworkInterface = z.object({
 export interface NetworkInterface extends z.infer<typeof NetworkInterface> {}
 
 export const SystemInfo = z.object({
-	cpu: CPU.array(),
-	gpu: GPU.array(),
+	cpus: CPU.array(),
+	gpus: GPU.array(),
 	memory: Memory,
 	storage: Storage.array(),
 	networkInterfaces: NetworkInterface.array(),
