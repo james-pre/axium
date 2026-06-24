@@ -19,14 +19,16 @@ function list(path: string): string[] {
 	}
 }
 
+let pciDb: string | undefined;
+
 /** Map `vendor:device` PCI IDs (lowercase hex) to a human-readable name using the system pci.ids database. */
-function pciName(id: string): string | undefined {
+function pciName(id: string): string {
 	const [vendor, device] = id.toLowerCase().split(':');
-	const db = read('/usr/share/hwdata/pci.ids') ?? read('/usr/share/misc/pci.ids');
-	if (!db || !vendor || !device) return undefined;
+	if (!pciDb) pciDb = read('/usr/share/hwdata/pci.ids') ?? read('/usr/share/misc/pci.ids');
+	if (!pciDb || !vendor || !device) return id;
 
 	let inVendor = false;
-	for (const line of db.split('\n')) {
+	for (const line of pciDb.split('\n')) {
 		if (line.startsWith('#') || !line.trim()) continue;
 		if (!line.startsWith('\t')) {
 			// Vendor line: `1002  Advanced Micro Devices, Inc. [AMD/ATI]`
@@ -38,7 +40,7 @@ function pciName(id: string): string | undefined {
 		const entry = line.slice(1);
 		if (entry.slice(0, 4).toLowerCase() === device) return entry.slice(4).trim();
 	}
-	return undefined;
+	return id;
 }
 
 function gpus(): GPU[] {
@@ -54,7 +56,12 @@ function gpus(): GPU[] {
 		if (!id || seen.has(id)) continue;
 		seen.add(id);
 
-		result.push({ model: pciName(id) ?? id });
+		// VRAM totals are exposed by some drivers (e.g. amdgpu) in bytes.
+		const vramTotal = read(`/sys/class/drm/${card}/device/mem_info_vram_total`);
+		const vramUsed = read(`/sys/class/drm/${card}/device/mem_info_vram_used`);
+		const vram = vramTotal && vramUsed ? { total: BigInt(vramTotal), used: BigInt(vramUsed) } : undefined;
+
+		result.push({ model: pciName(id), vram });
 	}
 	return result;
 }
@@ -149,7 +156,14 @@ function networkInterfaces(): NetworkInterface[] {
 		const raw = read(`/sys/class/net/${name}/speed`);
 		const speed = connected && raw && Number(raw) > 0 ? BigInt(raw) : undefined;
 
-		result.push({ name, connected, speed });
+		// Wi-Fi devices expose a `wireless`/`phy80211` subdirectory.
+		const wireless = fs.existsSync(`/sys/class/net/${name}/wireless`) || fs.existsSync(`/sys/class/net/${name}/phy80211`);
+
+		const uevent = read(`/sys/class/net/${name}/device/uevent`);
+		const id = uevent && /^PCI_ID=(.+)$/m.exec(uevent)?.[1];
+		const model = id ? pciName(id) : name;
+
+		result.push({ name, model, connected, wireless, speed });
 	}
 	return result;
 }

@@ -1,5 +1,11 @@
 import * as z from 'zod';
 
+export const TotalUsed = z.object({
+	total: z.coerce.bigint(),
+	used: z.coerce.bigint(),
+});
+export interface TotalUsed extends z.infer<typeof TotalUsed> {}
+
 // Hardware + kernel //
 
 export const CPU = z.object({
@@ -10,34 +16,31 @@ export interface CPU extends z.infer<typeof CPU> {}
 
 export const GPU = z.object({
 	model: z.string(),
+	/** Video memory in bytes; only available for some drivers (e.g. amdgpu) */
+	vram: TotalUsed.optional(),
 });
 export interface GPU extends z.infer<typeof GPU> {}
 
 export const Memory = z.object({
-	total: z.coerce.bigint(),
-	used: z.coerce.bigint(),
+	...TotalUsed.shape,
 	/** Memory speed in MT/s */
 	speed: z.int().nonnegative(),
 	/** Only available when swap is in use */
-	swap: z
-		.object({
-			total: z.coerce.bigint(),
-			used: z.coerce.bigint(),
-		})
-		.optional(),
+	swap: TotalUsed.optional(),
 });
 export interface Memory extends z.infer<typeof Memory> {}
 
 export const Storage = z.object({
+	...TotalUsed.shape,
 	model: z.string(),
-	total: z.coerce.bigint(),
-	used: z.coerce.bigint(),
 });
 export interface Storage extends z.infer<typeof Storage> {}
 
 export const NetworkInterface = z.object({
 	name: z.string(),
+	model: z.string(),
 	connected: z.boolean(),
+	wireless: z.boolean(),
 	connection: z.string().optional(),
 	speed: z.coerce.bigint().optional(),
 });
