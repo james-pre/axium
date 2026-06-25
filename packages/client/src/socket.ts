@@ -21,24 +21,31 @@ export function addListener<T extends keyof ServerToClient & string>(event: T, l
 
 export interface ConnectOptions extends Partial<ManagerOptions & SocketOptions> {}
 
+export let socket: Socket | null = null;
+
 export function connect(opts?: ConnectOptions): Promise<Socket> {
+	if (socket) return Promise.resolve(socket);
+
 	if (!token) io.warn('Connecting to the server socket without a session token.');
 
 	const { extraHeaders = {} } = opts || {};
 	if (token) extraHeaders.Authorization = 'Bearer ' + token;
 	if (userAgent) extraHeaders['User-Agent'] = userAgent;
 
-	const socket: Socket = socketIO(origin, { ...opts, extraHeaders });
+	socket = socketIO(origin, { ...opts, extraHeaders });
 	for (const [event, listener] of listeners) socket.on(event, listener);
 
 	const { promise, resolve, reject } = Promise.withResolvers<Socket>();
 
 	socket.on('connect', () => {
-		io.debug('socket: Connected as ' + socket.id);
-		resolve(socket);
+		io.debug('socket: Connected as ' + socket!.id);
+		resolve(socket!);
 	});
 
-	socket.on('connect_error', reject);
+	socket.on('connect_error', err => {
+		socket = null;
+		reject(err);
+	});
 
 	return promise;
 }
