@@ -167,9 +167,15 @@ export async function update(force: boolean = false) {
 }
 
 export function clear() {
-	for (const handle of handles) unlinkSync(handle.path);
+	for (const handle of handles)
+		try {
+			unlinkSync(handle.path);
+		} catch {}
 
-	for (const { path } of persistedAPICaches) unlinkSync(path);
+	for (const { path } of persistedAPICaches)
+		try {
+			unlinkSync(path);
+		} catch {}
 }
 
 export interface CacheInfo {
