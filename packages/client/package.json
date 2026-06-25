@@ -59,6 +59,7 @@
 	"dependencies": {
 		"@simplewebauthn/browser": "^13.1.0",
 		"commander": "^15.0.0",
-		"music-metadata": "^11.12.3"
+		"music-metadata": "^11.12.3",
+		"socket.io-client": "^4.8.3"
 	}
 }

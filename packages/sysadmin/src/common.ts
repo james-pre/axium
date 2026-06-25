@@ -1,6 +1,7 @@
 import { $API } from '@axium/core/api';
-import { zKeys } from '@axium/core/locales';
+import { addClientToServer, addServerToClient } from '@axium/core/socket';
 import * as z from 'zod';
+import { SystemInfo } from './info.js';
 
 export const SystemInit = z.object({
 	name: z.string().nonempty().max(250),
@@ -56,3 +57,19 @@ declare module '@axium/core/api' {
 }
 
 Object.assign($API, SysadminAPI);
+
+const SysadminClientToServer = {
+	'sysadmin:getSystemInfo': [[SystemInfo.array()]],
+} as const;
+
+const SysadminServerToClient = {
+	'sysadmin:getSystemInfo': [[SystemInfo]],
+} as const;
+
+declare module '@axium/core/socket' {
+	export interface ClientToServer extends ParseTuples<typeof SysadminClientToServer> {}
+	export interface ServerToClient extends ParseFunctions<typeof SysadminServerToClient> {}
+}
+
+addClientToServer(SysadminClientToServer);
+addServerToClient(SysadminServerToClient);

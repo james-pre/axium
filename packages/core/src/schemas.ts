@@ -98,3 +98,10 @@ export function zFunction<T extends z.core.$ZodFunction>(schema: T) {
 export function zAsyncFunction<T extends z.core.$ZodFunction>(schema: T) {
 	return z.custom<Parameters<T['implementAsync']>[0]>((fn: any) => schema.implementAsync(fn));
 }
+
+export type InferFromTuple<T extends readonly z.ZodType[]> = T extends readonly [
+	infer Head extends z.ZodType,
+	...infer Rest extends readonly z.ZodType[],
+]
+	? [z.infer<Head>, ...InferFromTuple<Rest>]
+	: [];
