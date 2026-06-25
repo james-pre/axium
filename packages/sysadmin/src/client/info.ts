@@ -180,7 +180,8 @@ export function systemInfo(): SystemInfo {
 		platform: os.platform(),
 		release: os.release(),
 		type: os.type(),
-		uptime: BigInt(Math.floor(os.uptime())),
+		uptime: os.uptime(),
 		version: os.version(),
+		hostname: os.hostname(),
 	};
 }

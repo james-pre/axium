@@ -21,13 +21,16 @@
 	"types": "dist/index.d.ts",
 	"exports": {
 		".": "./dist/index.js",
-		"./*": "./dist/*.js"
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
 	},
 	"files": [
 		"dist",
 		"lib",
 		"routes",
-		"locales"
+		"locales",
+		"db.json"
 	],
 	"scripts": {
 		"build": "tsc"
@@ -41,10 +44,14 @@
 		"utilium": "^3.0.0"
 	},
 	"dependencies": {
+		"ioium": "^1.6.0",
 		"zod": "^4.0.5"
 	},
 	"axium": {
 		"server": {
+			"routes": "routes",
+			"hooks": "./dist/server/hooks.js",
+			"db": "./db.json",
 			"web_client_hooks": "./dist/web_hook.js"
 		},
 		"client": {

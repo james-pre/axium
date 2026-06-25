@@ -16,6 +16,12 @@ export const System = SystemInit.extend({
 });
 export interface System extends z.infer<typeof System> {}
 
+export const SystemPing = z.object({
+	hostname: z.string(),
+	username: z.string(),
+});
+export interface SystemPing extends z.infer<typeof SystemPing> {}
+
 export const SystemUserInit = z.object({
 	name: z.string().nonempty().max(250),
 	username: z.string().nonempty().max(250),
@@ -60,10 +66,12 @@ Object.assign($API, SysadminAPI);
 
 const SysadminClientToServer = {
 	'sysadmin:getSystemInfo': [[SystemInfo.array()]],
+	'sysadmin:ping': [[SystemPing.array()]],
 } as const;
 
 const SysadminServerToClient = {
 	'sysadmin:getSystemInfo': [[SystemInfo]],
+	'sysadmin:ping': [[SystemPing]],
 } as const;
 
 declare module '@axium/core/socket' {

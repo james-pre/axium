@@ -63,9 +63,10 @@ export const SystemInfo = z.object({
 	/** e.g. 'Linux' on Linux, 'Darwin' on macOS, and 'Windows_NT' */
 	type: z.string(),
 	/** Uptime in seconds */
-	uptime: z.coerce.bigint(),
+	uptime: z.number(),
 	/** Kernel version, e.g. `#1 SMP PREEMPT_DYNAMIC ...` */
 	version: z.string(),
+	hostname: z.string(),
 });
 export interface SystemInfo extends z.infer<typeof SystemInfo> {}
 
