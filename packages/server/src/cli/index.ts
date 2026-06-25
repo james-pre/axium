@@ -28,6 +28,7 @@ import * as db from '../db/index.js';
 import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from '../io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
 import { serve } from '../serve.js';
+import createSocketServer from '../socket.js';
 import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts, rlConfirm } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
@@ -158,6 +159,7 @@ program
 	.option('-p, --port <port>', 'the port to listen on', Number.parseInt)
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
 	.option('-b, --build <path>', 'the path to the handler build')
+	.option('--no-socket', 'do not start the socket.io server')
 	.action(async opt => {
 		opt.port ||= config.web.port;
 		if (opt.port < 1 || opt.port > 65535) io.exit('Invalid port');
@@ -168,6 +170,8 @@ program
 			ssl_key: opt.ssl ? join(opt.ssl, 'key.pem') : config.web.ssl_key,
 			build: opt.build ? resolve(opt.build) : config.web.build,
 		});
+
+		if (opt.socket) createSocketServer(server);
 
 		logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
 
@@ -359,6 +363,7 @@ program
 			process.stdout.clearLine(0);
 			process.stdout.cursorTo(0);
 			server = await serve(config.web);
+			createSocketServer(server);
 			server.listen(config.web.port);
 			process.stdout.write(`Build #${buildId} finished in ${formatMs(time)}`);
 			building = false;
