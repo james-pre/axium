@@ -83,11 +83,12 @@ program
 	.command('daemon')
 	.description('Run as the Axium client daemon')
 	.option('--no-socket', 'do not open a socket connection to the server')
+	.option('--insecure', 'allow connecting to a server with an untrusted (e.g. self-signed) TLS certificate', false)
 	.action(async opt => {
 		for (const plugin of plugins.values()) await plugin._client?.run();
 
 		// Hold a socket connection to the server for the lifetime of the daemon.
-		if (opt.socket && config.token) await connectSocket();
+		if (opt.socket && config.token) await connectSocket({ rejectUnauthorized: !opt.insecure });
 	});
 
 const axcPlugin = program.command('plugin').alias('plugins').description('Manage plugins');
