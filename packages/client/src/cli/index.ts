@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 import { formatBytes } from '@axium/core';
-import { outputDaemonStatus, pluginText } from '@axium/core/node';
+import { loadPlugin, outputDaemonStatus, pluginText } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { CommanderError, program } from 'commander';
 import * as io from 'ioium/node';
@@ -14,7 +14,7 @@ import { prefix, useUserAgent } from '../requests.js';
 import { logout } from '../user.js';
 import { clientUA, login } from './auth.js';
 import * as cache from './cache.js';
-import { loadConfig, saveConfig, session } from './config.js';
+import { axcConfigPath, loadConfig, saveConfig, session } from './config.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) || process.argv.includes('--debug');
@@ -124,6 +124,29 @@ axcPlugin
 	.action((search: string) => {
 		const plugin = _findPlugin(search);
 		for (const line of pluginText(plugin)) console.log(line);
+	});
+
+axcPlugin
+	.command('add')
+	.description('Add a plugin')
+	.option('-k, --keep-going', 'continue adding plugins even if one fails')
+	.argument('<spec...>', 'the plugin specifier (e.g. a package name) to add')
+	.action(async (specs: string[], { keepGoing }) => {
+		for (const spec of specs) {
+			try {
+				if (config.plugins.includes(spec)) throw `Plugin "${spec}" is already added.`;
+
+				const plugin = await loadPlugin('client', spec, axcConfigPath, safe);
+				if (!plugin) throw `Failed to load a client plugin from "${spec}".`;
+
+				config.plugins.push(spec);
+				saveConfig();
+				console.log('Added plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
+			} catch (e) {
+				if (keepGoing) io.error(e);
+				else io.exit(e);
+			}
+		}
 	});
 
 axcPlugin

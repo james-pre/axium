@@ -9,8 +9,8 @@ import * as cache from './cache.js';
 
 export const configDir = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'axium');
 mkdirSync(configDir, { recursive: true });
-const axcConfig = join(configDir, 'config.json');
-if (!existsSync(axcConfig)) writeFileSync(axcConfig, '{}');
+export const axcConfigPath = join(configDir, 'config.json');
+if (!existsSync(axcConfigPath)) writeFileSync(axcConfigPath, '{}');
 
 export function session() {
 	if (!config.token) io.exit('Not logged in.', 4);
@@ -20,16 +20,16 @@ export function session() {
 
 export async function loadConfig(safe: boolean) {
 	try {
-		Object.assign(config, io.readJSON(axcConfig, ClientConfig));
+		Object.assign(config, io.readJSON(axcConfigPath, ClientConfig));
 		if (config.server) setPrefix(config.server);
 		if (config.token) setToken(config.token);
-		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfig, safe);
+		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfigPath, safe);
 	} catch (e: any) {
 		io.warn('Failed to load config: ' + io.errorText(e));
 	}
 }
 
 export function saveConfig() {
-	io.writeJSON(axcConfig, config);
-	io.debug('Saved config to ' + axcConfig);
+	io.writeJSON(axcConfigPath, config);
+	io.debug('Saved config to ' + axcConfigPath);
 }
