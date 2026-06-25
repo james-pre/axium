@@ -1,13 +1,14 @@
 import type { ClientToServerEvents, ServerToClientEvents } from '@axium/core/socket';
 import { ServerToClient } from '@axium/core/socket';
 import * as io from 'ioium';
-import type { ManagerOptions, Socket, SocketOptions } from 'socket.io-client';
+import type { ManagerOptions, Socket as PlainSocket, SocketOptions } from 'socket.io-client';
 import { io as socketIO } from 'socket.io-client';
 import type * as z from 'zod';
+import { origin, token, userAgent } from './requests.js';
 
-export interface _Socket extends Socket<ServerToClientEvents, ClientToServerEvents> {}
+export interface Socket extends PlainSocket<ServerToClientEvents, ClientToServerEvents> {}
 
-const listeners = new Set<Parameters<_Socket['on']>>();
+const listeners = new Set<Parameters<Socket['on']>>();
 
 export function addListener<T extends keyof ServerToClient & string>(event: T, listener: ServerToClientEvents[T]) {
 	const schema = ServerToClient[event] as z.ZodFunction<any, z.ZodVoid>;
@@ -18,10 +19,26 @@ export function addListener<T extends keyof ServerToClient & string>(event: T, l
 	}
 }
 
-export function connect(opts?: Partial<ManagerOptions & SocketOptions>): _Socket;
-export function connect(uri?: string, opts?: Partial<ManagerOptions & SocketOptions>): _Socket;
-export function connect(uriOrOpts?: any, opts?: Partial<ManagerOptions & SocketOptions>): _Socket {
-	const socket: _Socket = socketIO(uriOrOpts, opts);
+export interface ConnectOptions extends Partial<ManagerOptions & SocketOptions> {}
+
+export function connect(opts?: ConnectOptions): Promise<Socket> {
+	if (!token) io.warn('Connecting to the server socket without a session token.');
+
+	const { extraHeaders = {} } = opts || {};
+	if (token) extraHeaders.Authorization = 'Bearer ' + token;
+	if (userAgent) extraHeaders['User-Agent'] = userAgent;
+
+	const socket: Socket = socketIO(origin, { ...opts, extraHeaders });
 	for (const [event, listener] of listeners) socket.on(event, listener);
-	return socket;
+
+	const { promise, resolve, reject } = Promise.withResolvers<Socket>();
+
+	socket.on('connect', () => {
+		io.debug('socket: Connected as ' + socket.id);
+		resolve(socket);
+	});
+
+	socket.on('connect_error', reject);
+
+	return promise;
 }

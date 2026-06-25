@@ -23,7 +23,7 @@ export function setPrefix(value: string): void {
 	origin = new URL(prefix, origin).origin;
 }
 
-let userAgent: string | null = null;
+export let userAgent: string | null = null;
 
 /**
  * Only for use on non-browser clients, e.g. Node.js

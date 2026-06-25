@@ -47,6 +47,9 @@
 		"server": {
 			"web_client_hooks": "./dist/web_hook.js"
 		},
+		"client": {
+			"hooks": "./dist/client/hooks.js"
+		},
 		"apps": [
 			{
 				"id": "sysadmin",

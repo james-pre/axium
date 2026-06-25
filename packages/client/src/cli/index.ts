@@ -11,6 +11,7 @@ import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { config } from '../config.js';
 import { prefix, useUserAgent } from '../requests.js';
+import { connect as connectSocket } from '../socket.js';
 import { logout } from '../user.js';
 import { clientUA, login } from './auth.js';
 import * as cache from './cache.js';
@@ -79,19 +80,26 @@ program.command('status').action(() => {
 });
 
 program
-	.command('run')
-	.argument('[plugin]', 'The plugin to run')
-	.action(async (name?: string) => {
-		if (name) {
-			const plugin = _findPlugin(name);
-			await plugin._client?.run();
-			return;
-		}
-
+	.command('daemon')
+	.description('Run as the Axium client daemon')
+	.option('--no-socket', 'do not open a socket connection to the server')
+	.action(async opt => {
 		for (const plugin of plugins.values()) await plugin._client?.run();
+
+		// Hold a socket connection to the server for the lifetime of the daemon.
+		if (opt.socket && config.token) await connectSocket();
 	});
 
 const axcPlugin = program.command('plugin').alias('plugins').description('Manage plugins');
+
+axcPlugin
+	.command('run')
+	.description('Run a plugin')
+	.argument('<plugin>', 'the plugin to run')
+	.action(async (search: string) => {
+		const plugin = _findPlugin(search);
+		await plugin._client?.run();
+	});
 
 axcPlugin
 	.command('list')
