@@ -41,9 +41,6 @@ const SysadminAPI = {
 		GET: System.array(),
 		PUT: [SystemInit, System],
 	},
-	'users/:id/sysadmin/systems/shared': {
-		GET: System.array(),
-	},
 	'users/:id/sysadmin/users': {
 		GET: SystemUser.array(),
 		PUT: [SystemUserInit, SystemUser],
