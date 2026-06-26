@@ -51,6 +51,8 @@ html {
 	--fg-error: hsl(0 50 calc(var(--fg-light) - var(--light-step)));
 	--fg-warning: hsl(60 50 calc(var(--fg-light) - var(--light-step)));
 
+	--green: hsl(140 50 50);
+
 	--border-disabled: 1px solid hsl(0 5 calc(var(--bg-light) - var(--light-step)));
 	--border-accent: 1px solid hsl(var(--hue) 10 calc(var(--bg-light) + (var(--light-step) * 3)));
 	--border-alt: 1px solid var(--bg-alt);
