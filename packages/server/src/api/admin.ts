@@ -192,7 +192,9 @@ addRoute({
 
 		return await getEvents(filter)
 			.select(eb =>
-				jsonObjectFrom(eb.selectFrom('users').whereRef('users.id', '=', 'audit_log.userId').select(['id', 'name'])).as('user')
+				jsonObjectFrom(
+					eb.selectFrom('users').whereRef('users.id', '=', 'audit_log.userId').select(['id', 'name', 'registeredAt', 'roles'])
+				).as('user')
 			)
 			.execute();
 	},
