@@ -85,7 +85,7 @@ program
 	.option('--no-socket', 'do not open a socket connection to the server')
 	.option('--insecure', 'allow connecting to a server with an untrusted (e.g. self-signed) TLS certificate', false)
 	.action(async opt => {
-		for (const plugin of plugins.values()) await plugin._client?.run();
+		for (const plugin of plugins.values()) await plugin._client?.run?.();
 
 		// Hold a socket connection to the server for the lifetime of the daemon.
 		if (opt.socket && config.token) await connectSocket({ rejectUnauthorized: !opt.insecure });
@@ -99,7 +99,7 @@ axcPlugin
 	.argument('<plugin>', 'the plugin to run')
 	.action(async (search: string) => {
 		const plugin = _findPlugin(search);
-		await plugin._client?.run();
+		await plugin._client?.run?.();
 	});
 
 axcPlugin
