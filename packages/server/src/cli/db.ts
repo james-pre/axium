@@ -27,11 +27,12 @@ axiumDB
 	.description('Initialize the database')
 	.addOption(opts.force)
 	.option('-s, --skip', 'If the user, database, or schema already exists, skip trying to create it.', false)
+	.addOption(new Option('-t, --tables-only', 'Only initialize tables').conflicts('skip'))
 	.addOption(opts.check)
 	.addOption(opts.assumeYes)
 	.action(async function axium_db_init() {
 		const opt = this.optsWithGlobals();
-		await db.init(opt);
+		if (!opt.tablesOnly) await db.init(opt);
 		await dbInitTables(opt.assumeYes);
 	});
 
