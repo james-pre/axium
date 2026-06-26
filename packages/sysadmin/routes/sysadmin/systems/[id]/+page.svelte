@@ -64,9 +64,9 @@
 </svelte:head>
 
 <div class="system-page">
-	<a class="subtle icon-text back" href="/sysadmin/systems">
+	<a class="subtle icon-text back" href="/sysadmin">
 		<Icon i="arrow-left" />
-		<span>{text('sysadmin.back_to_systems')}</span>
+		<span>{text('sysadmin.back_to_main')}</span>
 	</a>
 
 	<div class="system-header">

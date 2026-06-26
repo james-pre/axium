@@ -14,8 +14,6 @@
 		"online": "Online",
 		"offline": "Offline",
 		"back_to_main": "Back to System Administration",
-		"back_to_systems": "Back to Systems",
-		"back_to_users": "Back to System Users",
 		"SystemInitDialog": {
 			"submit": "Add System",
 			"save": "Save",

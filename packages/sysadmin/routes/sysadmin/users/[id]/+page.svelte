@@ -27,9 +27,9 @@
 </svelte:head>
 
 <div class="user-page">
-	<a class="subtle icon-text back" href="/sysadmin/users">
+	<a class="subtle icon-text back" href="/sysadmin">
 		<Icon i="arrow-left" />
-		<span>{text('sysadmin.back_to_users')}</span>
+		<span>{text('sysadmin.back_to_main')}</span>
 	</a>
 
 	<div class="user-header">
