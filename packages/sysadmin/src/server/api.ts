@@ -1,11 +1,16 @@
-import type { AsyncResult } from '@axium/core';
+import type { AccessControl, AsyncResult } from '@axium/core';
 import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser } from '@axium/server/auth';
-import { database } from '@axium/server/database';
+import { database, type Schema } from '@axium/server/database';
 import { parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
+import type { Selectable } from 'kysely';
 import * as z from 'zod';
-import { SystemInit, SystemUserInit } from '../common.js';
+import { SystemInit, SystemUserInit, type System } from '../common.js';
+
+function parseSystem<T extends Selectable<Schema['systems']> & { acl?: AccessControl[] }>(system: T, isShared: boolean): System {
+	return Object.assign({ acl: [] }, system, { isShared }) satisfies Omit<System, 'type'> & { type: string } as System;
+}
 
 addRoute({
 	path: '/api/users/:id/sysadmin/systems',
@@ -21,21 +26,21 @@ addRoute({
 			.execute()
 			.catch(withError('Could not get systems'));
 
-		return systems.map(system => Object.assign(system, { isShared: system.userId !== userId }));
+		return systems.map(system => parseSystem(system, system.userId !== userId));
 	},
 	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/sysadmin/systems'> {
 		const init = await parseBody(request, SystemInit);
 
 		await checkAuthForUser(request, userId);
 
-		return Object.assign(
+		return parseSystem(
 			await database
 				.insertInto('systems')
 				.values({ ...init, userId })
 				.returningAll()
 				.executeTakeFirstOrThrow()
 				.catch(withError('Could not create system')),
-			{ isShared: false, acl: [] }
+			false
 		);
 	},
 });
@@ -46,7 +51,7 @@ addRoute({
 	async GET(request, { id }): AsyncResult<'GET', 'sysadmin/systems/:id'> {
 		const { item, fromACL } = await authRequestForItem(request, 'systems', id, { read: true });
 
-		return Object.assign(item, { isShared: fromACL });
+		return parseSystem(item, fromACL);
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'sysadmin/systems/:id'> {
 		const init = await parseBody(request, SystemInit);
@@ -62,7 +67,20 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update system'));
 
-		return Object.assign(system, { isShared: fromACL });
+		return parseSystem(system, fromACL);
+	},
+	async DELETE(request, { id }): AsyncResult<'DELETE', 'sysadmin/systems/:id'> {
+		const { fromACL } = await authRequestForItem(request, 'systems', id, { manage: true });
+
+		const system = await database
+			.deleteFrom('systems')
+			.where('id', '=', id)
+			.returningAll()
+			.returning(acl.from('systems'))
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not delete system'));
+
+		return parseSystem(system, fromACL);
 	},
 });
 

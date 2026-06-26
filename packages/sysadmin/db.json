@@ -43,6 +43,16 @@
 				"acl_systems_userId": { "on": "acl.systems", "columns": ["userId"] },
 				"acl_systems_itemId": { "on": "acl.systems", "columns": ["itemId"] }
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"systems": {
+					"add_columns": {
+						"type": { "type": "text", "required": true, "default": "'server'" }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["systems", "system_users", "acl.systems"],

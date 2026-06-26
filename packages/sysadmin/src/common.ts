@@ -4,9 +4,19 @@ import { addClientToServer, addServerToClient } from '@axium/core/socket';
 import * as z from 'zod';
 import { SystemInfo } from './info.js';
 
+export const SystemType = z.literal(['server', 'pc', 'laptop']);
+export type SystemType = z.infer<typeof SystemType>;
+
+export const systemTypeIcons: Record<SystemType, string> = {
+	server: 'server',
+	pc: 'computer',
+	laptop: 'laptop',
+};
+
 export const SystemInit = z.object({
 	name: z.string().nonempty().max(250),
 	hostname: z.string().nonempty().max(250),
+	type: SystemType.default('server'),
 });
 export interface SystemInit extends z.infer<typeof SystemInit> {}
 
@@ -48,6 +58,7 @@ const SysadminAPI = {
 	'sysadmin/systems/:id': {
 		GET: System,
 		PATCH: [SystemInit, System],
+		DELETE: System,
 	},
 	'sysadmin/users/:id': {
 		GET: SystemUser,
