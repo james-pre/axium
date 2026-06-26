@@ -147,7 +147,7 @@ function networkInterfaces(): NetworkInterface[] {
 	const result: NetworkInterface[] = [];
 
 	for (const name of list('/sys/class/net')) {
-		if (name === 'lo') continue;
+		if (name === 'lo' || name.startsWith('veth') || name.startsWith('docker') || name.startsWith('br-')) continue;
 
 		const operstate = read(`/sys/class/net/${name}/operstate`);
 		const connected = operstate === 'up' || read(`/sys/class/net/${name}/carrier`) === '1';
