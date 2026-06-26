@@ -145,21 +145,23 @@
 				<div class="component">
 					<h3><Icon i="network-wired" /> {text('sysadmin.system.network')}</h3>
 					{#each info.networkInterfaces as iface}
-						<div class="line">
-							<span class="icon-text">
+						<div class="net-line">
+							<span class="icon-text net-name">
 								<Icon i={iface.wireless ? 'wifi' : 'ethernet'} />
 								{iface.name}
 							</span>
-							<span class="subtle">{iface.model}</span>
-							<span class={['net-status', iface.connected ? 'online' : 'offline']}>
-								{iface.connected ? text('sysadmin.system.connected') : text('sysadmin.system.disconnected')}
-								{#if iface.connection}
-									<span class="subtle">{text('sysadmin.system.connected_to', { connection: iface.connection })}</span>
+							<span class="subtle net-model">{iface.model}</span>
+							<span class="net-state">
+								<span class={['net-status', iface.connected ? 'online' : 'offline']}>
+									{iface.connected ? text('sysadmin.system.connected') : text('sysadmin.system.disconnected')}
+									{#if iface.connection}
+										<span class="subtle">{text('sysadmin.system.connected_to', { connection: iface.connection })}</span>
+									{/if}
+								</span>
+								{#if iface.speed}
+									<span class="subtle">{speedText(iface.speed)}</span>
 								{/if}
 							</span>
-							{#if iface.speed}
-								<span class="subtle">{speedText(iface.speed)}</span>
-							{/if}
 						</div>
 					{/each}
 				</div>
@@ -275,6 +277,29 @@
 		}
 	}
 
+	.net-line {
+		display: flex;
+		align-items: center;
+		gap: 0.5em 1em;
+		flex-wrap: wrap;
+	}
+
+	.net-name {
+		font-weight: bold;
+	}
+
+	/* Push the status/speed cluster to the trailing edge; let the model take the slack. */
+	.net-model {
+		margin-right: auto;
+	}
+
+	.net-state {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.35em 0.75em;
+		flex-wrap: wrap;
+	}
+
 	dl {
 		display: grid;
 		grid-template-columns: max-content 1fr;
@@ -294,6 +319,10 @@
 		.system-page {
 			padding: 1em;
 			padding-bottom: 5em;
+		}
+
+		.net-model {
+			flex-basis: 100%;
 		}
 	}
 </style>
