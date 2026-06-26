@@ -43,7 +43,7 @@ export function connect(opts?: ConnectOptions): Promise<Socket> {
 	});
 
 	socket.on('connect_error', err => {
-		socket = null;
+		if (!socket!.active) socket = null;
 		reject(err);
 	});
 
