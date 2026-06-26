@@ -4,19 +4,16 @@ import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import { formatBytes, formatMs } from '@axium/core/format';
 import { outputDaemonStatus } from '@axium/core/node';
-import { getPackageJSON } from '@axium/core/node/packages';
-import { getActivePackages } from '@axium/core/packages';
+import { getPackageJSON, upgradeActivePackages } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { allLogLevels } from 'logzen';
-import { execFileSync, execSync } from 'node:child_process';
 import { createWriteStream, readFileSync } from 'node:fs';
 import { access, readdir, stat, watch } from 'node:fs/promises';
 import type { Http2Server } from 'node:http2';
 import { join, relative, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
-import { lte, major } from 'semver';
 import type { Entries } from 'utilium';
 import { searchForWorkspaceRoot } from 'vite';
 import * as z from 'zod';
@@ -29,7 +26,7 @@ import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOpt
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
 import { serve } from '../serve.js';
 import createSocketServer from '../socket.js';
-import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts, rlConfirm } from './common.js';
+import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
 import './config.js';
@@ -441,132 +438,35 @@ program
 	.option('--allow-breaking', 'Allow semver-major package updates')
 	.argument('[package...]', 'filter packages to upgrade')
 	.action(async (filter: string[], opt) => {
-		if (opt.git && execSync('git status --porcelain', { encoding: 'utf8' })) throw 'Working directory is not clean.';
+		await upgradeActivePackages(filter, opt, {
+			builtin: [$pkg, getPackageJSON('@axium/client', import.meta.filename)],
+			async postinstall() {
+				// re-link //
+				io.track('Linking routes', linkRoutes);
+				io.track('Writing web client hooks for plugins', writePluginHooks);
 
-		io.start('Fetching package metadata');
-		const allPackages = await getActivePackages(
-			[getPackageJSON('@axium/core', import.meta.filename), getPackageJSON('@axium/client', import.meta.filename), $pkg],
-			io.progress
-		);
+				// re-build //
+				await io.track('Building', build());
 
-		let breakingExcluded = 0;
+				// database //
+				console.log('Upgrading database:');
 
-		const packages = allPackages.filter(pkg => {
-			if (filter?.length && !filter.includes(pkg.name)) return false;
-			if (lte(pkg.latest, pkg.version)) return false;
-			if (major(pkg.latest) != major(pkg.version) && !opt.allowBreaking) {
-				breakingExcluded++;
-				return false;
-			}
-			return true;
-		});
+				db.connect();
+				const upgrade = db.initUpgrade();
 
-		if (!packages.length) {
-			console.log('Already up to date.');
-			return;
-		}
+				if (!upgrade) console.log('Database already up to date.');
+				else {
+					io.track('Validating delta', () => db.delta.validate(upgrade.delta));
 
-		console.log('Upgrading:');
-		io.table(
-			[
-				{ name: 'Package', text: pkg => pkg.name },
-				{ name: 'Current Version', text: pkg => pkg.version },
-				{
-					name: 'New Version',
-					text: pkg => pkg.latest,
-					format: (latest, pkg) => styleText(major(latest) != major(pkg.version) ? 'red' : 'reset', latest),
-				},
-				{
-					name: 'Size',
-					text: pkg => formatBytes(pkg.latestSize),
-					padStart: true,
-					grow: 0,
-				},
-				{
-					name: 'Change',
-					text(pkg) {
-						const changedBytes = pkg.latestSize - pkg.size;
-						return (changedBytes < 0n ? '-' : '+') + formatBytes(changedBytes < 0n ? -changedBytes : changedBytes);
-					},
-					format(text, pkg) {
-						const changedBytes = pkg.latestSize - pkg.size;
-						const abs = changedBytes < 0n ? -changedBytes : changedBytes;
-						return styleText(changedBytes < 0n ? 'green' : abs < 1000n ? 'reset' : abs < 1000000n ? 'yellow' : 'red', text);
-					},
-					padStart: true,
-					grow: 0,
-				},
-			],
-			{
-				formatHead: text => styleText('bold', text),
+					console.log('Applying delta.');
+					await db.delta.apply(upgrade.delta, opt.dryRun);
+
+					if (opt.dryRun) {
+						io.warn('--dry-run: No changes were applied.');
+					} else {
+						db.setUpgradeInfo(upgrade.info);
+					}
+				}
 			},
-			packages
-		);
-
-		if (!opt.allowBreaking && breakingExcluded) {
-			console.log('Excluded', breakingExcluded, 'breaking changes. Use --allow-breaking to include them.');
-		}
-
-		let oldSizeSum = 0n,
-			newSizeSum = 0n;
-
-		for (const pkg of packages) {
-			oldSizeSum += pkg.size;
-			newSizeSum += pkg.latestSize;
-		}
-
-		console.log(
-			'After this operation,',
-			newSizeSum > oldSizeSum
-				? formatBytes(newSizeSum - oldSizeSum) + ' extra will be used'
-				: formatBytes(oldSizeSum - newSizeSum) + ' will be freed',
-			`(install ${formatBytes(newSizeSum)}, remove ${formatBytes(oldSizeSum)}).`
-		);
-
-		await rlConfirm();
-
-		// npm //
-		if (opt.dryRun) {
-			io.warn('--dry-run: No packages were changed.');
-		} else {
-			io.track('Upgrading packages', () => {
-				execFileSync('npm', ['install', ...packages.map(pkg => `${pkg.name}@${pkg.latest}`)]);
-			});
-		}
-
-		// re-link //
-		io.track('Linking routes', linkRoutes);
-		io.track('Writing web client hooks for plugins', writePluginHooks);
-
-		// re-build //
-		await io.track('Building', build());
-
-		// database //
-		console.log('Upgrading database:');
-
-		db.connect();
-		const upgrade = db.initUpgrade();
-
-		if (!upgrade) console.log('Database already up to date.');
-		else {
-			io.track('Validating delta', () => db.delta.validate(upgrade.delta));
-
-			console.log('Applying delta.');
-			await db.delta.apply(upgrade.delta, opt.dryRun);
-
-			if (opt.dryRun) {
-				io.warn('--dry-run: No changes were applied.');
-			} else {
-				db.setUpgradeInfo(upgrade.info);
-			}
-		}
-
-		if (opt.git) {
-			io.track('Committing to source control', () =>
-				execSync('git commit --all --file=-', {
-					encoding: 'utf8',
-					input: 'axium upgrade\n' + packages.map(pkg => `${pkg.name} ${pkg.version}->${pkg.latest}`).join('\n'),
-				})
-			);
-		}
+		});
 	});

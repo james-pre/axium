@@ -97,18 +97,3 @@ export const sharedOptions = {
 	}),
 	assumeYes: new Option('-y, --assume-yes', 'assume yes for all prompts').default(false),
 };
-
-const rl = createInterface({
-	input: process.stdin,
-	output: process.stdout,
-});
-
-export { rl };
-
-export async function rlConfirm(question: string = 'Is this ok'): Promise<void> {
-	const { data, error } = z
-		.stringbool()
-		.default(false)
-		.safeParse(await rl.question(question + ' [y/N]: ').catch(() => io.exit('Aborted.')));
-	if (error || !data) io.exit('Aborted.');
-}

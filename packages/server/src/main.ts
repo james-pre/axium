@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { rl } from '@axium/core/node';
 import { runIntegrations } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
@@ -6,8 +7,6 @@ import { parseArgs } from 'node:util';
 import * as z from 'zod';
 import './cli/db.js';
 import config, { reloadConfigs } from './config.js';
-
-import { rl } from './cli/index.js';
 
 process.on('SIGHUP', () => {
 	io.info('Reloading configuration due to SIGHUP.');

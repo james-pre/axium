@@ -1,11 +1,11 @@
-import { createPluginCommand } from '@axium/core/node';
+import { createPluginCommand, rlConfirm } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
 import * as z from 'zod';
 import config, { configFiles, findConfigPaths, saveConfigTo } from '../config.js';
 import * as db from '../db/index.js';
-import { sharedOptions as opts, rlConfirm } from './common.js';
+import { sharedOptions as opts } from './common.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 

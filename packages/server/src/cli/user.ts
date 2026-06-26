@@ -1,13 +1,14 @@
 import type { UserInternal } from '@axium/core';
 import { formatDateRange } from '@axium/core/format';
+import { rl } from '@axium/core/node';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import { audit } from '../audit.js';
-import { diffUpdate, lookupUser, rl, userText } from './common.js';
 import config from '../config.js';
 import * as db from '../db/index.js';
+import { diffUpdate, lookupUser, userText } from './common.js';
 
 const argUserLookup = new Argument('<user>', 'the UUID or email of the user to operate on').argParser(lookupUser);
 
