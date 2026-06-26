@@ -44,6 +44,7 @@
 		"utilium": "^3.0.0"
 	},
 	"dependencies": {
+		"commander": "^15.0.0",
 		"ioium": "^1.6.0",
 		"zod": "^4.0.5"
 	},
@@ -55,7 +56,8 @@
 			"web_client_hooks": "./dist/web_hook.js"
 		},
 		"client": {
-			"hooks": "./dist/client/hooks.js"
+			"hooks": "./dist/client/hooks.js",
+			"cli": "./dist/client/cli.js"
 		},
 		"apps": [
 			{

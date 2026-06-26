@@ -20,13 +20,33 @@
 						"name": { "type": "text", "required": true },
 						"username": { "type": "text", "required": true }
 					}
+				},
+				"acl.systems": {
+					"columns": {
+						"userId": { "type": "uuid", "references": "users.id", "onDelete": "cascade" },
+						"itemId": { "type": "uuid", "required": true, "references": "systems.id", "onDelete": "cascade" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"role": { "type": "text" },
+						"tag": { "type": "text" },
+						"read": { "type": "boolean", "required": true, "default": false },
+						"edit": { "type": "boolean", "required": true, "default": false },
+						"manage": { "type": "boolean", "required": true, "default": false }
+					},
+					"constraints": {
+						"unique_systems": { "type": "unique", "on": ["itemId", "userId", "role", "tag"], "nulls_not_distinct": true }
+					}
 				}
 			},
 			"indexes": {
 				"systems_userId": { "on": "systems", "columns": ["userId"] },
-				"system_users_userId": { "on": "system_users", "columns": ["userId"] }
+				"system_users_userId": { "on": "system_users", "columns": ["userId"] },
+				"acl_systems_userId": { "on": "acl.systems", "columns": ["userId"] },
+				"acl_systems_itemId": { "on": "acl.systems", "columns": ["itemId"] }
 			}
 		}
 	],
-	"wipe": ["systems", "system_users"]
+	"wipe": ["systems", "system_users", "acl.systems"],
+	"acl_tables": {
+		"systems": "acl.systems"
+	}
 }

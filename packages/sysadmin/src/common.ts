@@ -1,3 +1,4 @@
+import { AccessControl } from '@axium/core';
 import { $API } from '@axium/core/api';
 import { addClientToServer, addServerToClient } from '@axium/core/socket';
 import * as z from 'zod';
@@ -12,7 +13,8 @@ export interface SystemInit extends z.infer<typeof SystemInit> {}
 export const System = SystemInit.extend({
 	id: z.uuid(),
 	userId: z.uuid(),
-	online: z.boolean(),
+	isShared: z.boolean(),
+	acl: AccessControl.array(),
 });
 export interface System extends z.infer<typeof System> {}
 

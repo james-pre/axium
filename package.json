@@ -43,6 +43,7 @@
 		"@axium/server": "workspace:*",
 		"@axium/storage": "workspace:*",
 		"@axium/tasks": "workspace:*",
+		"@axium/sysadmin": "workspace:*",
 		"@commander-js/extra-typings": "^15.0.0",
 		"@eslint/js": "^10.0.1",
 		"@types/node": "^25.5.0",
