@@ -60,6 +60,7 @@
 			"cpu_cores": "{count} cores",
 			"gpu": "Graphics",
 			"memory": "Memory",
+			"memory_speed": "{speed} MT/s",
 			"swap": "Swap",
 			"storage": "Storage",
 			"network": "Network",

@@ -31,6 +31,7 @@
 	}
 
 	function usageText(used: bigint, total: bigint): string {
+		if (used <= 0n) return formatBytes(total);
 		return text('sysadmin.system.usage', { used: formatBytes(used), total: formatBytes(total) });
 	}
 
@@ -124,7 +125,18 @@
 			{/if}
 
 			<div class="component">
-				<h3><Icon i="memory" /> {text('sysadmin.system.memory')}</h3>
+				<h3>
+					<Icon i="memory" /> {text('sysadmin.system.memory')}
+					{#if info.memory.type}
+						<span class="subtle">{info.memory.type}</span>
+					{/if}
+					{#if info.memory.formFactor}
+						<span class="subtle">{info.memory.formFactor}</span>
+					{/if}
+					{#if info.memory.speed}
+						<span class="subtle">{text('sysadmin.system.memory_speed', { speed: info.memory.speed })}</span>
+					{/if}
+				</h3>
 				<NumberBar
 					value={fraction(info.memory.used, info.memory.total)}
 					max={1}

@@ -26,6 +26,10 @@ export const Memory = z.object({
 	...TotalUsed.shape,
 	/** Memory speed in MT/s */
 	speed: z.int().nonnegative(),
+	/** Form factor, e.g. 'DIMM' or 'SODIMM' */
+	formFactor: z.string().optional(),
+	/** Memory type, e.g. 'DDR4' or 'DDR5' */
+	type: z.string().optional(),
 	/** Only available when swap is in use */
 	swap: TotalUsed.optional(),
 });
