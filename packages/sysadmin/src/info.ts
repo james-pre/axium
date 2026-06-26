@@ -1,3 +1,4 @@
+import type { UserInfo } from 'node:os';
 import * as z from 'zod';
 
 export const TotalUsed = z.object({
@@ -46,6 +47,15 @@ export const NetworkInterface = z.object({
 });
 export interface NetworkInterface extends z.infer<typeof NetworkInterface> {}
 
+export const SystemInfoUser = z.object({
+	username: z.string(),
+	uid: z.int(),
+	gid: z.int(),
+	shell: z.string().nullable(),
+	homedir: z.string(),
+});
+export interface SystemInfoUser extends z.infer<typeof SystemInfoUser>, UserInfo<string> {}
+
 export const SystemInfo = z.object({
 	cpus: CPU.array(),
 	gpus: GPU.array(),
@@ -67,6 +77,7 @@ export const SystemInfo = z.object({
 	/** Kernel version, e.g. `#1 SMP PREEMPT_DYNAMIC ...` */
 	version: z.string(),
 	hostname: z.string(),
+	user: SystemInfoUser,
 });
 export interface SystemInfo extends z.infer<typeof SystemInfo> {}
 

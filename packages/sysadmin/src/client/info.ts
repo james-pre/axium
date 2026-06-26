@@ -194,5 +194,6 @@ export function systemInfo(): SystemInfo {
 		uptime: os.uptime(),
 		version: os.version(),
 		hostname: os.hostname(),
+		user: os.userInfo(),
 	};
 }
