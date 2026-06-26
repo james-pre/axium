@@ -32,6 +32,7 @@ calendar|Calendars and events
 contacts|Contact management
 notes|Notes
 tasks|Task and to-do lists
+sysadmin|System administration
 "
 
 DEFAULT_INSTALL_DIR="/var/lib/axium"
