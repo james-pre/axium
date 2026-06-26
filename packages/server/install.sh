@@ -667,6 +667,23 @@ else
 		fi
 
 		run_root systemctl link "$_unit_src" >/dev/null
+
+		# On SELinux systems (Fedora/RHEL) the unit file keeps the label of
+		# wherever it physically lives. `systemctl link` only labels the symlink
+		# in /etc; systemd (init_t) actually opens the real file and is denied
+		# `read` on labels like user_home_t/var_lib_t; so the unit loads as
+		# "not found". Relabel the real file as systemd_unit_file_t, persisting
+		# it with semanage (survives reboots/restorecon) when that tool exists.
+		if command -v selinuxenabled >/dev/null 2>&1 && selinuxenabled; then
+			_unit_real=$(readlink -f "$_unit_src")
+			if command -v semanage >/dev/null 2>&1; then
+				run_root semanage fcontext -a -t systemd_unit_file_t "$_unit_real" 2>/dev/null || true
+			fi
+			if command -v restorecon >/dev/null 2>&1; then
+				run_root restorecon "$_unit_real" 2>/dev/null || true
+			fi
+		fi
+
 		run_root systemctl daemon-reload
 		SERVICE_INSTALLED=1
 

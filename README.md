@@ -39,6 +39,71 @@ sudo axium database init # also `... db init`, this adds Axium to the postgres c
 
 After that you can use `axium status` to see if Axium is working correctly.
 
+### systemd services
+
+Axium ships two units, installed by symlinking the file out of its npm package
+with `systemctl link`:
+
+- **`axium.service`** (`@axium/server`) — the server daemon. It is a **system**
+  unit, runs as the dedicated `axium` user, and binds privileged ports, so it is
+  installed system-wide:
+
+    ```sh
+    sudo systemctl link  /path/to/node_modules/@axium/server/axium.service
+    sudo systemctl enable --now axium
+    ```
+
+- **`axium-client.service`** (`@axium/client`) — the client daemon. It is
+  per-user (its config/cache live under `~/.config/axium` and `~/.cache/axium`),
+  so it is installed as a **user** unit and needs no root:
+
+    ```sh
+    systemctl --user link  /path/to/node_modules/@axium/client/axium-client.service
+    systemctl --user enable --now axium-client
+    # to keep it running when you are not logged in:
+    loginctl enable-linger "$USER"
+    ```
+
+Both units locate their package's `node_modules` via the `%Y` specifier (the
+directory of the resolved unit fragment) and run the daemon from there, so the
+symlink installation is load-bearing — don't copy the unit elsewhere.
+
+### Troubleshooting
+
+#### `Unit axium.service not found` on SELinux systems
+
+This affects the **system** unit (`axium.service`). Because it is installed with
+`systemctl link`, the unit in `/etc/systemd/system` is a symlink to the real file
+in your install directory. On SELinux-enforcing systems (e.g. Fedora/RHEL) that real
+file keeps the label of wherever it lives (e.g. `user_home_t` for a clone under
+your home directory, or `var_lib_t` under `/var/lib`). systemd runs as `init_t`
+and is denied read access to such files, so it reports the unit as not found even
+though the symlink exists.
+
+The installer handles this automatically. If you linked a unit by hand, relabel
+the real file as a systemd unit file:
+
+```sh
+# Persist the label (survives reboots and restorecon), then apply it now:
+sudo semanage fcontext -a -t systemd_unit_file_t '/path/to/axium.service'
+sudo restorecon -v '/path/to/axium.service'
+sudo systemctl daemon-reload
+```
+
+You can confirm the denial with `sudo ausearch -m AVC -ts recent | grep axium`.
+
+The **client** unit (`axium-client.service`) runs under `systemctl --user`, whose
+manager is not `init_t`, so it is not subject to this denial.
+
+#### `npm error 404 ... axium-client` when the client daemon starts
+
+The client unit runs its bin (`axium-client`) out of the local `node_modules`.
+If that resolution fails, `npx` falls back to the npm registry and 404s, because
+there is no published package literally named `axium-client` (the bin comes from
+`@axium/client`). Make sure the client package is actually installed at the
+install root (`node_modules/@axium/client`) and that you linked the unit shipped
+with your installed version rather than an older copy.
+
 ## Architecture
 
 Axium is split up into three main components:

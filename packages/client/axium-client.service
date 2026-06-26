@@ -10,8 +10,7 @@ FailureAction=none
 
 [Service]
 Type=simple
-ExecStartPre=/usr/bin/env cd "%Y/../../.."
-ExecStart=/usr/bin/env npx --prefix "%Y/../../.." axium-client daemon
+ExecStart=/bin/sh -c 'cd "%Y/../../.." && exec npx --no-install axium-client daemon'
 ExecReload=kill -HUP $MAINPID
 SyslogIdentifier=axium-client
 Restart=on-failure
