@@ -5,7 +5,7 @@ import { program } from 'commander';
 import * as io from 'ioium/node';
 import { parseArgs } from 'node:util';
 import * as z from 'zod';
-import './cli/db.js';
+import './cli/index.js';
 import config, { reloadConfigs } from './config.js';
 
 process.on('SIGHUP', () => {
