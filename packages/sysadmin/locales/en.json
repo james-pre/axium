@@ -67,6 +67,7 @@
 			"wired": "Wired",
 			"connected": "Connected",
 			"disconnected": "Disconnected",
+			"connected_to": "to {connection}",
 			"os": "Operating System",
 			"platform": "Platform",
 			"release": "Release",

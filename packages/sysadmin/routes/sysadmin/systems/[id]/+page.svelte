@@ -23,6 +23,12 @@
 		return text('sysadmin.system.usage', { used: formatBytes(used), total: formatBytes(total) });
 	}
 
+	function speedText(speed: number): string {
+		if (speed < 1000) return `${speed} MBit/s`;
+		const gb = speed / 1000;
+		return `${gb % 1 === 0 ? gb : gb.toFixed(1)} GBit/s`;
+	}
+
 	const socket = await connect();
 
 	async function loadInfo() {
@@ -147,9 +153,12 @@
 							<span class="subtle">{iface.model}</span>
 							<span class={['net-status', iface.connected ? 'online' : 'offline']}>
 								{iface.connected ? text('sysadmin.system.connected') : text('sysadmin.system.disconnected')}
+								{#if iface.connection}
+									<span class="subtle">{text('sysadmin.system.connected_to', { connection: iface.connection })}</span>
+								{/if}
 							</span>
 							{#if iface.speed}
-								<span>{iface.speed} Mbit/s</span>
+								<span class="subtle">{speedText(iface.speed)}</span>
 							{/if}
 						</div>
 					{/each}

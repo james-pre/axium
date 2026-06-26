@@ -1,6 +1,7 @@
-import type { GPU, Memory, NetworkInterface, Storage, SystemInfo } from '../info.js';
+import { execFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
+import type { GPU, Memory, NetworkInterface, Storage, SystemInfo } from '../info.js';
 
 /** Read a sysfs/procfs file, returning the trimmed contents or undefined if unreadable. */
 function read(path: string): string | undefined {
@@ -152,18 +153,28 @@ function networkInterfaces(): NetworkInterface[] {
 		const operstate = read(`/sys/class/net/${name}/operstate`);
 		const connected = operstate === 'up' || read(`/sys/class/net/${name}/carrier`) === '1';
 
-		// `speed` is in Mbit/s; only valid for connected links and may be -1/unreadable.
-		const raw = read(`/sys/class/net/${name}/speed`);
-		const speed = connected && raw && Number(raw) > 0 ? BigInt(raw) : undefined;
+		const raw = Number(read(`/sys/class/net/${name}/speed`));
+		let speed = connected && Number.isSafeInteger(raw) && raw > 0 ? raw : undefined;
 
-		// Wi-Fi devices expose a `wireless`/`phy80211` subdirectory.
 		const wireless = fs.existsSync(`/sys/class/net/${name}/wireless`) || fs.existsSync(`/sys/class/net/${name}/phy80211`);
+
+		// Wi-Fi doesn't expose sysfs `speed`; the SSID and link bitrate come from `iw` instead.
+		let connection: string | undefined;
+		if (wireless && connected)
+			try {
+				const link = execFileSync('iw', ['dev', name, 'link'], { encoding: 'utf8' });
+				connection = /^\s*SSID:\s*(.+)$/m.exec(link)?.[1].trim() || undefined;
+				const bitrate = /^\s*tx bitrate:\s*([\d.]+)\s*MBit\/s/m.exec(link)?.[1];
+				if (bitrate) speed = Math.round(Number(bitrate));
+			} catch {
+				// that's okay
+			}
 
 		const uevent = read(`/sys/class/net/${name}/device/uevent`);
 		const id = uevent && /^PCI_ID=(.+)$/m.exec(uevent)?.[1];
 		const model = id ? pciName(id) : name;
 
-		result.push({ name, model, connected, wireless, speed });
+		result.push({ name, model, connected, wireless, connection, speed });
 	}
 	return result;
 }

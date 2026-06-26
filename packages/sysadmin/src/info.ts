@@ -42,7 +42,7 @@ export const NetworkInterface = z.object({
 	connected: z.boolean(),
 	wireless: z.boolean(),
 	connection: z.string().optional(),
-	speed: z.coerce.bigint().optional(),
+	speed: z.number().nonnegative().optional(),
 });
 export interface NetworkInterface extends z.infer<typeof NetworkInterface> {}
 
