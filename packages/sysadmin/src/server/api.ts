@@ -146,4 +146,21 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update system user'));
 	},
+	async DELETE(request, { id }): AsyncResult<'DELETE', 'sysadmin/users/:id'> {
+		const existing = await database
+			.selectFrom('system_users')
+			.select('userId')
+			.where('id', '=', id)
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not get system user', 404));
+
+		await checkAuthForUser(request, existing.userId);
+
+		return await database
+			.deleteFrom('system_users')
+			.where('id', '=', id)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not delete system user'));
+	},
 });

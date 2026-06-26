@@ -63,6 +63,7 @@ const SysadminAPI = {
 	'sysadmin/users/:id': {
 		GET: SystemUser,
 		PATCH: [SystemUserInit, SystemUser],
+		DELETE: SystemUser,
 	},
 } as const;
 
