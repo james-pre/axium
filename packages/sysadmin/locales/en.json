@@ -42,7 +42,9 @@
 			"toast_deleted": "User deleted"
 		},
 		"user": {
-			"page_title": "{name} — System Users"
+			"page_title": "{name} — System Users",
+			"systems": "Connected Systems",
+			"no_systems": "No systems are connected to this user."
 		},
 		"system_type": {
 			"server": "Server",
@@ -74,7 +76,21 @@
 			"kernel": "Kernel",
 			"arch": "Architecture",
 			"uptime": "Uptime",
-			"usage": "{used} / {total}"
+			"usage": "{used} / {total}",
+			"user": {
+				"title": "User",
+				"username": "Username",
+				"uid": "UID / GID",
+				"home": "Home Directory",
+				"shell": "Shell",
+				"match_found": "This user matches '{name}'.",
+				"no_match": "No matching system user. Add one with the live username to connect it.",
+				"connect": "Connect User",
+				"connected_to": "Connected to {name}",
+				"disconnect": "Disconnect",
+				"disconnected_from": "Disconnected from {name}",
+				"username_mismatch": "The connected user “{connected}” no longer matches the live username “{live}”."
+			}
 		}
 	}
 }

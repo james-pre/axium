@@ -1,17 +1,28 @@
 <script lang="ts">
-	import { text } from '@axium/client';
-	import { formatBytes, formatDuration } from '@axium/core';
+	import { fetchAPI, text } from '@axium/client';
 	import { Icon, NumberBar } from '@axium/client/components';
 	import { connect } from '@axium/client/socket';
+	import { toastStatus } from '@axium/client/toast';
+	import { formatBytes, formatDuration } from '@axium/core';
 	import { systemTypeIcons, type SystemInfo } from '@axium/sysadmin';
 	import '@axium/sysadmin/common';
 
 	const { data } = $props();
-	const system = data.system;
+
+	let system = $state(data.system);
+	const systemUsers = data.systemUsers;
 
 	let info = $state<SystemInfo>();
 	let error = $state(false);
 	let loading = $state(true);
+
+	const matchingUser = $derived(info && systemUsers.find(u => u.username === info!.user.username));
+	const connectedUser = $derived(system.connectedUserId ? systemUsers.find(u => u.id === system.connectedUserId) : undefined);
+
+	async function setConnectedUser(connectedUserId: string | null) {
+		const updated = await fetchAPI('PATCH', 'sysadmin/systems/:id', { ...system, connectedUserId }, system.id);
+		system = updated;
+	}
 
 	/** The fraction used, for a NumberBar, clamped to [0, 1]. */
 	function fraction(used: bigint, total: bigint): number {
@@ -182,6 +193,68 @@
 			</dl>
 		</section>
 	{/if}
+
+	{#if info || connectedUser}
+		<section>
+			{const userIcon = !info ? 'user' : info.user.uid === 0 ? 'user-crown' : info.user.uid < 1000 ? 'user-gear' : 'user'}
+			<h2><Icon i={userIcon} /> {text('sysadmin.system.user.title')}</h2>
+
+			{#if info && connectedUser && connectedUser.username !== info.user.username}
+				<div class="warning icon-text">
+					<Icon i="triangle-exclamation" />
+					<span>
+						{text('sysadmin.system.user.username_mismatch', {
+							connected: connectedUser.username,
+							live: info.user.username,
+						})}
+					</span>
+				</div>
+			{/if}
+
+			{#if info}
+				<dl>
+					<dt>{text('sysadmin.system.user.username')}</dt>
+					<dd>{info.user.username}</dd>
+					<dt>{text('sysadmin.system.user.uid')}</dt>
+					<dd>{info.user.uid} <span class="subtle">/ {info.user.gid}</span></dd>
+					<dt>{text('sysadmin.system.user.home')}</dt>
+					<dd>{info.user.homedir}</dd>
+					{#if info.user.shell}
+						<dt>{text('sysadmin.system.user.shell')}</dt>
+						<dd>{info.user.shell}</dd>
+					{/if}
+				</dl>
+			{/if}
+
+			<div class="user-connection">
+				{#if connectedUser}
+					<a class="icon-text subtle" href="/sysadmin/users/{connectedUser.id}">
+						<Icon i="link" />
+						<span>{text('sysadmin.system.user.connected_to', connectedUser)}</span>
+					</a>
+					<button
+						class="icon-text"
+						onclick={() => toastStatus(setConnectedUser(null), text('sysadmin.system.user.disconnected_from', connectedUser))}
+					>
+						<Icon i="link-slash" />
+						<span>{text('sysadmin.system.user.disconnect')}</span>
+					</button>
+				{:else if matchingUser}
+					<span class="subtle">{text('sysadmin.system.user.match_found', matchingUser)}</span>
+					<button
+						class="icon-text"
+						onclick={() =>
+							toastStatus(setConnectedUser(matchingUser.id), text('sysadmin.system.user.connected_to', matchingUser))}
+					>
+						<Icon i="link" />
+						<span>{text('sysadmin.system.user.connect')}</span>
+					</button>
+				{:else}
+					<span class="subtle">{text('sysadmin.system.user.no_match')}</span>
+				{/if}
+			</div>
+		</section>
+	{/if}
 </div>
 
 <style>
@@ -313,6 +386,17 @@
 
 	dd {
 		margin: 0;
+	}
+
+	.user-connection {
+		display: flex;
+		align-items: center;
+		gap: 1em;
+		flex-wrap: wrap;
+
+		button {
+			margin-left: auto;
+		}
 	}
 
 	@media (width < 700px) {

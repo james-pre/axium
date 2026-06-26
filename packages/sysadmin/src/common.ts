@@ -17,12 +17,15 @@ export const SystemInit = z.object({
 	name: z.string().nonempty().max(250),
 	hostname: z.string().nonempty().max(250),
 	type: SystemType.default('server'),
+	/** The connected system user, if any. `null` disconnects. */
+	connectedUserId: z.uuid().nullish(),
 });
 export interface SystemInit extends z.infer<typeof SystemInit> {}
 
 export const System = SystemInit.extend({
 	id: z.uuid(),
 	userId: z.uuid(),
+	connectedUserId: z.uuid().nullable(),
 	isShared: z.boolean(),
 	acl: AccessControl.array(),
 });
@@ -64,6 +67,9 @@ const SysadminAPI = {
 		GET: SystemUser,
 		PATCH: [SystemUserInit, SystemUser],
 		DELETE: SystemUser,
+	},
+	'sysadmin/users/:id/systems': {
+		GET: System.array(),
 	},
 } as const;
 

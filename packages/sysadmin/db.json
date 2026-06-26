@@ -68,6 +68,19 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"systems": {
+					"add_columns": {
+						"connectedUserId": { "type": "uuid", "references": "system_users.id", "onDelete": "set null" }
+					}
+				}
+			},
+			"add_indexes": {
+				"systems_connectedUserId": { "on": "systems", "columns": ["connectedUserId"] }
+			}
 		}
 	],
 	"wipe": ["systems", "system_users", "acl.systems"],

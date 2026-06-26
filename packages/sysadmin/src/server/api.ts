@@ -12,6 +12,23 @@ function parseSystem<T extends Selectable<Schema['systems']> & { acl?: AccessCon
 	return Object.assign({ acl: [] }, system, { isShared }) satisfies Omit<System, 'type'> & { type: string } as System;
 }
 
+/**
+ * Ensure the requester owns the system user they are connecting a system to.
+ * No-op when `connectedUserId` is unset (`undefined` leaves it unchanged, `null` disconnects).
+ */
+async function checkConnectedUser(request: Request, connectedUserId?: string | null): Promise<void> {
+	if (!connectedUserId) return;
+
+	const systemUser = await database
+		.selectFrom('system_users')
+		.select('userId')
+		.where('id', '=', connectedUserId)
+		.executeTakeFirstOrThrow()
+		.catch(withError('Could not get system user', 404));
+
+	await checkAuthForUser(request, systemUser.userId);
+}
+
 addRoute({
 	path: '/api/users/:id/sysadmin/systems',
 	params: { id: z.uuid() },
@@ -32,6 +49,7 @@ addRoute({
 		const init = await parseBody(request, SystemInit);
 
 		await checkAuthForUser(request, userId);
+		await checkConnectedUser(request, init.connectedUserId);
 
 		return parseSystem(
 			await database
@@ -57,6 +75,7 @@ addRoute({
 		const init = await parseBody(request, SystemInit);
 
 		const { fromACL } = await authRequestForItem(request, 'systems', id, { edit: true });
+		await checkConnectedUser(request, init.connectedUserId);
 
 		const system = await database
 			.updateTable('systems')
@@ -162,5 +181,30 @@ addRoute({
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not delete system user'));
+	},
+});
+
+addRoute({
+	path: '/api/sysadmin/users/:id/systems',
+	params: { id: z.uuid() },
+	async GET(request, { id }): AsyncResult<'GET', 'sysadmin/users/:id/systems'> {
+		const user = await database
+			.selectFrom('system_users')
+			.select('userId')
+			.where('id', '=', id)
+			.executeTakeFirstOrThrow()
+			.catch(withError('Could not get system user', 404));
+
+		await checkAuthForUser(request, user.userId);
+
+		const systems = await database
+			.selectFrom('systems')
+			.selectAll()
+			.select(acl.from('systems'))
+			.where('connectedUserId', '=', id)
+			.execute()
+			.catch(withError('Could not get systems'));
+
+		return systems.map(system => parseSystem(system, false));
 	},
 });

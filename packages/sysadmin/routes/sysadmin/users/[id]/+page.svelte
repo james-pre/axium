@@ -1,14 +1,18 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
-	import { UserInitDialog } from '@axium/sysadmin/components';
+	import { socket } from '@axium/client/socket';
 	import { toastStatus } from '@axium/client/toast';
-	import { goto } from '$app/navigation';
+	import { SystemCard, UserInitDialog } from '@axium/sysadmin/components';
 
 	const { data } = $props();
 
 	let user = $state(data.user);
+	let systems = $state(data.systems);
 	let editDialog = $state<HTMLDialogElement>();
+
+	const onlineHosts = $derived(await socket?.emitWithAck('sysadmin:ping').then(systems => systems.map(s => s.hostname)));
 
 	function remove() {
 		toastStatus(
@@ -43,6 +47,23 @@
 			<span>{text('generic.delete')}</span>
 		</button>
 	</div>
+
+	<section>
+		<h2><Icon i="server" /> {text('sysadmin.user.systems')}</h2>
+		{#if systems.length}
+			<div class="cards">
+				{#each systems as system, i (system.id)}
+					<SystemCard
+						bind:system={systems[i]}
+						online={!!onlineHosts?.includes(system.hostname)}
+						deleted={() => systems.splice(i, 1)}
+					/>
+				{/each}
+			</div>
+		{:else}
+			<p class="subtle">{text('sysadmin.user.no_systems')}</p>
+		{/if}
+	</section>
 </div>
 
 <UserInitDialog bind:dialog={editDialog} {user} edited={updated => (user = updated)} />
@@ -73,10 +94,33 @@
 		}
 	}
 
+	section {
+		display: flex;
+		flex-direction: column;
+		gap: 1em;
+
+		h2 {
+			margin: 0;
+			display: flex;
+			align-items: center;
+			gap: 0.5em;
+		}
+	}
+
+	.cards {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+		gap: 1em;
+	}
+
 	@media (width < 700px) {
 		.user-page {
 			padding: 1em;
 			padding-bottom: 5em;
+		}
+
+		.cards {
+			grid-template-columns: 1fr;
 		}
 	}
 </style>

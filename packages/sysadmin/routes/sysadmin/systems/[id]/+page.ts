@@ -5,7 +5,10 @@ export const ssr = false;
 export async function load({ parent, params }) {
 	const { session } = await parent();
 
-	const system = await fetchAPI('GET', 'sysadmin/systems/:id', {}, params.id);
+	const [system, systemUsers] = await Promise.all([
+		fetchAPI('GET', 'sysadmin/systems/:id', {}, params.id),
+		fetchAPI('GET', 'users/:id/sysadmin/users', {}, session.userId),
+	]);
 
-	return { session, system };
+	return { session, system, systemUsers };
 }
