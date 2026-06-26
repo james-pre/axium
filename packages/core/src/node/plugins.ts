@@ -20,12 +20,45 @@ export function* pluginText(plugin: PluginInternal): Generator<string> {
 	}
 }
 
-export async function loadPlugin<const T extends 'client' | 'server'>(
-	mode: T,
+/** Where the plugin is supposed to run */
+export type PluginType = 'client' | 'server';
+
+export interface PluginLoadOptions {
+	/** Whether loading this plugin is required */
+	required?: boolean;
+	/** If set, do not run code from plugins */
+	safe?: boolean;
+	/**
+	 * If set, we are reloading plugins (e.g. from a config reload)
+	 * @todo actually support partially reloading plugins
+	 */
+	reload?: boolean;
+}
+
+export async function loadPlugin(
+	type: PluginType,
 	specifier: string,
 	loadedBy: string,
-	safeMode: boolean = false
-): Promise<PluginInternal | void> {
+	options: PluginLoadOptions & { required: true }
+): Promise<PluginInternal>;
+export async function loadPlugin(
+	type: PluginType,
+	specifier: string,
+	loadedBy: string,
+	options?: PluginLoadOptions & { required?: false }
+): Promise<PluginInternal | null>;
+export async function loadPlugin(
+	type: PluginType,
+	specifier: string,
+	loadedBy: string,
+	options?: PluginLoadOptions
+): Promise<PluginInternal | null>;
+export async function loadPlugin(
+	type: PluginType,
+	specifier: string,
+	loadedBy: string,
+	options: PluginLoadOptions = {}
+): Promise<PluginInternal | null> {
 	try {
 		const imported = getPackageJSON(specifier, loadedBy);
 		const path = imported.__path;
@@ -39,20 +72,20 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 			specifier,
 			loadedBy,
 			dirname: dirname(path),
-			cli: imported[mode]?.cli,
-			isServer: mode === 'server',
+			cli: imported[type]?.cli,
+			isServer: type === 'server',
 		});
 
-		if (!plugin[mode]) throw `Plugin does not support running ${mode}-side`;
+		if (!plugin[type]) throw new Error(`Plugin does not support running ${type}-side`);
 
-		if (!safeMode) {
+		if (!options.safe) {
 			if (plugin.cli) await import(resolve(plugin.dirname, plugin.cli));
 
-			if (mode == 'client') {
+			if (type == 'client') {
 				if (plugin.client!.hooks) Object.assign(plugin, { _client: await import(resolve(plugin.dirname, plugin.client!.hooks)) });
 			}
 
-			if (mode == 'server') {
+			if (type == 'server') {
 				const cfg = plugin.server!;
 
 				if (cfg.hooks) Object.assign(plugin, { _hooks: await import(resolve(plugin.dirname, cfg.hooks)) });
@@ -63,10 +96,10 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 			}
 		}
 
-		if (plugins.has(plugin.name)) throw 'Plugin already loaded';
+		if (plugins.has(plugin.name)) throw new Error('Plugin already loaded');
 
 		if (plugin.name.startsWith('#') || plugin.name.includes(' ')) {
-			throw 'Invalid plugin name. Plugin names can not start with a hash or contain spaces.';
+			throw new Error('Invalid plugin name. Plugin names can not start with a hash or contain spaces.');
 		}
 
 		for (const app of plugin.apps ?? []) {
@@ -77,7 +110,9 @@ export async function loadPlugin<const T extends 'client' | 'server'>(
 		plugins.set(plugin.name, plugin);
 		io.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);
 		return plugin;
-	} catch (e) {
-		io.warn(`Failed to load plugin from ${specifier}: ${io.errorText(e)}`);
+	} catch (err: any) {
+		if (options.required) throw err;
+		io.warn(`Failed to load plugin '${specifier}': ${io.errorText(err)}`);
+		return null;
 	}
 }
