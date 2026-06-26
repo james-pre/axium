@@ -1,46 +1,43 @@
-import { pluginText } from '@axium/core/node';
+import { createPluginCommand } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
-import { styleText } from 'node:util';
-import { configFiles, saveConfigTo } from '../config.js';
+import * as z from 'zod';
+import config, { configFiles, findConfigPaths, saveConfigTo } from '../config.js';
 import * as db from '../db/index.js';
 import { sharedOptions as opts, rlConfirm } from './common.js';
 
-const axiumPlugin = program.command('plugins').alias('plugin').description('Manage plugins').addOption(opts.global);
+const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 
-axiumPlugin
-	.command('list')
-	.alias('ls')
-	.description('List loaded plugins')
-	.option('-l, --long', 'use the long listing format')
-	.option('--no-versions', 'do not show plugin versions')
-	.action(opt => {
-		if (!plugins.size) {
-			console.log('No plugins loaded.');
-			return;
+/** The config file a plugin is enabled into, mirroring how `config.save` picks its target. */
+const targetConfigPath = (global: boolean) => findConfigPaths().at(global ? 0 : -1)!;
+
+const axiumPlugin = createPluginCommand('server', program, {
+	safe,
+	loadedBy: opts => targetConfigPath(opts.global),
+	get enabled() {
+		return configFiles
+			.values()
+			.flatMap(data => data.plugins ?? [])
+			.toArray();
+	},
+	enable(spec, { global }) {
+		const path = targetConfigPath(global);
+		const { plugins = [] } = configFiles.get(path) ?? {};
+		plugins.push(spec);
+		config.save({ plugins }, global);
+	},
+	disable(spec) {
+		for (const [path, data] of configFiles) {
+			if (!data.plugins?.includes(spec)) continue;
+			data.plugins = data.plugins.filter(p => p !== spec);
+			saveConfigTo(path, data);
 		}
+	},
+});
 
-		if (!opt.long) {
-			console.log(plugins.keys().toArray().join(', '));
-			return;
-		}
-
-		console.log(styleText('whiteBright', plugins.size + ' plugin(s) loaded:'));
-
-		for (const plugin of plugins.values()) {
-			console.log(plugin.name, opt.versions ? plugin.version : '');
-		}
-	});
-
-axiumPlugin
-	.command('info')
-	.description('Get information about a plugin')
-	.argument('<plugin>', 'the plugin to get information about')
-	.action((search: string) => {
-		const plugin = _findPlugin(search);
-		for (const line of pluginText(plugin)) console.log(line);
-	});
+// The server can enable plugins into either the global or most-local config file.
+axiumPlugin.commands.find(c => c.name() === 'enable')?.addOption(opts.global);
 
 axiumPlugin
 	.command('remove')

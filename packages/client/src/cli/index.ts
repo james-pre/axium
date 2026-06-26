@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 import { formatBytes } from '@axium/core';
-import { loadPlugin, pluginText, outputDaemonStatus } from '@axium/core/node';
+import { createPluginCommand, outputDaemonStatus } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { CommanderError, program } from 'commander';
 import * as io from 'ioium/node';
@@ -91,7 +91,19 @@ program
 		if (opt.socket && config.token) await connectSocket({ rejectUnauthorized: !opt.insecure });
 	});
 
-const axcPlugin = program.command('plugin').alias('plugins').description('Manage plugins');
+const axcPlugin = createPluginCommand('client', program, {
+	safe,
+	loadedBy: () => axcConfigPath,
+	enabled: config.plugins,
+	enable(spec) {
+		config.plugins.push(spec);
+		saveConfig();
+	},
+	disable(spec) {
+		config.plugins = config.plugins.filter(p => p !== spec);
+		saveConfig();
+	},
+});
 
 axcPlugin
 	.command('run')
@@ -100,74 +112,6 @@ axcPlugin
 	.action(async (search: string) => {
 		const plugin = _findPlugin(search);
 		await plugin._client?.run?.();
-	});
-
-axcPlugin
-	.command('list')
-	.alias('ls')
-	.description('List loaded plugins')
-	.option('-l, --long', 'use the long listing format')
-	.option('--no-versions', 'do not show plugin versions')
-	.action(opt => {
-		if (!plugins.size) {
-			console.log('No plugins loaded.');
-			return;
-		}
-
-		if (!opt.long) {
-			console.log(plugins.keys().toArray().join(', '));
-			return;
-		}
-
-		console.log(styleText('whiteBright', plugins.size + ' plugin(s) loaded:'));
-
-		for (const plugin of plugins.values()) {
-			console.log(plugin.name, opt.versions ? plugin.version : '');
-		}
-	});
-
-axcPlugin
-	.command('info')
-	.description('Get information about a plugin')
-	.argument('<plugin>', 'the plugin to get information about')
-	.action((search: string) => {
-		const plugin = _findPlugin(search);
-		for (const line of pluginText(plugin)) console.log(line);
-	});
-
-axcPlugin
-	.command('add')
-	.description('Add a plugin')
-	.option('-k, --keep-going', 'continue adding plugins even if one fails')
-	.option('-s, --strict', 'fail if the plugin is already enabled')
-	.argument('<spec...>', 'the plugin specifier (e.g. a package name) to add')
-	.action(async (specs: string[], { keepGoing, strict }) => {
-		for (const spec of specs) {
-			if (config.plugins.includes(spec)) {
-				if (strict) throw new Error(`Plugin "${spec}" is already added.`);
-			}
-
-			const plugin = await loadPlugin('client', spec, axcConfigPath, { required: !keepGoing, safe });
-			if (!plugin) continue;
-
-			config.plugins.push(spec);
-			saveConfig();
-			console.log('Enable plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
-		}
-	});
-
-axcPlugin
-	.command('remove')
-	.alias('rm')
-	.description('Remove a plugin')
-	.argument('<plugin>', 'the plugin to remove')
-	.action((search: string) => {
-		const plugin = _findPlugin(search);
-
-		config.plugins = config.plugins.filter(p => p !== plugin.specifier);
-
-		plugins.delete(plugin.name);
-		saveConfig();
 	});
 
 const axcCache = program.command('cache').description('Manage the local cache');

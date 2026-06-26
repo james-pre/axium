@@ -1,10 +1,11 @@
-import { Plugin, plugins, type PluginInternal } from '@axium/core/plugins';
+import { _findPlugin, Plugin, plugins, type PluginInternal } from '../plugins.js';
 import * as io from 'ioium/node';
 import { dirname, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { _throw } from 'utilium';
 import { apps } from '../apps.js';
 import { getPackageJSON } from './packages.js';
+import type { Command } from 'commander';
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {
 	yield styleText('whiteBright', plugin.name);
@@ -115,4 +116,94 @@ export async function loadPlugin(
 		io.warn(`Failed to load plugin '${specifier}': ${io.errorText(err)}`);
 		return null;
 	}
+}
+
+/**
+ * Adapter that abstracts over the differences between how the client and server
+ * store and persist their list of enabled plugins.
+ */
+export interface PluginConfigAdapter {
+	/** If set, do not run code from plugins when loading them. */
+	safe?: boolean;
+	/**
+	 * The config file path that a plugin enabled via the CLI should be recorded as loaded by.
+	 * Receives the parsed options of the `enable` command (e.g. so the server can honor `--global`).
+	 */
+	loadedBy(opts: Record<string, any>): string;
+	/** The list of currently enabled plugin specifiers. */
+	readonly enabled: string[];
+	/** Record `spec` as enabled and persist the change. `opts` are the parsed options of the `enable` command. */
+	enable(spec: string, opts: Record<string, any>): void;
+	/** Remove `spec` from the configuration (everywhere it appears) and persist the change. */
+	disable(spec: string): void;
+}
+
+export function createPluginCommand<C extends Command>(type: PluginType, parent: C, config: PluginConfigAdapter) {
+	const cmd = parent.command('plugins').alias('plugin').description('Manage plugins');
+
+	cmd.command('list')
+		.alias('ls')
+		.description('List loaded plugins')
+		.option('-l, --long', 'use the long listing format')
+		.option('--no-versions', 'do not show plugin versions')
+		.action(opt => {
+			if (!plugins.size) {
+				console.log('No plugins loaded.');
+				return;
+			}
+
+			if (!opt.long) {
+				console.log(plugins.keys().toArray().join(', '));
+				return;
+			}
+
+			console.log(styleText('whiteBright', plugins.size + ' plugin(s) loaded:'));
+
+			for (const plugin of plugins.values()) {
+				console.log(plugin.name, opt.versions ? plugin.version : '');
+			}
+		});
+
+	cmd.command('info')
+		.description('Get information about a plugin')
+		.argument('<plugin>', 'the plugin to get information about')
+		.action((search: string) => {
+			const plugin = _findPlugin(search);
+			for (const line of pluginText(plugin)) console.log(line);
+		});
+
+	cmd.command('enable')
+		.description('Enable a plugin and add it to the configuration')
+		.option('-k, --keep-going', 'continue adding plugins even if one fails')
+		.option('-s, --strict', 'fail if the plugin is already enabled')
+		.argument('<spec...>', 'the plugin specifier (e.g. a package name) to add')
+		.action(async (specs: string[], _opts, command: Command<any, any>) => {
+			const opts = command.optsWithGlobals();
+			for (const spec of specs) {
+				if (config.enabled.includes(spec)) {
+					if (opts.strict) throw new Error(`Plugin "${spec}" is already added.`);
+					continue;
+				}
+
+				const plugin = await loadPlugin(type, spec, config.loadedBy(opts), { required: !opts.keepGoing, safe: config.safe });
+				if (!plugin) continue;
+
+				config.enable(spec, opts);
+				console.log('Enable plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
+			}
+		});
+
+	cmd.command('disable')
+		.description('Disable a plugin, removing it from the configuration')
+		.argument('<plugin>', 'the plugin to disable')
+		.action((search: string) => {
+			const plugin = _findPlugin(search);
+
+			config.disable(plugin.specifier);
+			plugins.delete(plugin.name);
+
+			console.log('Disabled plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
+		});
+
+	return cmd;
 }
