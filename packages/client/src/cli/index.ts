@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 import { formatBytes } from '@axium/core';
-import { loadPlugin, outputDaemonStatus, pluginText } from '@axium/core/node';
+import { loadPlugin, pluginText, outputDaemonStatus } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { CommanderError, program } from 'commander';
 import * as io from 'ioium/node';
@@ -24,12 +24,12 @@ if (debug) io._setDebugOutput(true);
 
 useUserAgent(clientUA);
 
-await loadConfig(safe);
+await loadConfig({ plugins: { safe } });
 cache.load();
 
 process.on('SIGHUP', () => {
 	io.info('Reloading configuration due to SIGHUP.');
-	void loadConfig(safe);
+	void loadConfig({ plugins: { safe } });
 });
 
 program
@@ -139,22 +139,20 @@ axcPlugin
 	.command('add')
 	.description('Add a plugin')
 	.option('-k, --keep-going', 'continue adding plugins even if one fails')
+	.option('-s, --strict', 'fail if the plugin is already enabled')
 	.argument('<spec...>', 'the plugin specifier (e.g. a package name) to add')
-	.action(async (specs: string[], { keepGoing }) => {
+	.action(async (specs: string[], { keepGoing, strict }) => {
 		for (const spec of specs) {
-			try {
-				if (config.plugins.includes(spec)) throw `Plugin "${spec}" is already added.`;
-
-				const plugin = await loadPlugin('client', spec, axcConfigPath, safe);
-				if (!plugin) throw `Failed to load a client plugin from "${spec}".`;
-
-				config.plugins.push(spec);
-				saveConfig();
-				console.log('Added plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
-			} catch (e) {
-				if (keepGoing) io.error(e);
-				else io.exit(e);
+			if (config.plugins.includes(spec)) {
+				if (strict) throw new Error(`Plugin "${spec}" is already added.`);
 			}
+
+			const plugin = await loadPlugin('client', spec, axcConfigPath, { required: !keepGoing, safe });
+			if (!plugin) continue;
+
+			config.plugins.push(spec);
+			saveConfig();
+			console.log('Enable plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
 		}
 	});
 

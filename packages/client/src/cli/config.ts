@@ -1,4 +1,4 @@
-import { loadPlugin } from '@axium/core/node/plugins';
+import { type PluginLoadOptions, loadPlugin } from '@axium/core/node/plugins';
 import * as io from 'ioium/node';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -18,12 +18,20 @@ export function session() {
 	return cache.meta.data.session;
 }
 
-export async function loadConfig(safe: boolean) {
+export interface LoadConfigOptions {
+	plugins?: PluginLoadOptions;
+}
+
+/**
+ *
+ * @param safe whether to run code from plugins
+ */
+export async function loadConfig(options: LoadConfigOptions = {}) {
 	try {
 		Object.assign(config, io.readJSON(axcConfigPath, ClientConfig));
 		if (config.server) setPrefix(config.server);
 		if (config.token) setToken(config.token);
-		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfigPath, safe);
+		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, axcConfigPath, options.plugins);
 	} catch (e: any) {
 		io.warn('Failed to load config: ' + io.errorText(e));
 	}

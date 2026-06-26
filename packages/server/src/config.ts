@@ -1,7 +1,7 @@
 import { serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
 import * as io from 'ioium/node';
-import { loadPlugin } from '@axium/core/node/plugins';
+import { loadPlugin, type PluginLoadOptions } from '@axium/core/node/plugins';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
@@ -227,10 +227,7 @@ export interface LoadOptions {
 	 */
 	optional?: boolean;
 
-	/**
-	 * If enabled, code from plugins will not be executed.
-	 */
-	safe?: boolean;
+	plugins?: PluginLoadOptions;
 
 	/**
 	 * If `optional`, this function will be called with the error if the config file is invalid or can't be read.
@@ -284,7 +281,7 @@ export async function loadConfig(path: string, options: LoadOptions = {}) {
 	for (const include of file.include ?? [])
 		await loadConfig(resolve(dirname(path), include), { ...options, optional: true, _markIncluded: true });
 	for (const pluginPath of file.plugins ?? []) {
-		const plugin = await loadPlugin('server', pluginPath, path, options.safe);
+		const plugin = await loadPlugin('server', pluginPath, path, options.plugins);
 		if (!plugin) continue;
 		const serverConfig = serverConfigs.get(plugin.name);
 		if (serverConfig) {
@@ -316,7 +313,7 @@ export async function loadDefaultConfigs(safe: boolean = false) {
 				continue;
 			}
 		}
-		await loadConfig(path, { optional: true, safe });
+		await loadConfig(path, { optional: true, plugins: { safe } });
 	}
 }
 
@@ -329,7 +326,7 @@ export async function reloadConfigs(safe: boolean = false) {
 
 	configFiles.clear();
 	setConfig(defaultConfig);
-	for (const path of paths) await loadConfig(path, { safe });
+	for (const path of paths) await loadConfig(path, { plugins: { safe, reload: true } });
 	io.info('Reloaded configuration files');
 }
 

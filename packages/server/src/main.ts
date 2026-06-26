@@ -36,7 +36,7 @@ if (debug) {
 
 await config.loadDefaults(safe);
 
-if (configFromCLI) await config.load(configFromCLI, { safe });
+if (configFromCLI) await config.load(configFromCLI, { plugins: { safe } });
 
 await runIntegrations();
 
