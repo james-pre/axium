@@ -1,5 +1,79 @@
 {
 	"app_name": {
 		"sysadmin": "System Administration"
+	},
+	"sysadmin": {
+		"page_title": "System Administration",
+		"systems": "Systems",
+		"system_users": "System Users",
+		"view_all": "View all",
+		"no_systems": "No systems yet.",
+		"no_system_users": "No system users yet.",
+		"new_system": "Add System",
+		"new_system_user": "Add User",
+		"online": "Online",
+		"offline": "Offline",
+		"back_to_main": "Back to System Administration",
+		"back_to_systems": "Back to Systems",
+		"back_to_users": "Back to System Users",
+		"SystemInitDialog": {
+			"submit": "Add System",
+			"save": "Save",
+			"name": "Name",
+			"hostname": "Hostname",
+			"type": "Type"
+		},
+		"SystemCard": {
+			"edit": "Edit",
+			"copy_link": "Copy Link",
+			"open_new_tab": "Open in New Tab",
+			"toast_deleted": "System deleted"
+		},
+		"UserInitDialog": {
+			"submit": "Add User",
+			"save": "Save",
+			"name": "Name",
+			"username": "Username"
+		},
+		"UserCard": {
+			"edit": "Edit",
+			"copy_link": "Copy Link",
+			"open_new_tab": "Open in New Tab",
+			"toast_deleted": "User deleted"
+		},
+		"user": {
+			"page_title": "{name} — System Users"
+		},
+		"system_type": {
+			"server": "Server",
+			"pc": "PC",
+			"laptop": "Laptop"
+		},
+		"system": {
+			"page_title": "{name} — Systems",
+			"offline_notice": "This system is offline. Live information is unavailable.",
+			"loading_info": "Loading system information…",
+			"info_error": "Could not load system information.",
+			"refresh": "Refresh",
+			"hardware": "Hardware",
+			"cpu": "CPU",
+			"cpu_cores": "{count} cores",
+			"gpu": "Graphics",
+			"memory": "Memory",
+			"swap": "Swap",
+			"storage": "Storage",
+			"network": "Network",
+			"wireless": "Wireless",
+			"wired": "Wired",
+			"connected": "Connected",
+			"disconnected": "Disconnected",
+			"os": "Operating System",
+			"platform": "Platform",
+			"release": "Release",
+			"kernel": "Kernel",
+			"arch": "Architecture",
+			"uptime": "Uptime",
+			"usage": "{used} / {total}"
+		}
 	}
 }

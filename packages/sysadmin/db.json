@@ -53,6 +53,21 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"systems": {
+					"add_constraints": {
+						"unique_systems_hostname": { "type": "unique", "on": ["userId", "hostname"] }
+					}
+				},
+				"system_users": {
+					"add_constraints": {
+						"unique_system_users_username": { "type": "unique", "on": ["userId", "username"] }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["systems", "system_users", "acl.systems"],
