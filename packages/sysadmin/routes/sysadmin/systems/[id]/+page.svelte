@@ -46,7 +46,7 @@
 		try {
 			const all = await socket.emitWithAck('sysadmin:getSystemInfo');
 			info = all.find(i => i.hostname === system.hostname);
-			if (!info) error = true;
+			error = !info;
 		} catch {
 			error = true;
 		} finally {
