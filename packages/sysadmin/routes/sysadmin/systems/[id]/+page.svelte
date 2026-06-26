@@ -126,7 +126,8 @@
 
 			<div class="component">
 				<h3>
-					<Icon i="memory" /> {text('sysadmin.system.memory')}
+					<Icon i="memory" />
+					{text('sysadmin.system.memory')}
 					{#if info.memory.type}
 						<span class="subtle">{info.memory.type}</span>
 					{/if}
