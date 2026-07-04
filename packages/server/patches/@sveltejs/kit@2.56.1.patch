@@ -1,8 +1,7 @@
-diff --git a/node_modules/@sveltejs/kit/src/core/config/index.js b/node_modules/@sveltejs/kit/src/core/config/index.js
-index ae35a70..d480e23 100644
---- a/node_modules/@sveltejs/kit/src/core/config/index.js
-+++ b/node_modules/@sveltejs/kit/src/core/config/index.js
-@@ -95,7 +95,7 @@ export async function load_config({ cwd = process.cwd() } = {}) {
+--- a/src/core/config/index.js	
++++ b/src/core/config/index.js	
+@@ -94,9 +94,9 @@
+ /**
   * @param {import('@sveltejs/kit').Config} config
   * @returns {import('types').ValidatedConfig}
   */
@@ -11,11 +10,11 @@ index ae35a70..d480e23 100644
  	const validated = validate_config(config);
  
  	validated.kit.outDir = path.resolve(cwd, validated.kit.outDir);
-diff --git a/node_modules/@sveltejs/kit/src/exports/vite/index.js b/node_modules/@sveltejs/kit/src/exports/vite/index.js
-index 5480800..5c81d67 100644
---- a/node_modules/@sveltejs/kit/src/exports/vite/index.js
-+++ b/node_modules/@sveltejs/kit/src/exports/vite/index.js
-@@ -87,7 +87,7 @@ const options_regex = /(export\s+const\s+(prerender|csr|ssr|trailingSlash))\s*=/
+ 
+--- a/src/exports/vite/index.js	
++++ b/src/exports/vite/index.js	
+@@ -86,9 +86,9 @@
+ /** @type {Set<string>} */
  const warned = new Set();
  
  /** @type {import('svelte/compiler').PreprocessorGroup} */
@@ -24,7 +23,9 @@ index 5480800..5c81d67 100644
  	script: ({ content, filename }) => {
  		if (!filename) return;
  
-@@ -186,7 +186,7 @@ let build_metadata = undefined;
+ 		const basename = path.basename(filename);
+@@ -185,9 +185,9 @@
+  *
   * @param {{ svelte_config: import('types').ValidatedConfig }} options
   * @return {Promise<import('vite').Plugin[]>}
   */
@@ -33,7 +34,9 @@ index 5480800..5c81d67 100644
  	/** @type {import('vite')} */
  	const vite = await import_peer('vite');
  
-@@ -1129,6 +1129,7 @@ async function kit({ svelte_config }) {
+ 	// @ts-ignore `vite.rolldownVersion` only exists in `vite 8`
+@@ -1128,8 +1128,9 @@
+ 				try {
  					const bundle = /** @type {import('vite').Rollup.RollupOutput} */ (
  						await vite.build({
  							configFile: vite_config.configFile,
@@ -41,3 +44,4 @@ index 5480800..5c81d67 100644
  							// CLI args
  							mode: vite_config_env.mode,
  							logLevel: vite_config.logLevel,
+ 							clearScreen: vite_config.clearScreen,

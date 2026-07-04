@@ -26,7 +26,6 @@
 		"build": "tsc -b && for pkg in server storage calendar contacts notes tasks; do (cd packages/$pkg && axium build); done",
 		"watch": "tsc -b -w",
 		"clean": "rm -rf packages/*/tsconfig.tsbuildinfo packages/*/dist packages/server/node_modules/{.vite,.vite-temp} packages/server/build",
-		"postinstall": "patch-package",
 		"wc-source": "wc -l $(git ls-files | grep -v package-lock.json | grep -v packages/client/assets/icons | grep -v LICENSE.md) | sort -h"
 	},
 	"workspaces": [
@@ -34,6 +33,9 @@
 	],
 	"keywords": [],
 	"type": "module",
+	"engines": {
+		"npm": ">=12"
+	},
 	"devDependencies": {
 		"@axium/calendar": "workspace:*",
 		"@axium/client": "workspace:*",
@@ -42,14 +44,13 @@
 		"@axium/notes": "workspace:*",
 		"@axium/server": "workspace:*",
 		"@axium/storage": "workspace:*",
-		"@axium/tasks": "workspace:*",
 		"@axium/sysadmin": "workspace:*",
+		"@axium/tasks": "workspace:*",
 		"@commander-js/extra-typings": "^15.0.0",
 		"@eslint/js": "^10.0.1",
 		"@types/node": "^25.5.0",
 		"eslint": "^10.1.0",
 		"globals": "^17.4.0",
-		"patch-package": "^8.0.1",
 		"prettier": "^3.5.1",
 		"prettier-plugin-svelte": "^4.1.0",
 		"svelte": "^5.55.3",
@@ -73,5 +74,8 @@
 	"allowScripts": {
 		"sharp": true,
 		"esbuild": true
+	},
+	"patchedDependencies": {
+		"@sveltejs/kit@2.56.1": "packages/server/patches/@sveltejs/kit@2.56.1.patch"
 	}
 }

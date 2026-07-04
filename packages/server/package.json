@@ -41,6 +41,9 @@
 	"bin": {
 		"axium": "dist/main.js"
 	},
+	"engines": {
+		"npm": ">=12"
+	},
 	"scripts": {
 		"build": "tsc",
 		"build:schemas": "mkdir -p schemas && npx axium config schema -j > schemas/config.json && npx axium db json-schema -j > schemas/db.json",
@@ -67,7 +70,6 @@
 		"cookie_v1": "npm:cookie@^1.0.2",
 		"ioium": "^1.5.0",
 		"logzen": "^0.7.0",
-		"patch-package": "^8.0.1",
 		"pg": "^8.14.1",
 		"semver": "^7.7.4",
 		"sharp": "^0.35.1",
