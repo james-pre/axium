@@ -25,8 +25,8 @@ jobs:
                   node-version: latest
                   registry-url: https://registry.npmjs.org/
 
-            - name: Use latest npm version
-              run: npm install -g npm@latest
+            - name: Use latest npm version [next-12]
+              run: npm install -g npm@next-12
 
             - name: Install dependencies
               run: npm ci
