@@ -76,6 +76,7 @@
 		"esbuild": true
 	},
 	"patchedDependencies": {
-		"@sveltejs/kit@2.56.1": "packages/server/patches/@sveltejs/kit@2.56.1.patch"
+		"@sveltejs/kit@2.56.1": "packages/server/patches/@sveltejs/kit@2.56.1.patch",
+		"typescript@6.0.3": "patches/typescript@6.0.3.patch"
 	}
 }

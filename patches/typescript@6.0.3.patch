@@ -1,8 +1,7 @@
-diff --git a/node_modules/typescript/lib/_tsc.js b/node_modules/typescript/lib/_tsc.js
-index 9a9c0ac..d2b481a 100644
---- a/node_modules/typescript/lib/_tsc.js
-+++ b/node_modules/typescript/lib/_tsc.js
-@@ -7548,6 +7548,7 @@ var Diagnostics = {
+--- a/lib/_tsc.js	
++++ b/lib/_tsc.js	
+@@ -7547,8 +7547,9 @@
+   An_expanded_version_of_this_information_showing_all_possible_compiler_options: diag(6928, 3 /* Message */, "An_expanded_version_of_this_information_showing_all_possible_compiler_options_6928", "An expanded version of this information, showing all possible compiler options"),
    Compiles_the_current_project_with_additional_settings: diag(6929, 3 /* Message */, "Compiles_the_current_project_with_additional_settings_6929", "Compiles the current project, with additional settings."),
    true_for_ES2022_and_above_including_ESNext: diag(6930, 3 /* Message */, "true_for_ES2022_and_above_including_ESNext_6930", "`true` for ES2022 and above, including ESNext."),
    List_of_file_name_suffixes_to_search_when_resolving_a_module: diag(6931, 1 /* Error */, "List_of_file_name_suffixes_to_search_when_resolving_a_module_6931", "List of file name suffixes to search when resolving a module."),
@@ -10,11 +9,12 @@ index 9a9c0ac..d2b481a 100644
    false_unless_checkJs_is_set: diag(6932, 3 /* Message */, "false_unless_checkJs_is_set_6932", "`false`, unless `checkJs` is set"),
    Variable_0_implicitly_has_an_1_type: diag(7005, 1 /* Error */, "Variable_0_implicitly_has_an_1_type_7005", "Variable '{0}' implicitly has an '{1}' type."),
    Parameter_0_implicitly_has_an_1_type: diag(7006, 1 /* Error */, "Parameter_0_implicitly_has_an_1_type_7006", "Parameter '{0}' implicitly has an '{1}' type."),
-@@ -37603,6 +37604,15 @@ var commandOptionsWithoutBuild = [
+   Member_0_implicitly_has_an_1_type: diag(7008, 1 /* Error */, "Member_0_implicitly_has_an_1_type_7008", "Member '{0}' implicitly has an '{1}' type."),
+@@ -37603,8 +37604,17 @@
      description: Diagnostics.Enable_importing_json_files,
      defaultValueDescription: false
    },
-+  {
+   {
 +    name: "importJsonAsConst",
 +    type: "boolean",
 +    affectsSemanticDiagnostics: true,
@@ -23,10 +23,13 @@ index 9a9c0ac..d2b481a 100644
 +    description: Diagnostics.Import_JSON_files_as_const_assertions,
 +    defaultValueDescription: false
 +  },
-   {
++  {
      name: "allowArbitraryExtensions",
      type: "boolean",
-@@ -56665,6 +56675,9 @@ function createTypeChecker(host) {
+     affectsProgramStructure: true,
+     category: Diagnostics.Modules,
+@@ -56664,8 +56674,11 @@
+     if (isSourceFile(declaration) && isJsonSourceFile(declaration)) {
        if (!declaration.statements.length) {
          return emptyObjectType;
        }
@@ -36,7 +39,9 @@ index 9a9c0ac..d2b481a 100644
        return getWidenedType(getWidenedLiteralType(checkExpression(declaration.statements[0].expression)));
      }
      if (isAccessor(declaration)) {
-@@ -80719,6 +80732,9 @@ function createTypeChecker(host) {
+       return getTypeOfAccessors(symbol);
+@@ -80718,8 +80731,11 @@
+     return false;
    }
    function isConstContext(node) {
      const parent = node.parent;
@@ -46,11 +51,11 @@ index 9a9c0ac..d2b481a 100644
      return isAssertionExpression(parent) && isConstTypeReference(parent.type) || isJSDocTypeAssertion(parent) && isConstTypeReference(getJSDocTypeAssertionType(parent)) || isValidConstAssertionArgument(node) && isConstTypeVariable(getContextualType(node, 0 /* None */)) || (isParenthesizedExpression(parent) || isArrayLiteralExpression(parent) || isSpreadElement(parent)) && isConstContext(parent) || (isPropertyAssignment(parent) || isShorthandPropertyAssignment(parent) || isTemplateSpan(parent)) && isConstContext(parent.parent);
    }
    function checkExpressionForMutableLocation(node, checkMode, forceTuple) {
-diff --git a/node_modules/typescript/lib/typescript.d.ts b/node_modules/typescript/lib/typescript.d.ts
-index 0f39eae..aaf00bc 100644
---- a/node_modules/typescript/lib/typescript.d.ts
-+++ b/node_modules/typescript/lib/typescript.d.ts
-@@ -7043,6 +7043,7 @@ declare namespace ts {
+     const type = checkExpression(node, checkMode, forceTuple);
+--- a/lib/typescript.d.ts	
++++ b/lib/typescript.d.ts	
+@@ -7042,8 +7042,9 @@
+         experimentalDecorators?: boolean;
          forceConsistentCasingInFileNames?: boolean;
          ignoreDeprecations?: string;
          importHelpers?: boolean;
@@ -58,11 +63,11 @@ index 0f39eae..aaf00bc 100644
          /** @deprecated */
          importsNotUsedAsValues?: ImportsNotUsedAsValues;
          inlineSourceMap?: boolean;
-diff --git a/node_modules/typescript/lib/typescript.js b/node_modules/typescript/lib/typescript.js
-index 3ba0ce4..3cd9ebf 100644
---- a/node_modules/typescript/lib/typescript.js
-+++ b/node_modules/typescript/lib/typescript.js
-@@ -10954,6 +10954,7 @@ var Diagnostics = {
+         inlineSources?: boolean;
+--- a/lib/typescript.js	
++++ b/lib/typescript.js	
+@@ -10953,8 +10953,9 @@
+   An_expanded_version_of_this_information_showing_all_possible_compiler_options: diag(6928, 3 /* Message */, "An_expanded_version_of_this_information_showing_all_possible_compiler_options_6928", "An expanded version of this information, showing all possible compiler options"),
    Compiles_the_current_project_with_additional_settings: diag(6929, 3 /* Message */, "Compiles_the_current_project_with_additional_settings_6929", "Compiles the current project, with additional settings."),
    true_for_ES2022_and_above_including_ESNext: diag(6930, 3 /* Message */, "true_for_ES2022_and_above_including_ESNext_6930", "`true` for ES2022 and above, including ESNext."),
    List_of_file_name_suffixes_to_search_when_resolving_a_module: diag(6931, 1 /* Error */, "List_of_file_name_suffixes_to_search_when_resolving_a_module_6931", "List of file name suffixes to search when resolving a module."),
@@ -70,11 +75,12 @@ index 3ba0ce4..3cd9ebf 100644
    false_unless_checkJs_is_set: diag(6932, 3 /* Message */, "false_unless_checkJs_is_set_6932", "`false`, unless `checkJs` is set"),
    Variable_0_implicitly_has_an_1_type: diag(7005, 1 /* Error */, "Variable_0_implicitly_has_an_1_type_7005", "Variable '{0}' implicitly has an '{1}' type."),
    Parameter_0_implicitly_has_an_1_type: diag(7006, 1 /* Error */, "Parameter_0_implicitly_has_an_1_type_7006", "Parameter '{0}' implicitly has an '{1}' type."),
-@@ -41886,6 +41887,15 @@ var commandOptionsWithoutBuild = [
+   Member_0_implicitly_has_an_1_type: diag(7008, 1 /* Error */, "Member_0_implicitly_has_an_1_type_7008", "Member '{0}' implicitly has an '{1}' type."),
+@@ -41886,8 +41887,17 @@
      description: Diagnostics.Enable_importing_json_files,
      defaultValueDescription: false
    },
-+  {
+   {
 +    name: "importJsonAsConst",
 +    type: "boolean",
 +    affectsSemanticDiagnostics: true,
@@ -83,10 +89,13 @@ index 3ba0ce4..3cd9ebf 100644
 +    description: Diagnostics.Import_JSON_files_as_const_assertions,
 +    defaultValueDescription: false
 +  },
-   {
++  {
      name: "allowArbitraryExtensions",
      type: "boolean",
-@@ -61300,6 +61310,9 @@ function createTypeChecker(host) {
+     affectsProgramStructure: true,
+     category: Diagnostics.Modules,
+@@ -61299,8 +61309,11 @@
+     if (isSourceFile(declaration) && isJsonSourceFile(declaration)) {
        if (!declaration.statements.length) {
          return emptyObjectType;
        }
@@ -96,7 +105,9 @@ index 3ba0ce4..3cd9ebf 100644
        return getWidenedType(getWidenedLiteralType(checkExpression(declaration.statements[0].expression)));
      }
      if (isAccessor(declaration)) {
-@@ -85354,6 +85367,9 @@ function createTypeChecker(host) {
+       return getTypeOfAccessors(symbol);
+@@ -85353,8 +85366,11 @@
+     return false;
    }
    function isConstContext(node) {
      const parent2 = node.parent;
@@ -106,3 +117,4 @@ index 3ba0ce4..3cd9ebf 100644
      return isAssertionExpression(parent2) && isConstTypeReference(parent2.type) || isJSDocTypeAssertion(parent2) && isConstTypeReference(getJSDocTypeAssertionType(parent2)) || isValidConstAssertionArgument(node) && isConstTypeVariable(getContextualType2(node, 0 /* None */)) || (isParenthesizedExpression(parent2) || isArrayLiteralExpression(parent2) || isSpreadElement(parent2)) && isConstContext(parent2) || (isPropertyAssignment(parent2) || isShorthandPropertyAssignment(parent2) || isTemplateSpan(parent2)) && isConstContext(parent2.parent);
    }
    function checkExpressionForMutableLocation(node, checkMode, forceTuple) {
+     const type = checkExpression(node, checkMode, forceTuple);
