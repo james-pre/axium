@@ -29,9 +29,10 @@
 	value={recurrenceKind}
 	onchange={e => {
 		const { value } = e.currentTarget;
-		if (value === 'custom')
+		if (value === 'custom') {
 			e.currentTarget.value = recurrenceKind; // to prevent "Custom..." being shown when dialog cancelled
-		else if (value in recurrences) eventInit.recurrence = recurrences[value as keyof typeof recurrences];
+			dialog?.showModal();
+		} else if (value in recurrences) eventInit.recurrence = recurrences[value as keyof typeof recurrences];
 	}}
 >
 	<option value="none">{text('event_init.recurrence.none')}</option>
@@ -50,7 +51,7 @@
 			date: eventInit.start.toLocaleDateString('default', { month: 'long', day: 'numeric' }),
 		})}
 	</option>
-	<option value="custom" onclick={() => dialog?.showModal()}>
+	<option value="custom">
 		{text('event_init.recurrence.custom')}
 	</option>
 </select>
