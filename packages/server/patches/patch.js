@@ -1,28 +1,34 @@
 import { execFileSync } from 'node:child_process';
+import { createRequire } from 'node:module';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
-import { join, relative } from 'node:path';
+import { dirname, join } from 'node:path';
 
-// If this package is installed as a dependency (inside node_modules),
-// we want to patch from the consumer's root directory (INIT_CWD).
-const cwd = process.cwd();
-const init = cwd.includes('node_modules') ? process.env.INIT_CWD || cwd : cwd;
+const init = process.env.INIT_CWD || process.cwd();
 
 // no consumer project (global or standalone install)
 if (process.env.npm_config_global === 'true' || !existsSync(join(init, 'node_modules'))) process.exit(0);
 
-// npm applies patches declared in `patchedDependencies` during install. Register our bundled
-// sveltekit patch there (relative to the consumer's root) and let a follow-up install apply it.
+const patchKey = '@sveltejs/kit@2.56.1';
+const patchFile = join(import.meta.dirname, '@sveltejs/kit@2.56.1.patch');
+const patchPath = 'node_modules/@axium/server/patches/@sveltejs/kit@2.56.1.patch';
+
 const pkgPath = join(init, 'package.json');
 const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'));
-const patchKey = '@sveltejs/kit@2.56.1';
-const patchPath = relative(init, join(import.meta.dirname, '@sveltejs/kit@2.56.1.patch'));
-
 pkg.patchedDependencies ??= {};
+if (pkg.patchedDependencies[patchKey] !== patchPath) {
+	pkg.patchedDependencies[patchKey] = patchPath;
+	writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
+}
 
-// Already registered: nothing to do (this also prevents recursion when the install below re-runs postinstall).
-if (pkg.patchedDependencies[patchKey] === patchPath) process.exit(0);
+let kitDir;
+try {
+	const require = createRequire(join(init, 'package.json'));
+	kitDir = dirname(require.resolve('@sveltejs/kit/package.json'));
+} catch {
+	// kit isn't installed in the consumer (e.g. it only pulls in a subset of axium) — nothing to patch.
+	process.exit(0);
+}
 
-pkg.patchedDependencies[patchKey] = patchPath;
-writeFileSync(pkgPath, JSON.stringify(pkg, null, '\t') + '\n');
+if (readFileSync(join(kitDir, 'src/exports/vite/index.js'), 'utf8').includes('__axiumNestedConfig')) process.exit(0);
 
-execFileSync('npm', ['install'], { cwd: init, stdio: 'inherit' });
+execFileSync('patch', ['-p1', '--forward', '--batch', '--input', patchFile], { cwd: kitDir, stdio: 'inherit' });
