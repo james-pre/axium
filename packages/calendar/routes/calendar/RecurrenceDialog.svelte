@@ -117,7 +117,7 @@
 
 	<div class="end-section">
 		<span class="subtle">{text('RecurrenceDialog.end.label')}</span>
-		<label>
+		<label class="end-row">
 			<input type="radio" bind:group={endType} value="never" />
 			{text('RecurrenceDialog.end.never')}
 		</label>

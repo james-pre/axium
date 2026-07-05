@@ -70,7 +70,7 @@ div.attendees {
 		}
 	}
 
-	:is(input, select, textarea):not(.recurrence-dialog *) {
+	:is(input, select, textarea):not(#recurrence-custom *) {
 		width: 100%;
 	}
 
