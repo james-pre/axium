@@ -1,4 +1,4 @@
-import type { NewSessionResponse, Passkey, PasskeyChangeable, Session, User, UserPublic, Verification } from '@axium/core';
+import type { NewSessionResponse, Passkey, PasskeyChangeable, Session, User, UserChangeable, UserPublic, Verification } from '@axium/core';
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import * as z from 'zod';
 import { fetchAPI } from './requests.js';
@@ -86,7 +86,7 @@ export async function userInfo(userId: string): Promise<UserPublic> {
 	return await userCache.get(userId);
 }
 
-export async function updateUser(userId: string, data: Record<string, FormDataEntryValue>): Promise<User> {
+export async function updateUser(userId: string, data: UserChangeable | Record<string, FormDataEntryValue>): Promise<User> {
 	_checkId(userId);
 	const result = await fetchAPI('PATCH', 'users/:id', data, userId);
 	userCache.set(userId, result);

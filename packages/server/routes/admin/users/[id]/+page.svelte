@@ -51,6 +51,11 @@
 	</div>
 
 	<div class="item info">
+		<p>{text('generic.username')}</p>
+		<ZodInput bind:rootValue={user} path="username" schema={User.shape.username} {updateValue} noLabel />
+	</div>
+
+	<div class="item info">
 		<p>{text('generic.email')}</p>
 		<p>
 			<a href="mailto:{user.email}">{user.email}</a>, {user.emailVerified

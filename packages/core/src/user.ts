@@ -3,9 +3,16 @@ import * as z from 'zod';
 import { PasskeyRegistration } from './passkeys.js';
 import { Preferences } from './preferences.js';
 
+/** A unique handle, e.g. for the local part of email addresses */
+export const Username = z
+	.string()
+	.max(32, 'Username is too long')
+	.regex(/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/, 'Username must be lowercase letters and digits, optionally separated by dots, hyphens, or underscores');
+
 export const User = z.object({
 	id: z.uuid(),
 	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
+	username: Username.nullish(),
 	email: z.email(),
 	emailVerified: z.coerce.date().nullish(),
 	preferences: z.lazy(() => Preferences),
@@ -23,7 +30,7 @@ export interface User extends z.infer<typeof User> {
 
 export interface UserInternal extends User {}
 
-export const userPublicFields = ['id', 'name', 'registeredAt', 'roles'] as const satisfies (keyof User)[];
+export const userPublicFields = ['id', 'name', 'username', 'registeredAt', 'roles'] as const satisfies (keyof User)[];
 
 type UserPublicField = (typeof userPublicFields)[number];
 
@@ -48,7 +55,7 @@ export const userProtectedFields = [
 
 export const UserChangeable = z
 	.object({
-		...pick(User.shape, 'name', 'email'),
+		...pick(User.shape, 'name', 'username', 'email'),
 		preferences: z.lazy(() => Preferences),
 	})
 	.partial();
@@ -59,7 +66,7 @@ export interface UserChangeable extends z.infer<typeof UserChangeable> {
 
 export const UserAdminChange = z
 	.object({
-		...pick(User.shape, 'id', 'name', 'email', 'roles', 'tags', 'isSuspended'),
+		...pick(User.shape, 'id', 'name', 'username', 'email', 'roles', 'tags', 'isSuspended'),
 		preferences: z.lazy(() => Preferences),
 	})
 	.partial()

@@ -131,6 +131,19 @@
 				}
 			},
 			"scripts": [{ "when": "before", "path": "../../db-scripts/add_sync_event.sql" }]
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"users": {
+					"add_columns": {
+						"username": { "type": "text" }
+					},
+					"add_constraints": {
+						"unique_username": { "type": "unique", "on": ["username"] }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]

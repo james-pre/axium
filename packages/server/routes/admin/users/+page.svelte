@@ -44,7 +44,7 @@
 		<input name="email" type="email" required />
 	</div>
 	<div>
-		<label for="name">{text('generic.username')}</label>
+		<label for="name">{text('generic.user_display_name')}</label>
 		<input name="name" type="text" required />
 	</div>
 </FormDialog>
@@ -61,7 +61,7 @@
 
 <div id="user-list" class="list">
 	<div class="list-item list-header">
-		<span>{text('generic.username')}</span>
+		<span>{text('generic.user_display_name')}</span>
 		<span>{text('generic.email')}</span>
 		<span>{text('page.admin.users.attributes')}</span>
 	</div>

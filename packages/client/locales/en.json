@@ -85,7 +85,8 @@
 		"success": "Success",
 		"unknown": "Unknown",
 		"unnamed": "Unnamed",
-		"username": "Name",
+		"user_display_name": "Name",
+		"username": "Username",
 		"yes": "Yes"
 	},
 	"page": {
@@ -94,6 +95,7 @@
 			"delete_account_confirm": "Are you sure you want to delete your account?",
 			"edit_email": "Email Address",
 			"edit_name": "What do you want to be called?",
+			"edit_username": "Pick a unique username",
 			"email_verified_on": "Email verified on {date}",
 			"greeting": "Welcome, {name}",
 			"passkeys": {

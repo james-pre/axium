@@ -70,7 +70,7 @@ addRoute({
 			.limit(10)
 			.$if(!!user, qb => qb.where('id', '!=', user!.id))
 			// @todo make `%...%` more robust against DoS? Consider using vectors or fancy indexing.
-			.where(eb => eb.or([eb('email', 'ilike', search), eb('name', 'ilike', search)]))
+			.where(eb => eb.or([eb('email', 'ilike', search), eb('name', 'ilike', search), eb('username', 'ilike', search)]))
 			.execute();
 
 		return results.map(u => stripUser(u));
@@ -100,7 +100,11 @@ addRoute({
 			.where('id', '=', userId)
 			.returningAll()
 			.executeTakeFirstOrThrow()
-			.catch(withError('Failed to update user'));
+			.catch((e: Error & { code?: string; constraint?: string }) => {
+				if (e.code == '23505')
+					error(409, e.constraint?.includes('username') ? 'Username is already taken' : 'Email is already in use');
+				return withError('Failed to update user')(e);
+			});
 
 		return stripUser(result, true);
 	},

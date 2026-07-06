@@ -4,6 +4,7 @@
 	import '@axium/client/styles/account';
 	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
 	import { Preferences } from '@axium/core/preferences';
+	import type { UserChangeable } from '@axium/core/user';
 	import type { PageProps } from './$types';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { contextMenu } from '@axium/client/attachments';
@@ -19,7 +20,7 @@
 		sessions = $state(data.sessions),
 		hasDefaultPFP = $state(false);
 
-	async function _editUser(data: Record<string, FormDataEntryValue>) {
+	async function _editUser(data: UserChangeable | Record<string, FormDataEntryValue>) {
 		const result = await updateUser(user.id, data);
 		user = result;
 	}
@@ -89,7 +90,7 @@
 	<div id="info" class="section">
 		<h3>{text('page.account.personal_info')}</h3>
 		<div class="item info">
-			<p class="subtle">{text('generic.username')}</p>
+			<p class="subtle">{text('generic.user_display_name')}</p>
 			<p>{user.name}</p>
 			{@render action('edit_name')}
 		</div>
@@ -97,6 +98,25 @@
 			<div>
 				<label for="name">{text('page.account.edit_name')}</label>
 				<input name="name" type="text" value={user.name || ''} required />
+			</div>
+		</FormDialog>
+		<div class="item info">
+			<p class="subtle">{text('generic.username')}</p>
+			{#if user.username}
+				<p>{user.username}</p>
+			{:else}
+				<p class="subtle"><i>{text('generic.none')}</i></p>
+			{/if}
+			{@render action('edit_username')}
+		</div>
+		<FormDialog
+			id="edit_username"
+			submit={data => _editUser({ username: typeof data.username == 'string' && data.username ? data.username : null })}
+			submitText={text('generic.change')}
+		>
+			<div>
+				<label for="username">{text('page.account.edit_username')}</label>
+				<input name="username" type="text" value={user.username || ''} maxlength="32" pattern="[a-z0-9]([a-z0-9._\-]*[a-z0-9])?" />
 			</div>
 		</FormDialog>
 		<div class="item info">
