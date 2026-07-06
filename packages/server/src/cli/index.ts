@@ -150,6 +150,17 @@ program
 		restrictedPorts({ method: 'node-cap', action: 'enable' });
 	});
 
+/** Run the `load` hook of loaded plugins, e.g. so they can start background services */
+async function runLoadHooks() {
+	for (const plugin of plugins.values()) {
+		try {
+			await plugin._hooks?.load?.();
+		} catch (e) {
+			io.warn(`Failed to run load hook for plugin ${plugin.name}: ${io.errorText(e)}`);
+		}
+	}
+}
+
 program
 	.command('serve')
 	.description('Start the Axium server')
@@ -174,6 +185,7 @@ program
 
 		db.connect();
 		await db.clean({});
+		await runLoadHooks();
 
 		// eslint-disable-next-line @typescript-eslint/no-misused-promises
 		process.on('beforeExit', () => db.database.destroy());
@@ -342,6 +354,7 @@ program
 		logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
 		db.connect();
 		await db.clean({});
+		await runLoadHooks();
 
 		// eslint-disable-next-line @typescript-eslint/no-misused-promises
 		process.on('beforeExit', () => db.database.destroy());
