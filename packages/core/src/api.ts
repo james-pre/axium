@@ -138,7 +138,7 @@ const _API = {
 		DELETE: Passkey,
 	},
 	user_id: {
-		POST: [z.object({ using: z.literal(['email', 'handle']), value: z.string() }), z.object({ id: z.uuid() })],
+		POST: [z.object({ using: z.literal(['email', 'username']), value: z.string() }), z.object({ id: z.uuid() })],
 	},
 	'acl/:itemType/:itemId': {
 		GET: AccessControl.array(),

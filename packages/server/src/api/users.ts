@@ -33,17 +33,17 @@ const challenges = new Map<string, UserAuth>();
 const params = { id: z.uuid() };
 
 /**
- * Resolve a user's UUID using their email (in the future this might also include handles)
+ * Resolve a user's UUID using their email or username
  */
 addRoute({
 	path: '/api/user_id',
 	async POST(request): AsyncResult<'POST', 'user_id'> {
-		const { value } = await parseBody(request, z.object({ using: z.literal('email'), value: z.email() }));
+		const { using, value } = await parseBody(request, z.object({ using: z.literal(['email', 'username']), value: z.string() }));
 
 		const { id } = await db
 			.selectFrom('users')
 			.select('id')
-			.where('email', '=', value)
+			.where(using == 'email' ? 'email' : 'username', '=', value)
 			.executeTakeFirstOrThrow()
 			.catch(withError('User not found', 404));
 		return { id };
