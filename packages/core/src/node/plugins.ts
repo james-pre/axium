@@ -189,7 +189,7 @@ export function createPluginCommand<C extends Command>(type: PluginType, parent:
 				if (!plugin) continue;
 
 				config.enable(spec, opts);
-				console.log('Enable plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
+				console.log('Enabled plugin:', plugin.name, styleText('dim', 'v' + plugin.version));
 			}
 		});
 
