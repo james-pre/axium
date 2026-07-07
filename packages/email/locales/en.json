@@ -1,0 +1,57 @@
+{
+	"app_name": {
+		"email": "Email"
+	},
+	"email": {
+		"archive": "Archive",
+		"back": "Back",
+		"compose": "Compose",
+		"delete_forever": "Delete forever",
+		"drafts": "Drafts",
+		"empty_folder": "Nothing here",
+		"forward": "Forward",
+		"inbox": "Inbox",
+		"mark_read": "Mark as read",
+		"mark_spam": "Mark as spam",
+		"mark_unread": "Mark as unread",
+		"move_to_inbox": "Move to inbox",
+		"no_subject": "(no subject)",
+		"no_username": "You need a username to send and receive email.",
+		"no_username_link": "Pick one in your account settings.",
+		"not_spam": "Not spam",
+		"refresh": "Refresh",
+		"reply": "Reply",
+		"sent": "Sent",
+		"spam": "Spam",
+		"star": "Star",
+		"starred": "Starred",
+		"toast_deleted": "Email deleted",
+		"toast_draft_saved": "Draft saved",
+		"toast_received": "New email from {name}",
+		"toast_sent": "Email sent",
+		"trash": "Trash",
+		"unstar": "Unstar"
+	},
+	"AddressChips": {
+		"invalid": "Invalid address: {address}",
+		"placeholder": "Add recipients..."
+	},
+	"Composer": {
+		"bcc": "Bcc",
+		"body_placeholder": "Write your message...",
+		"cc": "Cc",
+		"discard": "Discard",
+		"forwarded_message": "Forwarded message",
+		"no_recipients": "Add at least one recipient",
+		"on_wrote": "On {date}, {name} wrote:",
+		"save_draft": "Save draft",
+		"send": "Send",
+		"subject": "Subject",
+		"title": "New message",
+		"to": "To"
+	},
+	"ThreadMessage": {
+		"to_line": "to {names}",
+		"trimmed": "Show trimmed content"
+	}
+}

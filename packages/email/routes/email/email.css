@@ -1,0 +1,143 @@
+body:has(#email-app) {
+	top: 4em;
+}
+
+#email-app {
+	display: grid;
+	grid-template-columns: 15em 1fr;
+	inset: 0;
+	position: absolute;
+}
+
+#email-sidebar {
+	display: flex;
+	flex-direction: column;
+	gap: 0.25em;
+	padding: 1em;
+
+	button.compose {
+		background-color: var(--bg-alt);
+		justify-content: center;
+		margin-bottom: 1em;
+	}
+
+	.email-sidebar-item {
+		display: flex;
+		align-items: center;
+		padding: 0.5em 1em;
+		border-radius: 1.5em;
+		cursor: pointer;
+		text-align: left;
+
+		&:hover {
+			background-color: var(--bg-alt);
+		}
+
+		&.active {
+			background-color: var(--bg-accent);
+			font-weight: bold;
+		}
+	}
+}
+
+#email-main {
+	display: flex;
+	flex-direction: column;
+	min-width: 0;
+	margin: 0 1em 1em 0;
+	border-radius: 1em;
+	background-color: var(--bg-menu);
+	overflow: hidden;
+
+	.bar {
+		display: flex;
+		align-items: center;
+		gap: 1em;
+		padding: 0.75em 1em;
+		font-weight: bold;
+
+		.label {
+			flex: 1;
+		}
+
+		button {
+			display: inline-flex;
+		}
+
+		@media (width >= 700px) {
+			.mobile-only {
+				display: none;
+			}
+		}
+	}
+
+	.warning {
+		margin: 1em 1em 0;
+	}
+
+	.email-list {
+		flex: 1;
+		overflow-y: auto;
+		display: flex;
+		flex-direction: column;
+
+		.empty {
+			text-align: center;
+			margin-top: 3em;
+		}
+	}
+}
+
+#email-view-container {
+	display: flex;
+	flex-direction: column;
+	gap: 1em;
+	min-width: 0;
+	margin: 0 1em 1em 0;
+	border-radius: 1em;
+	background-color: var(--bg-menu);
+	padding: 1em;
+	overflow: hidden;
+}
+
+@media (width < 700px) {
+	#email-app {
+		grid-template-columns: 1fr;
+	}
+
+	#email-main,
+	#email-view-container {
+		margin: 0;
+		border-radius: 0;
+	}
+
+	#email-sidebar {
+		container-type: inline-size;
+		position: absolute;
+		inset: 0;
+		z-index: 10;
+		background-color: var(--bg-menu);
+		translate: -100% 0;
+		opacity: 0;
+		visibility: hidden;
+		pointer-events: none;
+
+		&.active {
+			translate: 0 0;
+			opacity: 1;
+			visibility: visible;
+			pointer-events: auto;
+		}
+
+		@media not (prefers-reduced-motion) {
+			transition:
+				translate 0.25s ease,
+				opacity 0.25s ease,
+				visibility 0s linear 0.25s;
+
+			&.active {
+				transition-delay: 0s;
+			}
+		}
+	}
+}

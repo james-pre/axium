@@ -1,0 +1,99 @@
+{
+	"name": "@axium/email",
+	"version": "0.0.1",
+	"author": "James Prevett <axium@jamespre.dev>",
+	"description": "Email for Axium",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"license": "LGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./client": "./dist/client/index.js",
+		"./server": "./dist/server/index.js",
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
+	},
+	"files": [
+		"dist",
+		"lib",
+		"routes",
+		"locales",
+		"db.json"
+	],
+	"scripts": {
+		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/client": ">=0.33.0",
+		"@axium/core": ">=0.34.0",
+		"@axium/server": ">=0.49.0",
+		"@sveltejs/kit": "^2.27.3",
+		"commander": "^15.0.0",
+		"ioium": "^1.6.0",
+		"kysely": "^0.29.0",
+		"utilium": "^3.0.0"
+	},
+	"dependencies": {
+		"mailauth": "^4.13.3",
+		"nodemailer": "^9.0.3",
+		"postal-mime": "^2.7.5",
+		"smtp-server": "^3.19.2",
+		"zod": "^4.0.5"
+	},
+	"devDependencies": {
+		"@types/nodemailer": "^8.0.1",
+		"@types/smtp-server": "^3.5.13"
+	},
+	"axium": {
+		"server": {
+			"routes": "routes",
+			"hooks": "./dist/server/hooks.js",
+			"cli": "./dist/server/cli.js",
+			"db": "./db.json",
+			"web_client_hooks": "./dist/client/web_hook.js"
+		},
+		"apps": [
+			{
+				"id": "email",
+				"name": "Email",
+				"icon": "envelope"
+			}
+		],
+		"update_checks": true,
+		"config": {
+			"domain": "",
+			"inbound": {
+				"enabled": true,
+				"port": 25,
+				"max_size": 25000
+			},
+			"outbound": {
+				"relay": {
+					"host": "",
+					"port": 587,
+					"user": "",
+					"pass": "",
+					"secure": false
+				},
+				"dkim": {
+					"selector": "axium",
+					"key_file": ""
+				}
+			}
+		}
+	}
+}

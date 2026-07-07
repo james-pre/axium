@@ -1,0 +1,83 @@
+{
+	"$schema": "../server/schemas/db.json",
+	"format": 1,
+	"versions": [
+		{
+			"delta": false,
+			"tables": {
+				"emails": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"messageId": { "type": "text", "required": true },
+						"inReplyTo": { "type": "text" },
+						"references": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
+						"threadId": { "type": "uuid", "required": true },
+						"from": { "type": "jsonb", "required": true },
+						"to": { "type": "jsonb", "required": true, "default": "'[]'::jsonb" },
+						"cc": { "type": "jsonb", "required": true, "default": "'[]'::jsonb" },
+						"bcc": { "type": "jsonb", "required": true, "default": "'[]'::jsonb" },
+						"subject": { "type": "text", "required": true, "default": "''" },
+						"snippet": { "type": "text" },
+						"text": { "type": "text" },
+						"html": { "type": "text" },
+						"date": { "type": "timestamptz", "required": true, "default": "now()" },
+						"received": { "type": "timestamptz", "required": true, "default": "now()" },
+						"folder": {
+							"type": "text",
+							"required": true,
+							"default": "'inbox'",
+							"check": "folder IN ('inbox', 'sent', 'drafts', 'spam', 'trash', 'archive')"
+						},
+						"read": { "type": "boolean", "required": true, "default": false },
+						"starred": { "type": "boolean", "required": true, "default": false },
+						"labels": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
+						"size": { "type": "integer", "required": true, "default": 0 }
+					},
+					"triggers": {
+						"sync_events": {
+							"forEach": "row",
+							"when": "after",
+							"events": ["insert", "update", "delete"],
+							"execute": "add_sync_event"
+						}
+					}
+				},
+				"email_attachments": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"emailId": { "type": "uuid", "required": true, "references": "emails.id", "onDelete": "cascade" },
+						"filename": { "type": "text", "required": true },
+						"contentType": { "type": "text", "required": true },
+						"size": { "type": "bigint", "required": true },
+						"content": { "type": "bytea", "required": true }
+					}
+				},
+				"email_outbound": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"emailId": { "type": "uuid", "required": true, "references": "emails.id", "onDelete": "cascade" },
+						"recipient": { "type": "text", "required": true },
+						"attempts": { "type": "integer", "required": true, "default": 0 },
+						"nextAttempt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"status": {
+							"type": "text",
+							"required": true,
+							"default": "'pending'",
+							"check": "status IN ('pending', 'sent', 'failed')"
+						},
+						"lastError": { "type": "text" }
+					}
+				}
+			},
+			"indexes": {
+				"emails_userId_folder": { "on": "emails", "columns": ["userId", "folder"] },
+				"emails_threadId": { "on": "emails", "columns": ["threadId"] },
+				"emails_messageId": { "on": "emails", "columns": ["messageId"] },
+				"email_attachments_emailId": { "on": "email_attachments", "columns": ["emailId"] },
+				"email_outbound_nextAttempt": { "on": "email_outbound", "columns": ["nextAttempt"] }
+			}
+		}
+	],
+	"wipe": ["emails", "email_attachments", "email_outbound"]
+}
