@@ -57,7 +57,6 @@
 		display: inline-flex;
 		flex-direction: column;
 		gap: 0.5em;
-		background-color: var(--bg-alt);
 		padding: 1em;
 		padding-left: 0;
 		border-radius: 0 1em 1em 0;
@@ -71,6 +70,7 @@
 			flex-direction: row;
 			justify-content: space-around;
 			gap: 1em;
+			background-color: var(--bg-alt);
 			padding: 0.5em;
 			z-index: 6;
 
@@ -80,10 +80,11 @@
 		}
 
 		.item {
-			padding: 0.3em 0.5em;
+			padding: 0.5em 1em;
 			border-radius: 0.25em 1em 1em 0.25em;
 
 			@media (width < 700px) {
+				padding: 0.3em 0.5em;
 				flex: 1 1 0;
 				border-radius: 1em;
 				padding: 1em;
@@ -92,7 +93,7 @@
 		}
 
 		.item:hover {
-			background-color: var(--bg-strong);
+			background-color: var(--bg-alt);
 			cursor: pointer;
 		}
 
@@ -119,6 +120,18 @@
 
 		@media (width < 700px) {
 			display: none;
+		}
+	}
+
+	:global(:has(.sidebar-theme-alt)) .sidebar {
+		background-color: var(--bg-alt);
+	}
+
+	@media (width >= 700px) {
+		:not(:has(.sidebar-theme-alt)) .sidebar-content {
+			border-radius: 1em;
+			background-color: var(--bg-menu);
+			margin: 0 1em 1em 0;
 		}
 	}
 </style>

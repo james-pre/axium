@@ -23,7 +23,7 @@ div.list-header {
 	font-weight: bold;
 	border-bottom: 1.5px solid var(--fg-accent);
 	position: sticky;
-	background-color: var(--bg-normal);
+	background-color: inherit;
 	top: 0em;
 	z-index: 1;
 

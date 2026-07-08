@@ -7,7 +7,7 @@
 	<title>{text('page.admin.config.title')}</title>
 </svelte:head>
 
-<h2>{text('page.admin.config.active')}</h2>
+<h2 class="sidebar-theme-alt">{text('page.admin.config.active')}</h2>
 
 <pre>{JSON.stringify(data.config, null, 4)}</pre>
 

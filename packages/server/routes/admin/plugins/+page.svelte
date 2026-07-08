@@ -13,7 +13,7 @@
 	<title>{text('page.admin.plugins.title')}</title>
 </svelte:head>
 
-<h2>{text('page.admin.plugins.heading')}</h2>
+<h2 class="sidebar-theme-alt">{text('page.admin.plugins.heading')}</h2>
 
 {#each data.plugins as plugin}
 	{@const schema = serverConfigs.get(plugin.name)}
