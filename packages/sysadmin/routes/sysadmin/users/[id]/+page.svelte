@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
-	import { socket } from '@axium/client/socket';
+	import { getOnlineHosts } from '@axium/sysadmin/client/web';
 	import { toastStatus } from '@axium/client/toast';
 	import { SystemCard, UserInitDialog } from '@axium/sysadmin/components';
 
@@ -12,7 +12,7 @@
 	let systems = $state(data.systems);
 	let editDialog = $state<HTMLDialogElement>();
 
-	const onlineHosts = $derived(await socket?.emitWithAck('sysadmin:ping').then(systems => systems.map(s => s.hostname)));
+	const onlineHosts = $derived(await getOnlineHosts());
 
 	function remove() {
 		toastStatus(

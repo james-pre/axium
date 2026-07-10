@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
-	import { socket } from '@axium/client/socket';
+	import { getOnlineHosts } from '@axium/sysadmin/client/web';
 	import { SystemCard, SystemInitDialog } from '@axium/sysadmin/components';
 
 	const { data } = $props();
 
 	let systems = $state(data.systems);
 
-	const onlineHosts = $derived(await socket?.emitWithAck('sysadmin:ping').then(systems => systems.map(s => s.hostname)));
+	const onlineHosts = $derived(await getOnlineHosts());
 </script>
 
 <svelte:head>
