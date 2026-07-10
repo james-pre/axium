@@ -1,12 +1,13 @@
+import { plugins } from '@axium/core';
+import { rlConfirm } from '@axium/core/node';
 import { Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { createWriteStream, type WriteStream } from 'node:fs';
 import { styleText, type InspectColor } from 'node:util';
 import { _throw, capitalize } from 'utilium';
 import * as z from 'zod';
-import { sharedOptions as opts } from './common.js';
 import * as db from '../db/index.js';
-import { rlConfirm } from '@axium/core/node';
+import { sharedOptions as opts } from './common.js';
 
 const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout);
 
@@ -150,9 +151,15 @@ axiumDB
 
 		const tables = Object.fromEntries(tableMetadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
 
-		const schema = io.track('Resolving database schemas', () =>
-			db.schema.getFull(opt.useCurrent ? { overrideVersions: db.getUpgradeInfo().current } : {})
-		);
+		const schema = io.track('Resolving database schemas', () => {
+			const { current } = db.getUpgradeInfo();
+			const currentKeys = Object.keys(current);
+			const exclude = plugins
+				.keys()
+				.filter(k => !currentKeys.includes(k))
+				.toArray();
+			return db.schema.getFull(opt.useCurrent ? { overrideVersions: current, exclude } : {});
+		});
 
 		for (const [name, table] of Object.entries(schema.tables)) {
 			await db.checkTableTypes(name as keyof db.Schema, table, opt, tableMetadata);
