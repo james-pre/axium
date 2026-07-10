@@ -5,20 +5,20 @@
 		{
 			"delta": false,
 			"tables": {
-				"systems": {
-					"columns": {
-						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
-						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
-						"name": { "type": "text", "required": true },
-						"hostname": { "type": "text", "required": true }
-					}
-				},
 				"system_users": {
 					"columns": {
 						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
 						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
 						"name": { "type": "text", "required": true },
 						"username": { "type": "text", "required": true }
+					}
+				},
+				"systems": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"name": { "type": "text", "required": true },
+						"hostname": { "type": "text", "required": true }
 					}
 				},
 				"acl.systems": {
