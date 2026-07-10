@@ -1,15 +1,15 @@
 import { formatBytes } from '@axium/core';
+import { assertYes } from '@axium/core/node/cli';
 import { Command } from 'commander';
 import * as io from 'ioium/node';
 import mime from 'mime';
 import * as fs from 'node:fs';
 import { basename, join, parse } from 'node:path';
 import { createInterface } from 'node:readline/promises';
-import { stringbool } from 'zod';
 import type { StorageItemMetadata } from '../../common.js';
 import { colorItem, formatItems, streamRead } from '../../node.js';
 import * as api from '../api.js';
-import { getDirectory, resolveItem, resolvePathWithParent, getItems, writeItems } from '../local.js';
+import { getDirectory, getItems, resolveItem, resolvePathWithParent, writeItems } from '../local.js';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -122,12 +122,7 @@ export const upload = new Command('upload')
 			sum += stats.size;
 		}
 
-		const { data, error } = stringbool()
-			.default(false)
-			.safeParse(
-				await rl.question(`Upload ${toUpload.length} files totaling ${formatBytes(sum)}? [y/N]: `).catch(() => io.exit('Aborted.'))
-			);
-		if (error || !data) io.exit('Aborted.');
+		await assertYes(`Upload ${toUpload.length} files totaling ${formatBytes(sum)}?`);
 
 		const { id } = await io.track('Creating directory', api.createDirectory(name, parent?.id));
 
