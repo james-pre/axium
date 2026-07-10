@@ -1,13 +1,13 @@
-import * as fs from 'node:fs';
-import { findPackageJSON } from 'node:module';
-import { fetchPackageMetadata, getActivePackages, isPath, type PackageJSON, type PackageVersionInfo } from '../packages.js';
 import * as io from 'ioium/node';
 import { execFileSync, execSync } from 'node:child_process';
-import $pkg from '../../package.json' with { type: 'json' };
-import { formatBytes } from '../format.js';
+import * as fs from 'node:fs';
+import { findPackageJSON } from 'node:module';
 import { styleText } from 'node:util';
 import { lte, major } from 'semver';
-import { rlConfirm } from './cli.js';
+import $pkg from '../../package.json' with { type: 'json' };
+import { formatBytes } from '../format.js';
+import { fetchPackageMetadata, getActivePackages, isPath, type PackageJSON, type PackageVersionInfo } from '../packages.js';
+import { assertYes } from './cli.js';
 
 export function getPackageJSON(specifier: string, from: string): PackageJSON & Record<string, any> & { __path: string } {
 	try {
@@ -140,7 +140,7 @@ export async function upgradeActivePackages(filter: string[], opt: PackageUpgrad
 		`(install ${formatBytes(newSizeSum)}, remove ${formatBytes(oldSizeSum)}).`
 	);
 
-	await rlConfirm();
+	await assertYes();
 
 	if (opt.dryRun) {
 		io.warn('--dry-run: No packages were changed.');
