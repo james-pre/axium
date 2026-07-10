@@ -1,7 +1,7 @@
 #! /usr/bin/env node
 
 import { formatBytes } from '@axium/core';
-import { createPluginCommand, outputDaemonStatus } from '@axium/core/node';
+import { createPluginCommand, outputDaemonStatus, rl } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { CommanderError, program } from 'commander';
 import * as io from 'ioium/node';
@@ -165,3 +165,5 @@ try {
 		io.exit(e);
 	}
 }
+
+rl.close();
