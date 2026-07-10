@@ -390,7 +390,7 @@ info "Installing other system dependencies"
 
 case $PKG_FAMILY in
 	rhel)
-		run_root dnf install -qy postgresql-server postgresql vips gcc-c++ make >/dev/null
+		run_root dnf install -qy postgresql-server postgresql vips gcc-c++ make patch >/dev/null
 		if [ ! -s /var/lib/pgsql/data/PG_VERSION ]; then
 			info 'Initializing PostgreSQL database cluster'
 			run_root postgresql-setup --initdb >/dev/null 2>&1 \
