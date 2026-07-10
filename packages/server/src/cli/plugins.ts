@@ -65,7 +65,6 @@ axiumPlugin
 	.alias('setup')
 	.alias('install')
 	.description('Initialize a plugin. This could include adding tables to the database or linking routes.')
-	.addOption(opts.timeout)
 	.addOption(opts.check)
 	.argument('<plugin>', 'the plugin to initialize')
 	.action(async search => {

@@ -9,7 +9,7 @@ import * as z from 'zod';
 import * as db from '../db/index.js';
 import { sharedOptions as opts } from './common.js';
 
-const axiumDB = program.command('db').alias('database').description('Manage the database').addOption(opts.timeout);
+const axiumDB = program.command('db').alias('database').description('Manage the database');
 
 export async function dbInitTables(assumeYes: boolean = false) {
 	const info = db.getUpgradeInfo();

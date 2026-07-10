@@ -1,13 +1,12 @@
 // Supporting code for the CLI. The CLI entry point is main.ts
 
 import type { UserInternal } from '@axium/core';
+import { Option } from 'commander';
 import * as io from 'ioium/node';
+import { matchesGlob } from 'node:path';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import * as db from '../db/index.js';
-import { Option } from 'commander';
-import { createInterface } from 'node:readline/promises';
-import { matchesGlob } from 'node:path';
 
 export function userText(user: UserInternal, bold: boolean = false): string {
 	const text = `${user.name} <${user.email}> (${user.id})`;
@@ -90,10 +89,5 @@ export const sharedOptions = {
 	check: new Option('--check', 'check the database schema after initialization').default(false),
 	force: new Option('-f, --force', 'force the operation').default(false),
 	global: new Option('-g, --global', 'apply the operation globally').default(false),
-	timeout: new Option('-t, --timeout <ms>', 'how long to wait for commands to complete.').default(1000).argParser(value => {
-		const timeout = parseInt(value);
-		if (!Number.isSafeInteger(timeout) || timeout < 0) io.warn('Invalid timeout value, using default.');
-		io.setCommandTimeout(timeout);
-	}),
 	assumeYes: new Option('-y, --assume-yes', 'assume yes for all prompts').default(false),
 };
