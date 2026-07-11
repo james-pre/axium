@@ -1,5 +1,5 @@
 import { config, hostname } from '@axium/server/config';
-import { database } from '@axium/server/database';
+import { connect, database } from '@axium/server/database';
 import { program } from 'commander';
 import * as io from 'ioium/node';
 import { createPrivateKey, createPublicKey } from 'node:crypto';
@@ -47,6 +47,8 @@ cli.command('queue')
 	.option('-a, --all', 'Include delivered and failed messages', false)
 	.option('--retry', 'Retry failed messages now', false)
 	.action(async (opt: { all: boolean; retry: boolean }) => {
+		connect();
+
 		if (opt.retry) {
 			const retried = await database
 				.updateTable('email_outbound')
