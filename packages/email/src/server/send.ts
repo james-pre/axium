@@ -78,6 +78,11 @@ export async function deliver(
 			userId,
 			folder,
 			...data,
+			// jsonb columns must be serialized since node-postgres treats plain arrays as Postgres arrays
+			from: JSON.stringify(data.from),
+			to: JSON.stringify(data.to),
+			cc: JSON.stringify(data.cc),
+			bcc: JSON.stringify(data.bcc),
 			threadId: await threadFor(userId, data.inReplyTo),
 			snippet: makeSnippet(data.text),
 			read: folder == 'sent' || folder == 'drafts',
