@@ -1,5 +1,4 @@
 import { formatBytes } from '@axium/core';
-import { assertYes } from '@axium/core/node/cli';
 import { Command } from 'commander';
 import * as io from 'ioium/node';
 import mime from 'mime';
@@ -122,7 +121,7 @@ export const upload = new Command('upload')
 			sum += stats.size;
 		}
 
-		await assertYes(`Upload ${toUpload.length} files totaling ${formatBytes(sum)}?`);
+		await io.assertYes(`Upload ${toUpload.length} files totaling ${formatBytes(sum)}?`);
 
 		const { id } = await io.track('Creating directory', api.createDirectory(name, parent?.id));
 
