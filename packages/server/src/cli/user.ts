@@ -1,6 +1,5 @@
 import type { UserInternal } from '@axium/core';
 import { formatDateRange } from '@axium/core/format';
-import { rlConfirm } from '@axium/core/node';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
@@ -48,7 +47,7 @@ program
 		}
 
 		if (opt.delete) {
-			const confirmed = await rlConfirm(`Are you sure you want to delete ${userText(user, true)}?`);
+			const confirmed = await io.confirm(`Are you sure you want to delete ${userText(user, true)}?`);
 
 			if (!confirmed) console.log(styleText('dim', '> Delete aborted.'));
 			else

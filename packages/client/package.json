@@ -50,7 +50,7 @@
 	},
 	"peerDependencies": {
 		"@axium/core": ">=0.36.0",
-		"ioium": "^1.0.2",
+		"ioium": "^1.7.0",
 		"semver": "^7.7.4",
 		"svelte": "^5.36.0",
 		"utilium": "^3.2.0",

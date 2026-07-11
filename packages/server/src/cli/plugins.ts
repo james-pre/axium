@@ -1,4 +1,4 @@
-import { assertYes, createPluginCommand } from '@axium/core/node';
+import { createPluginCommand } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
@@ -82,7 +82,7 @@ axiumPlugin
 			return;
 		}
 		for (const text of db.delta.display(delta)) console.log(text);
-		await assertYes();
+		await io.assertYes();
 		await db.delta.apply(delta);
 		Object.assign(info.current, schema.versions);
 		db.setUpgradeInfo(info);

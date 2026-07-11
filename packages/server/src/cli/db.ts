@@ -1,5 +1,4 @@
 import { plugins } from '@axium/core';
-import { assertYes } from '@axium/core/node';
 import { Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { createWriteStream, type WriteStream } from 'node:fs';
@@ -17,7 +16,7 @@ export async function dbInitTables(assumeYes: boolean = false) {
 	const delta = db.delta.compute({ tables: {}, indexes: {}, scripts: [] }, schema);
 	if (db.delta.isEmpty(delta)) return;
 	for (const text of db.delta.display(delta)) console.log(text);
-	await assertYes(null, assumeYes);
+	if (!assumeYes) await io.assertYes(null);
 	db.connect();
 	await db.delta.apply(delta);
 	Object.assign(info.current, schema.versions);
@@ -112,7 +111,7 @@ axiumDB
 			console.log(table + ' '.repeat(maxTableName - table.length), '|', plugins);
 		}
 
-		await assertYes('Are you sure you want to wipe these tables and any dependents');
+		await io.assertYes('Are you sure you want to wipe these tables and any dependents');
 
 		await db.database.deleteFrom(tables.keys().toArray()).execute();
 	});
@@ -214,7 +213,7 @@ axiumDB
 			return;
 		}
 
-		await assertYes();
+		await io.assertYes();
 
 		io.track('Validating delta', () => db.delta.validate(upgrade.delta));
 
