@@ -7,7 +7,6 @@ import { lte, major } from 'semver';
 import $pkg from '../../package.json' with { type: 'json' };
 import { formatBytes } from '../format.js';
 import { fetchPackageMetadata, getActivePackages, isPath, type PackageJSON, type PackageVersionInfo } from '../packages.js';
-import { assertYes } from './cli.js';
 
 export function getPackageJSON(specifier: string, from: string): PackageJSON & Record<string, any> & { __path: string } {
 	try {
@@ -140,7 +139,7 @@ export async function upgradeActivePackages(filter: string[], opt: PackageUpgrad
 		`(install ${formatBytes(newSizeSum)}, remove ${formatBytes(oldSizeSum)}).`
 	);
 
-	await assertYes();
+	await io.assertYes();
 
 	if (opt.dryRun) {
 		io.warn('--dry-run: No packages were changed.');
