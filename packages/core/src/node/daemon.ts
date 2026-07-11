@@ -1,10 +1,14 @@
 import { styleText } from 'node:util';
 import { spawnSync } from 'node:child_process';
 
-export function outputDaemonStatus(name: string) {
+export function outputDaemonStatus(name: string, user: boolean = false) {
 	process.stdout.write(styleText('whiteBright', 'Daemon: '));
 
-	const daemonIs = (sub: string) => spawnSync('systemctl', ['is-' + sub, name], { stdio: 'pipe', encoding: 'utf8' });
+	const daemonIs = (sub: string) => {
+		const args = ['is-' + sub, name];
+		if (user) args.push('--user');
+		return spawnSync('systemctl', args, { stdio: 'pipe', encoding: 'utf8' });
+	};
 
 	const { status: dNotActive, stdout: dStatus } = daemonIs('active');
 	const { status: dNotFailed } = daemonIs('failed');
