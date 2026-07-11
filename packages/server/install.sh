@@ -30,6 +30,7 @@ AXIUM_OFFICIAL_PLUGINS="
 storage|File storage and sharing
 calendar|Calendars and events
 contacts|Contact management
+email|Email sending and receiving
 notes|Notes
 tasks|Task and to-do lists
 sysadmin|System administration

@@ -124,6 +124,7 @@ The server is the primary package for working with Axium. The package includes:
 - Routing
 - Plugin APIs
 - Configuration handling
+- Sending email (via a relay or directly to the recipient's mail server)
 
 #### @axium/client
 
@@ -150,6 +151,10 @@ This plugin includes the Files app along with significant code infrastructure fo
 
 A calendar app for managing events. Still a work in progress.
 
+#### @axium/contacts
+
+Manage your contacts. This plugin adds the Contacts app and APIs to Axium.
+
 #### @axium/tasks
 
 Create to-do lists with ease. The tasks plugins adds the Tasks app and APIs to Axium.
@@ -157,3 +162,12 @@ Create to-do lists with ease. The tasks plugins adds the Tasks app and APIs to A
 #### @axium/notes
 
 Take and manage notes. This plugin adds the Notes app and APIs to Axium.
+
+#### @axium/email
+
+A Gmail-like email experience. Users get an address based on their username and the server's domain,
+with a built-in SMTP listener for receiving external mail and internal delivery between local users.
+
+#### @axium/sysadmin
+
+Administer your computers through Axium. Still a work in progress.
