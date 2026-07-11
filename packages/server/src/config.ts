@@ -1,11 +1,11 @@
 import { serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
-import * as io from 'ioium/node';
 import { loadPlugin, type PluginLoadOptions } from '@axium/core/node/plugins';
+import * as io from 'ioium/node';
 import { levelText } from 'logzen';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
-import { deepAssign, omit, type DeepRequired } from 'utilium';
+import { deepAssign, type DeepRequired } from 'utilium';
 import * as z from 'zod';
 import { dirs, logger, systemDir } from './io.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
@@ -15,6 +15,7 @@ const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warni
 >[];
 
 const cfgBool = z.union([z.stringbool(), z.boolean()]);
+const cfgPort = z.coerce.number().int().min(1).max(65535);
 
 export const ImageUploadConfig = z.object({
 	/** Whether images can be uploaded */
@@ -60,7 +61,7 @@ export const Config = z
 		db: z
 			.looseObject({
 				host: z.string(),
-				port: z.coerce.number().int().min(1).max(65535),
+				port: cfgPort,
 				password: z.string(),
 				user: z.string(),
 				database: z.string(),
@@ -93,7 +94,7 @@ export const Config = z
 		web: z
 			.looseObject({
 				disable_cache: cfgBool,
-				port: z.coerce.number().min(1).max(65535),
+				port: cfgPort,
 				prefix: z.string(),
 				routes: z.string(),
 				secure: cfgBool,
@@ -108,10 +109,6 @@ export const Config = z
 export interface Config extends z.infer<typeof Config> {}
 
 export const configFiles = _unique('configFiles', new Map<string, ConfigFile>());
-
-export function plainConfig(): Omit<DeepRequired<Config>, keyof typeof configShortcuts> {
-	return omit(config, Object.keys(configShortcuts) as (keyof typeof configShortcuts)[]);
-}
 
 export const defaultConfig: DeepRequired<Config> = {
 	admin_api: true,
@@ -175,22 +172,7 @@ export const defaultConfig: DeepRequired<Config> = {
 	},
 };
 
-const configShortcuts = {
-	findPath: findConfigPaths,
-	load: loadConfig,
-	loadDefaults: loadDefaultConfigs,
-	plain: plainConfig,
-	save: saveConfig,
-	saveTo: saveConfigTo,
-	set: setConfig,
-	files: configFiles,
-	defaults: defaultConfig,
-};
-
-export const config: DeepRequired<Config> & typeof configShortcuts = _unique('config', {
-	...configShortcuts,
-	...defaultConfig,
-});
+export const config: DeepRequired<Config> = _unique('config', { ...defaultConfig });
 export default config;
 
 // config from file

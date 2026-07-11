@@ -6,7 +6,7 @@ import * as io from 'ioium/node';
 import { parseArgs } from 'node:util';
 import * as z from 'zod';
 import './cli/index.js';
-import config, { reloadConfigs } from './config.js';
+import { reloadConfigs, setConfig, loadDefaultConfigs, loadConfig } from './config.js';
 
 process.on('SIGHUP', () => {
 	io.info('Reloading configuration due to SIGHUP.');
@@ -30,12 +30,12 @@ const {
 
 if (debug) {
 	io._setDebugOutput(true);
-	config.set({ debug: true });
+	setConfig({ debug: true });
 }
 
-await config.loadDefaults(safe);
+await loadDefaultConfigs(safe);
 
-if (configFromCLI) await config.load(configFromCLI, { plugins: { safe } });
+if (configFromCLI) await loadConfig(configFromCLI, { plugins: { safe } });
 
 await runIntegrations();
 

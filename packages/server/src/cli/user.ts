@@ -1,10 +1,9 @@
 import type { UserInternal } from '@axium/core';
 import { formatDateRange } from '@axium/core/format';
-import { rl, rlConfirm } from '@axium/core/node';
+import { rlConfirm } from '@axium/core/node';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
-import * as z from 'zod';
 import { audit } from '../audit.js';
 import config from '../config.js';
 import * as db from '../db/index.js';

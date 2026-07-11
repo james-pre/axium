@@ -1,7 +1,7 @@
 import type { Preferences, UserInternal, VerificationRole } from '@axium/core';
-import * as io from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
 import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
+import * as io from 'ioium/node';
 import type * as kysely from 'kysely';
 import { sql } from 'kysely';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -12,15 +12,15 @@ import { styleText } from 'node:util';
 import pg from 'pg';
 import type { Entries, Expand } from 'utilium';
 import * as z from 'zod';
-import config from '../config.js';
+import { config, saveConfig } from '../config.js';
 import { dirs, systemDir } from '../io.js';
 
 import { connect, database } from './connection.js';
 
-import * as schema from './schema.js';
 import * as delta from './delta.js';
+import * as schema from './schema.js';
 
-export { connect, database, schema, delta };
+export { connect, database, delta, schema };
 
 pg.types.setTypeParser(pg.types.builtins.INT8, BigInt);
 
@@ -185,7 +185,7 @@ export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'alrea
 
 export async function init(opt: InitOptions): Promise<void> {
 	if (!config.db.password) {
-		config.save({ db: { password: randomBytes(32).toString('base64') } }, true);
+		saveConfig({ db: { password: randomBytes(32).toString('base64') } }, true);
 		io.debug('Generated password and wrote to global config');
 	}
 
@@ -431,7 +431,7 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 export function rotatePassword() {
 	const password = io.track('Generating new password', () => randomBytes(32).toString('base64'));
 
-	io.track('Updating global config', () => config.save({ db: { password } }, true));
+	io.track('Updating global config', () => saveConfig({ db: { password } }, true));
 
 	_sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
 }

@@ -12,7 +12,7 @@ import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { audit, events, getEvents } from '../audit.js';
 import { createVerification, requireSession, type SessionAndUser } from '../auth.js';
-import { config, type Config } from '../config.js';
+import { config, configFiles, type Config } from '../config.js';
 import { count, database as db } from '../db/index.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
@@ -47,7 +47,7 @@ addRoute({
 		return {
 			...(await count('users', 'passkeys', 'sessions')),
 			auditEvents,
-			configFiles: config.files.size,
+			configFiles: configFiles.size,
 			plugins: plugins.size,
 			versions: {
 				server: $pkg.version,
@@ -155,8 +155,8 @@ addRoute({
 		await assertAdmin(this, req);
 
 		return {
-			config: _redactConfig(config.plain()),
-			files: Object.fromEntries(config.files.entries().map(([path, cfg]) => [path, _redactConfig(cfg)])),
+			config: _redactConfig(config),
+			files: Object.fromEntries(configFiles.entries().map(([path, cfg]) => [path, _redactConfig(cfg)])),
 		};
 	},
 });

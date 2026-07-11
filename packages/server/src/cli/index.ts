@@ -20,7 +20,7 @@ import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { getEvents, styleSeverity } from '../audit.js';
 import { build } from '../build.js';
-import config from '../config.js';
+import { config, configFiles, setConfig } from '../config.js';
 import * as db from '../db/index.js';
 import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from '../io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
@@ -47,14 +47,14 @@ program
 		const opt = action.optsWithGlobals();
 		opt.force && io.warn('--force: Protections disabled.');
 		if (typeof opt.debug == 'boolean') {
-			config.set({ debug: opt.debug });
+			setConfig({ debug: opt.debug });
 			io._setDebugOutput(opt.debug);
 		}
 	})
 	.hook('postAction', async (_, action) => {
 		if (db.database && !['develop', 'serve'].includes(action.name())) await db.database.destroy();
 	})
-	.on('option:debug', () => config.set({ debug: true }));
+	.on('option:debug', () => setConfig({ debug: true }));
 
 const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);
 
@@ -96,11 +96,10 @@ program
 
 		console.log(styleText('whiteBright', 'Debug mode:'), config.debug ? styleText('yellow', 'enabled') : 'disabled');
 
-		const configFiles = config.files.keys().toArray();
 		console.log(
 			styleText('whiteBright', 'Loaded config files:'),
-			styleText(['dim', 'bold'], `(${configFiles.length})`),
-			configFiles.join(', ')
+			styleText(['dim', 'bold'], `(${configFiles.size})`),
+			configFiles.keys().toArray().join(', ')
 		);
 
 		outputDaemonStatus('axium');

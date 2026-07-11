@@ -2,7 +2,7 @@ import { program } from 'commander';
 import * as io from 'ioium/node';
 import { getByString, isJSON, setByString } from 'utilium';
 import * as z from 'zod';
-import config, { Config, ConfigFile } from '../config.js';
+import { config, Config, ConfigFile, configFiles, saveConfig } from '../config.js';
 import { sharedOptions as opts } from './common.js';
 
 const axiumConfig = program
@@ -23,7 +23,7 @@ axiumConfig
 	.description('Output the entire current configuration')
 	.action(function axium_config_dump() {
 		const opt = this.optsWithGlobals();
-		const value = config.plain();
+		const value = config;
 		console.log(opt.json ? JSON.stringify(value, configReplacer(opt), 4) : value);
 	});
 
@@ -33,7 +33,7 @@ axiumConfig
 	.argument('<key>', 'the key to get')
 	.action(function axium_config_get(key) {
 		const opt = this.optsWithGlobals();
-		const value = getByString(config.plain(), key);
+		const value = getByString(config, key);
 		console.log(opt.json ? JSON.stringify(value, configReplacer(opt), 4) : value);
 	});
 
@@ -47,7 +47,7 @@ axiumConfig
 		if (opt.json && !isJSON(value)) io.exit('Invalid JSON');
 		const obj: Record<string, any> = {};
 		setByString(obj, key, opt.json ? JSON.parse(value) : value);
-		config.save(Config.parse(obj), opt.global);
+		saveConfig(Config.parse(obj), opt.global);
 	});
 
 axiumConfig
@@ -56,7 +56,7 @@ axiumConfig
 	.alias('files')
 	.description('List loaded config files')
 	.action(() => {
-		for (const path of config.files.keys()) console.log(path);
+		for (const path of configFiles.keys()) console.log(path);
 	});
 
 axiumConfig

@@ -3,7 +3,7 @@ import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
 import * as z from 'zod';
-import config, { configFiles, findConfigPaths, saveConfigTo } from '../config.js';
+import { configFiles, findConfigPaths, saveConfig, saveConfigTo } from '../config.js';
 import * as db from '../db/index.js';
 import { sharedOptions as opts } from './common.js';
 
@@ -25,7 +25,7 @@ const axiumPlugin = createPluginCommand('server', program, {
 		const path = targetConfigPath(global);
 		const { plugins = [] } = configFiles.get(path) ?? {};
 		plugins.push(spec);
-		config.save({ plugins }, global);
+		saveConfig({ plugins }, global);
 	},
 	disable(spec) {
 		for (const [path, data] of configFiles) {
