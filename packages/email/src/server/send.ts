@@ -1,25 +1,18 @@
 import type { User } from '@axium/core';
-import { getConfig } from '@axium/core/plugins';
-import { config } from '@axium/server/config';
+import { hostname } from '@axium/server/config';
 import { database } from '@axium/server/database';
+import { sendMail } from '@axium/server/email';
 import { error, withError } from '@axium/server/requests';
 import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium/node';
-import { resolveMx } from 'node:dns/promises';
-import { readFileSync } from 'node:fs';
-import { createTransport, type Transporter } from 'nodemailer';
 import { pick } from 'utilium';
 import type { Email, EmailFolder, EmailInit, Mailbox } from '../common.js';
 import { splitQuoted } from '../common.js';
 import './db.js';
 
-export function mailDomain(): string {
-	return new URL(config.origin).hostname;
-}
-
 /** The address of a user on this server */
 export function addressFor(user: Pick<User, 'username'>): string | null {
-	return user.username ? `${user.username}@${mailDomain()}` : null;
+	return user.username ? `${user.username}@${hostname()}` : null;
 }
 
 /** Make a list snippet from a body, excluding quoted replies */
@@ -31,7 +24,7 @@ export function makeSnippet(text?: string | null): string | null {
 /** Resolve the user an address belongs to, if it is local to this server */
 export async function localUser(address: string): Promise<{ id: string } | null> {
 	const [local, domain] = address.toLowerCase().split('@');
-	if (domain != mailDomain()) return null;
+	if (domain != hostname()) return null;
 	const user = await database.selectFrom('users').select('id').where('username', '=', local).executeTakeFirst();
 	return user ?? null;
 }
@@ -122,7 +115,7 @@ export async function send(sender: User, init: EmailInit): Promise<Email> {
 	if (!address) error(409, 'You need a username to use email');
 
 	const data: MessageData = {
-		messageId: `<${crypto.randomUUID()}@${mailDomain()}>`,
+		messageId: `<${crypto.randomUUID()}@${hostname()}>`,
 		...pick(init, 'inReplyTo', 'to', 'cc', 'bcc', 'subject', 'text'),
 		references: [],
 		from: { name: sender.name, address },
@@ -202,63 +195,20 @@ export function stopOutbound(): void {
 	outboundWorker = undefined;
 }
 
-function transporterFor(exchange: { host: string; port: number; secure: boolean; auth?: { user: string; pass: string } }): Transporter {
-	const { dkim } = getConfig('@axium/email').outbound;
-
-	let dkimOptions;
-	if (dkim.key_file) {
-		try {
-			dkimOptions = { domainName: mailDomain(), keySelector: dkim.selector, privateKey: readFileSync(dkim.key_file, 'utf8') };
-		} catch (e: any) {
-			io.warn(`Could not read DKIM key: ${e.message}`);
-		}
-	}
-
-	return createTransport({
-		...pick(exchange, 'host', 'port', 'secure', 'auth'),
-		name: mailDomain(),
-		dkim: dkimOptions,
-	});
-}
-
 /** Attempt delivery of a single queued message */
 async function attemptDelivery(job: { id: string; recipient: string; attempts: number }, email: Email): Promise<void> {
 	try {
-		const { relay } = getConfig('@axium/email').outbound;
-
-		let transports: Transporter[];
-		if (relay.host) {
-			transports = [transporterFor({ ...relay, auth: relay.user ? { user: relay.user, pass: relay.pass } : undefined })];
-		} else {
-			const domain = job.recipient.split('@').at(-1)!;
-			const mx = await resolveMx(domain);
-			if (!mx.length) throw new Error(`No MX records for ${domain}`);
-			transports = mx
-				.sort((a, b) => a.priority - b.priority)
-				.slice(0, 3)
-				.map(({ exchange }) => transporterFor({ host: exchange, port: 25, secure: false }));
-		}
-
-		let lastError: unknown;
-		for (const transport of transports) {
-			try {
-				await transport.sendMail({
-					...pick(email, 'subject', 'date', 'read', 'messageId'),
-					envelope: { from: email.from.address, to: [job.recipient] },
-					from: { name: email.from.name ?? '', address: email.from.address },
-					to: email.to.map(m => ({ name: m.name ?? '', address: m.address })),
-					cc: email.cc.map(m => ({ name: m.name ?? '', address: m.address })),
-					text: email.text ?? undefined,
-					html: email.html ?? undefined,
-					inReplyTo: email.inReplyTo ?? undefined,
-				});
-				await database.updateTable('email_outbound').set({ status: 'sent' }).where('id', '=', job.id).execute();
-				return;
-			} catch (e) {
-				lastError = e;
-			}
-		}
-		throw lastError;
+		await sendMail(job.recipient, {
+			...pick(email, 'subject', 'date', 'read', 'messageId'),
+			envelope: { from: email.from.address, to: [job.recipient] },
+			from: { name: email.from.name ?? '', address: email.from.address },
+			to: email.to.map(m => ({ name: m.name ?? '', address: m.address })),
+			cc: email.cc.map(m => ({ name: m.name ?? '', address: m.address })),
+			text: email.text ?? undefined,
+			html: email.html ?? undefined,
+			inReplyTo: email.inReplyTo ?? undefined,
+		});
+		await database.updateTable('email_outbound').set({ status: 'sent' }).where('id', '=', job.id).execute();
 	} catch (e: any) {
 		const attempts = job.attempts + 1;
 		const failed = attempts >= maxAttempts;
@@ -280,10 +230,10 @@ async function attemptDelivery(job: { id: string; recipient: string; attempts: n
 async function bounce(email: Email, recipient: string, reason: string): Promise<void> {
 	notifyReceived(
 		await deliver(email.userId, 'inbox', {
-			messageId: `<${crypto.randomUUID()}@${mailDomain()}>`,
+			messageId: `<${crypto.randomUUID()}@${hostname()}>`,
 			inReplyTo: email.messageId,
 			references: [email.messageId],
-			from: { name: 'Mail Delivery', address: `mailing@${mailDomain()}` },
+			from: { name: 'Mail Delivery', address: `mailing@${hostname()}` },
 			to: [email.from],
 			cc: [],
 			bcc: [],

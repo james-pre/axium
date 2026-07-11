@@ -49,13 +49,11 @@
 	},
 	"dependencies": {
 		"mailauth": "^4.13.3",
-		"nodemailer": "^9.0.3",
 		"postal-mime": "^2.7.5",
 		"smtp-server": "^3.19.2",
 		"zod": "^4.0.5"
 	},
 	"devDependencies": {
-		"@types/nodemailer": "^8.0.1",
 		"@types/smtp-server": "^3.5.13"
 	},
 	"axium": {
@@ -75,24 +73,10 @@
 		],
 		"update_checks": true,
 		"config": {
-			"domain": "",
 			"inbound": {
 				"enabled": true,
 				"port": 25,
 				"max_size": 25000
-			},
-			"outbound": {
-				"relay": {
-					"host": "",
-					"port": 587,
-					"user": "",
-					"pass": "",
-					"secure": false
-				},
-				"dkim": {
-					"selector": "axium",
-					"key_file": ""
-				}
 			}
 		}
 	}

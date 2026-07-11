@@ -1,5 +1,5 @@
 import { getConfig } from '@axium/core/plugins';
-import { config } from '@axium/server/config';
+import { config, hostname } from '@axium/server/config';
 import * as io from 'ioium/node';
 import { authenticate } from 'mailauth';
 import { randomUUID } from 'node:crypto';
@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs';
 import PostalMime, { type Address as ParsedAddress } from 'postal-mime';
 import { SMTPServer, type SMTPServerDataStream, type SMTPServerOptions, type SMTPServerSession } from 'smtp-server';
 import { Mailbox } from '../common.js';
-import { deliver, localUser, mailDomain, notifyReceived, type IncomingAttachment, type MessageData } from './send.js';
+import { deliver, localUser, notifyReceived, type IncomingAttachment, type MessageData } from './send.js';
 
 let server: SMTPServer | undefined;
 
@@ -16,7 +16,7 @@ function toMailbox(parsed?: ParsedAddress | null): Mailbox | null {
 	if (!parsed) return null;
 	const result = Mailbox.safeParse({ name: parsed.name || null, address: 'address' in parsed ? parsed.address : null });
 	if (result.success) return result.data;
-	if (parsed.name) return { name: parsed.name, address: `invalid@${mailDomain()}` };
+	if (parsed.name) return { name: parsed.name, address: `invalid@${hostname()}` };
 	return null;
 }
 
@@ -44,7 +44,7 @@ async function handleMessage(stream: SMTPServerDataStream, session: SMTPServerSe
 			ip: session.remoteAddress,
 			helo: session.hostNameAppearsAs,
 			sender: session.envelope.mailFrom ? session.envelope.mailFrom.address : undefined,
-			mta: mailDomain(),
+			mta: hostname(),
 		});
 		spam = !auth.dmarc || auth.dmarc.status.result == 'fail' || !auth.spf || auth.spf.status.result == 'fail';
 	} catch (e) {
@@ -53,10 +53,10 @@ async function handleMessage(stream: SMTPServerDataStream, session: SMTPServerSe
 
 	const parsed = await PostalMime.parse(raw);
 
-	const envelopeFrom = session.envelope.mailFrom ? session.envelope.mailFrom.address : `unknown@${mailDomain()}`;
+	const envelopeFrom = session.envelope.mailFrom ? session.envelope.mailFrom.address : `unknown@${hostname()}`;
 
 	const data: MessageData = {
-		messageId: parsed.messageId || `<${randomUUID()}@${mailDomain()}>`,
+		messageId: parsed.messageId || `<${randomUUID()}@${hostname()}>`,
 		inReplyTo: parsed.inReplyTo?.trim() || null,
 		references: parsed.references?.split(/\s+/).filter(ref => ref.length) ?? [],
 		from: toMailbox(parsed.from) ?? { address: envelopeFrom },
@@ -108,7 +108,7 @@ export function startInbound(): void {
 
 	server = new SMTPServer({
 		...tlsOptions(),
-		name: mailDomain(),
+		name: hostname(),
 		size: inbound.max_size ? inbound.max_size * 1000 : undefined,
 		disableReverseLookup: true,
 		authOptional: true,

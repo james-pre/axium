@@ -95,8 +95,6 @@ export const EmailListQuery = z.object({
 export interface EmailListQuery extends z.infer<typeof EmailListQuery> {}
 
 export const EmailConfig = z.object({
-	/** The domain this server handles mail for. SMTP is disabled until this is set. */
-	domain: z.string(),
 	inbound: z.object({
 		enabled: z.boolean(),
 		port: z.int().min(1).max(65535),
@@ -105,21 +103,6 @@ export const EmailConfig = z.object({
 		/** Override the web SSL certificate for STARTTLS */
 		ssl_key: z.string().optional(),
 		ssl_cert: z.string().optional(),
-	}),
-	outbound: z.object({
-		/** SMTP relay (smarthost). If no host is set, mail is delivered directly to the recipient's MX. */
-		relay: z.object({
-			host: z.string(),
-			port: z.int().min(1).max(65535),
-			user: z.string(),
-			pass: z.string(),
-			secure: z.boolean(),
-		}),
-		dkim: z.object({
-			selector: z.string(),
-			/** Path to the DKIM private key. Generate one with `axium email dkim-keygen`. */
-			key_file: z.string(),
-		}),
 	}),
 });
 export interface EmailConfig extends z.infer<typeof EmailConfig> {}
