@@ -7,10 +7,10 @@ root="$(realpath "$script_dir")"
 
 packages=()
 for _dir in "$root/packages"/*/; do
-    _base=$(basename "$_dir")
-    if [[ ! "$_base" == .* ]]; then
-        packages+=("$_base")
-    fi
+	_base=$(basename "$_dir")
+	if [[ ! "$_base" == .* ]]; then
+		packages+=("$_base")
+	fi
 done
 
 sub="${1:-help}"
@@ -70,19 +70,11 @@ case "$sub" in
 			pkg="${2}"
 			pkg="${pkg%/}"
 			latest_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
-			if [ -z "$latest_tag" ]; then
-				echo "No tags found for '$pkg'"
-				exit 1
-			fi
-			git -C "$root" log "$latest_tag..HEAD" --format=%B -- "packages/$pkg" | sed '/^$/d'
+			git -C "$root" log ${latest_tag:+"$latest_tag..HEAD"} --format=%B -- "packages/$pkg" | sed '/^$/d'
 		else
 			for pkg in "${packages[@]}"; do
 				latest_tag="$(git -C "$root" tag --list "$pkg@*" --sort=-v:refname | head -n 1)"
-				if [ -z "$latest_tag" ]; then
-					echo "No tags found for '$pkg'"
-					continue
-				fi
-				output="$(git -C "$root" log "$latest_tag..HEAD" --format=%B -- "packages/$pkg" | sed '/^$/d')"
+				output="$(git -C "$root" log ${latest_tag:+"$latest_tag..HEAD"} --format=%B -- "packages/$pkg" | sed '/^$/d')"
 				if [ -z "$output" ]; then
 					continue
 				fi
