@@ -4,7 +4,6 @@ import * as io from 'ioium/node';
 import mime from 'mime';
 import * as fs from 'node:fs';
 import { basename, join, parse } from 'node:path';
-import { createInterface } from 'node:readline/promises';
 import type { StorageItemMetadata } from '../../common.js';
 import { colorItem, formatItems, streamRead } from '../../node.js';
 import * as api from '../api.js';
@@ -104,11 +103,6 @@ export const upload = new Command('upload')
 		if (!opts.recursive) throw '--recursive/-r not specified but the local path is a directory';
 
 		if (existingTarget) throw 'Folder exists at remote path. Merging is not supported yet.';
-
-		using rl = createInterface({
-			input: process.stdin,
-			output: process.stdout,
-		});
 
 		const toUpload: { path: string; stats: fs.BigIntStats; full: string }[] = [];
 		let sum = 0n;
