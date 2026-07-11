@@ -76,7 +76,7 @@ program.command('status').action(() => {
 	const { user } = session;
 	console.log(styleText('whiteBright', 'User:'), user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
 
-	outputDaemonStatus('axium-client');
+	outputDaemonStatus('axium-client', true);
 });
 
 program
