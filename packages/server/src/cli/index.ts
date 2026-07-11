@@ -9,7 +9,8 @@ import { plugins } from '@axium/core/plugins';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { allLogLevels } from 'logzen';
-import { createWriteStream, readFileSync } from 'node:fs';
+import { generateKeyPairSync } from 'node:crypto';
+import { createWriteStream, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { access, readdir, stat, watch } from 'node:fs/promises';
 import type { Http2Server } from 'node:http2';
 import { join, relative, resolve } from 'node:path/posix';
@@ -481,4 +482,18 @@ program
 				}
 			},
 		});
+	});
+
+program
+	.command('dkim-keygen')
+	.description('Generate a DKIM signing key')
+	.option('-o, --out <path>', 'Where to write the private key (defaults to email.dkim.key_file)')
+	.option('-f, --force', 'Overwrite an existing key', false)
+	.action(({ out = config.email.dkim.key_file, force }) => {
+		if (existsSync(out) && !force) io.exit(`${out} already exists. Use --force to overwrite it.`);
+
+		const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+		const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
+		writeFileSync(out, pem, { mode: 0o600 });
+		io.log('Wrote private key to ' + out);
 	});

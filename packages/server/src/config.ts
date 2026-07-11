@@ -9,17 +9,16 @@ import { deepAssign, type DeepRequired } from 'utilium';
 import * as z from 'zod';
 import { dirs, logger, systemDir } from './io.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
+import * as cfg from './config_types.js';
+import { MxConfig } from './email.js';
 
 const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
 	keyof typeof Severity
 >[];
 
-const cfgBool = z.union([z.stringbool(), z.boolean()]);
-const cfgPort = z.coerce.number().int().min(1).max(65535);
-
 export const ImageUploadConfig = z.object({
 	/** Whether images can be uploaded */
-	enabled: cfgBool,
+	enabled: cfg.bool,
 	/** Max image size in KB. Set to zero for no limit */
 	max_size: z.coerce.number().min(0),
 	/** Max dimensions on a side. Set to zero for no limit */
@@ -30,8 +29,8 @@ export interface ImageUploadConfig extends z.infer<typeof ImageUploadConfig> {}
 export const Config = z
 	.looseObject({
 		/** Whether /api/admin is enabled */
-		admin_api: cfgBool,
-		allow_new_users: cfgBool,
+		admin_api: cfg.bool,
+		allow_new_users: cfg.bool,
 		apps: z
 			.looseObject({
 				disabled: z.array(z.string()),
@@ -39,7 +38,7 @@ export const Config = z
 			.partial(),
 		audit: z
 			.looseObject({
-				allow_raw: cfgBool,
+				allow_raw: cfg.bool,
 				/** How many days to keep events in the audit log */
 				retention: z.coerce.number().min(0),
 				/** Minimum severity level. Less severe events will be ignored. */
@@ -53,32 +52,46 @@ export const Config = z
 				passkey_probation: z.coerce.number(),
 				rp_id: z.string(),
 				rp_name: z.string(),
-				secure_cookies: cfgBool,
+				secure_cookies: cfg.bool,
 				/** Whether only the `Authorization` header can be used to authenticate requests. */
-				header_only: cfgBool,
+				header_only: cfg.bool,
 			})
 			.partial(),
 		db: z
 			.looseObject({
 				host: z.string(),
-				port: cfgPort,
+				port: cfg.port,
 				password: z.string(),
 				user: z.string(),
 				database: z.string(),
 			})
 			.partial(),
-		debug: cfgBool,
+		debug: cfg.bool,
 		/** Whether to show a default home page for debugging */
-		debug_home: cfgBool,
+		debug_home: cfg.bool,
+		email: z
+			.object({
+				enabled: cfg.bool,
+				/** SMTP relay. If no host is set, mail is delivered directly to the recipient's MX. */
+				relay: MxConfig.partial(),
+				dkim: z
+					.object({
+						selector: z.string(),
+						/** Path to the DKIM private key. Generate one with `axium dkim-keygen`. */
+						key_file: z.string(),
+					})
+					.partial(),
+			})
+			.partial(),
 		log: z
 			.looseObject({
 				level: z.enum(levelText),
-				console: cfgBool,
+				console: cfg.bool,
 			})
 			.partial(),
 		origin: z.string(),
 		request_size_limit: z.coerce.number().min(0).optional(),
-		show_duplicate_state: cfgBool,
+		show_duplicate_state: cfg.bool,
 		/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
 		user_discovery: z.literal(['disabled', 'admin', 'user', 'public']),
 		/** Configuration for user profile pictures */
@@ -88,16 +101,16 @@ export const Config = z
 				/** In minutes */
 				timeout: z.coerce.number(),
 				/** Whether users can verify emails */
-				email: cfgBool,
+				email: cfg.bool,
 			})
 			.partial(),
 		web: z
 			.looseObject({
-				disable_cache: cfgBool,
-				port: cfgPort,
+				disable_cache: cfg.bool,
+				port: cfg.port,
 				prefix: z.string(),
 				routes: z.string(),
-				secure: cfgBool,
+				secure: cfg.bool,
 				ssl_key: z.string(),
 				ssl_cert: z.string(),
 				build: z.string(),
@@ -143,11 +156,27 @@ export const defaultConfig: DeepRequired<Config> = {
 		.parseAsync(process.env.AXIUM_DEBUG)
 		.catch(() => false),
 	debug_home: false,
+	email: {
+		enabled: true,
+		relay: {
+			host: '',
+			port: 587,
+			auth: {
+				user: '',
+				pass: '',
+			},
+			secure: false,
+		},
+		dkim: {
+			selector: 'axium',
+			key_file: resolve(dirs[0], 'dkim_key.pem'),
+		},
+	},
 	log: {
 		console: true,
 		level: 'info',
 	},
-	origin: 'https://test.localhost',
+	origin: 'https://localhost',
 	show_duplicate_state: false,
 	request_size_limit: 0,
 	user_discovery: 'user',
@@ -171,6 +200,10 @@ export const defaultConfig: DeepRequired<Config> = {
 		build: '../build/handler.js',
 	},
 };
+
+export function hostname(): string {
+	return new URL(config.origin).hostname;
+}
 
 export const config: DeepRequired<Config> = _unique('config', { ...defaultConfig });
 export default config;
