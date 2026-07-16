@@ -162,7 +162,9 @@ addRoute({
 
 		const path = join(getConfig('@axium/storage').data, item.id);
 
-		const { start, end, length } = parseRange(item.size, request.headers.get('range'));
+		const range = request.headers.get('range');
+
+		const { start, end, length } = parseRange(item.size, range);
 
 		if (start >= item.size || end >= item.size || start > end || start < 0) {
 			return new Response(null, {
@@ -174,7 +176,7 @@ addRoute({
 		const content = streamRead(path, start, end);
 
 		return new Response(content, {
-			status: BigInt(length) == item.size ? 200 : 206,
+			status: range ? 206 : 200,
 			headers: {
 				'Content-Range': `bytes ${start}-${end}/${item.size}`,
 				'Accept-Ranges': 'bytes',
