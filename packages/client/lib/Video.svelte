@@ -16,6 +16,7 @@
 <div class="Video" onkeydown={media.keydown}>
 	<video
 		src={rest.src}
+		preload="metadata"
 		bind:this={media.element}
 		bind:currentTime={media.currentTime}
 		bind:duration={media.duration}
