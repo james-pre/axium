@@ -86,10 +86,21 @@ export async function toastStatus(promise: Promise<unknown>, successMessage: str
 let progressToast: HTMLDivElement | undefined,
 	progressMain: HTMLSpanElement,
 	progressMessage: HTMLSpanElement,
-	progressBar: HTMLProgressElement;
+	progressBar: HTMLProgressElement,
+	progressCancelButton: HTMLButtonElement,
+	progressCancel: (() => void) | undefined;
 
 function warnBeforeUnload(e: BeforeUnloadEvent) {
 	e.preventDefault();
+}
+
+/**
+ * Register a callback used to cancel the operation shown in the progress toast.
+ * The toast's cancel button is only shown while a callback is registered.
+ */
+export function setProgressCancel(cancel?: () => void): void {
+	progressCancel = cancel;
+	if (progressToast) progressCancelButton.style.display = cancel ? '' : 'none';
 }
 
 useProgress({
@@ -98,8 +109,18 @@ useProgress({
 			progressToast = document.createElement('div');
 			progressToast.classList.add('toast', 'progress');
 
+			const header = document.createElement('div');
+			header.classList.add('header');
+			progressToast.appendChild(header);
+
 			progressMain = document.createElement('span');
-			progressToast.appendChild(progressMain);
+			header.appendChild(progressMain);
+
+			progressCancelButton = document.createElement('button');
+			progressCancelButton.classList.add('reset');
+			progressCancelButton.onclick = () => progressCancel?.();
+			mount(Icon, { target: progressCancelButton, props: { i: 'xmark-large' } });
+			header.appendChild(progressCancelButton);
 
 			progressMessage = document.createElement('span');
 			progressMessage.classList.add('subtle');
@@ -113,6 +134,7 @@ useProgress({
 		}
 		progressMain.textContent = message;
 		progressMessage.textContent = '';
+		progressCancelButton.style.display = progressCancel ? '' : 'none';
 		progressBar.removeAttribute('value');
 		progressBar.max = 1;
 	},
@@ -126,6 +148,7 @@ useProgress({
 		if (!progressToast) return;
 		progressToast.remove();
 		progressToast = undefined;
+		progressCancel = undefined;
 		removeEventListener('beforeunload', warnBeforeUnload);
 	},
 });

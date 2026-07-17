@@ -451,6 +451,18 @@ div.toast {
 		text-align: left;
 		min-width: 16em;
 
+		.header {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 1em;
+
+			button {
+				display: inline-flex;
+				cursor: pointer;
+			}
+		}
+
 		.subtle {
 			opacity: 69%;
 			font-size: 0.85em;
