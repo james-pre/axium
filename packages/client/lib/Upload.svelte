@@ -11,7 +11,8 @@
 		...rest
 	}: HTMLInputAttributes & { input?: HTMLInputElement; progress?: [current: number, max: number][] } = $props();
 
-	const id = $props.id();
+	const defaultId = $props.id();
+	const id = rest.id || defaultId;
 </script>
 
 <div>
