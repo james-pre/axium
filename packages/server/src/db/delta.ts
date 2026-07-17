@@ -11,7 +11,7 @@ import { readFileSync } from 'node:fs';
 export const Column = z.strictObject({
 	type: data.ColumnType.optional(),
 	default: z.string().optional(),
-	ops: z.literal(['drop_default', 'set_required', 'drop_required']).array().optional(),
+	ops: z.literal(['drop_default', 'set_required', 'drop_required', 'set_unique', 'drop_unique']).array().optional(),
 });
 export interface Column extends z.infer<typeof Column> {}
 
@@ -28,6 +28,12 @@ export function applyToColumn(column: data.Column, delta: Column): void {
 				break;
 			case 'drop_required':
 				column.required = false;
+				break;
+			case 'set_unique':
+				column.unique = true;
+				break;
+			case 'drop_unique':
+				column.unique = false;
 				break;
 		}
 	}
@@ -228,6 +234,7 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 					else if (fromCol.default !== toCol.default) alter.default = toCol.default;
 					if (fromCol.type != toCol.type) alter.type = toCol.type;
 					if (fromCol.required != toCol.required) alter.ops.push(toCol.required ? 'set_required' : 'drop_required');
+					if (fromCol.unique != toCol.unique) alter.ops.push(toCol.unique ? 'set_unique' : 'drop_unique');
 
 					return [name, alter];
 				})
@@ -366,6 +373,15 @@ export function collapse(deltas: Version[]): Version {
 						case 'set_required':
 						case 'drop_required': {
 							const i = ops.indexOf(op == 'set_required' ? 'drop_required' : 'set_required');
+
+							if (i == -1) ops.push(op);
+							else ops.splice(i, 1);
+
+							break;
+						}
+						case 'set_unique':
+						case 'drop_unique': {
+							const i = ops.indexOf(op == 'set_unique' ? 'drop_unique' : 'set_unique');
 
 							if (i == -1) ops.push(op);
 							else ops.splice(i, 1);
@@ -578,6 +594,13 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 							break;
 						case 'drop_required':
 							await query.alterColumn(colName, col => col.dropNotNull()).execute();
+							break;
+						// Single-column unique constraints use the Postgres default name
+						case 'set_unique':
+							await query.addUniqueConstraint(`${tableName}_${colName}_key`, [colName]).execute();
+							break;
+						case 'drop_unique':
+							await query.dropConstraint(`${tableName}_${colName}_key`).execute();
 							break;
 					}
 				}
