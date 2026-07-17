@@ -2,7 +2,7 @@
 	import { preferences, text } from '@axium/client';
 	import { closeOnBackGesture, contextMenu, drag, selectable, selectionControls, Selection } from '@axium/client/attachments';
 	import { SyncedClipboard } from '@axium/client/reactive';
-	import { AccessControlDialog, Icon } from '@axium/client/components';
+	import { AccessControlDialog, Icon, InlineEdit } from '@axium/client/components';
 	import { copy } from '@axium/client/gui';
 	import '@axium/client/styles/list';
 	import { toast, toastStatus } from '@axium/client/toast';
@@ -47,24 +47,8 @@
 	const activeItem = $derived(items.find(item => item.id === activeId));
 	const dialogs = $state<Record<string, HTMLDialogElement>>({});
 
-	/** The item whose name is currently being edited inline, and the draft value. */
-	let editingId = $state<string>(),
-		editingName = $state('');
-
-	function startRename(item: StorageItemMetadata) {
-		editingId = item.id;
-		editingName = item.name;
-	}
-
-	function commitRename(item: StorageItemMetadata) {
-		const name = editingName?.trim();
-		editingId = undefined;
-		if (!name || name == item.name) return;
-		toastStatus(
-			updateItemMetadata(item.id, { name }).then(() => (item.name = name)),
-			text('storage.generic.rename_success')
-		);
-	}
+	/** The item whose name is currently being edited inline. */
+	let editingId = $state<string>();
 
 	const clipboard = new SyncedClipboard<string>('storage.clipboard');
 
@@ -74,7 +58,7 @@
 			action(sel) {
 				if (sel.size != 1) return;
 				const item = items.find(i => i.id === sel.values().next().value);
-				if (item) startRename(item);
+				if (item) editingId = item.id;
 			},
 		},
 		{
@@ -228,7 +212,7 @@
 					!multi && {
 						i: 'pencil',
 						text: text('storage.generic.rename'),
-						action: () => startRename(item),
+						action: () => (editingId = item.id),
 					},
 					!multi && {
 						i: 'user-group',
@@ -267,33 +251,21 @@
 			{#if special && full_path_in_special}
 				<Path {item} />
 			{:else if editingId == item.id}
-				<span
-					class="name editing"
-					data-no-select
-					onclick={e => e.stopPropagation()}
-					{@attach wrapper => {
-						const input = wrapper.querySelector('input')!;
-						requestAnimationFrame(() => {
-							input.focus();
-							const dot = item.name.lastIndexOf('.');
-							input.setSelectionRange(0, item.type == 'inode/directory' || dot <= 0 ? item.name.length : dot);
-						});
-						const onOutside = (e: PointerEvent) => !wrapper.contains(e.target as Node) && (editingId = undefined);
-						requestAnimationFrame(() => document.addEventListener('pointerdown', onOutside, true));
-						return () => document.removeEventListener('pointerdown', onOutside, true);
-					}}
-				>
-					<input
-						class="editable-name"
-						bind:value={editingName}
-						onkeydown={e => {
-							if (e.key == 'Enter') commitRename(item);
-							else if (e.key == 'Escape') editingId = undefined;
+				{const dot = item.name.lastIndexOf('.')}
+				<span class="name editing">
+					<InlineEdit
+						value={item.name}
+						selectionRange={[0, item.type == 'inode/directory' || dot <= 0 ? item.name.length : dot]}
+						confirmLabel={text('storage.generic.rename')}
+						commit={name => {
+							if (!name || name == item.name) return;
+							toastStatus(
+								updateItemMetadata(item.id, { name }).then(() => (item.name = name)),
+								text('storage.generic.rename_success')
+							);
 						}}
+						close={() => (editingId = undefined)}
 					/>
-					<button class="reset confirm-rename" aria-label={text('storage.generic.rename')} onclick={() => commitRename(item)}>
-						<Icon i="check" />
-					</button>
 				</span>
 			{:else}
 				<span class="name">{item.name}</span>
@@ -352,30 +324,8 @@
 		text-overflow: ellipsis;
 
 		&.editing {
-			display: flex;
-			align-items: center;
-			gap: 0.5em;
 			overflow: visible;
 		}
-	}
-
-	.editable-name {
-		background: var(--bg-normal);
-		border: var(--border-accent);
-		border-radius: 0.25em;
-		padding: 0.1em 0.25em;
-		margin: -0.1em 0;
-		font: inherit;
-		color: inherit;
-		min-width: 0;
-		flex: 1 1 auto;
-	}
-
-	.confirm-rename {
-		display: inline-flex;
-		align-items: center;
-		flex: 0 0 auto;
-		cursor: pointer;
 	}
 
 	.item-actions {
