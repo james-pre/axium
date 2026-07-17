@@ -16,7 +16,7 @@
 		/** The committed value being edited. */
 		value?: string | null;
 		/** Called with the new value when a change is confirmed. `null` means the value was cleared (only possible when `optional`). */
-		commit(value: string | null): unknown;
+		commit(value: string): unknown;
 		/** Called when editing ends, whether or not a change was committed. */
 		close(): void;
 		/** Validates the draft as the user types and before committing. Errors float above the input. */
@@ -42,7 +42,7 @@
 		const newValue = draft.trim() || null;
 		if (newValue === (value ?? null) || (newValue === null && !optional)) return close();
 		if (!validate(newValue)) return;
-		commit(newValue);
+		commit(newValue!);
 		close();
 	}
 </script>
