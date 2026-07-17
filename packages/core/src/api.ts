@@ -3,7 +3,7 @@ import * as z from 'zod';
 import { AccessControl, AccessControlUpdate, AccessTarget } from './access.js';
 import { App } from './apps.js';
 import { AuditEvent, AuditFilter, Severity } from './audit.js';
-import { NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
+import { AuthInfo, NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
 import { PackageVersionInfo } from './packages.js';
 import {
 	Passkey,
@@ -107,6 +107,7 @@ const _API = {
 		GET: z.object({ ...User.shape, sessions: Session.array() }),
 	},
 	'users/:id/auth': {
+		OPTIONS: AuthInfo,
 		PUT: [UserAuthOptions, PasskeyAuthOptions],
 		POST: [PasskeyAuthResponse, NewSessionResponse],
 	},
@@ -120,7 +121,6 @@ const _API = {
 		PUT: [PasskeyRegistration, Passkey],
 	},
 	'users/:id/verify/email': {
-		OPTIONS: z.object({ enabled: z.boolean() }),
 		GET: Verification,
 		POST: [z.object({ token: z.string() }), z.object({})],
 	},
@@ -152,7 +152,7 @@ const _API = {
 	'admin/users': {
 		GET: User.array(),
 		PATCH: [UserAdminChange, User],
-		PUT: [z.object({ name: z.string(), email: z.email() }), z.object({ user: User, verification: VerificationInternal })],
+		PUT: [UserRegistrationInit, z.object({ user: User, verification: VerificationInternal })],
 	},
 	'admin/config': {
 		GET: z.object({

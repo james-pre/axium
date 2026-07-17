@@ -35,3 +35,15 @@ export const NewSessionResponse = z.object({
 });
 
 export interface NewSessionResponse extends z.infer<typeof NewSessionResponse> {}
+
+/** Which authentication-related features are available */
+export const AuthInfo = z.object({
+	recovery: z.object({
+		/** Whether account recovery is enabled */
+		enabled: z.boolean(),
+		/** Whether accounts can be recovered using an email */
+		email: z.boolean(),
+	}),
+});
+
+export interface AuthInfo extends z.infer<typeof AuthInfo> {}

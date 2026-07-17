@@ -16,8 +16,8 @@ export const Username = z
 export const User = z.object({
 	id: z.uuid(),
 	name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
-	username: Username.nullish(),
-	email: z.email(),
+	username: Username,
+	email: z.email().nullish(),
 	emailVerified: z.coerce.date().nullish(),
 	preferences: z.lazy(() => Preferences),
 	roles: z.string().array(),
@@ -81,13 +81,12 @@ export interface UserAdminChange extends z.infer<typeof UserAdminChange> {
 }
 
 export const UserRegistrationInit = z.object({
-	name: z.string().min(1).max(100).optional(),
-	email: z.email().optional(),
+	name: z.string().min(1).max(100),
+	username: Username,
 });
 
 export const UserRegistration = z.object({
-	name: z.string().min(1).max(100),
-	email: z.email(),
+	...UserRegistrationInit.shape,
 	userId: z.uuid(),
 	response: PasskeyRegistration,
 });
