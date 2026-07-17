@@ -9,6 +9,7 @@ export { default as Discovery } from './Discovery.svelte';
 export * as discovery from './Discovery.svelte';
 export { default as FormDialog } from './FormDialog.svelte';
 export { default as Icon } from './Icon.svelte';
+export { default as InlineEdit } from './InlineEdit.svelte';
 export { default as LocationSelect } from './LocationSelect.svelte';
 export { default as Login } from './Login.svelte';
 export { default as Logout } from './Logout.svelte';
