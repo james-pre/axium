@@ -65,15 +65,22 @@ export class MediaState {
 		}
 	};
 
+	/** The duration, or 0 when it isn't known yet (NaN until metadata loads, Infinity for streams) */
+	get knownDuration(): number {
+		return Number.isFinite(this.duration) && this.duration > 0 ? this.duration : 0;
+	}
+
 	keydown = (e: KeyboardEvent) => {
 		switch (e.key) {
 			case 'ArrowLeft':
 				e.preventDefault();
+				if (!this.knownDuration) break;
 				this.currentTime = Math.max(0, this.currentTime - 10);
 				break;
 			case 'ArrowRight':
 				e.preventDefault();
-				this.currentTime = Math.min(this.duration, this.currentTime + 10);
+				if (!this.knownDuration) break;
+				this.currentTime = Math.min(this.knownDuration, this.currentTime + 10);
 				break;
 			case 'ArrowUp':
 				this.volume = Math.min(1, this.volume + 0.1);

@@ -10,27 +10,38 @@
 	}
 
 	const { media, children }: Props = $props();
+
+	const duration = $derived(media.knownDuration);
 </script>
 
 <div class="MediaControls">
 	<button class="reset icon-text" onclick={media.click}>
 		<Icon i={media.ended ? 'arrow-rotate-right' : media.paused ? 'play' : 'pause'} />
 	</button>
-	<div class="timeline">
+	<div class={['timeline', !duration && 'unknown-duration']}>
 		<div class="timeline-track">
 			{#each media.buffered || [] as { start, end }}
 				<div
 					class="buffered-range"
-					style:left="{(start / (media.duration || 1)) * 100}%"
-					style:width="{((end - start) / (media.duration || 1)) * 100}%"
+					style:left="{(start / duration) * 100}%"
+					style:width="{((end - start) / duration) * 100}%"
 				></div>
 			{/each}
-			<div class="played-range" style:width="{(media.currentTime / (media.duration || 1)) * 100}%"></div>
+			<div class="played-range" style:width="{(media.currentTime / duration) * 100}%"></div>
 		</div>
-		<div class="timeline-thumb" style:left="{(media.currentTime / (media.duration || 1)) * 100}%">
+		<div class="timeline-thumb" style:left="{(media.currentTime / duration) * 100}%">
 			<Icon i="pipe" />
 		</div>
-		<input class="seek-input" type="range" min="0" max={media.duration || 1} step="0.01" bind:value={media.currentTime} />
+
+		<input
+			class="seek-input"
+			type="range"
+			min="0"
+			max={duration || 1}
+			step="0.01"
+			disabled={!duration}
+			bind:value={media.currentTime}
+		/>
 	</div>
 	<div class="times">
 		<span>{formatDuration(media.currentTime)}</span>
@@ -69,6 +80,14 @@
 			height: 8px;
 			display: flex;
 			align-items: center;
+
+			&.unknown-duration {
+				opacity: 0.5;
+
+				.seek-input {
+					cursor: default;
+				}
+			}
 		}
 
 		.timeline-track {
