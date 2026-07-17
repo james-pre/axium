@@ -75,6 +75,9 @@
 			"rename_success": "File renamed",
 			"move_success": "Files moved",
 			"upload_success": "Files uploaded",
+			"upload_cancelled": "Upload cancelled",
+			"uploading_one": "Uploading {name}",
+			"uploading_many": "Uploading {count} files",
 			"delete_confirm_named": "Are you sure you want to delete {name}?"
 		},
 		"preferences": {
@@ -90,8 +93,7 @@
 			"plain_text": "Plain text",
 			"text": "Add",
 			"upload": "Upload",
-			"upload_folder": "Upload folder",
-			"cancelled": "Upload cancelled"
+			"upload_folder": "Upload folder"
 		},
 		"Folder": {
 			"drop_upload": "Drop to upload"

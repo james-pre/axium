@@ -10,7 +10,7 @@
 	import { formatBytes } from '@axium/core/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, getUserStorageRoot, updateItemMetadata } from '@axium/storage/client';
-	import { _downloadItem, _downloadItems, copyShortURL, moveItems, uploadEntries } from '@axium/storage/client/frontend';
+	import { _downloadItem, _downloadItems, copyShortURL, moveItems, toastUpload, uploadEntries } from '@axium/storage/client/frontend';
 	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
 	import Path from './Path.svelte';
 	import Preview from './Preview.svelte';
@@ -214,7 +214,7 @@
 			{@attach enableDrag &&
 				item.type == 'inode/directory' &&
 				drag.uploadTarget(text('storage.List.drop_upload_into', { name: item.name }), entries =>
-					toastStatus(uploadEntries(entries, item.id), text('storage.generic.upload_success'))
+					toastUpload(uploadEntries(entries, item.id))
 				)}
 			{@attach contextMenu(() => {
 				// Right-clicking an unselected item acts on just that item.

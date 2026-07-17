@@ -64,7 +64,7 @@
 	bind:dialog
 	id="recurrence-custom"
 	submitText={text('RecurrenceDialog.confirm')}
-	submit={async () => (eventInit.recurrence = buildRRule())}
+	submit={() => (eventInit.recurrence = buildRRule())}
 >
 	{#snippet header()}
 		<h3>{text('RecurrenceDialog.title')}</h3>
