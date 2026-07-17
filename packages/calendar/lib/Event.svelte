@@ -32,8 +32,8 @@
 
 <Popover {id} onclick={e => e.stopPropagation()}>
 	{#snippet toggle()}
-		{@const start = event.start.getHours() * 60 + event.start.getMinutes()}
-		{@const end = event.end.getHours() * 60 + event.end.getMinutes()}
+		{const start = event.start.getHours() * 60 + event.start.getMinutes(),
+			end = event.end.getHours() * 60 + event.end.getMinutes()}
 		<div
 			class="Event"
 			style:top="{start / 14.4}%"

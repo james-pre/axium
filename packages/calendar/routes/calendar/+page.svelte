@@ -146,7 +146,7 @@
 			</button>
 		</div>
 		{#each calendars.filter(cal => cal.userId == user.id) as cal (cal.id)}
-			{@const edit = () => {
+			{const edit = () => {
 				calEditId = cal.id;
 				calInit = cal;
 				document.querySelector<HTMLDialogElement>('#cal-init')!.showModal();
@@ -224,7 +224,7 @@
 				<h4>{text('calendar.list_shared')}</h4>
 			</div>
 			{#each calendars.filter(cal => cal.userId != user.id) as cal (cal.id)}
-				{@const { list, icon } = getCalPermissionsInfo(cal, user)}
+				{const { list, icon } = getCalPermissionsInfo(cal, user)}
 				<dfn title={list}>
 					<Icon i={icon} />
 				</dfn>
@@ -263,7 +263,7 @@
 			<span class="hour empty"></span>
 		</div>
 		{#if span == 'week'}
-			{@const eventsForWeekDays = Object.groupBy(
+			{const eventsForWeekDays = Object.groupBy(
 				events.filter(
 					e =>
 						!hiddenCalIds.has(e.calId) &&

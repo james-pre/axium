@@ -41,7 +41,7 @@
 		<div class="title">{item.name}</div>
 
 		{#if itemOpeners.length}
-			{@const [first, ...others] = itemOpeners}
+			{const [first, ...others] = itemOpeners}
 			<div class="openers">
 				<span>{text('storage.Preview.open_with')} <a href={first.openURL(item)} target="_blank">{first.name}</a></span>
 				{#if others.length}

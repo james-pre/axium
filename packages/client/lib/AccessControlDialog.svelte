@@ -39,7 +39,7 @@
 	</div>
 
 	{#each acl as control, i (control.userId || control.role || control.tag)}
-		{@const update = (key: string) => async (e: Event & { currentTarget: HTMLInputElement }) => {
+		{const update = (key: string) => async (e: Event & { currentTarget: HTMLInputElement }) => {
 			try {
 				const updated = await updateACL(itemType, item.id, getTarget(control), { [key]: e.currentTarget.checked });
 				Object.assign(control, updated);
@@ -80,7 +80,7 @@
 			</div>
 			<div class="permissions">
 				{#each Object.entries(pickPermissions(control) as Record<string, boolean>) as [key, value]}
-					{@const id = `${item.id}.${getTarget(control)}.${key}`}
+					{const id = `${item.id}.${getTarget(control)}.${key}`}
 					<span class="icon-text">
 						{#if editable}
 							<input {id} type="checkbox" onchange={update(key)} />

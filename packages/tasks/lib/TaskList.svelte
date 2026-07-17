@@ -43,8 +43,8 @@
 </script>
 
 {#snippet task_checkbox(node: TaskTreeNode, isMirror: boolean = false)}
-	{@const task = node.task}
-	{@const directCompletion = node.subtasks.length ? node.subtasks.filter(s => s.task.completed).length / node.subtasks.length : 0}
+	{const task = node.task,
+		directCompletion = node.subtasks.length ? node.subtasks.filter(s => s.task.completed).length / node.subtasks.length : 0}
 
 	<span
 		class="task-checkbox"
@@ -75,7 +75,7 @@
 {/snippet}
 
 {#snippet task_tree(node: TaskTreeNode, depth: number = 0, isCompletedMirror: boolean = false)}
-	{@const task = node.task}
+	{const task = node.task}
 	<div class="task" style:margin-left="{depth * 1.75}em">
 		{@render task_checkbox(node, !showCompletedInline && isCompletedMirror != task.completed)}
 		<input
@@ -124,7 +124,7 @@
 			{@render task_tree(sub, depth + 1, isCompletedMirror)}
 		{/if}
 	{/each}
-	{@const completedSubs = node.subtasks.filter(sub => sub.all == 'completed')}
+	{const completedSubs = node.subtasks.filter(sub => sub.all == 'completed')}
 	{#if showCompletedInline && completedSubs.length}
 		{#snippet inside()}
 			{#each completedSubs as sub (sub.task.id)}

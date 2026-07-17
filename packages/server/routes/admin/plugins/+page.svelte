@@ -16,7 +16,7 @@
 <h2 class="sidebar-theme-alt">{text('page.admin.plugins.heading')}</h2>
 
 {#each data.plugins as plugin}
-	{@const schema = serverConfigs.get(plugin.name)}
+	{const schema = serverConfigs.get(plugin.name)}
 	<div class="plugin">
 		<h3>
 			{plugin.name}<Version

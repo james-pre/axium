@@ -38,11 +38,11 @@
 			<div class="empty"></div>
 		{/each}
 		{#each { length: lastOfMonth.getDate() }, i}
-			{@const day = i + 1}
-			{@const year = view.getFullYear()}
-			{@const month = view.getMonth()}
-			{@const date = new Date(year, month, day)}
-			{@const WofY = weekOfYear(date, true)}
+			{const day = i + 1,
+				year = view.getFullYear(),
+				month = view.getMonth(),
+				date = new Date(year, month, day),
+				WofY = weekOfYear(date, true)}
 			{#if date.getDay() == 0 && WofY != firstWeekOfMonth}
 				<div class={['w-of-y', WofY == weekOfYear(today, true) && 'current']}>{WofY}</div>
 			{/if}
