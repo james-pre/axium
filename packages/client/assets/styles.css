@@ -451,7 +451,7 @@ div.toast {
 		text-align: left;
 		min-width: 16em;
 
-		.header {
+		.toast-header {
 			display: flex;
 			align-items: center;
 			justify-content: space-between;

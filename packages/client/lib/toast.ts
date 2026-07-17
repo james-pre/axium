@@ -110,7 +110,7 @@ useProgress({
 			progressToast.classList.add('toast', 'progress');
 
 			const header = document.createElement('div');
-			header.classList.add('header');
+			header.classList.add('toast-header');
 			progressToast.appendChild(header);
 
 			progressMain = document.createElement('span');
