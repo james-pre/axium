@@ -33,14 +33,19 @@ export function applyToColumn(column: data.Column, delta: Column): void {
 	}
 }
 
+export const RenameMap = z.record(z.string(), z.string()).optional().default({});
+
 export const Table = z.strictObject({
 	add_columns: z.record(z.string(), data.Column).optional().default({}),
 	drop_columns: z.string().array().optional().default([]),
 	alter_columns: z.record(z.string(), Column).optional().default({}),
+	rename_columns: RenameMap,
 	add_constraints: z.record(z.string(), data.Constraint).optional().default({}),
 	drop_constraints: z.string().array().optional().default([]),
+	rename_constraints: RenameMap,
 	add_triggers: z.record(z.string(), data.Trigger).optional().default({}),
 	drop_triggers: z.string().array().default([]),
+	rename_to: z.string().nonempty().optional(),
 });
 export interface Table extends z.infer<typeof Table> {}
 
@@ -55,6 +60,13 @@ export function applyToTable(table: data.Table, delta: Table): void {
 		table.columns[name] = column;
 	}
 
+	for (const [oldName, newName] of Object.entries(delta.rename_columns)) {
+		if (!(oldName in table.columns)) throw `can't rename column ${oldName} because it does not exist`;
+		if (newName in table.columns) throw `can't rename column ${oldName} to ${newName} because ${newName} already exists`;
+		table.columns[newName] = table.columns[oldName];
+		delete table.columns[oldName];
+	}
+
 	for (const [name, columnDelta] of Object.entries(delta.alter_columns)) {
 		const column = table.columns[name];
 		if (!column) throw `can't modify column ${name} because it does not exist`;
@@ -64,6 +76,13 @@ export function applyToTable(table: data.Table, delta: Table): void {
 	for (const name of delta.drop_constraints) {
 		if (table.constraints[name]) delete table.constraints[name];
 		else throw `can't drop constraint ${name} because it does not exist`;
+	}
+
+	for (const [oldName, newName] of Object.entries(delta.rename_constraints)) {
+		if (!table.constraints[oldName]) throw `can't rename constraint ${oldName} because it does not exist`;
+		if (table.constraints[newName]) throw `can't rename constraint ${oldName} to ${newName} because ${newName} already exists`;
+		table.constraints[newName] = table.constraints[oldName];
+		delete table.constraints[oldName];
 	}
 
 	for (const [name, constraint] of Object.entries(delta.add_constraints)) {
@@ -105,8 +124,15 @@ export function applyToSchema(schema: SchemaDecl, delta: Version): void {
 	}
 
 	for (const [tableName, tableDelta] of Object.entries(delta.alter_tables)) {
-		if (tableName in schema.tables) applyToTable(schema.tables[tableName], tableDelta);
-		else throw `can't modify table ${tableName} because it does not exist`;
+		if (!(tableName in schema.tables)) throw `can't modify table ${tableName} because it does not exist`;
+		applyToTable(schema.tables[tableName], tableDelta);
+
+		if (tableDelta.rename_to) {
+			if (tableDelta.rename_to in schema.tables)
+				throw `can't rename table ${tableName} to ${tableDelta.rename_to} because it already exists`;
+			schema.tables[tableDelta.rename_to] = schema.tables[tableName];
+			delete schema.tables[tableName];
+		}
 	}
 
 	for (const indexName of delta.drop_indexes) {
@@ -141,6 +167,18 @@ export function validate(delta: Version): void {
 
 		if (columnNames.length) {
 			throw `Duplicate column name(s) in table ${tableName}: ${columnNames.join(', ')}`;
+		}
+
+		for (const [oldName, newName] of Object.entries(table.rename_columns)) {
+			if (oldName in table.alter_columns || newName in table.alter_columns) {
+				io.warn(`Column "${oldName}" in table ${tableName} is both renamed and altered`);
+			}
+		}
+
+		for (const [colName, column] of Object.entries(table.alter_columns)) {
+			if (column.default && column.ops?.includes('drop_default')) {
+				throw `Cannot set and drop default at the same time (column ${colName} in table ${tableName})`;
+			}
 		}
 	}
 }
@@ -220,8 +258,10 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 			add_columns,
 			drop_columns: Array.from(drop_columns),
 			alter_columns,
+			rename_columns: {},
 			add_constraints,
 			drop_constraints: Array.from(drop_constraints),
+			rename_constraints: {},
 			drop_triggers: Array.from(fromTriggers.difference(toTriggers)),
 			add_triggers,
 		};
@@ -258,6 +298,10 @@ export function collapse(deltas: Version[]): Version {
 		for (const [name, table] of Object.entries(delta.alter_tables)) {
 			if (name in add_tables) {
 				applyToTable(add_tables[name], table);
+				if (table.rename_to) {
+					add_tables[table.rename_to] = add_tables[name];
+					delete add_tables[name];
+				}
 				continue;
 			}
 
@@ -267,6 +311,10 @@ export function collapse(deltas: Version[]): Version {
 				alter_tables[name] = table;
 				continue;
 			}
+
+			Object.assign(existing.rename_columns, table.rename_columns);
+			Object.assign(existing.rename_constraints, table.rename_constraints);
+			if (table.rename_to) existing.rename_to = table.rename_to;
 
 			for (const [colName, column] of Object.entries(table.add_columns)) {
 				existing.add_columns[colName] = column;
@@ -392,6 +440,8 @@ export function* display(delta: Version): Generator<string> {
 
 		if (table.op != '*') continue;
 
+		if (table.changes.rename_to) yield '\t' + styleText('yellow', `~ rename table -> ${table.changes.rename_to}`);
+
 		const columns = [
 			...Object.keys(table.changes.add_columns).map(name => ({ op: '+' as const, name })),
 			...table.changes.drop_columns.map(name => ({ op: '-' as const, name })),
@@ -412,6 +462,10 @@ export function* display(delta: Version): Generator<string> {
 				styleText(deltaColors[column.op], `${column.op} column ${column.name}${column.op != '*' ? '' : ': ' + columnChanges}`);
 		}
 
+		for (const [oldName, newName] of Object.entries(table.changes.rename_columns)) {
+			yield '\t' + styleText('yellow', `~ column ${oldName} -> ${newName}`);
+		}
+
 		const constraints = [
 			...Object.keys(table.changes.add_constraints).map(name => ({ op: '+' as const, name })),
 			...table.changes.drop_constraints.map(name => ({ op: '-' as const, name })),
@@ -419,6 +473,10 @@ export function* display(delta: Version): Generator<string> {
 
 		for (const con of constraints) {
 			yield '\t' + styleText(deltaColors[con.op], `${con.op} constraint ${con.name}`);
+		}
+
+		for (const [oldName, newName] of Object.entries(table.changes.rename_constraints)) {
+			yield '\t' + styleText('yellow', `~ constraint ${oldName} -> ${newName}`);
 		}
 
 		const triggers = [
@@ -490,12 +548,20 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 				await query.dropConstraint(constraint).execute();
 			}
 
+			for (const [oldName, newName] of Object.entries(tableDelta.rename_constraints)) {
+				await query.renameConstraint(oldName, newName).execute();
+			}
+
 			for (const colName of tableDelta.drop_columns) {
 				await query.dropColumn(colName).execute();
 			}
 
 			for (const [colName, column] of Object.entries(tableDelta.add_columns)) {
 				await query.addColumn(colName, sql.raw(column.type), data.buildColumn(column, false)).execute();
+			}
+
+			for (const [oldName, newName] of Object.entries(tableDelta.rename_columns)) {
+				await query.renameColumn(oldName, newName).execute();
 			}
 
 			for (const [colName, column] of Object.entries(tableDelta.alter_columns)) {
@@ -553,6 +619,8 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 
 				await io.track('Creating trigger ' + triggerName, sql.raw(query).execute(tx));
 			}
+
+			if (tableDelta.rename_to) await io.track('Renaming table ' + tableName, query.renameTo(tableDelta.rename_to).execute());
 		}
 
 		for (const [indexName, index] of Object.entries(delta.add_indexes)) {

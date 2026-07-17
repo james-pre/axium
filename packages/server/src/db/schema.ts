@@ -86,19 +86,38 @@ export type ApplyColumnDelta<C extends z.input<typeof Column>, D extends z.input
 		: C['required'];
 };
 
+/**
+ * Apply a column rename map `R` (old name -> new name) to columns `C`, also applying any alter in `A`
+ * that targets the new name. Renames happen before alters, so an altered-and-renamed column is keyed
+ * by its new name in `alter_columns`.
+ */
+type RenameColumns<C extends Record<string, z.input<typeof Column>>, R, A extends Record<string, z.input<typeof delta.Column>>> = {
+	[K in keyof R as R[K] & string]: K extends keyof C ? (R[K] extends keyof A ? ApplyColumnDelta<C[K], A[R[K] & keyof A]> : C[K]) : never;
+};
+
 export type ApplyTableDelta<T extends z.input<typeof Table>, D extends z.input<typeof delta.Table>> = {
 	columns: {
 		[K in keyof T['columns'] as K extends (D extends { drop_columns: any[] } ? D['drop_columns'][number] : never)
 			? never
-			: K]: K extends keyof (D extends { alter_columns: any } ? D['alter_columns'] : {})
+			: K extends (D extends { rename_columns: infer R } ? keyof R : never)
+				? never
+				: K]: K extends keyof (D extends { alter_columns: any } ? D['alter_columns'] : {})
 			? ApplyColumnDelta<T['columns'][K], (D['alter_columns'] & {})[K & keyof D['alter_columns']]>
 			: T['columns'][K];
-	} & (D extends { add_columns: infer A } ? A : {});
+	} & (D extends { add_columns: infer A } ? A : {}) &
+		(D extends { rename_columns: infer R }
+			? RenameColumns<T['columns'], R, D extends { alter_columns: any } ? D['alter_columns'] : {}>
+			: {});
 	constraints: {
 		[K in keyof T['constraints'] as K extends (D extends { drop_constraints: any[] } ? D['drop_constraints'][number] : never)
 			? never
-			: K]: T['constraints'][K];
-	} & (D extends { add_constraints: infer A } ? A : {});
+			: K extends (D extends { rename_constraints: infer R } ? keyof R : never)
+				? never
+				: K]: T['constraints'][K];
+	} & (D extends { add_constraints: infer A } ? A : {}) &
+		(D extends { rename_constraints: infer R }
+			? { [K in keyof R as R[K] & string]: K extends keyof T['constraints'] ? T['constraints'][K] : never }
+			: {});
 	triggers: {
 		[K in keyof T['triggers'] as K extends (D extends { drop_triggers: any[] } ? D['drop_triggers'][number] : never)
 			? never
@@ -106,14 +125,22 @@ export type ApplyTableDelta<T extends z.input<typeof Table>, D extends z.input<t
 	} & (D extends { add_triggers: infer A } ? A : {});
 };
 
+/** Rename table keys according to each alter delta's `rename_to`, where `A` is the `alter_tables` map */
+type RenameTableKeys<Tables, A> = {
+	[K in keyof Tables as K extends keyof A ? (A[K] extends { rename_to: infer N extends string } ? N : K) : K]: Tables[K];
+};
+
 export type ApplySchemaDelta<S extends z.input<typeof SchemaDecl>, D extends z.input<typeof delta.Version>> = {
-	tables: {
-		[K in keyof S['tables'] as K extends (D extends { drop_tables: any[] } ? D['drop_tables'][number] : never)
-			? never
-			: K]: K extends keyof (D extends { alter_tables: any } ? D['alter_tables'] : {})
-			? ApplyTableDelta<S['tables'][K], (D['alter_tables'] & {})[K & keyof D['alter_tables']]>
-			: S['tables'][K];
-	} & (D extends { add_tables: infer A } ? A : {});
+	tables: RenameTableKeys<
+		{
+			[K in keyof S['tables'] as K extends (D extends { drop_tables: any[] } ? D['drop_tables'][number] : never)
+				? never
+				: K]: K extends keyof (D extends { alter_tables: any } ? D['alter_tables'] : {})
+				? ApplyTableDelta<S['tables'][K], (D['alter_tables'] & {})[K & keyof D['alter_tables']]>
+				: S['tables'][K];
+		} & (D extends { add_tables: infer A } ? A : {}),
+		D extends { alter_tables: infer A } ? A : {}
+	>;
 	indexes: {
 		[K in keyof S['indexes'] as K extends (D extends { drop_indexes: any[] } ? D['drop_indexes'][number] : never)
 			? never
