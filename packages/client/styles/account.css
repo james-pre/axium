@@ -41,7 +41,7 @@
 		margin-left: 1em;
 	}
 
-	> :nth-child(2) {
+	> :nth-child(2):not(.InlineEdit) {
 		text-overflow: ellipsis;
 		overflow: hidden;
 	}

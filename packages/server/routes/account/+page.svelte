@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { fetchAPI, origin, text } from '@axium/client';
-	import { ClipboardCopy, FormDialog, Icon, Logout, Popover, SessionList, UserPFP, ZodForm } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, InlineEdit, Logout, Popover, SessionList, UserPFP, ZodForm } from '@axium/client/components';
 	import '@axium/client/styles/account';
 	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
 	import { Preferences } from '@axium/core/preferences';
-	import type { UserChangeable } from '@axium/core/user';
+	import { Username, type UserChangeable } from '@axium/core/user';
 	import type { PageProps } from './$types';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { contextMenu } from '@axium/client/attachments';
@@ -18,7 +18,8 @@
 		user = $state(data.user),
 		passkeys = $state(data.passkeys),
 		sessions = $state(data.sessions),
-		hasDefaultPFP = $state(false);
+		hasDefaultPFP = $state(false),
+		editingUsername = $state(false);
 
 	async function _editUser(data: UserChangeable | Record<string, FormDataEntryValue>) {
 		const result = await updateUser(user.id, data);
@@ -102,23 +103,26 @@
 		</FormDialog>
 		<div class="item info">
 			<p class="subtle">{text('generic.username')}</p>
-			{#if user.username}
-				<p>{user.username}</p>
+			{#if editingUsername}
+				<InlineEdit
+					value={user.username}
+					schema={Username}
+					optional
+					placeholder={text('page.account.edit_username')}
+					commit={username => toastStatus(_editUser({ username }), text('page.account.toast_username_updated'))}
+					close={() => (editingUsername = false)}
+				/>
 			{:else}
-				<p class="subtle"><i>{text('generic.none')}</i></p>
+				{#if user.username}
+					<p>{user.username}</p>
+				{:else}
+					<p class="subtle"><i>{text('generic.none')}</i></p>
+				{/if}
+				<button style:display="contents" onclick={() => (editingUsername = true)}>
+					<Icon i="pen" --size="16px" />
+				</button>
 			{/if}
-			{@render action('edit_username')}
 		</div>
-		<FormDialog
-			id="edit_username"
-			submit={data => _editUser({ username: typeof data.username == 'string' && data.username ? data.username : null })}
-			submitText={text('generic.change')}
-		>
-			<div>
-				<label for="username">{text('page.account.edit_username')}</label>
-				<input name="username" type="text" value={user.username || ''} maxlength="32" pattern="[a-z0-9]([a-z0-9._\-]*[a-z0-9])?" />
-			</div>
-		</FormDialog>
 		<div class="item info">
 			<p class="subtle">{text('generic.email')}</p>
 			<p>

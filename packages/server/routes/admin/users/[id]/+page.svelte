@@ -1,9 +1,9 @@
 <script lang="ts">
 	import { deleteUser, fetchAPI, text } from '@axium/client';
-	import { ClipboardCopy, FormDialog, Icon, SessionList, UserPFP, ZodForm, ZodInput } from '@axium/client/components';
+	import { ClipboardCopy, FormDialog, Icon, InlineEdit, SessionList, UserPFP, ZodForm, ZodInput } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import '@axium/client/styles/account';
-	import { Preferences, User } from '@axium/core';
+	import { Preferences, User, Username } from '@axium/core';
 	import { formatDateRange } from '@axium/core/format';
 
 	const { data } = $props();
@@ -11,7 +11,8 @@
 	const { session } = data;
 
 	let sessions = $state(user.sessions),
-		hasDefaultPFP = $state(false);
+		hasDefaultPFP = $state(false),
+		editingUsername = $state(false);
 
 	async function updateValue(val: User) {
 		try {
@@ -52,7 +53,24 @@
 
 	<div class="item info">
 		<p>{text('generic.username')}</p>
-		<ZodInput bind:rootValue={user} path="username" schema={User.shape.username} {updateValue} noLabel />
+		{#if editingUsername}
+			<InlineEdit
+				value={user.username}
+				schema={Username}
+				optional
+				commit={username => updateValue({ ...user, username })}
+				close={() => (editingUsername = false)}
+			/>
+		{:else}
+			{#if user.username}
+				<p>{user.username}</p>
+			{:else}
+				<p class="subtle"><i>{text('generic.none')}</i></p>
+			{/if}
+			<button style:display="contents" onclick={() => (editingUsername = true)}>
+				<Icon i="pen" --size="16px" />
+			</button>
+		{/if}
 	</div>
 
 	<div class="item info">

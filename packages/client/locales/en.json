@@ -123,6 +123,7 @@
 			"preferences": "Preferences",
 			"sessions": "Sessions",
 			"title": "Your Account",
+			"toast_username_updated": "Username updated",
 			"user_id": "User ID",
 			"user_id_hint": "This is your UUID. It can't be changed.",
 			"verification_sent": "Verification email sent",
