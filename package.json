@@ -23,7 +23,7 @@
 		"format:check": "prettier --check .",
 		"lint": "eslint packages/*/src",
 		"build:schemas": "(cd packages/server && npm run build:schemas)",
-		"build": "tsc -b && for pkg in server storage calendar contacts email notes tasks; do (cd packages/$pkg && axium build); done",
+		"build": "tsc -b && for dir in packages/*/; do case $(basename $dir) in core|client) ;; *) (cd $dir && axium build);; esac; done",
 		"watch": "tsc -b -w",
 		"clean": "rm -rf packages/*/tsconfig.tsbuildinfo packages/*/dist packages/server/node_modules/{.vite,.vite-temp} packages/server/build",
 		"wc-source": "wc -l $(git ls-files | grep -v package-lock.json | grep -v packages/client/assets/icons | grep -v LICENSE.md) | sort -h"
