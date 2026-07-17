@@ -94,7 +94,8 @@ addRoute({
 	async PATCH(request, { id: userId }): AsyncResult<'PATCH', 'users/:id'> {
 		const body: UserChangeable & Pick<User, 'emailVerified'> = await parseBody(request, UserChangeable);
 
-		await checkAuthForUser(request, userId);
+		// Changing recovery methods requires elevation
+		await checkAuthForUser(request, userId, 'email' in body);
 
 		if ('email' in body) body.emailVerified = null;
 

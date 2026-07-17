@@ -2,7 +2,7 @@
 	import { fetchAPI, origin, text } from '@axium/client';
 	import { ClipboardCopy, FormDialog, Icon, InlineEdit, Logout, Popover, SessionList, UserPFP, ZodForm } from '@axium/client/components';
 	import '@axium/client/styles/account';
-	import { createPasskey, deletePasskey, deleteUser, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
+	import { createPasskey, deletePasskey, deleteUser, elevate, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
 	import { Preferences } from '@axium/core/preferences';
 	import { Username, type UserChangeable } from '@axium/core/user';
 	import type { PageProps } from './$types';
@@ -24,6 +24,11 @@
 	async function _editUser(data: UserChangeable | Record<string, FormDataEntryValue>) {
 		const result = await updateUser(user.id, data);
 		user = result;
+	}
+
+	async function _editRecovery(data: UserChangeable | Record<string, FormDataEntryValue>) {
+		await elevate(user.id);
+		await _editUser(data);
 	}
 
 	async function updatePFP() {
@@ -53,8 +58,8 @@
 	<title>{text('page.account.title')}</title>
 </svelte:head>
 
-{#snippet action(name: string, i: string = 'pen', disabled: boolean = false)}
-	<button style:display="contents" commandfor={name} command="show-modal" {disabled}>
+{#snippet action(name: string, i: string = 'pen')}
+	<button style:display="contents" commandfor={name} command="show-modal">
 		<Icon {i} --size="16px" />
 	</button>
 {/snippet}
@@ -237,11 +242,8 @@
 							<dfn title={text('page.account.email_verified_on', { date: user.emailVerified.toLocaleDateString() })}>
 								<Icon i="regular/circle-check" />
 							</dfn>
-						{:else}
-							<button
-								disabled={!recovery.email}
-								onclick={() => sendVerificationEmail(user.id).then(() => (verificationSent = true))}
-							>
+						{:else if recovery.email}
+							<button onclick={() => sendVerificationEmail(user.id).then(() => (verificationSent = true))}>
 								{verificationSent ? text('page.account.verification_sent') : text('page.account.verify')}
 							</button>
 						{/if}
@@ -249,13 +251,28 @@
 						<span class="subtle"><i>{text('generic.none')}</i></span>
 					{/if}
 				</p>
-				{@render action('edit_email', 'pen', !recovery.email)}
+				<span class="actions">
+					{#if recovery.email}
+						{@render action('edit_email')}
+					{/if}
+					{#if user.email}
+						{@render action('remove_email', 'trash')}
+					{/if}
+				</span>
 			</div>
-			<FormDialog id="edit_email" submit={_editUser} submitText={text('generic.change')}>
+			<FormDialog id="edit_email" submit={_editRecovery} submitText={text('generic.change')}>
 				<div>
 					<label for="email">{text('page.account.edit_email')}</label>
 					<input name="email" type="email" value={user.email || ''} required />
 				</div>
+			</FormDialog>
+			<FormDialog
+				id="remove_email"
+				submit={() => _editRecovery({ email: null })}
+				submitText={text('page.account.remove_email')}
+				submitDanger
+			>
+				<p>{text('page.account.remove_email_confirm')}</p>
 			</FormDialog>
 		</div>
 	{/if}
@@ -285,5 +302,16 @@
 
 	.greeting {
 		font-size: 2em;
+	}
+
+	#recovery .info {
+		grid-template-columns: 10em 1fr auto;
+	}
+
+	.actions {
+		display: flex;
+		align-items: center;
+		justify-content: end;
+		gap: 0.75em;
 	}
 </style>

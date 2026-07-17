@@ -120,6 +120,8 @@
 				"toast_updated": "Profile picture updated"
 			},
 			"preferences": "Preferences",
+			"remove_email": "Remove email",
+			"remove_email_confirm": "Are you sure you want to remove your recovery email?",
 			"sessions": "Sessions",
 			"title": "Your Account",
 			"toast_username_updated": "Username updated",
