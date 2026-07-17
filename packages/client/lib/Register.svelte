@@ -14,12 +14,12 @@
 
 <FormDialog bind:dialog submitText={text('generic.register')} {submit} pageMode={fullPage}>
 	<div>
-		<label for="name">{text('Register.name')}</label>
+		<label for="name">{text('generic.user_display_name')}</label>
 		<input name="name" type="text" required />
 	</div>
 	<div>
-		<label for="email">{text('Register.email')}</label>
-		<input name="email" type="email" required />
+		<label for="username">{text('generic.username')}</label>
+		<input name="username" type="text" required />
 	</div>
 	{#snippet footer()}
 		{#if fullPage}

@@ -1,16 +1,16 @@
 <script lang="ts">
-	import { loginByEmail, text } from '@axium/client';
+	import { loginByUsername, text } from '@axium/client';
 	import FormDialog from './FormDialog.svelte';
 	import authRedirect from './auth_redirect.js';
 
 	let { dialog = $bindable(), fullPage = false }: { dialog?: HTMLDialogElement; fullPage?: boolean } = $props();
 
-	async function submit(data: { email: string }) {
-		if (typeof data.email != 'string') {
-			throw 'Tried to upload a file for an email. Huh?!';
+	async function submit(data: { username: string }) {
+		if (typeof data.username != 'string') {
+			throw 'Tried to upload a file for a username. Huh?!';
 		}
 
-		await loginByEmail(data.email);
+		await loginByUsername(data.username);
 		const redirectAfter = await authRedirect();
 		if (fullPage && redirectAfter) location.href = redirectAfter;
 	}
@@ -18,8 +18,8 @@
 
 <FormDialog bind:dialog submitText={text('generic.login')} {submit} pageMode={fullPage}>
 	<div>
-		<label for="email">{text('Login.email')}</label>
-		<input name="email" type="email" required />
+		<label for="username">{text('generic.username')}</label>
+		<input name="username" type="text" required />
 	</div>
 	{#snippet footer()}
 		{#if fullPage}

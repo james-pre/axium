@@ -1,8 +1,19 @@
-import type { NewSessionResponse, Passkey, PasskeyChangeable, Session, User, UserChangeable, UserPublic, Verification } from '@axium/core';
+import type {
+	AuthInfo,
+	NewSessionResponse,
+	Passkey,
+	PasskeyChangeable,
+	Session,
+	User,
+	UserChangeable,
+	UserPublic,
+	Verification,
+} from '@axium/core';
+import { UserRegistrationInit } from '@axium/core/user';
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import * as z from 'zod';
-import { fetchAPI } from './requests.js';
 import Cache from './cache.js';
+import { fetchAPI } from './requests.js';
 
 export async function login(userId: string): Promise<NewSessionResponse> {
 	const options = await fetchAPI('PUT', 'users/:id/auth', { type: 'login' }, userId);
@@ -19,11 +30,8 @@ export async function elevate(userId: string): Promise<void> {
 	await fetchAPI('POST', 'users/:id/auth', response, userId);
 }
 
-export async function loginByEmail(email: string): Promise<NewSessionResponse> {
-	const { id: userId } = await fetchAPI('POST', 'user_id', {
-		using: 'email',
-		value: email,
-	});
+export async function loginByUsername(username: string): Promise<NewSessionResponse> {
+	const { id: userId } = await fetchAPI('POST', 'user_id', { using: 'username', value: username });
 	return await login(userId);
 }
 
@@ -55,18 +63,13 @@ export async function logoutCurrentSession(): Promise<Session> {
 }
 
 export async function register(_data: Record<string, unknown>): Promise<void> {
-	const data = z.object({ name: z.string(), email: z.email() }).parse(_data);
+	const data = UserRegistrationInit.parse(_data);
 
 	const { options, userId } = await fetchAPI('PUT', 'register', data);
 
 	const response = await startRegistration({ optionsJSON: options });
 
-	await fetchAPI('POST', 'register', {
-		userId,
-		name: data.name,
-		email: data.email,
-		response,
-	});
+	await fetchAPI('POST', 'register', { userId, response, ...data });
 }
 
 function _checkId(userId: string): void {
@@ -112,10 +115,12 @@ export async function deleteUser(userId: string, deletingId: string = userId): P
 	return result;
 }
 
-export async function emailVerificationEnabled(userId: string): Promise<boolean> {
+/**
+ * Get which authentication-related features are available, e.g. account recovery methods.
+ */
+export async function getAuthInfo(userId: string): Promise<AuthInfo> {
 	_checkId(userId);
-	const { enabled } = await fetchAPI('OPTIONS', 'users/:id/verify/email', {}, userId);
-	return enabled;
+	return await fetchAPI('OPTIONS', 'users/:id/auth', {}, userId);
 }
 
 export async function sendVerificationEmail(userId: string): Promise<Verification> {

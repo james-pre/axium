@@ -23,7 +23,6 @@
 		"no_results": "No results"
 	},
 	"Login": {
-		"email": "Email",
 		"register": "Register instead"
 	},
 	"Logout": {
@@ -31,9 +30,7 @@
 		"question": "Are you sure you want to log out?"
 	},
 	"Register": {
-		"email": "Email",
-		"login": "Login instead",
-		"name": "Display Name"
+		"login": "Login instead"
 	},
 	"SessionList": {
 		"created": "Created {date}",
@@ -78,6 +75,8 @@
 		"none": "None",
 		"ok": "Okay",
 		"preferences": "Preferences",
+		"recovery": "Recovery",
+		"recovery_method_disabled": "This recovery method is disabled and can't be used.",
 		"register": "Register",
 		"rename": "Rename",
 		"sessions": "Sessions",
@@ -85,7 +84,7 @@
 		"success": "Success",
 		"unknown": "Unknown",
 		"unnamed": "Unnamed",
-		"user_display_name": "Name",
+		"user_display_name": "Display name",
 		"username": "Username",
 		"yes": "Yes"
 	},
