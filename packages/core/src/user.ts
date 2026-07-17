@@ -10,7 +10,8 @@ export const Username = z
 	.regex(
 		/^[a-z0-9](?:[a-z0-9._-]*[a-z0-9])?$/,
 		'Username must be lowercase letters and digits, optionally separated by dots, hyphens, or underscores'
-	);
+	)
+	.toLowerCase();
 
 export const User = z.object({
 	id: z.uuid(),
