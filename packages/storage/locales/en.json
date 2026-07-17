@@ -80,7 +80,8 @@
 		"preferences": {
 			"sort_folders_first": "Sort folders before other files",
 			"full_path_in_special": "Show full path in usage and trash",
-			"open_with_single_click": "Open files with a single click"
+			"open_with_single_click": "Open files with a single click",
+			"upload_on_select": "Start uploading as soon as files are selected"
 		},
 		"Add": {
 			"content": "Content",

@@ -109,6 +109,8 @@ export const StoragePreferences = z
 		full_path_in_special: z.boolean().default(true),
 		/** Whether to open files with a single click instead of a double click */
 		open_with_single_click: z.boolean().default(false),
+		/** Whether to start uploading immediately after files are selected, instead of waiting for the upload button */
+		upload_on_select: z.boolean().default(false),
 	})
 	.register(zKeys, { prefix: 'storage.preferences' });
 
