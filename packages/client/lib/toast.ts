@@ -1,4 +1,4 @@
-import { debug, errorText } from 'ioium';
+import { debug, errorText, useProgress } from 'ioium';
 import { text } from '@axium/client/locales';
 import { animate, onAnimationEnd } from '@axium/client/gui';
 import Icon from './Icon.svelte';
@@ -82,5 +82,52 @@ export async function toastStatus(promise: Promise<unknown>, successMessage: str
 		await toast('error', err);
 	}
 }
+
+let progressToast: HTMLDivElement | undefined,
+	progressMain: HTMLSpanElement,
+	progressMessage: HTMLSpanElement,
+	progressBar: HTMLProgressElement;
+
+function warnBeforeUnload(e: BeforeUnloadEvent) {
+	e.preventDefault();
+}
+
+useProgress({
+	start(message: string): void {
+		if (!progressToast) {
+			progressToast = document.createElement('div');
+			progressToast.classList.add('toast', 'progress');
+
+			progressMain = document.createElement('span');
+			progressToast.appendChild(progressMain);
+
+			progressMessage = document.createElement('span');
+			progressMessage.classList.add('subtle');
+			progressToast.appendChild(progressMessage);
+
+			progressBar = document.createElement('progress');
+			progressToast.appendChild(progressBar);
+
+			list.appendChild(progressToast);
+			addEventListener('beforeunload', warnBeforeUnload);
+		}
+		progressMain.textContent = message;
+		progressMessage.textContent = '';
+		progressBar.removeAttribute('value');
+		progressBar.max = 1;
+	},
+	progress(value: number, max: number, message?: any): void {
+		if (!progressToast) return;
+		progressBar.value = value;
+		progressBar.max = max;
+		progressMessage.textContent = message == undefined ? '' : String(message);
+	},
+	done(): void {
+		if (!progressToast) return;
+		progressToast.remove();
+		progressToast = undefined;
+		removeEventListener('beforeunload', warnBeforeUnload);
+	},
+});
 
 Object.assign(globalThis, { toast, toastStatus });

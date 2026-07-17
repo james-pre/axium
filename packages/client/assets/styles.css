@@ -441,6 +441,30 @@ div.toast {
 		border: var(--border-accent);
 		background-color: var(--bg-accent);
 	}
+
+	&.progress {
+		border: var(--border-accent);
+		background-color: var(--bg-accent);
+		display: flex;
+		flex-direction: column;
+		gap: 0.25em;
+		text-align: left;
+		min-width: 16em;
+
+		.subtle {
+			opacity: 69%;
+			font-size: 0.85em;
+
+			&:empty {
+				display: none;
+			}
+		}
+
+		progress {
+			width: 100%;
+			height: 4px;
+		}
+	}
 }
 
 @media (width >= 700px) {
