@@ -133,7 +133,7 @@ export interface UserAuthResult extends SessionAndUser {
 }
 
 export async function checkAuthForUser(request: Request, userId: string, sensitive: boolean = false): Promise<UserAuthResult> {
-	const session = await requireSession(request);
+	const session = await requireSession(request, sensitive);
 
 	if (session.userId !== userId) {
 		if (!session.user?.isAdmin) error(403, 'User ID mismatch');
