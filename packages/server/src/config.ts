@@ -361,7 +361,7 @@ export function saveConfigTo(path: string, changed: Config) {
 	deepAssign(config, changed);
 
 	io.debug(`Wrote config to ${path}`);
-	writeFileSync(path, JSON.stringify(config));
+	io.writeJSON(path, config);
 }
 
 /**
