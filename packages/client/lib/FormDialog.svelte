@@ -24,7 +24,7 @@
 		/** Change the text displayed for the submit button */
 		submitText?: string;
 		/** Called on submission, this should do the actual submission */
-		submit?(data: Record<string, FormDataEntryValue>): Promise<any>;
+		submit?(data: Record<string, FormDataEntryValue>): any;
 		/** Whether to display the dialog as a full-page form */
 		pageMode?: boolean;
 		submitDanger?: boolean;
@@ -47,7 +47,7 @@
 	function onsubmit(e: SubmitEvent & { currentTarget: HTMLFormElement }) {
 		e.preventDefault();
 		const data = Object.fromEntries(new FormData(e.currentTarget));
-		submit(data)
+		Promise.resolve(submit(data))
 			.then(result => {
 				if (!pageMode) dialog!.close();
 			})
