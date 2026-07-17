@@ -31,7 +31,7 @@ export interface VerificationInternal extends z.infer<typeof VerificationInterna
 
 export const NewSessionResponse = z.object({
 	userId: z.uuid(),
-	token: z.base64url(),
+	token: z.union([z.base64url(), z.literal('[[redacted:elevated]]')]),
 });
 
 export interface NewSessionResponse extends z.infer<typeof NewSessionResponse> {}
