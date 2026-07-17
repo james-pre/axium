@@ -37,7 +37,7 @@
 	</button>
 </a>
 
-<h2>{text('page.admin.users.manage_heading')}</h2>
+<h2 class="sidebar-theme-alt">{text('page.admin.users.manage_heading')}</h2>
 
 <div id="info" class="section">
 	<div class="item info">
