@@ -2,7 +2,15 @@
 	import { fetchAPI, origin, text } from '@axium/client';
 	import { ClipboardCopy, FormDialog, Icon, InlineEdit, Logout, Popover, SessionList, UserPFP, ZodForm } from '@axium/client/components';
 	import '@axium/client/styles/account';
-	import { createPasskey, deletePasskey, deleteUser, elevate, sendVerificationEmail, updatePasskey, updateUser } from '@axium/client/user';
+	import {
+		createPasskey,
+		deletePasskey,
+		deleteUser,
+		elevate,
+		sendVerificationEmail,
+		updatePasskey,
+		updateUser,
+	} from '@axium/client/user';
 	import { Preferences } from '@axium/core/preferences';
 	import { Username, type UserChangeable } from '@axium/core/user';
 	import type { PageProps } from './$types';
