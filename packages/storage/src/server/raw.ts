@@ -83,11 +83,17 @@ addRoute({
 			},
 		});
 
-		/* @todo Figure out if we need to handle stream cancellation differently.
-		Right now an error with this chunk cancels the streams but may not cleanly fail the upload */
-		await request.body.pipeThrough(counter).pipeTo(upload.stream, { preventClose: true });
+		try {
+			await request.body.pipeThrough(counter).pipeTo(upload.stream, { preventClose: true });
+		} catch (e) {
+			upload.remove();
+			if (request.signal.aborted) return;
+			throw e;
+		}
 
-		if (request.signal.aborted) {
+		// A short chunk means the request was aborted mid-transfer, e.g. the user cancelled the upload
+		if (request.signal.aborted || actualSize < size) {
+			upload.remove();
 			return;
 		}
 
