@@ -9,6 +9,7 @@
 	const { data } = $props();
 	let user = $state(data.user);
 	const { session } = data;
+	const { recovery } = data.auth;
 
 	let sessions = $state(user.sessions),
 		hasDefaultPFP = $state(false),
@@ -57,30 +58,15 @@
 			<InlineEdit
 				value={user.username}
 				schema={Username}
-				optional
 				commit={username => updateValue({ ...user, username })}
 				close={() => (editingUsername = false)}
 			/>
 		{:else}
-			{#if user.username}
-				<p>{user.username}</p>
-			{:else}
-				<p class="subtle"><i>{text('generic.none')}</i></p>
-			{/if}
+			<p>{user.username}</p>
 			<button style:display="contents" onclick={() => (editingUsername = true)}>
 				<Icon i="pen" --size="16px" />
 			</button>
 		{/if}
-	</div>
-
-	<div class="item info">
-		<p>{text('generic.email')}</p>
-		<p>
-			<a href="mailto:{user.email}">{user.email}</a>, {user.emailVerified
-				? text('page.admin.users.email_verified', { date: user.emailVerified.toLocaleString() })
-				: text('page.admin.users.email_not_verified')}
-		</p>
-		<ClipboardCopy value={user.email} --size="16px" />
 	</div>
 
 	<div class="item info">
@@ -151,6 +137,30 @@
 	<h3>{text('generic.sessions')}</h3>
 	<SessionList {sessions} {user} />
 </div>
+
+{#if recovery.enabled && (recovery.email || user.email)}
+	<div id="recovery" class="section">
+		<h3>{text('generic.recovery')}</h3>
+		<div class="item info">
+			<p>
+				{text('generic.email')}
+				{#if !recovery.email}
+					<dfn title={text('generic.recovery_method_disabled')}><Icon i="regular/triangle-exclamation" /></dfn>
+				{/if}
+			</p>
+			{#if user.email}
+				<p>
+					<a href="mailto:{user.email}">{user.email}</a>, {user.emailVerified
+						? text('page.admin.users.email_verified', { date: user.emailVerified.toLocaleString() })
+						: text('page.admin.users.email_not_verified')}
+				</p>
+				<ClipboardCopy value={user.email} --size="16px" />
+			{:else}
+				<p class="subtle"><i>{text('generic.none')}</i></p>
+			{/if}
+		</div>
+	</div>
+{/if}
 
 <div id="preferences" class="section">
 	<h3>{text('generic.preferences')}</h3>

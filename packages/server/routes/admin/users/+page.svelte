@@ -32,7 +32,7 @@
 <FormDialog
 	id="create-user"
 	submitText={text('generic.create')}
-	submit={(data: { email: string; name: string }) =>
+	submit={(data: { username: string; name: string }) =>
 		fetchAPI('PUT', 'admin/users', data).then(res => {
 			verification = res.verification;
 			users.push(res.user);
@@ -40,8 +40,8 @@
 		})}
 >
 	<div>
-		<label for="email">{text('generic.email')}</label>
-		<input name="email" type="email" required />
+		<label for="username">{text('generic.username')}</label>
+		<input name="username" type="text" required />
 	</div>
 	<div>
 		<label for="name">{text('generic.user_display_name')}</label>
@@ -62,13 +62,13 @@
 <div id="user-list" class="list">
 	<div class="list-item list-header">
 		<span>{text('generic.user_display_name')}</span>
-		<span>{text('generic.email')}</span>
+		<span>{text('generic.username')}</span>
 		<span>{text('page.admin.users.attributes')}</span>
 	</div>
 	{#each users as user}
 		<div class="user list-item" onclick={e => e.currentTarget === e.target && (location.href = '/admin/users/' + user.id)}>
 			<span>{user.name}</span>
-			<span>{user.email}</span>
+			<span>{user.username}</span>
 			<span class="mobile-hide">
 				{#if user.isAdmin}
 					{@render attr('crown', text('page.admin.users.admin_tag'), '#710')}

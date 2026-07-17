@@ -144,6 +144,17 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"users": {
+					"alter_columns": {
+						"username": { "ops": ["set_required", "set_unique"] },
+						"email": { "ops": ["drop_required", "drop_unique"] }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]

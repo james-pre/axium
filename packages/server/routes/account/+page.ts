@@ -1,4 +1,4 @@
-import { emailVerificationEnabled, getCurrentSession, getPasskeys, getSessions } from '@axium/client/user';
+import { getAuthInfo, getCurrentSession, getPasskeys, getSessions } from '@axium/client/user';
 import type { Session, User } from '@axium/core';
 
 export const ssr = false;
@@ -20,6 +20,6 @@ export async function load({ parent }) {
 		user,
 		passkeys: await getPasskeys(user.id),
 		sessions: await getSessions(user.id),
-		canVerify: await emailVerificationEnabled(user.id),
+		auth: await getAuthInfo(user.id),
 	};
 }

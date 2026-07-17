@@ -50,6 +50,15 @@ export const Config = z
 			.looseObject({
 				/** In minutes */
 				passkey_probation: z.coerce.number(),
+				/** Account recovery */
+				recovery: z
+					.looseObject({
+						/** Whether account recovery is enabled */
+						enabled: cfg.bool,
+						/** Whether accounts can be recovered using an email */
+						email: cfg.bool,
+					})
+					.partial(),
 				rp_id: z.string(),
 				rp_name: z.string(),
 				secure_cookies: cfg.bool,
@@ -100,8 +109,6 @@ export const Config = z
 			.looseObject({
 				/** In minutes */
 				timeout: z.coerce.number(),
-				/** Whether users can verify emails */
-				email: cfg.bool,
 			})
 			.partial(),
 		web: z
@@ -137,6 +144,10 @@ export const defaultConfig: DeepRequired<Config> = {
 	},
 	auth: {
 		passkey_probation: 60,
+		recovery: {
+			enabled: true,
+			email: true,
+		},
 		rp_id: 'test.localhost',
 		rp_name: 'Axium',
 		secure_cookies: true,
@@ -187,7 +198,6 @@ export const defaultConfig: DeepRequired<Config> = {
 	},
 	verifications: {
 		timeout: 60,
-		email: false,
 	},
 	web: {
 		disable_cache: false,

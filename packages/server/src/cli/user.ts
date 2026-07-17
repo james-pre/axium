@@ -8,7 +8,7 @@ import config from '../config.js';
 import * as db from '../db/index.js';
 import { diffUpdate, lookupUser, userText } from './common.js';
 
-const argUserLookup = new Argument('<user>', 'the UUID or email of the user to operate on').argParser(lookupUser);
+const argUserLookup = new Argument('<user>', 'the UUID, username, or recovery email of the user to operate on').argParser(lookupUser);
 
 program
 	.command('user')
@@ -65,10 +65,12 @@ program
 				user.isAdmin && styleText('redBright', 'Administrator'),
 				'UUID: ' + user.id,
 				'Name: ' + user.name,
-				`Email: ${user.email}, ${user.emailVerified ? 'verified on ' + formatDateRange(user.emailVerified) : styleText(config.auth.email_verification ? 'yellow' : 'dim', 'not verified')}`,
+				'Username: ' + user.username,
 				'Registered ' + formatDateRange(user.registeredAt),
 				`Roles: ${user.roles.length ? user.roles.join(', ') : styleText('dim', '(none)')}`,
 				`Tags: ${user.tags.length ? user.tags.join(', ') : styleText('dim', '(none)')}`,
+				user.email &&
+					`Recovery email: ${user.email}, ${user.emailVerified ? 'verified on ' + formatDateRange(user.emailVerified) : styleText(config.auth.recovery.email ? 'yellow' : 'dim', 'not verified')}`,
 			]
 				.filter(v => v)
 				.join('\n')

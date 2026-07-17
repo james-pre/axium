@@ -12,7 +12,7 @@
 	import { invalidateAll } from '$app/navigation';
 
 	const { data }: PageProps = $props();
-	const { canVerify } = data;
+	const { recovery } = data.auth;
 
 	let verificationSent = $state(false),
 		user = $state(data.user),
@@ -53,8 +53,8 @@
 	<title>{text('page.account.title')}</title>
 </svelte:head>
 
-{#snippet action(name: string, i: string = 'pen')}
-	<button style:display="contents" commandfor={name} command="show-modal">
+{#snippet action(name: string, i: string = 'pen', disabled: boolean = false)}
+	<button style:display="contents" commandfor={name} command="show-modal" {disabled}>
 		<Icon {i} --size="16px" />
 	</button>
 {/snippet}
@@ -107,45 +107,17 @@
 				<InlineEdit
 					value={user.username}
 					schema={Username}
-					optional
 					placeholder={text('page.account.edit_username')}
 					commit={username => toastStatus(_editUser({ username }), text('page.account.toast_username_updated'))}
 					close={() => (editingUsername = false)}
 				/>
 			{:else}
-				{#if user.username}
-					<p>{user.username}</p>
-				{:else}
-					<p class="subtle"><i>{text('generic.none')}</i></p>
-				{/if}
+				<p>{user.username}</p>
 				<button style:display="contents" onclick={() => (editingUsername = true)}>
 					<Icon i="pen" --size="16px" />
 				</button>
 			{/if}
 		</div>
-		<div class="item info">
-			<p class="subtle">{text('generic.email')}</p>
-			<p>
-				{user.email}
-				{#if user.emailVerified}
-					<dfn title={text('page.account.email_verified_on', { date: user.emailVerified.toLocaleDateString() })}>
-						<Icon i="regular/circle-check" />
-					</dfn>
-				{:else if canVerify}
-					<button onclick={() => sendVerificationEmail(user.id).then(() => (verificationSent = true))}>
-						{verificationSent ? text('page.account.verification_sent') : text('page.account.verify')}
-					</button>
-				{/if}
-			</p>
-			{@render action('edit_email')}
-		</div>
-		<FormDialog id="edit_email" submit={_editUser} submitText={text('generic.change')}>
-			<div>
-				<label for="email">{text('page.account.edit_email')}</label>
-				<input name="email" type="email" value={user.email || ''} required />
-			</div>
-		</FormDialog>
-
 		<div class="item info">
 			<p class="subtle">
 				{text('page.account.user_id')} <dfn title={text('page.account.user_id_hint')}><Icon i="regular/circle-info" /></dfn>
@@ -166,6 +138,19 @@
 				<p>{text('page.account.delete_account_confirm')}<br />{text('generic.action_irreversible')}</p>
 			</FormDialog>
 		</div>
+	</div>
+
+	<div id="preferences" class="section">
+		<h3>{text('page.account.preferences')}</h3>
+		<ZodForm
+			bind:rootValue={user.preferences}
+			idPrefix="preferences"
+			schema={Preferences}
+			updateValue={async (preferences: Preferences) => {
+				await fetchAPI('PATCH', 'users/:id', { preferences }, user.id);
+				await invalidateAll();
+			}}
+		/>
 	</div>
 
 	<div id="passkeys" class="section">
@@ -235,22 +220,49 @@
 		</button>
 	</div>
 
+	{#if recovery.enabled && (recovery.email || user.email)}
+		<div id="recovery" class="section">
+			<h3>{text('generic.recovery')}</h3>
+			<div class="item info">
+				<p class="subtle">
+					{text('generic.email')}
+					{#if !recovery.email}
+						<dfn title={text('generic.recovery_method_disabled')}><Icon i="regular/triangle-exclamation" /></dfn>
+					{/if}
+				</p>
+				<p>
+					{#if user.email}
+						{user.email}
+						{#if user.emailVerified}
+							<dfn title={text('page.account.email_verified_on', { date: user.emailVerified.toLocaleDateString() })}>
+								<Icon i="regular/circle-check" />
+							</dfn>
+						{:else}
+							<button
+								disabled={!recovery.email}
+								onclick={() => sendVerificationEmail(user.id).then(() => (verificationSent = true))}
+							>
+								{verificationSent ? text('page.account.verification_sent') : text('page.account.verify')}
+							</button>
+						{/if}
+					{:else}
+						<span class="subtle"><i>{text('generic.none')}</i></span>
+					{/if}
+				</p>
+				{@render action('edit_email', 'pen', !recovery.email)}
+			</div>
+			<FormDialog id="edit_email" submit={_editUser} submitText={text('generic.change')}>
+				<div>
+					<label for="email">{text('page.account.edit_email')}</label>
+					<input name="email" type="email" value={user.email || ''} required />
+				</div>
+			</FormDialog>
+		</div>
+	{/if}
+
 	<div id="sessions" class="section">
 		<h3>{text('page.account.sessions')}</h3>
 		<SessionList {sessions} currentSession={data.session} {user} redirectAfterLogoutAll />
-	</div>
-
-	<div id="preferences" class="section">
-		<h3>{text('page.account.preferences')}</h3>
-		<ZodForm
-			bind:rootValue={user.preferences}
-			idPrefix="preferences"
-			schema={Preferences}
-			updateValue={async (preferences: Preferences) => {
-				await fetchAPI('PATCH', 'users/:id', { preferences }, user.id);
-				await invalidateAll();
-			}}
-		/>
 	</div>
 </div>
 

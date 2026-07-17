@@ -15,7 +15,7 @@ import { addRoute } from '../routes.js';
 const registrations = new Map<string, string>();
 
 async function PUT(request: Request): AsyncResult<'PUT', 'register'> {
-	const { name, email } = await parseBody(request, UserRegistrationInit);
+	const { name, username } = await parseBody(request, UserRegistrationInit);
 
 	const userId = randomUUID();
 	const user = await getUser(userId).catch(() => null);
@@ -25,7 +25,7 @@ async function PUT(request: Request): AsyncResult<'PUT', 'register'> {
 		rpName: config.auth.rp_name,
 		rpID: config.auth.rp_id,
 		userID: encodeUUID(userId),
-		userName: email ?? userId,
+		userName: username,
 		userDisplayName: name,
 		attestationType: 'none',
 		excludeCredentials: [],
@@ -44,10 +44,10 @@ async function PUT(request: Request): AsyncResult<'PUT', 'register'> {
 async function POST(request: Request) {
 	if (!config.allow_new_users) error(409, 'New user registration is disabled');
 
-	const { userId, email, name, response } = await parseBody(request, UserRegistration);
+	const { userId, username, name, response } = await parseBody(request, UserRegistration);
 
-	const existing = await db.selectFrom('users').selectAll().where('email', '=', email.toLowerCase()).executeTakeFirst();
-	if (existing) error(409, 'Email already in use');
+	const existing = await db.selectFrom('users').selectAll().where('username', '=', username).executeTakeFirst();
+	if (existing) error(409, 'Username already in use');
 
 	const expectedChallenge = registrations.get(userId);
 	if (!expectedChallenge) error(404, 'No registration challenge found for this user');
@@ -61,11 +61,7 @@ async function POST(request: Request) {
 
 	if (!verified || !registrationInfo) error(401, 'Verification failed');
 
-	await db
-		.insertInto('users')
-		.values({ id: userId, name, email: email.toLowerCase() })
-		.executeTakeFirstOrThrow()
-		.catch(withError('Failed to create user'));
+	await db.insertInto('users').values({ id: userId, name, username }).executeTakeFirstOrThrow().catch(withError('Failed to create user'));
 
 	await audit('user_created', userId);
 

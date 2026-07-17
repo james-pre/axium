@@ -40,13 +40,17 @@ addRoute({
 	async POST(request): AsyncResult<'POST', 'user_id'> {
 		const { using, value } = await parseBody(request, z.object({ using: z.literal(['email', 'username']), value: z.string() }));
 
-		const { id } = await db
+		const users = await db
 			.selectFrom('users')
 			.select('id')
 			.where(using == 'email' ? 'email' : 'username', '=', value)
-			.executeTakeFirstOrThrow()
-			.catch(withError('User not found', 404));
-		return { id };
+			.execute()
+			.catch(withError('Failed to look up user'));
+
+		if (!users.length) error(404, 'User not found');
+		if (users.length > 1) error(409, 'Multiple users matched');
+
+		return { id: users[0].id };
 	},
 });
 
@@ -100,9 +104,8 @@ addRoute({
 			.where('id', '=', userId)
 			.returningAll()
 			.executeTakeFirstOrThrow()
-			.catch((e: Error & { code?: string; constraint?: string }) => {
-				if (e.code == '23505')
-					error(409, e.constraint?.includes('username') ? 'Username is already taken' : 'Email is already in use');
+			.catch((e: Error & { code?: string }) => {
+				if (e.code == '23505') error(409, 'Username is already taken');
 				return withError('Failed to update user')(e);
 			});
 
@@ -141,6 +144,10 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/auth',
 	params,
+	OPTIONS(): AsyncResult<'OPTIONS', 'users/:id/auth'> {
+		const { enabled, email } = config.auth.recovery;
+		return Promise.resolve({ recovery: { enabled, email } });
+	},
 	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/auth'> {
 		const { type, client } = await parseBody(request, UserAuthOptions);
 
@@ -217,8 +224,8 @@ addRoute({
 			rpName: config.auth.rp_name,
 			rpID: config.auth.rp_id,
 			userID: encodeUUID(userId as UUID),
-			userName: userId,
-			userDisplayName: user.email,
+			userName: user.username,
+			userDisplayName: user.name,
 			attestationType: 'none',
 			excludeCredentials: existing.map(passkey => pick(passkey, 'id', 'transports')),
 			authenticatorSelection: {
@@ -311,14 +318,9 @@ addRoute({
 addRoute({
 	path: '/api/users/:id/verify/email',
 	params,
-	async OPTIONS(request, { id: userId }): AsyncResult<'OPTIONS', 'users/:id/verify/email'> {
-		if (!config.verifications.email) return { enabled: false };
-
-		await checkAuthForUser(request, userId);
-
-		return { enabled: true };
-	},
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/verify/email'> {
+		if (!config.auth.recovery.enabled || !config.auth.recovery.email) error(406, 'Email recovery is disabled');
+
 		const { user } = await checkAuthForUser(request, userId);
 
 		if (user.emailVerified) error(409, 'Email already verified');
@@ -328,6 +330,8 @@ addRoute({
 		return omit(verification, 'token', 'role');
 	},
 	async POST(request, { id: userId }): AsyncResult<'POST', 'users/:id/verify/email'> {
+		if (!config.auth.recovery.enabled || !config.auth.recovery.email) error(406, 'Email recovery is disabled');
+
 		const { token } = await parseBody(request, z.object({ token: z.string() }));
 
 		const { user } = await checkAuthForUser(request, userId);

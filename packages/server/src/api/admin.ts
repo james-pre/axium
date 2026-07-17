@@ -1,6 +1,6 @@
 import client from '@axium/client/package.json' with { type: 'json' };
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
-import { AuditFilter, Severity, UserAdminChange } from '@axium/core';
+import { AuditFilter, Severity, UserAdminChange, UserRegistrationInit } from '@axium/core';
 import { debug, errorText, writeJSON } from 'ioium/node';
 import core from '@axium/core/package.json' with { type: 'json' };
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
@@ -119,12 +119,12 @@ addRoute({
 	async PUT(req): AsyncResult<'PUT', 'admin/users'> {
 		await assertAdmin(this, req);
 
-		const { name, email } = await parseBody(req, z.object({ name: z.string(), email: z.email() }));
+		const { name, username } = await parseBody(req, UserRegistrationInit);
 
 		const tx = await db.startTransaction().execute();
 
 		try {
-			const user = await tx.insertInto('users').values({ name, email: email.toLowerCase() }).returningAll().executeTakeFirstOrThrow();
+			const user = await tx.insertInto('users').values({ name, username }).returningAll().executeTakeFirstOrThrow();
 
 			const verification = await createVerification.call(tx, 'login', user.id, config.verifications.timeout);
 

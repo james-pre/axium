@@ -1,6 +1,6 @@
 // Supporting code for the CLI. The CLI entry point is main.ts
 
-import type { UserInternal } from '@axium/core';
+import { Username, type UserInternal } from '@axium/core';
 import { Option } from 'commander';
 import * as io from 'ioium/node';
 import { matchesGlob } from 'node:path';
@@ -9,25 +9,24 @@ import * as z from 'zod';
 import * as db from '../db/index.js';
 
 export function userText(user: UserInternal, bold: boolean = false): string {
-	const text = `${user.name} <${user.email}> (${user.id})`;
+	const text = `${user.name} <${user.username}> (${user.id})`;
 	return bold ? styleText('bold', text) : text;
 }
 
 export async function lookupUser(lookup: string): Promise<UserInternal> {
-	const value = await (lookup.includes('@') ? z.email() : z.uuid())
-		.parseAsync(lookup.toLowerCase())
-		.catch(() => io.exit('Invalid user ID or email.'));
+	lookup = lookup.toLowerCase();
+	const column = lookup.includes('@') ? 'email' : z.uuid().safeParse(lookup).success ? 'id' : 'username';
 
-	const result = await db
-		.connect()
-		.selectFrom('users')
-		.where(value.includes('@') ? 'email' : 'id', '=', value)
-		.selectAll()
-		.executeTakeFirst();
+	const value = await (column == 'email' ? z.email() : column == 'id' ? z.uuid() : Username)
+		.parseAsync(lookup)
+		.catch(() => io.exit('Invalid user ID, username, or email.'));
 
-	if (!result) io.exit('No user with matching ID or email.');
+	const results = await db.connect().selectFrom('users').where(column, '=', value).selectAll().execute();
 
-	return result;
+	if (!results.length) io.exit('No user with matching ID, username, or email.');
+	if (results.length > 1) io.exit(`Multiple users matched:\n${results.map(user => '\t' + userText(user)).join('\n')}`);
+
+	return results[0];
 }
 
 /**
