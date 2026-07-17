@@ -79,6 +79,24 @@ export function addRoute<const P extends RouteParams = RouteParams>(opt: RouteIn
 }
 
 /**
+ * A a shortcut, e.g. for URL shortening.
+ * @example
+ * ```ts
+ * addShortcut('/f/:id', { id: z.base64url() }, ({ id }) => `/files/${decodeUUID(Uint8Array.fromBase64(id, { alphabet: 'base64url' }))}`);
+ * ```
+ */
+export function addShortcut<Params extends RouteParams = RouteParams>(
+	path: string,
+	params: Params,
+	transform: (params: ParamValues<Params>) => string
+): void {
+	function handle(request: Request, params: ParamValues<Params>) {
+		return Response.redirect(new URL(transform(params), config.origin));
+	}
+	addRoute({ path, params, GET: handle, POST: handle });
+}
+
+/**
  * Resolve a request URL into a route.
  * This handles parsing of parameters in the URL.
  */
