@@ -80,7 +80,7 @@
 			</div>
 			<div class="permissions">
 				{#each Object.entries(pickPermissions(control) as Record<string, boolean>) as [key, value]}
-					{const id = `${item.id}.${getTarget(control)}.${key}`}
+					{const id = $derived(`${item.id}.${getTarget(control)}.${key}`)}
 					<span class="icon-text">
 						{#if editable}
 							<input {id} type="checkbox" onchange={update(key)} />

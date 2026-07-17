@@ -28,10 +28,10 @@
 		new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours(), Math.round(now.getMinutes() / 30) * 30, 0, 0)
 	);
 
-	let start = new SvelteDate(data.filter.start);
-	let end = new SvelteDate(data.filter.end);
-	let calendars = $state(data.calendars);
-	let events = $state<Event[]>([]);
+	let start = new SvelteDate(data.filter.start),
+		end = new SvelteDate(data.filter.end),
+		calendars = $state(data.calendars),
+		events = $state<Event[]>([]);
 
 	$effect(() => {
 		for (const cal of calendars) cal.color ||= encodeColor(colorHashHex(cal.name));
@@ -224,7 +224,7 @@
 				<h4>{text('calendar.list_shared')}</h4>
 			</div>
 			{#each calendars.filter(cal => cal.userId != user.id) as cal (cal.id)}
-				{const { list, icon } = getCalPermissionsInfo(cal, user)}
+				{const { list, icon } = $derived(getCalPermissionsInfo(cal, user))}
 				<dfn title={list}>
 					<Icon i={icon} />
 				</dfn>
@@ -263,14 +263,16 @@
 			<span class="hour empty"></span>
 		</div>
 		{#if span == 'week'}
-			{const eventsForWeekDays = Object.groupBy(
-				events.filter(
-					e =>
-						!hiddenCalIds.has(e.calId) &&
-						e.start < new Date(weekDays[6].getFullYear(), weekDays[6].getMonth(), weekDays[6].getDate() + 1) &&
-						e.end > weekDays[0]
-				),
-				ev => ev.start.getDay()
+			{const eventsForWeekDays = $derived(
+				Object.groupBy(
+					events.filter(
+						e =>
+							!hiddenCalIds.has(e.calId) &&
+							e.start < new Date(weekDays[6].getFullYear(), weekDays[6].getMonth(), weekDays[6].getDate() + 1) &&
+							e.end > weekDays[0]
+					),
+					ev => ev.start.getDay()
+				)
 			)}
 			<div class="cal-content week">
 				{#each weekDays as day, i}
