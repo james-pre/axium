@@ -23,6 +23,8 @@ export function formatMs(time: number): string {
 
 /** Formats a short duration into colon-separated values */
 export function formatDuration(seconds: number): string {
+	if (!Number.isFinite(seconds)) return '--:--';
+
 	seconds = Math.floor(seconds);
 	let minutes = Math.floor(seconds / 60);
 	seconds %= 60;
