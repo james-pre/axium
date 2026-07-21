@@ -26,10 +26,12 @@
 	},
 	"files": [
 		"dist",
-		"data"
+		"data",
+		"patches"
 	],
 	"scripts": {
-		"build": "tsc"
+		"build": "tsc",
+		"postinstall": "subpatch"
 	},
 	"peerDependencies": {
 		"utilium": "^3.1.0",
@@ -39,9 +41,15 @@
 		"@types/semver": "^7.7.1",
 		"ioium": "^1.7.0",
 		"mime": "^4.0.7",
-		"semver": "^7.7.3"
+		"semver": "^7.7.3",
+		"subpatch": "^0.2.2"
 	},
 	"optionalDependencies": {
 		"commander": "^15.0.0"
+	},
+	"subpatch": {
+		"patches": {
+			"typescript": "patches/typescript.patch"
+		}
 	}
 }

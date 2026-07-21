@@ -1,6 +1,11 @@
 {
 	"editor.formatOnSave": true,
-	"cSpell.words": ["axium", "kysely", "webauthn"],
+	"cSpell.words": [
+		"axium",
+		"kysely",
+		"subpatch",
+		"webauthn"
+	],
 	"js/ts.tsdk.path": "node_modules/typescript/lib",
 	"svelte.language-server.ls-path": "node_modules/svelte-language-server/bin/server.js",
 	"js/ts.experimental.useTsgo": false

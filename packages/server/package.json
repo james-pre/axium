@@ -48,7 +48,7 @@
 		"build": "tsc",
 		"build:schemas": "mkdir -p schemas && npx axium config schema -j > schemas/config.json && npx axium db json-schema -j > schemas/db.json",
 		"clean": "rm -rf build .svelte-kit node_modules/{.vite,.vite-temp}",
-		"postinstall": "node patches/patch.js"
+		"postinstall": "subpatch"
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.35.0",
@@ -76,9 +76,15 @@
 		"semver": "^7.7.4",
 		"sharp": "^0.35.1",
 		"socket.io": "^4.8.3",
+		"subpatch": "^0.2.2",
 		"vite": "^8.0.5"
 	},
 	"optionalDependencies": {
 		"ua-parser-js": "^2.0.9"
+	},
+	"subpatch": {
+		"patches": {
+			"@sveltejs/kit": "patches/sveltekit.patch"
+		}
 	}
 }

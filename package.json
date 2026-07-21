@@ -25,6 +25,7 @@
 		"build:schemas": "(cd packages/server && npm run build:schemas)",
 		"build": "tsc -b && for dir in packages/*/; do case $(basename $dir) in core|client) ;; *) (cd $dir && axium build);; esac; done",
 		"watch": "tsc -b -w",
+		"postinstall": "npm run postinstall -w @axium/server -w @axium/core",
 		"clean": "rm -rf packages/*/tsconfig.tsbuildinfo packages/*/dist packages/server/node_modules/{.vite,.vite-temp} packages/server/build",
 		"wc-source": "wc -l $(git ls-files | grep -v package-lock.json | grep -v packages/client/assets/icons | grep -v LICENSE.md) | sort -h"
 	},
@@ -75,9 +76,5 @@
 	"allowScripts": {
 		"sharp": true,
 		"esbuild": true
-	},
-	"patchedDependencies": {
-		"@sveltejs/kit@2.56.1": "packages/server/patches/@sveltejs/kit@2.56.1.patch",
-		"typescript@6.0.3": "patches/typescript@6.0.3.patch"
 	}
 }
