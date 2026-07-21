@@ -42,14 +42,17 @@
 		"ioium": "^1.7.0",
 		"mime": "^4.0.7",
 		"semver": "^7.7.3",
-		"subpatch": "^0.2.2"
+		"subpatch": "^0.3.0"
 	},
 	"optionalDependencies": {
 		"commander": "^15.0.0"
 	},
 	"subpatch": {
 		"patches": {
-			"typescript": "patches/typescript.patch"
+			"typescript": {
+				"path": "patches/typescript.patch",
+				"optional": true
+			}
 		}
 	}
 }
