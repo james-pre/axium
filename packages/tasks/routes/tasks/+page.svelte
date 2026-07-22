@@ -39,7 +39,7 @@
 	submit={async rawInit => {
 		const init = TaskListInit.parse(rawInit);
 		const result = await fetchAPI('PUT', 'users/:id/task_lists', init, data.session!.userId);
-		lists.push(Object.assign(result, { tasks: [] }));
+		lists.unshift(Object.assign(result, { tasks: [] }));
 	}}
 >
 	<div>
