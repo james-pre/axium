@@ -24,7 +24,7 @@
 		onclick={async () => {
 			try {
 				const result = await fetchAPI('PUT', 'users/:id/notes', { title: '' }, data.session.userId);
-				notes.push(result);
+				notes.unshift(result);
 			} catch (e) {
 				toast('error', e);
 			}
