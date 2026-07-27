@@ -49,6 +49,11 @@ export interface $EventTypes {
 	admin_change: { user: string };
 	admin_api: { route: string; session: string };
 	response_error: { stack?: string };
+	/** Mismatch between the actual size of an upload and the size reported in the header */
+	upload_size_mismatch: {
+		expected: bigint;
+		actual: bigint;
+	};
 }
 
 export type EventName = keyof $EventTypes;
@@ -168,4 +173,12 @@ addEvent({
 	severity: Severity.Error,
 	tags: [],
 	extra: { stack: z.string().optional() },
+});
+
+addEvent({
+	source: '@axium/server',
+	name: 'upload_size_mismatch',
+	severity: Severity.Warning,
+	tags: [],
+	extra: { expected: z.coerce.bigint(), actual: z.coerce.bigint() },
 });
