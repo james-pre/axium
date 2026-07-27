@@ -93,8 +93,10 @@
 			},
 			"max_transfer_size": 100,
 			"trash_duration": 30,
-			"temp_dir": "/tmp/axium",
-			"upload_timeout": 15
+			"upload": {
+				"temp_dir": "/tmp/axium",
+				"timeout": 15
+			}
 		}
 	}
 }
