@@ -222,3 +222,22 @@ export const noCacheHeaders = {
 	Pragma: 'no-cache',
 	Expires: '0',
 };
+
+export function parseRequestRange(itemSize: bigint, range?: string | null): { start: number; end: number; length: number } {
+	let start = 0,
+		end = Number(itemSize - 1n),
+		length = Number(itemSize);
+
+	if (range) {
+		const [_start, _end = end] = range
+			.replace(/bytes=/, '')
+			.split('-')
+			.map(val => (val && Number.isSafeInteger(parseInt(val)) ? parseInt(val) : undefined));
+
+		start = typeof _start == 'number' ? _start : Number(itemSize) - _end;
+		end = typeof _start == 'number' ? _end : end;
+		length = end - start + 1;
+	}
+
+	return { start, end, length };
+}
