@@ -1,16 +1,15 @@
 import { $API, AccessControl, appPreferences, serverConfigs } from '@axium/core';
+import type {} from '@axium/core/apps';
 import { zKeys } from '@axium/core/locales';
+import { UploadConfig, UploadInit, UploadName, UploadSize } from '@axium/core/uploads';
 import * as z from 'zod';
-
-export const StorageItemSize = z.coerce.bigint().nonnegative();
-export const StorageItemName = z.string().nonempty().max(255);
 
 /**
  * An update to file metadata.
  */
 export const StorageItemUpdate = z
 	.object({
-		name: StorageItemName,
+		name: UploadName,
 		owner: z.uuid(),
 		trash: z.boolean(),
 		parentId: z.uuid().nullable(),
@@ -34,10 +33,10 @@ export const StorageItemMetadata = z.object({
 	id: z.uuid(),
 	immutable: z.boolean(),
 	modifiedAt: z.coerce.date(),
-	name: StorageItemName,
+	name: UploadName,
 	userId: z.uuid(),
 	parentId: z.uuid().nullable(),
-	size: StorageItemSize,
+	size: UploadSize,
 	trashedAt: z.coerce.date().nullable(),
 	type: z.string(),
 	metadata: z.record(z.string(), z.unknown()),
@@ -116,7 +115,6 @@ export const StoragePreferences = z
 
 appPreferences.set('files', StoragePreferences);
 
-import type {} from '@axium/core/apps';
 declare module '@axium/core/apps' {
 	interface $AppPreferences {
 		files: typeof StoragePreferences;
@@ -175,16 +173,13 @@ export const StorageConfig = StoragePublicConfig.safeExtend({
 			exclude: z.string().array(),
 		})
 		.partial(),
+	upload: UploadConfig,
 	/** Path to data directory */
 	data: z.string(),
 	/** Default limits */
 	limits: StorageLimits,
 	/** How many days files are kept in the trash */
 	trash_duration: z.number(),
-	/** Where to put in-progress chunked uploads */
-	temp_dir: z.string(),
-	/** How many minutes before an in-progress upload times out */
-	upload_timeout: z.number(),
 });
 
 declare module '@axium/core/plugins' {
@@ -196,11 +191,8 @@ declare module '@axium/core/plugins' {
 serverConfigs.set('@axium/storage', StorageConfig);
 
 export const StorageItemInit = z.object({
-	name: StorageItemName,
-	size: StorageItemSize,
-	type: z.string(),
+	...UploadInit.shape,
 	parentId: z.uuid().nullish(),
-	hash: z.hex().nullish(),
 });
 
 export interface StorageItemInit extends z.infer<typeof StorageItemInit> {}
@@ -251,7 +243,7 @@ const StorageAPI = {
 		GET: [GetItemOptions, StorageItemMetadata],
 		DELETE: StorageItemMetadata,
 		PATCH: [StorageItemUpdate, StorageItemMetadata],
-		POST: [StorageItemSize, UploadInitResult],
+		POST: [UploadSize, UploadInitResult],
 	},
 	'storage/directory/:id': {
 		GET: StorageItemMetadata.array(),

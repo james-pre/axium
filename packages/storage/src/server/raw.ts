@@ -1,10 +1,10 @@
 import { getConfig } from '@axium/core';
 import { audit } from '@axium/server/audit';
 import { authRequestForItem, requireSession } from '@axium/server/auth';
-import { error, withError } from '@axium/server/requests';
+import { error, parseRequestRange, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
-import { copyFileSync, renameSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
@@ -12,7 +12,7 @@ import { streamRead } from '../node.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { getUserStats } from './db.js';
-import { checkItemUpdate, checkNewItem, createNewItem, finishItemUpdate, requireUpload } from './item.js';
+import { checkItemUpdate, checkNewItem, createNewItem, finishItemUpdate, uploads } from './item.js';
 
 export function _contentDispositionFor(name: string, suffix: string = '') {
 	const fallback =
@@ -58,105 +58,11 @@ addRoute({
 	},
 });
 
-addRoute({
-	path: '/raw/storage/upload',
-	async POST(request) {
-		const upload = await requireUpload(request);
-
-		const size = BigInt(request.headers.get('x-chunk-size') || -1);
-
-		if (size < 0n) error(411, 'Missing or invalid chunk size');
-
-		if (upload.uploadedBytes + size > upload.init.size) error(413, 'Upload exceeds allowed size');
-
-		const offset = BigInt(request.headers.get('x-offset') || -1);
-		if (offset != upload.uploadedBytes) error(400, `Expected offset ${upload.uploadedBytes} but got ${offset}`);
-
-		if (!request.body) error(400, 'Missing request body');
-
-		let actualSize = 0n;
-		const counter = new TransformStream<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>>({
-			transform(chunk, controller) {
-				actualSize += BigInt(chunk.length);
-				upload.hash.update(chunk);
-				controller.enqueue(chunk);
-			},
-		});
-
-		try {
-			await request.body.pipeThrough(counter).pipeTo(upload.stream, { preventClose: true });
-		} catch (e) {
-			upload.remove();
-			if (request.signal.aborted) return;
-			throw e;
-		}
-
-		// A short chunk means the request was aborted mid-transfer, e.g. the user cancelled the upload
-		if (request.signal.aborted || actualSize < size) {
-			upload.remove();
-			return;
-		}
-
-		if (actualSize != size) {
-			upload.remove();
-			await audit('storage_size_mismatch', upload.userId, { item: null });
-			error(400, `Content length mismatch: expected ${size}, got ${actualSize}`);
-		}
-
-		upload.uploadedBytes += actualSize;
-
-		if (upload.uploadedBytes != upload.init.size) return new Response(null, { status: 204 });
-
-		const hash = upload.hash.digest();
-		upload.init.hash ??= hash.toHex();
-		if (hash.toHex() != upload.init.hash) error(409, 'Hash mismatch');
-
-		function writeContent(path: string) {
-			try {
-				renameSync(upload.file, path);
-			} catch (e: any) {
-				if (e.code != 'EXDEV') throw e;
-				copyFileSync(upload.file, path);
-			}
-		}
-
-		try {
-			const item = upload.itemId
-				? await finishItemUpdate(upload.itemId, upload.init.size, hash, writeContent)
-				: await createNewItem(upload.init, upload.userId, writeContent);
-
-			return item;
-		} finally {
-			upload.remove(true);
-		}
-	},
-	async DELETE(request): Promise<Response> {
-		const upload = await requireUpload(request);
-
-		upload.remove();
-
-		return new Response(null, { status: 204 });
-	},
+uploads.addEndpoint('/raw/storage/upload', upload => {
+	return upload.data.itemId
+		? finishItemUpdate(upload.data.itemId, upload.init.size, upload.hash, upload.writeTo)
+		: createNewItem(upload.init, upload.userId, upload.writeTo);
 });
-
-function parseRange(itemSize: bigint, range?: string | null): { start: number; end: number; length: number } {
-	let start = 0,
-		end = Number(itemSize - 1n),
-		length = Number(itemSize);
-
-	if (range) {
-		const [_start, _end = end] = range
-			.replace(/bytes=/, '')
-			.split('-')
-			.map(val => (val && Number.isSafeInteger(parseInt(val)) ? parseInt(val) : undefined));
-
-		start = typeof _start == 'number' ? _start : Number(itemSize) - _end;
-		end = typeof _start == 'number' ? _end : end;
-		length = end - start + 1;
-	}
-
-	return { start, end, length };
-}
 
 addRoute({
 	path: '/raw/storage/:id',
@@ -170,7 +76,7 @@ addRoute({
 
 		const range = request.headers.get('range');
 
-		const { start, end, length } = parseRange(item.size, range);
+		const { start, end, length } = parseRequestRange(item.size, range);
 
 		if (start >= item.size || end >= item.size || start > end || start < 0) {
 			return new Response(null, {

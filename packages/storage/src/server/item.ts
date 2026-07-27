@@ -1,12 +1,11 @@
-import { getConfig, type Session } from '@axium/core';
+import { getConfig } from '@axium/core';
 import { audit } from '@axium/server/audit';
-import { authRequestForItem, authSessionForItem, requireSession, type SessionAndUser, type SessionInternal } from '@axium/server/auth';
+import { authRequestForItem, authSessionForItem, type SessionAndUser, type SessionInternal } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
-import { createHash, randomBytes, type Hash } from 'node:crypto';
-import { createWriteStream, linkSync, mkdirSync, unlinkSync } from 'node:fs';
+import { UploadManager } from '@axium/server/uploads';
+import { linkSync } from 'node:fs';
 import { join } from 'node:path';
-import { Writable } from 'node:stream';
 import * as z from 'zod';
 import type { StorageItemInit, StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
@@ -179,83 +178,4 @@ export async function finishItemUpdate(
 	}
 }
 
-export interface UploadInfo {
-	file: string;
-	stream: WritableStream;
-	hash: Hash;
-	uploadedBytes: bigint;
-	sessionId: string;
-	userId: string;
-	init: StorageItemInit;
-	/** If set we are updating an existing item. Explicit null used to avoid bugs */
-	itemId: string | null;
-
-	/**
-	 * Remove the upload from pending and clean up resources
-	 * @param isSuccess whether the upload was successful. If not, abort-style behavior will be used instead.
-	 */
-	remove(isSuccess?: boolean): void;
-}
-
-const inProgress = new Map<string, UploadInfo>();
-
-export function startUpload(init: StorageItemInit, session: Session, itemId: string | null): string {
-	const { temp_dir, upload_timeout } = getConfig('@axium/storage');
-
-	const token = randomBytes(32),
-		tokenB64 = token.toBase64({ alphabet: 'base64url', omitPadding: true });
-
-	mkdirSync(temp_dir, { recursive: true });
-	const file = join(temp_dir, token.toHex());
-
-	let removed = false;
-
-	function remove(isSuccess: boolean = false) {
-		if (removed) return;
-		removed = true;
-		inProgress.delete(tokenB64);
-		if (isSuccess) void stream.close();
-		else void stream.abort();
-		hash.end();
-		try {
-			unlinkSync(file);
-		} catch {
-			// probably renamed
-		}
-	}
-
-	const hash = createHash('BLAKE2b512'),
-		stream = Writable.toWeb(createWriteStream(file));
-
-	inProgress.set(tokenB64, {
-		hash,
-		file,
-		stream,
-		uploadedBytes: 0n,
-		sessionId: session.id,
-		userId: session.userId,
-		init,
-		itemId,
-		remove,
-	});
-
-	setTimeout(() => {
-		remove();
-	}, upload_timeout * 60_000);
-
-	return tokenB64;
-}
-
-export async function requireUpload(request: Request): Promise<UploadInfo> {
-	const token = request.headers.get('x-upload');
-	if (!token) error(401, 'Missing upload token');
-	const upload = inProgress.get(token);
-	if (!upload) error(400, 'Invalid upload token');
-
-	const session = await requireSession(request);
-
-	if (session.id != upload.sessionId) error(403, 'Upload does not belong to the current session');
-	if (session.userId != upload.userId) error(403, 'Upload does not belong to the current user');
-
-	return upload;
-}
+export const uploads = new UploadManager<StorageItemInit, { itemId: string | null }>(() => getConfig('@axium/storage').upload);
