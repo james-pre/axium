@@ -13,7 +13,7 @@ import { addRoute } from './routes.js';
 /**
  * Information about an ongoing upload
  */
-export interface Upload<Init extends UploadInit = UploadInit, Data = undefined> {
+export interface Upload<Init extends UploadInit = UploadInit, Data = null | undefined> {
 	file: string;
 	stream: WritableStream;
 	hash: Hash;
@@ -35,7 +35,7 @@ export interface Upload<Init extends UploadInit = UploadInit, Data = undefined> 
 /**
  * Result of uploading the final chunk in an upload
  */
-export interface UploadChunkFinal<Init extends UploadInit = UploadInit, Data = undefined>
+export interface UploadChunkFinal<Init extends UploadInit = UploadInit, Data = null | undefined>
 	extends Disposable, Pick<Upload<Init, Data>, 'file' | 'init' | 'data' | 'userId'> {
 	hash: Uint8Array<ArrayBuffer>;
 	done: true;
@@ -51,7 +51,9 @@ export interface UploadChunkProgress extends Disposable {
 	aborted?: boolean;
 }
 
-export type UploadChunkResult<Init extends UploadInit = UploadInit, Data = undefined> = UploadChunkFinal<Init, Data> | UploadChunkProgress;
+export type UploadChunkResult<Init extends UploadInit = UploadInit, Data = null | undefined> =
+	| UploadChunkFinal<Init, Data>
+	| UploadChunkProgress;
 
 export interface UploadSuccessCallback<T, Init extends UploadInit = UploadInit, Data = undefined> {
 	(upload: UploadChunkFinal<Init, Data>): T | Promise<T>;
@@ -60,7 +62,7 @@ export interface UploadSuccessCallback<T, Init extends UploadInit = UploadInit, 
 /**
  * Manages chunked uploads
  */
-export class UploadManager<Init extends UploadInit = UploadInit, Data = undefined> extends Map<string, Upload<Init, Data>> {
+export class UploadManager<Init extends UploadInit = UploadInit, Data = null | undefined> extends Map<string, Upload<Init, Data>> {
 	get config() {
 		return typeof this._config == 'function' ? this._config() : this._config;
 	}
