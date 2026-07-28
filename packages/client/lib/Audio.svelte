@@ -31,6 +31,15 @@
 				['hashtag', common.track.no],
 				['compact-disc', common.disk.no],
 			] as const;
+
+			if ('mediaSession' in navigator) {
+				navigator.mediaSession.metadata = new MediaMetadata({
+					title: common.title,
+					album: common.album,
+					artist: common.artist,
+					artwork: pictureURL && picture ? [{ src: pictureURL, type: picture.format }] : [],
+				});
+			}
 		});
 	});
 
