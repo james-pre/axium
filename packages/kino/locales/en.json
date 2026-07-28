@@ -1,0 +1,63 @@
+{
+	"app_name": {
+		"kino": "Movies and TV"
+	},
+	"kino": {
+		"tab": {
+			"home": "Home",
+			"movies": "Movies",
+			"tv": "TV Shows"
+		},
+		"search": {
+			"label": "Search",
+			"placeholder": "Search movies and TV shows",
+			"searching": "Searching…",
+			"no_results": "No results",
+			"failed": "Search failed",
+			"movie": "Movie",
+			"tv": "TV Show"
+		},
+		"watch": "Watch",
+		"download": "Download",
+		"upload": "Upload",
+		"upload_movie": "Upload movie",
+		"upload_episode": "Upload episode",
+		"uploading": "Uploading {name}",
+		"upload_success": "Upload complete",
+		"upload_cancelled": "Upload cancelled",
+		"not_uploaded": "This has not been uploaded yet.",
+		"uploaded_detail": "Uploaded {date} · {size}",
+		"overview": "Overview",
+		"no_overview": "No overview available.",
+		"seasons": "Seasons",
+		"episodes": "Episodes",
+		"no_episodes": "No episodes are listed for this season.",
+		"season": "Season {number}",
+		"specials": "Specials",
+		"episode_number": "Episode {number}",
+		"episode_code": "S{season}E{episode}",
+		"aired": "Aired {date}",
+		"released": "Released {date}",
+		"unreleased": "Release date unknown",
+		"back_to_show": "Back to show",
+		"back_to_season": "Back to season"
+	},
+	"page": {
+		"kino": {
+			"title": "Movies and TV",
+			"heading": "Your library",
+			"empty": "Nothing has been uploaded yet.",
+			"recent_movies": "Movies",
+			"recent_tv": "TV Shows",
+			"movies": {
+				"title": "Movies",
+				"empty": "No movies have been uploaded yet."
+			},
+			"tv": {
+				"title": "TV Shows",
+				"empty": "No TV shows have been uploaded yet."
+			},
+			"watch_title": "Watching {name}"
+		}
+	}
+}

@@ -43,6 +43,7 @@
 		"@axium/contacts": "workspace:*",
 		"@axium/core": "workspace:*",
 		"@axium/email": "workspace:*",
+		"@axium/kino": "workspace:*",
 		"@axium/notes": "workspace:*",
 		"@axium/server": "workspace:*",
 		"@axium/storage": "workspace:*",

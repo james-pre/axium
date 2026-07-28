@@ -1,0 +1,77 @@
+{
+	"$schema": "../server/schemas/db.json",
+	"format": 1,
+	"versions": [
+		{
+			"delta": false,
+			"tables": {
+				"kino_movies": {
+					"columns": {
+						"id": { "type": "integer", "primary": true, "required": true },
+						"title": { "type": "text", "required": true },
+						"release_date": { "type": "date", "required": true },
+						"poster_path": { "type": "text" },
+						"adult": { "type": "boolean", "required": true },
+						"overview": { "type": "text", "required": true },
+						"backdrop_path": { "type": "text" }
+					}
+				},
+				"kino_movie_uploads": {
+					"columns": {
+						"id": { "type": "integer", "primary": true, "required": true },
+						"uploadedAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"hash": { "type": "bytea" },
+						"name": { "type": "text" },
+						"size": { "type": "bigint", "required": true },
+						"type": { "type": "text", "required": true }
+					}
+				},
+				"kino_tv": {
+					"columns": {
+						"id": { "type": "integer", "primary": true, "unique": true, "required": true },
+						"name": { "type": "text", "required": true },
+						"first_air_date": { "type": "date", "required": true },
+						"poster_path": { "type": "text" },
+						"adult": { "type": "boolean", "required": true },
+						"overview": { "type": "text", "required": true },
+						"backdrop_path": { "type": "text" }
+					}
+				},
+				"kino_seasons": {
+					"columns": {
+						"id": { "type": "integer", "primary": true, "required": true, "references": "kino_tv.id", "onDelete": "cascade" },
+						"season_number": { "type": "integer", "primary": true, "required": true },
+						"name": { "type": "text", "required": true },
+						"overview": { "type": "text", "required": true },
+						"air_date": { "type": "date", "required": true },
+						"poster_path": { "type": "text" }
+					}
+				},
+				"kino_episodes": {
+					"columns": {
+						"id": { "type": "integer", "primary": true, "required": true, "references": "kino_tv.id", "onDelete": "cascade" },
+						"season_number": { "type": "integer", "primary": true, "required": true },
+						"episode_number": { "type": "integer", "primary": true, "required": true },
+						"name": { "type": "text", "required": true },
+						"air_date": { "type": "date", "required": true },
+						"still_path": { "type": "text" }
+					}
+				},
+				"kino_tv_uploads": {
+					"columns": {
+						"id": { "type": "integer", "primary": true, "required": true },
+						"season_number": { "type": "integer", "primary": true, "required": true },
+						"episode_number": { "type": "integer", "primary": true, "required": true },
+						"uploadedAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"hash": { "type": "bytea" },
+						"name": { "type": "text" },
+						"size": { "type": "bigint", "required": true },
+						"type": { "type": "text", "required": true }
+					}
+				}
+			},
+			"indexes": {}
+		}
+	],
+	"wipe": []
+}

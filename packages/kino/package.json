@@ -1,0 +1,100 @@
+{
+	"name": "@axium/kino",
+	"version": "0.0.1",
+	"author": "James Prevett <axium@jamespre.dev>",
+	"description": "Movies and TV for Axium",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"license": "LGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./client": "./dist/client/index.js",
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
+	},
+	"files": [
+		"dist",
+		"lib",
+		"routes",
+		"locales",
+		"db.json"
+	],
+	"scripts": {
+		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/client": ">=0.36.0",
+		"@axium/core": ">=0.38.0",
+		"@axium/server": ">=0.54.0",
+		"@sveltejs/kit": "^2.27.3",
+		"kysely": "^0.29.0",
+		"utilium": "^3.0.0"
+	},
+	"dependencies": {
+		"commander": "^15.0.0",
+		"ioium": "^1.6.0",
+		"kinotool": "^0.1.1",
+		"mime": "^4.1.0",
+		"tmdb-ts": "^2.3.0",
+		"zod": "^4.0.5"
+	},
+	"axium": {
+		"server": {
+			"routes": "routes",
+			"hooks": "./dist/server/hooks.js",
+			"db": "./db.json",
+			"web_client_hooks": "./dist/client/web_hook.js"
+		},
+		"client": {
+			"hooks": "./dist/client/hooks.js",
+			"cli": "./dist/client/cli.js"
+		},
+		"apps": [
+			{
+				"id": "kino",
+				"name": "Movies and TV",
+				"icon": "popcorn"
+			}
+		],
+		"update_checks": true,
+		"config": {
+			"allow_user_uploads": true,
+			"data_dir": "/srv/axium/kino",
+			"tmdb_api_key": "",
+			"upload": {
+				"temp_dir": "/tmp/axium",
+				"timeout": 15
+			},
+			"images": {
+				"cache": {
+					"mode": "quality",
+					"max_size": 1000,
+					"largest_only": false,
+					"directory": "/var/cache/axium/kino/images",
+					"max_image_sizes": {
+						"poster": "w500",
+						"backdrop": "w1280",
+						"logo": "w185",
+						"profile": "w185",
+						"still": "w300"
+					}
+				},
+				"base_url": "https://image.tmdb.org/t/p/"
+			}
+		}
+	}
+}
