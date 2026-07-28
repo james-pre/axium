@@ -241,3 +241,19 @@ export function parseRequestRange(itemSize: bigint, range?: string | null): { st
 
 	return { start, end, length };
 }
+
+export function contentDispositionFor(name: string, suffix: string = '') {
+	const fallback =
+		name
+			.replace(/[\r\n]/g, '')
+			.replace(/[^\x20-\x7E]/g, '_')
+			.trim()
+			.replace(/[\\"]/g, '\\$&') || 'download';
+
+	const encoded = encodeURIComponent(name.replace(/[\r\n]/g, '')).replace(
+		/['()*]/g,
+		char => '%' + char.charCodeAt(0).toString(16).toUpperCase()
+	);
+
+	return `attachment; filename="${fallback}${suffix}"; filename*=UTF-8''${encoded}${suffix}`;
+}
