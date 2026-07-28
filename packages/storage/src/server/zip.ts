@@ -1,6 +1,6 @@
 import { getConfig } from '@axium/core';
 import { authRequestForItem } from '@axium/server/auth';
-import { error } from '@axium/server/requests';
+import { contentDispositionFor, error } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createReadStream } from 'node:fs';
 import { join } from 'node:path';
@@ -10,7 +10,6 @@ import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 import { getRecursive } from './db.js';
-import { _contentDispositionFor } from './raw.js';
 
 const encoder = new TextEncoder();
 
@@ -230,7 +229,7 @@ addRoute({
 			status: 200,
 			headers: {
 				'Content-Type': item.type,
-				'Content-Disposition': _contentDispositionFor(item.name, '.zip'),
+				'Content-Disposition': contentDispositionFor(item.name, '.zip'),
 			},
 		});
 	},
@@ -259,7 +258,7 @@ addRoute({
 			status: 200,
 			headers: {
 				'Content-Type': 'application/zip',
-				'Content-Disposition': _contentDispositionFor(
+				'Content-Disposition': contentDispositionFor(
 					items.length == 1 ? items[0].name : 'files-' + new Date().toISOString().slice(0, -1).split('.')[0],
 					'.zip'
 				),

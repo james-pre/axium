@@ -1,7 +1,7 @@
 import { getConfig } from '@axium/core';
 import { audit } from '@axium/server/audit';
 import { authRequestForItem, requireSession } from '@axium/server/auth';
-import { error, parseRequestRange, withError } from '@axium/server/requests';
+import { contentDispositionFor, error, parseRequestRange, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { createHash } from 'node:crypto';
 import { writeFileSync } from 'node:fs';
@@ -13,22 +13,6 @@ import '../polyfills.js';
 import { getLimits } from './config.js';
 import { getUserStats } from './db.js';
 import { checkItemUpdate, checkNewItem, createNewItem, finishItemUpdate, uploads } from './item.js';
-
-export function _contentDispositionFor(name: string, suffix: string = '') {
-	const fallback =
-		name
-			.replace(/[\r\n]/g, '')
-			.replace(/[^\x20-\x7E]/g, '_')
-			.trim()
-			.replace(/[\\"]/g, '\\$&') || 'download';
-
-	const encoded = encodeURIComponent(name.replace(/[\r\n]/g, '')).replace(
-		/['()*]/g,
-		char => '%' + char.charCodeAt(0).toString(16).toUpperCase()
-	);
-
-	return `attachment; filename="${fallback}${suffix}"; filename*=UTF-8''${encoded}${suffix}`;
-}
 
 addRoute({
 	path: '/raw/storage',
@@ -94,7 +78,7 @@ addRoute({
 				'Accept-Ranges': 'bytes',
 				'Content-Length': String(length),
 				'Content-Type': item.type,
-				'Content-Disposition': _contentDispositionFor(item.name),
+				'Content-Disposition': contentDispositionFor(item.name),
 			},
 		});
 	},
