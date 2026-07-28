@@ -18,6 +18,8 @@
 		pictureURL = $state<string>(),
 		audioInfo = $state<[string, (string | number | null)?][]>([]);
 
+	const media = new MediaState();
+
 	$effect(() => {
 		getMetadata(rest).then(result => {
 			if (!result) return;
@@ -39,11 +41,10 @@
 					artist: common.artist,
 					artwork: pictureURL && picture ? [{ src: pictureURL, type: picture.format }] : [],
 				});
+				media.attachToSession();
 			}
 		});
 	});
-
-	const media = new MediaState();
 </script>
 
 <div class="Audio" onkeydown={media.keydown}>

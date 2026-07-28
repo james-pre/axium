@@ -107,4 +107,55 @@ export class MediaState {
 				break;
 		}
 	};
+
+	/** Seek to a time, clamped to the media's duration when known */
+	seek(time: number) {
+		this.currentTime = this.knownDuration ? Math.min(this.knownDuration, Math.max(0, time)) : Math.max(0, time);
+	}
+
+	attachToSession(next?: (backward: boolean) => void) {
+		const session = globalThis.navigator?.mediaSession;
+
+		if (!session) return;
+
+		session.setActionHandler('play', () => {
+			if (this.ended) this.currentTime = 0;
+			this.paused = false;
+		});
+		session.setActionHandler('pause', () => {
+			this.paused = true;
+		});
+		session.setActionHandler('stop', () => {
+			this.paused = true;
+			this.currentTime = 0;
+		});
+		session.setActionHandler('seekbackward', details => {
+			if (!this.knownDuration) return;
+			this.seek(this.currentTime - (details.seekOffset ?? 10));
+		});
+		session.setActionHandler('seekforward', details => {
+			if (!this.knownDuration) return;
+			this.seek(this.currentTime + (details.seekOffset ?? 10));
+		});
+		session.setActionHandler('seekto', details => {
+			if (details.seekTime === undefined || details.seekTime === null) return;
+			if (details.fastSeek && this.element?.fastSeek) {
+				this.element.fastSeek(details.seekTime);
+				return;
+			}
+			this.seek(details.seekTime);
+		});
+
+		if (!next) return;
+
+		session.setActionHandler('previoustrack', () => {
+			// Restart the current track instead when we're already a few seconds in
+			if (this.currentTime > 3) {
+				this.currentTime = 0;
+				return;
+			}
+			next(true);
+		});
+		session.setActionHandler('nexttrack', () => next(false));
+	}
 }
