@@ -106,9 +106,9 @@
 
 	const oninput = onchange;
 
-	/** Localize text for a given field in the current schema */
-	function subText(name: string, replacements?: ReplacementOptions & Record<string, any>) {
-		if (!localeInfo?.prefix) return;
+	/** Localize text for a given field in the current schema. */
+	function subText(name: string, replacements?: ReplacementOptions & Record<string, any>): string | undefined {
+		if (!localeInfo?.prefix) return replacements?.$default;
 		return text(`${localeInfo.prefix}.${name}`, replacements);
 	}
 
