@@ -94,15 +94,14 @@ addRoute({
 
 		if (!Object.keys(values).length) error(400, 'No valid fields to update');
 
-		return parseItem(
-			await database
-				.updateTable('storage')
-				.where('id', '=', itemId)
-				.set(values)
-				.returningAll()
-				.executeTakeFirstOrThrow()
-				.catch(withError('Could not update item'))
-		);
+		return await database
+			.updateTable('storage')
+			.where('id', '=', itemId)
+			.set(values)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.then(parseItem)
+			.catch(withError('Could not update item'));
 	},
 	async POST(request, { id: itemId }): Promise<Response> {
 		type R = Result<'POST', 'storage/item/:id'>;
