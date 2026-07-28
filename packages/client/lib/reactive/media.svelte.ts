@@ -134,6 +134,8 @@ export class MediaState {
 
 		this.isAttached = true;
 
+		this.updateAttached();
+
 		session.setActionHandler('play', () => {
 			if (this.ended) this.currentTime = 0;
 			this.paused = false;
