@@ -3,6 +3,7 @@ import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import type schema from '../../db.json';
 import * as kt from 'kinotool';
 import { tmdb } from './tmdb.js';
+import { omit } from 'utilium';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -20,7 +21,7 @@ export async function getTv(id: number): Promise<kt.Tv> {
 	const result = await database.selectFrom('kino_tv').where('id', '=', id).selectAll().executeTakeFirst();
 	if (result) return result;
 	const tv = await tmdb().tvShows.details(id).then(kt.Tv.parse);
-	await database.insertInto('kino_tv').values(tv).returningAll().executeTakeFirstOrThrow();
+	await database.insertInto('kino_tv').values(omit(tv, 'seasons')).returningAll().executeTakeFirstOrThrow();
 
 	for (const season of tv.seasons || []) {
 		await database
@@ -53,7 +54,7 @@ export async function getSeason(id: number, season_number: number): Promise<kt.S
 			.catch(() => {});
 	}
 
-	await database.insertInto('kino_seasons').values(season).returningAll().executeTakeFirstOrThrow();
+	await database.insertInto('kino_seasons').values(omit(season, 'episodes')).returningAll().executeTakeFirstOrThrow();
 	return season;
 }
 
