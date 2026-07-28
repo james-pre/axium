@@ -242,7 +242,7 @@ export function parseRequestRange(itemSize: bigint, range?: string | null): { st
 	return { start, end, length };
 }
 
-export function contentDispositionFor(name: string, suffix: string = '') {
+export function contentDispositionFor(name: string, suffix: string = '', type: 'attachment' | 'inline' = 'attachment') {
 	const fallback =
 		name
 			.replace(/[\r\n]/g, '')
@@ -255,5 +255,5 @@ export function contentDispositionFor(name: string, suffix: string = '') {
 		char => '%' + char.charCodeAt(0).toString(16).toUpperCase()
 	);
 
-	return `attachment; filename="${fallback}${suffix}"; filename*=UTF-8''${encoded}${suffix}`;
+	return `${type}; filename="${fallback}${suffix}"; filename*=UTF-8''${encoded}${suffix}`;
 }
