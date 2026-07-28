@@ -76,11 +76,13 @@ export class MediaState {
 				e.preventDefault();
 				if (!this.knownDuration) break;
 				this.currentTime = Math.max(0, this.currentTime - 10);
+				this.updateAttached();
 				break;
 			case 'ArrowRight':
 				e.preventDefault();
 				if (!this.knownDuration) break;
 				this.currentTime = Math.min(this.knownDuration, this.currentTime + 10);
+				this.updateAttached();
 				break;
 			case 'ArrowUp':
 				this.volume = Math.min(1, this.volume + 0.1);
@@ -111,6 +113,18 @@ export class MediaState {
 	/** Seek to a time, clamped to the media's duration when known */
 	seek(time: number) {
 		this.currentTime = this.knownDuration ? Math.min(this.knownDuration, Math.max(0, time)) : Math.max(0, time);
+		this.updateAttached();
+	}
+
+	protected isAttached: boolean = false;
+
+	protected updateAttached() {
+		if (!this.isAttached) return;
+
+		globalThis.navigator?.mediaSession?.setPositionState({
+			duration: this.knownDuration,
+			position: this.currentTime,
+		});
 	}
 
 	attachToSession(next?: (backward: boolean) => void) {
@@ -118,9 +132,12 @@ export class MediaState {
 
 		if (!session) return;
 
+		this.isAttached = true;
+
 		session.setActionHandler('play', () => {
 			if (this.ended) this.currentTime = 0;
 			this.paused = false;
+			this.updateAttached();
 		});
 		session.setActionHandler('pause', () => {
 			this.paused = true;
@@ -128,6 +145,7 @@ export class MediaState {
 		session.setActionHandler('stop', () => {
 			this.paused = true;
 			this.currentTime = 0;
+			this.updateAttached();
 		});
 		session.setActionHandler('seekbackward', details => {
 			if (!this.knownDuration) return;
