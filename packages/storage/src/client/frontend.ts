@@ -89,10 +89,10 @@ async function uploadAll(uploads: PendingUpload[], onItem?: (item: StorageItemMe
 export async function toastUpload(upload: Promise<unknown>): Promise<void> {
 	try {
 		await upload;
-		await toast('success', text('storage.generic.upload_success'));
+		void toast('success', text('storage.generic.upload_success'));
 	} catch (e) {
-		if (e instanceof DOMException && e.name == 'AbortError') await toast('info', text('storage.generic.upload_cancelled'));
-		else await toast('error', e);
+		if (e instanceof DOMException && e.name == 'AbortError') void toast('info', text('storage.generic.upload_cancelled'));
+		else void toast('error', e);
 	}
 }
 

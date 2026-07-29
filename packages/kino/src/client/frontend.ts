@@ -16,11 +16,11 @@ async function toastUpload(upload: (signal: AbortSignal) => Promise<KinoUpload>,
 
 	try {
 		const result = await upload(controller.signal);
-		await toast('success', text('kino.upload_success'));
+		void toast('success', text('kino.upload_success'));
 		return result;
 	} catch (e) {
-		if (e instanceof DOMException && e.name == 'AbortError') await toast('info', text('kino.upload_cancelled'));
-		else await toast('error', e);
+		if (e instanceof DOMException && e.name == 'AbortError') void toast('info', text('kino.upload_cancelled'));
+		else void toast('error', e);
 	} finally {
 		io.done(true);
 	}
