@@ -6,11 +6,10 @@
 
 	interface Props extends MediaProps {
 		extraControls?: Snippet;
+		media?: MediaState;
 	}
 
-	const { extraControls, ...rest }: Props = $props();
-
-	const media = new MediaState();
+	const { extraControls, media = new MediaState(), ...rest }: Props = $props();
 </script>
 
 <div class="Video" onkeydown={media.keydown}>
