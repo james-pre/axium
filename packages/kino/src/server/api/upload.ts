@@ -4,24 +4,15 @@ import { database } from '@axium/server/database';
 import { error, json, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { UploadManager } from '@axium/server/uploads';
-import * as io from 'ioium/node';
 import * as kt from 'kinotool';
 import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
-import { pick } from 'utilium';
+import { dirname } from 'node:path';
+import { omit, pick } from 'utilium';
 import { KinoMovieUploadInit, KinoTvUploadInit } from '../../common.js';
 import { getEpisode, getMovie } from '../db.js';
+import { applyMetadata, episodePath, extensionForType, moviePath, remuxUpload } from '../media.js';
 import { tmdb } from '../tmdb.js';
 import { ID } from './metadata.js';
-
-/** Flag the AAC track as the default audio. */
-function normalizeAudio(path: string): void {
-	try {
-		kt.mkv.setAacDefaultAudio(path, kt.mkv.getInfo(path));
-	} catch (e: any) {
-		io.warn('Kino: could not set the default audio track: ' + io.errorText(e));
-	}
-}
 
 const movieUploads = new UploadManager<KinoMovieUploadInit, kt.Movie>(() => getConfig('@axium/kino').upload);
 
@@ -35,7 +26,7 @@ addRoute({
 
 		const init = await parseBody(request, KinoMovieUploadInit);
 
-		if (init.type != 'video/x-matroska') error(415, 'Only mkv files are supported');
+		if (!extensionForType(init.type)) error(415, 'Only mkv and mp4 files are supported');
 
 		let movie: kt.Movie | null,
 			id = init.id;
@@ -68,12 +59,13 @@ addRoute({
 });
 
 movieUploads.addEndpoint('/raw/kino/movies/upload', async upload => {
-	const { data_dir } = getConfig('@axium/kino');
+	const base = moviePath(upload.data.id);
+	const ext = extensionForType(upload.init.type)!; // already checked when the upload was started
 
 	const tx = await database.startTransaction().execute();
 
 	try {
-		mkdirSync(join(data_dir, 'movie'), { recursive: true });
+		mkdirSync(dirname(base), { recursive: true });
 
 		const item = await tx
 			.insertInto('kino_movie_uploads')
@@ -81,14 +73,15 @@ movieUploads.addEndpoint('/raw/kino/movies/upload', async upload => {
 			.returningAll()
 			.executeTakeFirstOrThrow();
 
-		const path = join(data_dir, 'movie', upload.data.id + '.mkv');
+		upload.writeTo(base + ext);
 
-		upload.writeTo(path);
-
-		await kt.mkv.setFromMovie(path, upload.data);
-		normalizeAudio(path);
+		await applyMetadata(base + ext, ext, upload.data);
 
 		await tx.commit().execute();
+
+		// Runs in the background; until it finishes the original is served
+		remuxUpload(base);
+
 		return item;
 	} catch (error: any) {
 		await tx.rollback().execute();
@@ -109,7 +102,7 @@ addRoute({
 
 		const init = await parseBody(request, KinoTvUploadInit);
 
-		if (init.type != 'video/x-matroska') error(415, 'Only mkv files are supported');
+		if (!extensionForType(init.type)) error(415, 'Only mkv and mp4 files are supported');
 
 		const episode = await getEpisode(id, init.season, init.episode);
 
@@ -131,7 +124,10 @@ addRoute({
 });
 
 tvUploads.addEndpoint('/raw/kino/tv/:id/upload', async upload => {
-	const { data_dir } = getConfig('@axium/kino');
+	const { id, season_number, episode_number } = upload.data;
+
+	const base = episodePath(id, season_number, episode_number);
+	const ext = extensionForType(upload.init.type)!;
 
 	const tx = await database.startTransaction().execute();
 
@@ -139,25 +135,23 @@ tvUploads.addEndpoint('/raw/kino/tv/:id/upload', async upload => {
 		const item = await tx
 			.insertInto('kino_tv_uploads')
 			.values({
-				...upload.init,
+				...omit(upload.init, 'season', 'episode'),
 				...pick(upload.data, 'id', 'season_number', 'episode_number'),
 				hash: upload.hash,
 			})
 			.returningAll()
 			.executeTakeFirstOrThrow();
 
-		const seasonDir = join(data_dir, 'tv', upload.data.id.toString(), upload.data.season_number.toString());
+		mkdirSync(dirname(base), { recursive: true });
 
-		mkdirSync(seasonDir, { recursive: true });
+		upload.writeTo(base + ext);
 
-		const path = join(seasonDir, upload.data.episode_number.toString() + '.mkv');
-
-		upload.writeTo(path);
-
-		await kt.mkv.setFromEpisode(path, upload.data);
-		normalizeAudio(path);
+		await applyMetadata(base + ext, ext, upload.data);
 
 		await tx.commit().execute();
+
+		remuxUpload(base);
+
 		return item;
 	} catch (error: any) {
 		await tx.rollback().execute();

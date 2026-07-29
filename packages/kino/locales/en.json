@@ -55,6 +55,9 @@
 		"watch": "Watch",
 		"download": "Download",
 		"upload": "Upload",
+		"delete": "Delete upload",
+		"delete_confirm": "Delete this upload and its files? This cannot be undone.",
+		"delete_success": "Upload deleted",
 		"upload_movie": "Upload movie",
 		"upload_episode": "Upload episode",
 		"uploading": "Uploading {name}",
@@ -82,6 +85,8 @@
 			"title": "Movies and TV",
 			"heading": "Your library",
 			"empty": "Nothing has been uploaded yet.",
+			"recently_watched": "Recently watched",
+			"no_recent": "You haven't watched anything yet.",
 			"recent_movies": "Movies",
 			"recent_tv": "TV Shows",
 			"movies": {

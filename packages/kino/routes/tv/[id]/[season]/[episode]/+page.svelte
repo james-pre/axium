@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { episodeDataURL } from '@axium/kino/client';
+	import { deleteEpisodeUpload, episodeDataURL } from '@axium/kino/client';
 	import { uploadEpisodeFile } from '@axium/kino/client/frontend';
 	import { MediaActions, MediaDetail } from '@axium/kino/components';
 
@@ -36,9 +36,11 @@
 		<MediaActions
 			bind:upload
 			watchHref="/tv/{show.id}/{season}/{episode.episode_number}/watch"
-			dataURL={episodeDataURL(show.id, season, episode.episode_number)}
+			dataURL={episodeDataURL(show.id, season, episode.episode_number, true)}
 			uploadText={text('kino.upload_episode')}
+			canDelete={data.session?.user.isAdmin}
 			uploadFile={file => uploadEpisodeFile(file, show.id, season, episode.episode_number)}
+			deleteUpload={() => deleteEpisodeUpload(show.id, season, episode.episode_number)}
 		/>
 	{/snippet}
 </MediaDetail>

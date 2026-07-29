@@ -1,16 +1,9 @@
-import { fetchAPI, origin, prefix } from '@axium/client/requests';
+import { fetchAPI, origin, prefix, token } from '@axium/client/requests';
 import { uploadChunked, type ProgressHandler } from '@axium/client/uploads';
 import type * as kt from 'kinotool';
 import { prettifyError } from 'zod';
-import {
-	KinoUpload,
-	type ImageSize,
-	type ImageType,
-	type KinoEpisode,
-	type KinoMovie,
-	type KinoSearchResults,
-	type KinoSeason,
-} from '../common.js';
+import type { ImageSize, ImageType, KinoEpisode, KinoMovie, KinoSearchResults, KinoSeason, KinoView, KinoViewInit } from '../common.js';
+import { KinoUpload } from '../common.js';
 
 /** Build an absolute URL for one of kino's `/raw` endpoints */
 function raw(suffix: string): URL {
@@ -34,12 +27,20 @@ export function imageURL(path: string | null | undefined, type: ImageType, size?
 	return url.href;
 }
 
-export function movieDataURL(id: number): string {
-	return raw('movies/' + id).href;
+/**
+ * The URL a movie's file is served from.
+ * `download` asks for the original upload as an attachment rather than the playback copy.
+ */
+export function movieDataURL(id: number, download: boolean = false): string {
+	const url = raw('movies/' + id);
+	if (download) url.searchParams.set('download', '');
+	return url.href;
 }
 
-export function episodeDataURL(id: number, season: number, episode: number): string {
-	return raw(`tv/${id}/${season}/${episode}`).href;
+export function episodeDataURL(id: number, season: number, episode: number, download: boolean = false): string {
+	const url = raw(`tv/${id}/${season}/${episode}`);
+	if (download) url.searchParams.set('download', '');
+	return url.href;
 }
 
 export async function searchMedia(query: string, type?: 'movie' | 'tv'): Promise<KinoSearchResults> {
@@ -70,6 +71,45 @@ export async function getSeason(id: number, season: number): Promise<KinoSeason>
 
 export async function getEpisode(id: number, season: number, episode: number): Promise<KinoEpisode> {
 	return await fetchAPI('GET', 'kino/tv/:id/season/:season/episode/:episode', undefined, String(id), String(season), String(episode));
+}
+
+/** Recently watched items, most recent first */
+export async function getViews(): Promise<KinoView[]> {
+	return await fetchAPI('GET', 'kino/views');
+}
+
+/** Record that something was watched, and how far through it the viewer is */
+export async function recordView(init: KinoViewInit): Promise<KinoView> {
+	return await fetchAPI('PUT', 'kino/views', init);
+}
+
+/**
+ * Record a view while the page is going away.
+ *
+ * `keepalive` lets the request outlive the document; a normal fetch is cancelled on unload.
+ * `navigator.sendBeacon` can't be used here — it is POST-only and can't set the Authorization header.
+ */
+export function recordViewClosing(init: KinoViewInit): void {
+	const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' };
+	if (token) headers.Authorization = 'Bearer ' + token;
+
+	// Nothing can act on a failure at this point, so errors are dropped
+	void fetch(prefix + 'kino/views', {
+		method: 'PUT',
+		headers,
+		body: JSON.stringify(init),
+		keepalive: true,
+	}).catch(() => {});
+}
+
+/** Delete a movie's upload and its files. Administrators only. */
+export async function deleteMovieUpload(id: number): Promise<KinoUpload> {
+	return await fetchAPI('DELETE', 'kino/movies/:id', undefined, String(id));
+}
+
+/** Delete an episode's upload and its files. Administrators only. */
+export async function deleteEpisodeUpload(id: number, season: number, episode: number): Promise<KinoUpload> {
+	return await fetchAPI('DELETE', 'kino/tv/:id/season/:season/episode/:episode', undefined, String(id), String(season), String(episode));
 }
 
 export interface UploadOptions {

@@ -6,6 +6,7 @@ import './api/metadata.js';
 import './api/raw.js';
 import './api/search.js';
 import './api/upload.js';
+import './api/views.js';
 import './images.js';
 
 export function load() {

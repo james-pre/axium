@@ -166,6 +166,75 @@ export interface KinoEpisode extends z.infer<typeof KinoEpisode> {}
 export const KinoSeason = kt.Season.extend({ episodes: KinoEpisode.array().optional() });
 export interface KinoSeason extends z.infer<typeof KinoSeason> {}
 
+/** The containers kino accepts, and the MIME type each is served as */
+export const mediaTypes = {
+	'.mkv': 'video/x-matroska',
+	'.mp4': 'video/mp4',
+} as const;
+
+export type MediaExt = keyof typeof mediaTypes;
+
+export const mediaExtensions = Object.keys(mediaTypes) as MediaExt[];
+
+/** The extension an upload of `type` should be stored with, or null when the type isn't supported */
+export function extensionForType(type: string): MediaExt | null {
+	return mediaExtensions.find(ext => mediaTypes[ext] == type) ?? null;
+}
+
+/** `accept` for a media file picker, listing both MIME types and extensions */
+export const mediaAccept = Object.entries(mediaTypes)
+	.flatMap(([ext, type]) => [type, ext])
+	.join(',');
+
+/** How far through a movie or episode a user is, in seconds */
+export const KinoProgress = z.object({
+	position: z.number().nonnegative().default(0),
+	/** Total runtime, so progress can be shown without loading the file */
+	duration: z.number().positive().nullish(),
+});
+export interface KinoProgress extends z.infer<typeof KinoProgress> {}
+
+/** Which movie or episode was watched, and how far through it the user is */
+export const KinoViewInit = z.discriminatedUnion('type', [
+	z.object({ type: z.literal('movie'), id: z.int().positive(), ...KinoProgress.shape }),
+	z.object({
+		type: z.literal('tv'),
+		id: z.int().positive(),
+		season: z.int().nonnegative(),
+		episode: z.int().positive(),
+		...KinoProgress.shape,
+	}),
+]);
+export type KinoViewInit = z.infer<typeof KinoViewInit>;
+
+/**
+ * Identifies a movie or episode without the progress fields.
+ * `Omit` is distributed over the union, since applying it directly would collapse to the shared keys.
+ */
+export type KinoViewTarget = KinoViewInit extends infer T ? (T extends object ? Omit<T, keyof KinoProgress> : never) : never;
+
+/**
+ * A recently watched item, built from already-cached metadata so the list never has to hit TMDB.
+ * TV entries carry both the show (for artwork) and the episode that was watched.
+ */
+export const KinoView = z.discriminatedUnion('type', [
+	z.object({ type: z.literal('movie'), viewedAt: z.coerce.date(), ...KinoProgress.shape, movie: KinoMovie }),
+	z.object({
+		type: z.literal('tv'),
+		viewedAt: z.coerce.date(),
+		...KinoProgress.shape,
+		show: kt.Tv,
+		episode: KinoEpisode,
+	}),
+]);
+export type KinoView = z.infer<typeof KinoView>;
+
+/** Fraction of the way through an item, or null when the runtime isn't known yet */
+export function viewProgress(view: Pick<KinoProgress, 'position' | 'duration'>): number | null {
+	if (!view.duration) return null;
+	return Math.min(Math.max(view.position / view.duration, 0), 1);
+}
+
 const KinoAPI = {
 	'kino/movies': {
 		GET: KinoMovie.array(),
@@ -175,6 +244,12 @@ const KinoAPI = {
 	},
 	'kino/movies/:id': {
 		GET: KinoMovie,
+		/** Removes the upload and its files. Administrators only. */
+		DELETE: KinoUpload,
+	},
+	'kino/views': {
+		GET: KinoView.array(),
+		PUT: [KinoViewInit, KinoView],
 	},
 	'kino/tv': {
 		GET: kt.Tv.array(),
@@ -187,6 +262,8 @@ const KinoAPI = {
 	},
 	'kino/tv/:id/season/:season/episode/:episode': {
 		GET: KinoEpisode,
+		/** Removes the upload and its files. Administrators only. */
+		DELETE: KinoUpload,
 	},
 	'kino/tv/:id/upload': {
 		PUT: [KinoTvUploadInit, KinoTvUploadResult],

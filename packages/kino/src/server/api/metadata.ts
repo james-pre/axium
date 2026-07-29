@@ -1,10 +1,22 @@
 import type { AsyncResult } from '@axium/core';
 import { requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
+import { error } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
+import * as io from 'ioium/node';
 import * as z from 'zod';
 import type { KinoUpload } from '../../common.js';
 import { getEpisode, getMovie, getSeason, getTv } from '../db.js';
+import { episodePath, moviePath, removeMedia } from '../media.js';
+
+/**
+ * Deleting an upload throws away data for everyone, so it is restricted to administrators
+ * regardless of `allow_user_uploads`.
+ */
+async function requireAdmin(req: Request): Promise<void> {
+	const session = await requireSession(req);
+	if (!session.user.isAdmin) error(403, 'Only administrators can delete uploads');
+}
 
 export const ID = z.coerce.number().int().positive();
 
@@ -45,6 +57,23 @@ addRoute({
 		]);
 
 		return { ...movie, upload };
+	},
+
+	async DELETE(req, { id }): AsyncResult<'DELETE', 'kino/movies/:id'> {
+		await requireAdmin(req);
+
+		const upload = await database.deleteFrom('kino_movie_uploads').where('id', '=', id).returning(uploadColumns).executeTakeFirst();
+
+		if (!upload) error(404, 'This movie has not been uploaded');
+
+		// The row is gone either way; a file we can't remove would only waste space
+		const removed = removeMedia(moviePath(id));
+		io.info(`Kino: deleted movie ${id} (${removed.length} file(s))`);
+
+		// Progress against something nobody can watch anymore is meaningless
+		await database.deleteFrom('kino_movie_views').where('id', '=', id).execute();
+
+		return upload;
 	},
 });
 
@@ -112,5 +141,27 @@ addRoute({
 		]);
 
 		return { ...data, upload };
+	},
+
+	async DELETE(req, { id, season, episode }): AsyncResult<'DELETE', 'kino/tv/:id/season/:season/episode/:episode'> {
+		await requireAdmin(req);
+
+		const upload = await database
+			.deleteFrom('kino_tv_uploads')
+			.where(eb => eb.and({ id, season_number: season, episode_number: episode }))
+			.returning(uploadColumns)
+			.executeTakeFirst();
+
+		if (!upload) error(404, 'This episode has not been uploaded');
+
+		const removed = removeMedia(episodePath(id, season, episode));
+		io.info(`Kino: deleted episode ${id} S${season}E${episode} (${removed.length} file(s))`);
+
+		await database
+			.deleteFrom('kino_tv_views')
+			.where(eb => eb.and({ id, season_number: season, episode_number: episode }))
+			.execute();
+
+		return upload;
 	},
 });

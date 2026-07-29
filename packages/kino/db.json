@@ -71,6 +71,35 @@
 				}
 			},
 			"indexes": {}
+		},
+		{
+			"delta": true,
+			"add_tables": {
+				"kino_movie_views": {
+					"columns": {
+						"userId": { "type": "uuid", "primary": true, "required": true, "references": "users.id", "onDelete": "cascade" },
+						"id": { "type": "integer", "primary": true, "required": true },
+						"viewedAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"position": { "type": "double precision", "required": true, "default": "0" },
+						"duration": { "type": "double precision" }
+					}
+				},
+				"kino_tv_views": {
+					"columns": {
+						"userId": { "type": "uuid", "primary": true, "required": true, "references": "users.id", "onDelete": "cascade" },
+						"id": { "type": "integer", "primary": true, "required": true },
+						"season_number": { "type": "integer", "primary": true, "required": true },
+						"episode_number": { "type": "integer", "primary": true, "required": true },
+						"viewedAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"position": { "type": "double precision", "required": true, "default": "0" },
+						"duration": { "type": "double precision" }
+					}
+				}
+			},
+			"add_indexes": {
+				"kino_movie_views_userId": { "on": "kino_movie_views", "columns": ["userId"] },
+				"kino_tv_views_userId": { "on": "kino_tv_views", "columns": ["userId"] }
+			}
 		}
 	],
 	"wipe": []
