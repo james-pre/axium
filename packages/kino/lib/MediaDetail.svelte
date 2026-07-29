@@ -45,7 +45,7 @@
 			<div class="backdrop" style:background-image="url('{backdrop}')"></div>
 		{/if}
 
-		<div class="art"><Poster path={imagePath} type={imageType} size="w342" alt={title} /></div>
+		<div class="art"><Poster path={imagePath} type={imageType} size={imageType == 'poster' ? 'w342' : 'w300'} alt={title} /></div>
 
 		<div class="info">
 			{#if context}<span class="subtle">{@render context()}</span>{/if}

@@ -1,6 +1,7 @@
 import { serverConfigs } from '@axium/core';
 import { $API } from '@axium/core/api';
 import type {} from '@axium/core/plugins';
+import { zKeys } from '@axium/core/locales';
 import { UploadConfig, UploadInit, UploadName, UploadSize } from '@axium/core/uploads';
 import * as z from 'zod';
 import * as kt from 'kinotool/tmdb';
@@ -23,7 +24,7 @@ export const imagesSizes = {
 export const ImageType = z.literal(Object.keys(imagesSizes) as Exclude<keyof typeof imagesSizes, 'all'>[]);
 export type ImageType = z.infer<typeof ImageType>;
 
-export const ImageSize = z.literal(imagesSizes.all);
+export const ImageSize = z.literal(imagesSizes.all).register(zKeys, { key: 'kino.config.image_size', prefix: 'kino.image_size' });
 export type ImageSize = z.infer<typeof ImageSize>;
 
 export function imageWidth(size: ImageSize): number {
@@ -31,11 +32,14 @@ export function imageWidth(size: ImageSize): number {
 	return size == 'original' ? 1e10 : 421;
 }
 
-export const PosterImageSize = z.literal(imagesSizes.poster),
-	BackdropImageSize = z.literal(imagesSizes.backdrop),
-	LogoImageSize = z.literal(imagesSizes.logo),
-	ProfileImageSize = z.literal(imagesSizes.profile),
-	StillImageSize = z.literal(imagesSizes.still);
+/** All the image sizes share one set of translations, since they are the same vocabulary of TMDB buckets */
+const sizeLocale = { prefix: 'kino.image_size' };
+
+export const PosterImageSize = z.literal(imagesSizes.poster).register(zKeys, { key: 'kino.config.poster_size', ...sizeLocale }),
+	BackdropImageSize = z.literal(imagesSizes.backdrop).register(zKeys, { key: 'kino.config.backdrop_size', ...sizeLocale }),
+	LogoImageSize = z.literal(imagesSizes.logo).register(zKeys, { key: 'kino.config.logo_size', ...sizeLocale }),
+	ProfileImageSize = z.literal(imagesSizes.profile).register(zKeys, { key: 'kino.config.profile_size', ...sizeLocale }),
+	StillImageSize = z.literal(imagesSizes.still).register(zKeys, { key: 'kino.config.still_size', ...sizeLocale });
 
 export const ImageSelection = z.discriminatedUnion('type', [
 	z.object({ type: z.literal('poster'), size: PosterImageSize.optional() }),
@@ -46,10 +50,25 @@ export const ImageSelection = z.discriminatedUnion('type', [
 	z.object({ type: z.union([z.undefined(), z.null()]), size: ImageSize.optional() }),
 ]);
 
+/**
+ * How uploads are prepared for playback:
+ * original: serve the uploaded file as-is
+ * both: keep the original for download and serve a remuxed copy to browsers
+ * replace: remux on upload and discard the original
+ */
+export const RemuxMode = z.literal(['original', 'both', 'replace']).register(zKeys, { key: 'kino.config.remux', prefix: 'kino.remux' });
+export type RemuxMode = z.infer<typeof RemuxMode>;
+
+export const ImageCacheMode = z
+	.literal(['disabled', 'fallback', 'exact-size', 'quality', 'prefer'])
+	.register(zKeys, { key: 'kino.config.cache_mode', prefix: 'kino.cache_mode' });
+export type ImageCacheMode = z.infer<typeof ImageCacheMode>;
+
 export const KinoConfig = z.object({
 	allow_user_uploads: z.boolean(),
 	data_dir: z.string().nonempty(),
 	tmdb_api_key: z.string(),
+	remux: RemuxMode,
 	images: z.object({
 		cache: z.object({
 			/**
@@ -59,7 +78,7 @@ export const KinoConfig = z.object({
 			 * quality: use cached images when their size is at least the requested sized
 			 * prefer: always used cached images
 			 */
-			mode: z.literal(['disabled', 'fallback', 'exact-size', 'quality', 'prefer']),
+			mode: ImageCacheMode,
 			/** Max cache size in MiB, 0=unlimited */
 			max_size: z.number().nonnegative(),
 			/** The directory to store cached images */

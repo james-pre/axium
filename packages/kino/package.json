@@ -75,6 +75,7 @@
 			"allow_user_uploads": true,
 			"data_dir": "/srv/axium/kino",
 			"tmdb_api_key": "",
+			"remux": "original",
 			"upload": {
 				"temp_dir": "/tmp/axium",
 				"timeout": 15

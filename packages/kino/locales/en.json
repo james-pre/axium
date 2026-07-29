@@ -3,6 +3,41 @@
 		"kino": "Movies and TV"
 	},
 	"kino": {
+		"config": {
+			"remux": "Playback format",
+			"cache_mode": "Image cache mode",
+			"image_size": "Image size",
+			"poster_size": "Largest cached poster",
+			"backdrop_size": "Largest cached backdrop",
+			"logo_size": "Largest cached logo",
+			"profile_size": "Largest cached profile image",
+			"still_size": "Largest cached still"
+		},
+		"remux": {
+			"original": "Serve the uploaded file as-is",
+			"both": "Keep the original and serve a remuxed copy",
+			"replace": "Remux on upload and discard the original"
+		},
+		"cache_mode": {
+			"disabled": "Don't cache images",
+			"fallback": "Only when TMDB is unavailable",
+			"exact-size": "Only at the requested size",
+			"quality": "At the requested size or larger",
+			"prefer": "Always prefer cached images"
+		},
+		"image_size": {
+			"w45": "45px wide",
+			"w92": "92px wide",
+			"w154": "154px wide",
+			"w185": "185px wide",
+			"w300": "300px wide",
+			"w342": "342px wide",
+			"w500": "500px wide",
+			"w780": "780px wide",
+			"w1280": "1280px wide",
+			"h632": "632px tall",
+			"original": "Original"
+		},
 		"tab": {
 			"home": "Home",
 			"movies": "Movies",

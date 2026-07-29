@@ -4,6 +4,7 @@ import { database } from '@axium/server/database';
 import { error, json, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { UploadManager } from '@axium/server/uploads';
+import * as io from 'ioium/node';
 import * as kt from 'kinotool';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
@@ -12,6 +13,15 @@ import { KinoMovieUploadInit, KinoTvUploadInit } from '../../common.js';
 import { getEpisode, getMovie } from '../db.js';
 import { tmdb } from '../tmdb.js';
 import { ID } from './metadata.js';
+
+/** Flag the AAC track as the default audio. */
+function normalizeAudio(path: string): void {
+	try {
+		kt.mkv.setAacDefaultAudio(path, kt.mkv.getInfo(path));
+	} catch (e: any) {
+		io.warn('Kino: could not set the default audio track: ' + io.errorText(e));
+	}
+}
 
 const movieUploads = new UploadManager<KinoMovieUploadInit, kt.Movie>(() => getConfig('@axium/kino').upload);
 
@@ -76,6 +86,7 @@ movieUploads.addEndpoint('/raw/kino/movies/upload', async upload => {
 		upload.writeTo(path);
 
 		await kt.mkv.setFromMovie(path, upload.data);
+		normalizeAudio(path);
 
 		await tx.commit().execute();
 		return item;
@@ -144,6 +155,7 @@ tvUploads.addEndpoint('/raw/kino/tv/:id/upload', async upload => {
 		upload.writeTo(path);
 
 		await kt.mkv.setFromEpisode(path, upload.data);
+		normalizeAudio(path);
 
 		await tx.commit().execute();
 		return item;
