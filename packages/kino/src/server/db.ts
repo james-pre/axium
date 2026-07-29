@@ -14,7 +14,9 @@ declare module '@axium/server/database' {
 export async function getMovie(id: number): Promise<kt.Movie> {
 	const result = await database.selectFrom('kino_movies').where('id', '=', id).selectAll().executeTakeFirst();
 	if (result) return result;
-	const movie = await tmdb().movies.details(id).then(kt.Movie.parse);
+	const movie = await tmdb()
+		.movies.details(id)
+		.then(d => kt.Movie.parse(d));
 	await database.insertInto('kino_movies').values(movie).returningAll().executeTakeFirstOrThrow();
 	return movie;
 }
@@ -48,7 +50,9 @@ export async function getTv(id: number): Promise<kt.Tv> {
 	// Search caches shows without their seasons, so a row on its own is not enough to skip TMDB
 	if (result?.seasons.length) return result;
 
-	const tv = await tmdb().tvShows.details(id).then(kt.Tv.parse);
+	const tv = await tmdb()
+		.tvShows.details(id)
+		.then(d => kt.Tv.parse(d));
 
 	await database
 		.insertInto('kino_tv')
@@ -83,7 +87,9 @@ export async function getSeason(id: number, season_number: number): Promise<kt.S
 	 */
 	if (result?.episodes.length) return result;
 
-	const season = await tmdb().tvSeasons.details({ tvShowID: id, seasonNumber: season_number }).then(kt.Season.parse);
+	const season = await tmdb()
+		.tvSeasons.details({ tvShowID: id, seasonNumber: season_number })
+		.then(d => kt.Season.parse(d));
 	season.id = id;
 
 	for (const episode of season.episodes || []) {
@@ -115,7 +121,7 @@ export async function getEpisode(id: number, season_number: number, episode_numb
 
 	const episode = await tmdb()
 		.tvEpisode.details({ tvShowID: id, seasonNumber: season_number, episodeNumber: episode_number })
-		.then(kt.Episode.parse);
+		.then(d => kt.Episode.parse(d));
 	episode.id = id;
 
 	await database
