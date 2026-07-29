@@ -1,3 +1,4 @@
+export { default as DropZone } from './DropZone.svelte';
 export { default as EpisodeList } from './EpisodeList.svelte';
 export { default as MediaActions } from './MediaActions.svelte';
 export { default as MediaCard } from './MediaCard.svelte';

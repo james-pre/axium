@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { deleteEpisodeUpload, episodeDataURL } from '@axium/kino/client';
-	import { uploadEpisodeFile } from '@axium/kino/client/frontend';
-	import { MediaActions, MediaDetail } from '@axium/kino/components';
+	import { uploadEpisodeDrop, uploadEpisodeFile } from '@axium/kino/client/frontend';
+	import { DropZone, MediaActions, MediaDetail } from '@axium/kino/components';
 
 	const { data } = $props();
 
@@ -17,30 +17,39 @@
 	<title>{show.name} — {code}</title>
 </svelte:head>
 
-<MediaDetail
-	title={episode.name}
-	imagePath={episode.still_path}
-	imageType="still"
-	backdropPath={show.backdrop_path}
-	date={episode.air_date}
-	dateKind="aired"
-	overview={null}
+<DropZone
+	label={text('kino.drop_episode')}
+	enabled={!upload}
+	onDrop={async entries => {
+		const result = await uploadEpisodeDrop(entries, show.id, season, episode.episode_number);
+		if (result) upload = result;
+	}}
 >
-	{#snippet context()}
-		<a href="/tv/{show.id}">{show.name}</a>
-		·
-		<a href="/tv/{show.id}/{season}">{code}</a>
-	{/snippet}
+	<MediaDetail
+		title={episode.name}
+		imagePath={episode.still_path}
+		imageType="still"
+		backdropPath={show.backdrop_path}
+		date={episode.air_date}
+		dateKind="aired"
+		overview={null}
+	>
+		{#snippet context()}
+			<a href="/tv/{show.id}">{show.name}</a>
+			·
+			<a href="/tv/{show.id}/{season}">{code}</a>
+		{/snippet}
 
-	{#snippet actions()}
-		<MediaActions
-			bind:upload
-			watchHref="/tv/{show.id}/{season}/{episode.episode_number}/watch"
-			dataURL={episodeDataURL(show.id, season, episode.episode_number, true)}
-			uploadText={text('kino.upload_episode')}
-			canDelete={data.session?.user.isAdmin}
-			uploadFile={file => uploadEpisodeFile(file, show.id, season, episode.episode_number)}
-			deleteUpload={() => deleteEpisodeUpload(show.id, season, episode.episode_number)}
-		/>
-	{/snippet}
-</MediaDetail>
+		{#snippet actions()}
+			<MediaActions
+				bind:upload
+				watchHref="/tv/{show.id}/{season}/{episode.episode_number}/watch"
+				dataURL={episodeDataURL(show.id, season, episode.episode_number, true)}
+				uploadText={text('kino.upload_episode')}
+				canDelete={data.session?.user.isAdmin}
+				uploadFile={file => uploadEpisodeFile(file, show.id, season, episode.episode_number)}
+				deleteUpload={() => deleteEpisodeUpload(show.id, season, episode.episode_number)}
+			/>
+		{/snippet}
+	</MediaDetail>
+</DropZone>
