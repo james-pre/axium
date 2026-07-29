@@ -60,9 +60,14 @@ addRoute({
 				])
 				.where('kino_tv_views.userId', '=', userId)
 				.orderBy('kino_tv_views.viewedAt', 'desc')
-				.limit(limit)
+				// Only one row per show survives the dedupe below, so fetch extra to avoid a short list
+				.limit(limit * 4)
 				.execute(),
 		]);
+
+		/** A show should take one slot no matter how many of its episodes were watched */
+		const seenShows = new Set<number>();
+		const latestPerShow = episodes.filter(row => !seenShows.has(row.showId) && seenShows.add(row.showId));
 
 		const views: KinoView[] = [
 			...movies.map(({ viewedAt, position, duration, uploadedAt, uploadName, size, type, ...movie }) => ({
@@ -72,7 +77,7 @@ addRoute({
 				duration,
 				movie: { ...movie, upload: { uploadedAt, name: uploadName, size, type } },
 			})),
-			...episodes.map(row => ({
+			...latestPerShow.map(row => ({
 				type: 'tv' as const,
 				viewedAt: row.viewedAt,
 				position: row.position,
