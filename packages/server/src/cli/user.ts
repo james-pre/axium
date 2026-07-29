@@ -1,9 +1,15 @@
+import { ClientConfig, resolveServerURL } from '@axium/client/config';
 import type { UserInternal } from '@axium/core';
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
+import * as fs from 'node:fs';
+import { userInfo } from 'node:os';
+import { join } from 'node:path';
 import { styleText } from 'node:util';
+import { isRoot } from 'utilium/node';
 import { audit } from '../audit.js';
+import { createSession } from '../auth.js';
 import config from '../config.js';
 import * as db from '../db/index.js';
 import { diffUpdate, lookupUser, userText } from './common.js';
@@ -116,4 +122,50 @@ program
 		console.log(
 			`${userText(user)} is ${isAdmin ? 'now' : 'no longer'} an administrator. (${styleText(['whiteBright', 'bold'], isAdmin.toString())})`
 		);
+	});
+
+program
+	.command('make-local-session')
+	.description('Create a session for use with a client on the same machine. Must be run as the target user.')
+	.addArgument(argUserLookup)
+	.option('-s, --include-server [mode]', "Also write the server to the target user's config")
+	.action(async (_user: Promise<UserInternal>, opt) => {
+		const user = await _user;
+
+		if (isRoot) io.exit('Can not make a local session as root.');
+
+		const local = userInfo();
+
+		const configDir = join(process.env.XDG_CONFIG_HOME || join(local.homedir, '.config'), 'axium');
+
+		const configPath = join(configDir, 'config.json');
+
+		let clientConfig: ClientConfig = { plugins: [] };
+		if (fs.existsSync(configPath)) {
+			try {
+				clientConfig = io.readJSON(configPath, ClientConfig);
+			} catch (e) {
+				io.exit(`Failed to read ${configPath}: ${io.errorText(e)}`);
+			}
+		}
+
+		const session = await createSession(user.id, 'Local Axium Client for ' + local.username).catch(e =>
+			io.exit('Failed to create session: ' + e.message)
+		);
+
+		clientConfig.token = session.token;
+		if (opt.includeServer)
+			clientConfig.server = resolveServerURL(
+				opt.includeServer == 'local' ? `${config.web.secure ? 'https' : 'http'}://localhost:${config.web.port}` : config.origin
+			);
+
+		try {
+			fs.mkdirSync(configDir, { recursive: true });
+			io.writeJSON(configPath, clientConfig);
+			fs.chmodSync(configPath, 0o600);
+		} catch (e: any) {
+			io.exit(`Failed to write ${configPath}: ${io.errorText(e)}`);
+		}
+
+		console.log(`Created session ${session.id} for ${userText(user)}, expires ${formatDateRange(session.expires)}`);
 	});
