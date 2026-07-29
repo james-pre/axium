@@ -4,6 +4,7 @@ export { default as MediaCard } from './MediaCard.svelte';
 export { default as MediaDetail } from './MediaDetail.svelte';
 export { default as MediaGrid } from './MediaGrid.svelte';
 export { default as Poster } from './Poster.svelte';
+export { default as ProgressBar } from './ProgressBar.svelte';
 export { default as RecentGrid } from './RecentGrid.svelte';
 export { default as SearchBar } from './SearchBar.svelte';
 export { default as SeasonList } from './SeasonList.svelte';

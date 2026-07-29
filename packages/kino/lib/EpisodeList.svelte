@@ -1,21 +1,30 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
-	import type { KinoEpisode } from '@axium/kino/common';
+	import { viewProgress, type KinoEpisode } from '@axium/kino/common';
 	import Poster from './Poster.svelte';
+	import ProgressBar from './ProgressBar.svelte';
 
 	const { id, season, episodes }: { id: number; season: number; episodes?: KinoEpisode[] } = $props();
 </script>
 
 <div class="EpisodeList">
 	{#each episodes || [] as episode (episode.episode_number)}
+		{@const progress = viewProgress(episode.progress)}
 		<a class="episode" href="/tv/{id}/{season}/{episode.episode_number}">
-			<Poster path={episode.still_path} type="still" size="w185" alt={episode.name} />
-			<span class="number subtle">{text('kino.episode_number', { number: episode.episode_number })}</span>
-			<span class="name">{episode.name}</span>
-			<span class="status subtle icon-text">
-				<Icon i={episode.upload ? 'circle-play' : 'upload'} />
-			</span>
+			<div class="art">
+				<Poster path={episode.still_path} type="still" size="w185" alt={episode.name} />
+				{#if progress !== null}
+					<ProgressBar value={progress} />
+				{/if}
+			</div>
+
+			<div class="info">
+				<span class="number subtle">{text('kino.episode_number', { number: episode.episode_number })}</span>
+				<span class="name">{episode.name}</span>
+			</div>
+
+			<Icon i={episode.upload ? 'circle-play' : 'upload'} class="status" />
 		</a>
 	{:else}
 		<p class="subtle">{text('kino.no_episodes')}</p>
@@ -29,11 +38,11 @@
 		gap: 0.5em;
 	}
 
+	/* Explicit columns: artwork, then the label, then the status icon pinned to the right */
 	.episode {
 		display: grid;
 		grid-template-columns: 8em 1fr auto;
-		grid-template-rows: auto auto;
-		column-gap: 1em;
+		gap: 1em;
 		align-items: center;
 		padding: 0.5em;
 		border-radius: 0.5em;
@@ -44,22 +53,32 @@
 			background-color: var(--bg-strong);
 		}
 
-		& :global(.Poster) {
-			grid-row: 1 / 3;
+		:global(.status) {
+			--fill: var(--fg-accent);
 		}
 	}
 
+	.art {
+		display: flex;
+		flex-direction: column;
+		gap: 0.25em;
+		min-width: 0;
+	}
+
+	.info {
+		display: flex;
+		flex-direction: column;
+		min-width: 0;
+	}
+
 	.number {
-		align-self: end;
 		font-size: 0.85em;
 	}
 
 	.name {
-		align-self: start;
-	}
-
-	.status {
-		grid-row: 1 / 3;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
 	}
 
 	@media (width < 700px) {

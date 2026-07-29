@@ -2,6 +2,7 @@
 	import { text } from '@axium/client';
 	import { type KinoView, viewProgress } from '@axium/kino/common';
 	import Poster from './Poster.svelte';
+	import ProgressBar from './ProgressBar.svelte';
 
 	const { views, empty }: { views: KinoView[]; empty: string } = $props();
 
@@ -14,8 +15,7 @@
 
 <div class="RecentGrid">
 	{#each views as view (key(view))}
-		{@const progress = viewProgress(view)}
-		{@const title = view.type == 'movie' ? view.movie.title : view.show.name}
+		{const title = view.type == 'movie' ? view.movie.title : view.show.name}
 		<!-- Resume where they left off rather than starting over -->
 		<a
 			class="recent"
@@ -25,10 +25,9 @@
 		>
 			<Poster path={view.type == 'movie' ? view.movie.poster_path : view.show.poster_path} type="poster" size="w342" alt={title} />
 
+			{const progress = viewProgress(view)}
 			{#if progress !== null}
-				<div class="progress" role="progressbar" aria-valuenow={Math.round(progress * 100)}>
-					<div class="fill" style:width="{progress * 100}%"></div>
-				</div>
+				<ProgressBar value={progress} />
 			{/if}
 
 			<span class="title">{title}</span>
@@ -66,18 +65,6 @@
 
 		&:hover .title {
 			color: var(--fg-strong);
-		}
-	}
-
-	.progress {
-		height: 4px;
-		border-radius: 2px;
-		background-color: var(--bg-strong);
-		overflow: hidden;
-
-		.fill {
-			height: 100%;
-			background-color: var(--fg-accent);
 		}
 	}
 

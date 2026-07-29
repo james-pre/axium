@@ -107,21 +107,37 @@ addRoute({
 	path: '/api/kino/tv/:id/season/:season',
 	params: { id: ID, season: SeasonNumber },
 	async GET(req, { id, season }): AsyncResult<'GET', 'kino/tv/:id/season/:season'> {
-		await requireSession(req);
+		const { userId } = await requireSession(req);
 
 		const data = await getSeason(id, season);
 
 		if (!data.episodes?.length) return data;
 
-		const uploads = await database
-			.selectFrom('kino_tv_uploads')
-			.select(['episode_number', ...uploadColumns])
-			.where(eb => eb.and({ id, season_number: season }))
-			.execute();
+		const [uploads, views] = await Promise.all([
+			database
+				.selectFrom('kino_tv_uploads')
+				.select(['episode_number', ...uploadColumns])
+				.where(eb => eb.and({ id, season_number: season }))
+				.execute(),
+			// Progress is per-user, so the episode list shows the requester's own position
+			database
+				.selectFrom('kino_tv_views')
+				.select(['episode_number', 'position', 'duration'])
+				.where(eb => eb.and({ userId, id, season_number: season }))
+				.execute(),
+		]);
 
-		const byEpisode = new Map(uploads.map(({ episode_number, ...upload }) => [episode_number, upload]));
+		const uploadFor = new Map(uploads.map(({ episode_number, ...upload }) => [episode_number, upload]));
+		const progressFor = new Map(views.map(({ episode_number, ...progress }) => [episode_number, progress]));
 
-		return { ...data, episodes: data.episodes.map(episode => ({ ...episode, upload: byEpisode.get(episode.episode_number) })) };
+		return {
+			...data,
+			episodes: data.episodes.map(episode => ({
+				...episode,
+				upload: uploadFor.get(episode.episode_number),
+				progress: progressFor.get(episode.episode_number),
+			})),
+		};
 	},
 });
 
@@ -129,18 +145,23 @@ addRoute({
 	path: '/api/kino/tv/:id/season/:season/episode/:episode',
 	params: { id: ID, season: SeasonNumber, episode: ID },
 	async GET(req, { id, season, episode }): AsyncResult<'GET', 'kino/tv/:id/season/:season/episode/:episode'> {
-		await requireSession(req);
+		const { userId } = await requireSession(req);
 
-		const [data, upload] = await Promise.all([
+		const [data, upload, progress] = await Promise.all([
 			getEpisode(id, season, episode),
 			database
 				.selectFrom('kino_tv_uploads')
 				.select(uploadColumns)
 				.where(eb => eb.and({ id, season_number: season, episode_number: episode }))
 				.executeTakeFirst(),
+			database
+				.selectFrom('kino_tv_views')
+				.select(['position', 'duration'])
+				.where(eb => eb.and({ userId, id, season_number: season, episode_number: episode }))
+				.executeTakeFirst(),
 		]);
 
-		return { ...data, upload };
+		return { ...data, upload, progress };
 	},
 
 	async DELETE(req, { id, season, episode }): AsyncResult<'DELETE', 'kino/tv/:id/season/:season/episode/:episode'> {

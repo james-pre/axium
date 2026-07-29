@@ -82,8 +82,8 @@
 				<i class="subtle message">{text('kino.search.failed')}</i>
 			{:else}
 				{#each results as item (item.type + item.id)}
-					{@const title = item.type == 'movie' ? item.title : item.name}
-					{@const date = item.type == 'movie' ? item.release_date : item.first_air_date}
+					{const title = item.type == 'movie' ? item.title : item.name}
+					{const date = item.type == 'movie' ? item.release_date : item.first_air_date}
 					<a class="result" href={item.type == 'movie' ? `/movies/${item.id}` : `/tv/${item.id}`} onclick={close}>
 						<Poster path={item.poster_path} type="poster" size="w92" alt={title} />
 						<span class="name">{title}</span>

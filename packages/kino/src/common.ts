@@ -148,6 +148,20 @@ export interface KinoSearchQuery extends z.infer<typeof KinoSearchQuery> {}
 export const KinoSearchResults = z.union([kt.Movie.extend({ type: z.literal('movie') }), kt.Tv.extend({ type: z.literal('tv') })]).array();
 export type KinoSearchResults = z.infer<typeof KinoSearchResults>;
 
+/** How far through a movie or episode a user is, in seconds */
+export const KinoProgress = z.object({
+	position: z.number().nonnegative().default(0),
+	/** Total runtime, so progress can be shown without loading the file */
+	duration: z.number().positive().nullish(),
+});
+export interface KinoProgress extends z.infer<typeof KinoProgress> {}
+
+/** Fraction of the way through an item, or null when the runtime isn't known yet */
+export function viewProgress(view?: Partial<KinoProgress> | null): number | null {
+	if (!view?.duration || !view.position) return null;
+	return Math.min(Math.max(view.position / view.duration, 0), 1);
+}
+
 /** Information about the file backing a movie or episode. `null` when nothing has been uploaded yet. */
 export const KinoUpload = z.object({
 	uploadedAt: z.coerce.date(),
@@ -160,7 +174,11 @@ export interface KinoUpload extends z.infer<typeof KinoUpload> {}
 export const KinoMovie = kt.Movie.extend({ upload: KinoUpload.nullish() });
 export interface KinoMovie extends z.infer<typeof KinoMovie> {}
 
-export const KinoEpisode = kt.Episode.extend({ upload: KinoUpload.nullish() });
+export const KinoEpisode = kt.Episode.extend({
+	upload: KinoUpload.nullish(),
+	/** How far the requesting user got through this episode, if they have watched it */
+	progress: KinoProgress.nullish(),
+});
 export interface KinoEpisode extends z.infer<typeof KinoEpisode> {}
 
 export const KinoSeason = kt.Season.extend({ episodes: KinoEpisode.array().optional() });
@@ -185,14 +203,6 @@ export function extensionForType(type: string): MediaExt | null {
 export const mediaAccept = Object.entries(mediaTypes)
 	.flatMap(([ext, type]) => [type, ext])
 	.join(',');
-
-/** How far through a movie or episode a user is, in seconds */
-export const KinoProgress = z.object({
-	position: z.number().nonnegative().default(0),
-	/** Total runtime, so progress can be shown without loading the file */
-	duration: z.number().positive().nullish(),
-});
-export interface KinoProgress extends z.infer<typeof KinoProgress> {}
 
 /** Which movie or episode was watched, and how far through it the user is */
 export const KinoViewInit = z.discriminatedUnion('type', [
@@ -228,12 +238,6 @@ export const KinoView = z.discriminatedUnion('type', [
 	}),
 ]);
 export type KinoView = z.infer<typeof KinoView>;
-
-/** Fraction of the way through an item, or null when the runtime isn't known yet */
-export function viewProgress(view: Pick<KinoProgress, 'position' | 'duration'>): number | null {
-	if (!view.duration) return null;
-	return Math.min(Math.max(view.position / view.duration, 0), 1);
-}
 
 const KinoAPI = {
 	'kino/movies': {
