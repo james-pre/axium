@@ -17,7 +17,7 @@
 		lists?: WithRequired<TaskList, 'tasks'>[];
 	} = $props();
 
-	const { user } = page.data.session;
+	const { user } = page.data.session || {};
 
 	let tasks = $state(list.tasks),
 		open = $state(false);
