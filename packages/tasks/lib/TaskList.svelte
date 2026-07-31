@@ -22,7 +22,7 @@
 	let tasks = $state(list.tasks),
 		open = $state(false);
 
-	const { show_completed_subtasks } = await preferences.get(user.id, 'tasks');
+	const { show_completed_subtasks } = user ? await preferences.get(user.id, 'tasks') : {};
 	const showCompletedInline = show_completed_subtasks == 'inline';
 
 	const tree = $derived(buildTaskTree(tasks));
@@ -111,7 +111,7 @@
 				<Icon i="trash" />
 				<span>{text('generic.delete')}</span>
 			</div>
-			{#if user.preferences.debug}
+			{#if user?.preferences?.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', task.id)}>
 					<Icon i="hashtag" --size="14px" />
 					<span>{text('tasks.copy_id')}</span>
@@ -232,7 +232,7 @@
 					<span>{text('tasks.open_new_tab')}</span>
 				</div>
 			{/if}
-			{#if user.preferences.debug}
+			{#if user?.preferences?.debug}
 				<div class="menu-item" onclick={() => copy('text/plain', list.id)}>
 					<Icon i="hashtag" --size="14px" />
 					<span>{text('tasks.copy_id')}</span>
