@@ -118,6 +118,38 @@ function storage(): Storage[] {
 	return result;
 }
 
+type DmiMemory = Pick<Memory, 'speed' | 'formFactor' | 'type'>;
+
+let dmiMemory: DmiMemory | undefined;
+
+/** Static memory hardware details from DMI. */
+function memoryHardware(): DmiMemory {
+	if (dmiMemory) return dmiMemory;
+	dmiMemory = { speed: 0 };
+
+	try {
+		const dmiMemoryInfo = execFileSync('sudo', ['-n', 'dmidecode', '-t', '17'], {
+			encoding: 'utf8',
+			stdio: ['ignore', 'pipe', 'ignore'],
+		});
+		for (const match of dmiMemoryInfo.matchAll(/^\s*(?:Configured Memory|Configured Clock)?\s*Speed:\s*(\d+)\s*MT\/s/gim)) {
+			dmiMemory.speed = Math.max(dmiMemory.speed, Number(match[1]));
+		}
+		const populated = (field: string): string | undefined => {
+			for (const [, match] of dmiMemoryInfo.matchAll(new RegExp(`^[ \\t]*${field}:[ \\t]*(.+)$`, 'gim'))) {
+				const value = match.trim();
+				if (value && value !== 'Unknown') return value;
+			}
+		};
+		dmiMemory.formFactor = populated('Form Factor');
+		dmiMemory.type = populated('Type');
+	} catch {
+		// dmidecode missing, not root, or sudo needs a password
+	}
+
+	return dmiMemory;
+}
+
 function memory(): Memory {
 	const info: Record<string, bigint> = {};
 	const content = read('/proc/meminfo');
@@ -133,30 +165,10 @@ function memory(): Memory {
 	const available = info.MemAvailable ?? BigInt(os.freemem());
 
 	const memory: Memory = {
-		speed: 0,
+		...memoryHardware(),
 		total,
 		used: total - available,
 	};
-
-	try {
-		const dmiMemoryInfo = execFileSync('sudo', ['-n', 'dmidecode', '-t', '17'], {
-			encoding: 'utf8',
-			stdio: ['ignore', 'pipe', 'ignore'],
-		});
-		for (const match of dmiMemoryInfo.matchAll(/^\s*(?:Configured Memory|Configured Clock)?\s*Speed:\s*(\d+)\s*MT\/s/gim)) {
-			memory.speed = Math.max(memory.speed, Number(match[1]));
-		}
-		const populated = (field: string): string | undefined => {
-			for (const [, match] of dmiMemoryInfo.matchAll(new RegExp(`^[ \\t]*${field}:[ \\t]*(.+)$`, 'gim'))) {
-				const value = match.trim();
-				if (value && value !== 'Unknown') return value;
-			}
-		};
-		memory.formFactor = populated('Form Factor');
-		memory.type = populated('Type');
-	} catch {
-		// dmidecode missing, not root, or sudo needs a password
-	}
 
 	const swapTotal = info.SwapTotal ?? 0n;
 	if (swapTotal > 0n) memory.swap = { total: swapTotal, used: swapTotal - (info.SwapFree ?? 0n) };
