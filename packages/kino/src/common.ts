@@ -184,6 +184,21 @@ export interface KinoEpisode extends z.infer<typeof KinoEpisode> {}
 export const KinoSeason = kt.Season.extend({ episodes: KinoEpisode.array().optional() });
 export interface KinoSeason extends z.infer<typeof KinoSeason> {}
 
+/**
+ * Narrows the recently watched list. Every field is optional; leaving one out means it isn't filtered on.
+ */
+export const KinoViewFilter = z.object({
+	/** How many items to return, most recent first */
+	limit: z.int().positive().optional(),
+	/** Only movies, or only TV */
+	type: z.literal(['movie', 'tv']).optional(),
+	/** A single movie or show */
+	id: z.int().positive().optional(),
+	/** A single season, which only means anything alongside `id` */
+	season: z.int().nonnegative().optional(),
+});
+export interface KinoViewFilter extends z.infer<typeof KinoViewFilter> {}
+
 /** The containers kino accepts, and the MIME type each is served as */
 export const mediaTypes = {
 	'.mkv': 'video/x-matroska',
@@ -252,7 +267,7 @@ const KinoAPI = {
 		DELETE: KinoUpload,
 	},
 	'kino/views': {
-		GET: KinoView.array(),
+		GET: [KinoViewFilter, KinoView.array()],
 		PUT: [KinoViewInit, KinoView],
 	},
 	'kino/tv': {

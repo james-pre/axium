@@ -2,7 +2,17 @@ import { fetchAPI, origin, prefix, token } from '@axium/client/requests';
 import { uploadChunked, type ProgressHandler } from '@axium/client/uploads';
 import type * as kt from 'kinotool';
 import { prettifyError } from 'zod';
-import type { ImageSize, ImageType, KinoEpisode, KinoMovie, KinoSearchResults, KinoSeason, KinoView, KinoViewInit } from '../common.js';
+import type {
+	ImageSize,
+	ImageType,
+	KinoEpisode,
+	KinoMovie,
+	KinoSearchResults,
+	KinoSeason,
+	KinoView,
+	KinoViewFilter,
+	KinoViewInit,
+} from '../common.js';
 import { KinoUpload } from '../common.js';
 
 /** Build an absolute URL for one of kino's `/raw` endpoints */
@@ -106,8 +116,8 @@ export async function getAdjacentEpisodes(
 }
 
 /** Recently watched items, most recent first */
-export async function getViews(): Promise<KinoView[]> {
-	return await fetchAPI('GET', 'kino/views');
+export async function getViews(filter: KinoViewFilter = {}): Promise<KinoView[]> {
+	return await fetchAPI('GET', 'kino/views', filter);
 }
 
 /** Record that something was watched, and how far through it the viewer is */
