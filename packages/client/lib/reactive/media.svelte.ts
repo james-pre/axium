@@ -1,6 +1,10 @@
-import { parseBuffer, parseWebStream, selectCover } from 'music-metadata';
 import type { IAudioMetadata, IPicture } from 'music-metadata';
+import { parseBuffer, parseWebStream, selectCover } from 'music-metadata';
 import type { SvelteMediaTimeRange } from 'svelte/elements';
+import { MediaQuery } from 'svelte/reactivity';
+
+// Touch-primary devices have no hover, so the controls have to be tapped in and out of view
+const coarsePointer = new MediaQuery('pointer: coarse', false);
 
 type MetadataSource = ReadableStream<Uint8Array> | Uint8Array;
 
@@ -55,6 +59,18 @@ export class MediaState {
 	seeking = $state<boolean>();
 	ended = $state<boolean>();
 	element = $state<HTMLMediaElement>();
+	container = $state<HTMLElement>();
+	fullscreen = $state<boolean>(false);
+	/** Whether the controls are shown. Only has an effect while they overlay the media. */
+	controlsVisible = $state<boolean>(true);
+
+	#hideTimer?: ReturnType<typeof setTimeout>;
+
+	constructor(
+		public hideDelay: number = 5000,
+		/** How far the arrow keys and double taps skip */
+		public skipSeconds: number = 10
+	) {}
 
 	click = () => {
 		if (this.ended) {
@@ -70,19 +86,61 @@ export class MediaState {
 		return Number.isFinite(this.duration) && this.duration > 0 ? this.duration : 0;
 	}
 
+	get playIcon(): string {
+		return this.ended ? 'arrow-rotate-right' : this.paused ? 'play' : 'pause';
+	}
+
+	get fullscreenTarget(): HTMLElement | null {
+		if (this.container) return this.container;
+		return this.element instanceof HTMLVideoElement ? this.element : null;
+	}
+
+	/** Whether tapping the media toggles the controls rather than playback */
+	get touch(): boolean {
+		return coarsePointer.current;
+	}
+
+	showControls = () => {
+		this.controlsVisible = true;
+		clearTimeout(this.#hideTimer);
+		if (this.paused || !this.fullscreen) return;
+		this.#hideTimer = setTimeout(() => (this.controlsVisible = false), this.hideDelay);
+	};
+
+	hideControls = () => {
+		clearTimeout(this.#hideTimer);
+		this.controlsVisible = false;
+	};
+
+	toggleControls = () => {
+		if (this.controlsVisible) this.hideControls();
+		else this.showControls();
+	};
+
+	skip(by: number) {
+		if (!this.knownDuration) return;
+		this.seek(this.currentTime + by);
+	}
+
+	toggleFullscreen = () => {
+		if (globalThis.document?.fullscreenElement) void globalThis.document.exitFullscreen();
+		else void this.fullscreenTarget?.requestFullscreen();
+	};
+
+	/** Keeps `fullscreen` in sync, use with `<svelte:document onfullscreenchange={media.updateFullscreen} />` */
+	updateFullscreen = () => {
+		this.fullscreen = !!this.fullscreenTarget && globalThis.document?.fullscreenElement === this.fullscreenTarget;
+	};
+
 	keydown = (e: KeyboardEvent) => {
 		switch (e.key) {
 			case 'ArrowLeft':
 				e.preventDefault();
-				if (!this.knownDuration) break;
-				this.currentTime = Math.max(0, this.currentTime - 10);
-				this.updateAttached();
+				this.skip(-this.skipSeconds);
 				break;
 			case 'ArrowRight':
 				e.preventDefault();
-				if (!this.knownDuration) break;
-				this.currentTime = Math.min(this.knownDuration, this.currentTime + 10);
-				this.updateAttached();
+				this.skip(this.skipSeconds);
 				break;
 			case 'ArrowUp':
 				this.volume = Math.min(1, this.volume + 0.1);
@@ -91,8 +149,9 @@ export class MediaState {
 				this.volume = Math.max(0, this.volume - 0.1);
 				break;
 			case 'F11':
+			case 'f':
 				e.preventDefault();
-				this.element?.requestFullscreen();
+				this.toggleFullscreen();
 				break;
 			case ' ':
 				this.click();
@@ -106,6 +165,9 @@ export class MediaState {
 				} else {
 					console.warn('Not a video element, can not use Picture-in-Picture');
 				}
+				break;
+			case 'c':
+				if (this.fullscreen) this.toggleControls();
 				break;
 		}
 	};

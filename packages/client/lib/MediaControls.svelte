@@ -6,17 +6,19 @@
 
 	interface Props {
 		media: MediaState;
+		/** Whether these are layered over the media rather than placed below it */
+		overlay?: boolean;
 		children?: Snippet;
 	}
 
-	const { media, children }: Props = $props();
+	const { media, overlay, children }: Props = $props();
 
 	const duration = $derived(media.knownDuration);
 </script>
 
-<div class="MediaControls">
+<div class={['MediaControls', overlay && 'overlay']}>
 	<button class="reset icon-text" onclick={media.click}>
-		<Icon i={media.ended ? 'arrow-rotate-right' : media.paused ? 'play' : 'pause'} />
+		<Icon i={media.playIcon} />
 	</button>
 	<div class={['timeline', !duration && 'unknown-duration']}>
 		<div class="timeline-track">
@@ -69,6 +71,11 @@
 		padding: 1em;
 		border-radius: 0.75em;
 		background-color: var(--bg-menu);
+
+		&.overlay {
+			background-color: hsl(from var(--bg-menu) h s l / 80%);
+			box-shadow: 0 4px 12px #0004;
+		}
 
 		> :not(.timeline) {
 			flex: 0 0 auto;
