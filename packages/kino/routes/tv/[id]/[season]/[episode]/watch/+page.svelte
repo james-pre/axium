@@ -51,7 +51,17 @@
 {/snippet}
 
 <div class="watch">
-	<a class="subtle" href="/tv/{show.id}/{season}/{episode.episode_number}">{show.name} — {code} — {episode.name}</a>
+	<nav class="crumbs subtle">
+		<a href="/tv/{show.id}">{show.name}</a>
+		<Icon i="chevron-right" />
+		<a href="/tv/{show.id}/{season}"
+			>{show.seasons?.find(s => s.season_number == season)?.name || text('kino.season', { number: season })}</a
+		>
+		<Icon i="chevron-right" />
+		<a href="/tv/{show.id}/{season}/{episode.episode_number}"
+			>{episode.name || text('kino.episode_number', { number: episode.episode_number })} [{code}]</a
+		>
+	</nav>
 	<Video
 		{media}
 		src={episodeDataURL(show.id, season, episode.episode_number)}
@@ -74,6 +84,21 @@
 		gap: 0.5em;
 		height: 80vh;
 		min-height: 0;
+	}
+
+	.crumbs {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.5em;
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		:global(.Icon) {
+			--size: 0.75em;
+		}
 	}
 
 	.episode-nav {
