@@ -86,6 +86,8 @@
 		"specials": "Specials",
 		"episode_number": "Episode {number}",
 		"episode_code": "S{season}E{episode}",
+		"previous_episode": "Previous episode",
+		"next_episode": "Next episode",
 		"aired": "Aired {date}",
 		"released": "Released {date}",
 		"unreleased": "Release date unknown",

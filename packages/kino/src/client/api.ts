@@ -73,6 +73,38 @@ export async function getEpisode(id: number, season: number, episode: number): P
 	return await fetchAPI('GET', 'kino/tv/:id/season/:season/episode/:episode', undefined, String(id), String(season), String(episode));
 }
 
+/** The episodes either side of the one being watched, so viewers can move through a show without going back to the season page. */
+export async function getAdjacentEpisodes(
+	show: kt.Tv,
+	season: number,
+	episode: number
+): Promise<{ previous?: KinoEpisode; next?: KinoEpisode }> {
+	const numbers = [...new Set([...(show.seasons ?? []).map(s => s.season_number), season])].sort((a, b) => a - b);
+
+	const loaded = new Map<number, Promise<KinoEpisode[]>>();
+
+	const _seasons = (number: number): Promise<KinoEpisode[]> =>
+		getSeason(show.id, number)
+			.then(s => s.episodes ?? [])
+			.catch(() => []);
+
+	async function find(step: -1 | 1): Promise<KinoEpisode | undefined> {
+		const current = await loaded.getOrInsertComputed(season, _seasons);
+		const at = current.findIndex(e => e.episode_number == episode);
+
+		if (at >= 0 && current[at + step]) return current[at + step];
+
+		for (let i = numbers.indexOf(season) + step; i >= 0 && i < numbers.length; i += step) {
+			const episodes = await loaded.getOrInsertComputed(numbers[i], _seasons);
+			const neighbor = step < 0 ? episodes.at(-1) : episodes[0];
+			if (neighbor) return neighbor;
+		}
+	}
+
+	const [previous, next] = await Promise.all([find(-1), find(1)]);
+	return { previous, next };
+}
+
 /** Recently watched items, most recent first */
 export async function getViews(): Promise<KinoView[]> {
 	return await fetchAPI('GET', 'kino/views');

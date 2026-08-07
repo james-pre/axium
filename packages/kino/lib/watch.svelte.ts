@@ -48,32 +48,21 @@ export function trackWatch({ target, media, resumeFrom, interval = 15_000 }: Wat
 		if (changed(init)) recordViewClosing(init);
 	}
 
-	let resumed = false;
+	let started = false;
 
 	$effect(() => {
-		/**
-		 * Seeking needs a loaded element and a known duration, so this waits for both.
-		 * Positions near the end are ignored so finishing something doesn't strand the next play at the credits.
-		 */
-		if (resumed || !resumeFrom || !media.element || !media.duration) return;
-
-		resumed = true;
-		if (resumeFrom < media.duration - 10) media.currentTime = resumeFrom;
+		if (started || !media.element || !media.duration) return;
+		started = true;
+		if (resumeFrom && resumeFrom < media.duration - 10) media.currentTime = resumeFrom;
 	});
 
 	$effect(() => {
-		// Record straight away so it shows as recently watched even if they leave immediately
 		send();
 
 		const timer = setInterval(() => {
 			if (!media.paused) send();
 		}, interval);
 
-		/**
-		 * A backgrounded tab can be killed without ever firing `pagehide` or `beforeunload`, so
-		 * `visibilitychange` is the only reliable signal on mobile. `pagehide` covers desktop
-		 * navigations and bfcache entry, where `visibilitychange` does not always fire first.
-		 */
 		function onHide() {
 			if (document.visibilityState == 'hidden') sendClosing();
 		}
@@ -85,8 +74,6 @@ export function trackWatch({ target, media, resumeFrom, interval = 15_000 }: Wat
 			clearInterval(timer);
 			document.removeEventListener('visibilitychange', onHide);
 			removeEventListener('pagehide', sendClosing);
-
-			// Client-side navigation away from the page: the document survives, so a normal request is fine
 			send();
 		};
 	});
