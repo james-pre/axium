@@ -53,6 +53,7 @@
 			"tv": "TV Show"
 		},
 		"watch": "Watch",
+		"resume": "Resume",
 		"download": "Download",
 		"upload": "Upload",
 		"delete": "Delete upload",

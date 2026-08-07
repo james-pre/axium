@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { text } from '@axium/client';
 	import { uploadSeasonDrop } from '@axium/kino/client/frontend';
-	import { DropZone, EpisodeList, MediaDetail } from '@axium/kino/components';
+	import { DropZone, EpisodeList, MediaDetail, TvWatchButton } from '@axium/kino/components';
 
 	const { data } = $props();
 
@@ -29,6 +29,10 @@
 	>
 		{#snippet context()}
 			<a href="/tv/{show.id}">{show.name}</a>
+		{/snippet}
+
+		{#snippet actions()}
+			<TvWatchButton id={show.id} view={data.view} {season} />
 		{/snippet}
 
 		<section>

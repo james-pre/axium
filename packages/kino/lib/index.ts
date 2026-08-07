@@ -9,3 +9,4 @@ export { default as ProgressBar } from './ProgressBar.svelte';
 export { default as RecentGrid } from './RecentGrid.svelte';
 export { default as SearchBar } from './SearchBar.svelte';
 export { default as SeasonList } from './SeasonList.svelte';
+export { default as TvWatchButton } from './TvWatchButton.svelte';

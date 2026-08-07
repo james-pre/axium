@@ -2,7 +2,7 @@
 	import { invalidateAll } from '$app/navigation';
 	import { text } from '@axium/client';
 	import { uploadShowDrop } from '@axium/kino/client/frontend';
-	import { DropZone, MediaDetail, SeasonList } from '@axium/kino/components';
+	import { DropZone, MediaDetail, SeasonList, TvWatchButton } from '@axium/kino/components';
 
 	const { data } = $props();
 
@@ -27,6 +27,10 @@
 		dateKind="aired"
 		overview={show.overview}
 	>
+		{#snippet actions()}
+			<TvWatchButton id={show.id} view={data.view} />
+		{/snippet}
+
 		<section>
 			<h2>{text('kino.seasons')}</h2>
 			<SeasonList id={show.id} seasons={show.seasons} />
