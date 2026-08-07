@@ -7,9 +7,10 @@
 	interface Props extends MediaProps {
 		extraControls?: Snippet;
 		media?: MediaState;
+		autoplay?: boolean;
 	}
 
-	const { extraControls, media = new MediaState(), ...rest }: Props = $props();
+	const { extraControls, autoplay, media = new MediaState(), ...rest }: Props = $props();
 
 	const overlay = $derived(media.fullscreen || media.touch);
 
@@ -55,6 +56,7 @@
 		bind:buffered={media.buffered}
 		bind:playbackRate={media.playbackRate}
 		bind:ended={media.ended}
+		{autoplay}
 	>
 		<track kind="captions" />
 	</video>
