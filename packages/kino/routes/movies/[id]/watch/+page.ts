@@ -11,8 +11,7 @@ export async function load({ params }) {
 	if (!movie.upload) error(404, 'This movie has not been uploaded');
 
 	// Used to resume where the last session left off; not worth failing the page over
-	const views = await getViews().catch(() => []);
-	const view = views.find(v => v.type == 'movie' && v.movie.id == id);
+	const [view] = await getViews({ type: 'movie', id, limit: 1 }).catch(() => []);
 
 	return { movie, upload: movie.upload, view };
 }

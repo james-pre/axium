@@ -116,6 +116,9 @@ export async function getAdjacentEpisodes(
 }
 
 /** Recently watched items, most recent first */
+export async function getViews(filter: KinoViewFilter & { type: 'movie' }): Promise<(KinoView & { type: 'movie' })[]>;
+export async function getViews(filter: KinoViewFilter & { type: 'tv' }): Promise<(KinoView & { type: 'tv' })[]>;
+export async function getViews(filter?: KinoViewFilter): Promise<KinoView[]>;
 export async function getViews(filter: KinoViewFilter = {}): Promise<KinoView[]> {
 	return await fetchAPI('GET', 'kino/views', filter);
 }

@@ -18,7 +18,7 @@
 	trackWatch({
 		media,
 		target: { type: 'tv', id: data.show.id, season: data.season, episode: data.episode.episode_number },
-		resumeFrom: data.view?.position,
+		resumeFrom: data.episode.progress?.position,
 	});
 </script>
 

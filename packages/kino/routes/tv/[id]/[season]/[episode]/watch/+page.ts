@@ -1,4 +1,4 @@
-import { getAdjacentEpisodes, getEpisode, getTv, getViews } from '@axium/kino/client';
+import { getAdjacentEpisodes, getEpisode, getTv } from '@axium/kino/client';
 import { error } from '@sveltejs/kit';
 
 export const ssr = false;
@@ -12,11 +12,7 @@ export async function load({ params, url }) {
 
 	if (!episode.upload) error(404, 'This episode has not been uploaded');
 
-	const [views, adjacent] = await Promise.all([getViews().catch(() => []), getAdjacentEpisodes(show, season, episodeNumber)]);
+	const adjacent = await getAdjacentEpisodes(show, season, episodeNumber);
 
-	const view = views.find(
-		v => v.type == 'tv' && v.show.id == id && v.episode.season_number == season && v.episode.episode_number == episodeNumber
-	);
-
-	return { show, season, episode, upload: episode.upload, view, autoplay: url.searchParams.has('play'), ...adjacent };
+	return { show, season, episode, upload: episode.upload, autoplay: url.searchParams.has('play'), ...adjacent };
 }
