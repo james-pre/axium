@@ -14,6 +14,7 @@ export interface MediaProps {
 	size: number | bigint;
 	type: string;
 	name?: string;
+	autoplay?: boolean;
 }
 
 export type MediaPicture = (IPicture & { data: Uint8Array<ArrayBuffer> }) | null;

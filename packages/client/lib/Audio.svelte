@@ -10,7 +10,7 @@
 		extraControls?: Snippet;
 	}
 
-	const { cover: showCover, extraControls, ...rest }: Props = $props();
+	const { cover: showCover, autoplay, extraControls, ...rest }: Props = $props();
 
 	const id = $props.id();
 
@@ -68,6 +68,7 @@
 		bind:buffered={media.buffered}
 		bind:playbackRate={media.playbackRate}
 		bind:ended={media.ended}
+		{autoplay}
 	></audio>
 	<MediaControls {media}>
 		{#if extraControls}{@render extraControls()}{/if}

@@ -7,7 +7,6 @@
 	interface Props extends MediaProps {
 		extraControls?: Snippet;
 		media?: MediaState;
-		autoplay?: boolean;
 	}
 
 	const { extraControls, autoplay, media = new MediaState(), ...rest }: Props = $props();
