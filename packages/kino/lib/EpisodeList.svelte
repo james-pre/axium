@@ -10,22 +10,27 @@
 
 <div class="EpisodeList">
 	{#each episodes || [] as episode (episode.episode_number)}
-		{@const progress = viewProgress(episode.progress)}
-		<a class="episode" href="/tv/{id}/{season}/{episode.episode_number}">
-			<div class="art">
-				<Poster path={episode.still_path} type="still" size="w185" alt={episode.name} />
-				{#if progress !== null}
-					<ProgressBar value={progress} />
-				{/if}
-			</div>
+		{const progress = viewProgress(episode.progress),
+			page = `/tv/${id}/${season}/${episode.episode_number}`}
+		<div class="episode">
+			<a class="play" href="{page}{episode.upload && '/watch?play'}">
+				<div class="art">
+					<Poster path={episode.still_path} type="still" size="w185" alt={episode.name} />
+					{#if progress}
+						<ProgressBar value={progress} />
+					{/if}
+				</div>
 
-			<div class="info">
-				<span class="number subtle">{text('kino.episode_number', { number: episode.episode_number })}</span>
-				<span class="name">{episode.name}</span>
-			</div>
+				<div class="info">
+					<span class="number subtle">{text('kino.episode_number', { number: episode.episode_number })}</span>
+					<span class="name">{episode.name}</span>
+				</div>
+			</a>
 
-			<Icon i={episode.upload ? 'circle-play' : 'upload'} class="status" />
-		</a>
+			<a class="open" href={page} aria-label={text('kino.open_episode')}>
+				<Icon i={episode.upload ? 'circle-info' : 'upload'} class="status" />
+			</a>
+		</div>
 	{:else}
 		<p class="subtle">{text('kino.no_episodes')}</p>
 	{/each}
@@ -38,16 +43,13 @@
 		gap: 0.5em;
 	}
 
-	/* Explicit columns: artwork, then the label, then the status icon pinned to the right */
 	.episode {
 		display: grid;
-		grid-template-columns: 8em 1fr auto;
+		grid-template-columns: 1fr auto;
 		gap: 1em;
 		align-items: center;
 		padding: 0.5em;
 		border-radius: 0.5em;
-		text-decoration: none;
-		color: inherit;
 
 		&:hover {
 			background-color: var(--bg-strong);
@@ -55,6 +57,30 @@
 
 		:global(.status) {
 			--fill: var(--fg-accent);
+		}
+	}
+
+	.play {
+		display: grid;
+		grid-template-columns: 8em 1fr;
+		gap: 1em;
+		align-items: center;
+		min-width: 0;
+		text-decoration: none;
+		color: inherit;
+	}
+
+	.open {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		align-self: stretch;
+		aspect-ratio: 1;
+		border-radius: 0.5em;
+		width: 4em;
+
+		&:hover {
+			background-color: var(--bg-accent);
 		}
 	}
 
@@ -82,8 +108,12 @@
 	}
 
 	@media (width < 700px) {
-		.episode {
-			grid-template-columns: 5em 1fr auto;
+		.play {
+			grid-template-columns: 5em 1fr;
+		}
+
+		.open {
+			width: 2.5em;
 		}
 	}
 </style>

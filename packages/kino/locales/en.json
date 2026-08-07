@@ -85,6 +85,7 @@
 		"season": "Season {number}",
 		"specials": "Specials",
 		"episode_number": "Episode {number}",
+		"open_episode": "Open episode page",
 		"episode_code": "S{season}E{episode}",
 		"previous_episode": "Previous episode",
 		"next_episode": "Next episode",
