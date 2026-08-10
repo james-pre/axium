@@ -33,8 +33,8 @@
 		const children = tasks
 			.filter(t => t.parentId === task.id)
 			.map(exportTask)
-			.map(str => '\t' + str)
-			.join('\n');
+			.map(str => '\n\t' + str)
+			.join('');
 
 		return `[${task.completed ? 'x' : ' '}] ${task.summary}` + children;
 	}
