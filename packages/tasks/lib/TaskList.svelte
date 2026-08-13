@@ -3,7 +3,7 @@
 	import { page } from '$app/state';
 	import { fetchAPI, preferences, text } from '@axium/client';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
-	import { copy } from '@axium/client/gui';
+	import { copy } from '@axium/client/web';
 	import { toastStatus } from '@axium/client/toast';
 	import { buildTaskTree, type Task, type TaskList, type TaskTreeNode } from '@axium/tasks/common';
 	import type { WithRequired } from 'utilium';

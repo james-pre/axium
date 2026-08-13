@@ -52,7 +52,7 @@ export function linkRoutes(options: LinkOptions = {}) {
 }
 
 const hooksBuiltin = `
-import { loadFeatures } from '@axium/client/gui/features';
+import { loadFeatures } from '@axium/client/web/features';
 import { getCurrentSession } from '@axium/client/user';
 import { errorText } from 'ioium';
 

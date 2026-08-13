@@ -2,7 +2,7 @@
 	import { fetchAPI, text } from '@axium/client';
 	import { contextMenu, type ContextMenuItem } from '@axium/client/attachments';
 	import { Icon, Popover } from '@axium/client/components';
-	import { copy } from '@axium/client/gui';
+	import { copy } from '@axium/client/web';
 	import { toastStatus } from '@axium/client/toast';
 	import { systemTypeIcons, type System } from '@axium/sysadmin';
 	import SystemInitDialog from './SystemInitDialog.svelte';

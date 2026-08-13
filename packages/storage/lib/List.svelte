@@ -3,7 +3,7 @@
 	import { closeOnBackGesture, contextMenu, drag, selectable, selectionControls, Selection } from '@axium/client/attachments';
 	import { SyncedClipboard } from '@axium/client/reactive';
 	import { AccessControlDialog, Icon, InlineEdit } from '@axium/client/components';
-	import { copy } from '@axium/client/gui';
+	import { copy } from '@axium/client/web';
 	import '@axium/client/styles/list';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import type { AccessControllable, UserPublic } from '@axium/core';

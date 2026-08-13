@@ -1,4 +1,4 @@
-import { isMobile } from '@axium/client/gui';
+import { isMobile } from '@axium/client/web';
 import { mount, unmount } from 'svelte';
 import type { Attachment } from 'svelte/attachments';
 import Icon from '../Icon.svelte';

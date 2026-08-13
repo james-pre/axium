@@ -1,6 +1,6 @@
 import { debug, errorText, useProgress } from 'ioium';
 import { text } from '@axium/client/locales';
-import { animate, onAnimationEnd } from '@axium/client/gui';
+import { animate, onAnimationEnd } from '@axium/client/web';
 import Icon from './Icon.svelte';
 import { mount } from 'svelte';
 import { $ZodError, prettifyError } from 'zod/v4/core';

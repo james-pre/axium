@@ -1,4 +1,4 @@
-import { controls } from '@axium/client/gui';
+import { controls } from '@axium/client/web';
 import type { Attachment } from 'svelte/attachments';
 import { SvelteSet } from 'svelte/reactivity';
 

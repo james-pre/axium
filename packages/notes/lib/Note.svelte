@@ -4,7 +4,7 @@
 	import { fetchAPI, text } from '@axium/client';
 	import { dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
-	import { copy } from '@axium/client/gui';
+	import { copy } from '@axium/client/web';
 	import { toastStatus } from '@axium/client/toast';
 	import { checkAndMatchACL, type UserPublic } from '@axium/core';
 	import type { Note } from '@axium/notes/common';

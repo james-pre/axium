@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
-	import { copy } from '@axium/client/gui';
+	import { copy } from '@axium/client/web';
 	import * as icon from '@axium/core/icons';
 	import { deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, formatItemName } from '@axium/storage/client/frontend';

@@ -1,5 +1,5 @@
 import type { StorageItemMetadata } from '@axium/storage/common';
-import { copy } from '@axium/client/gui';
+import { copy } from '@axium/client/web';
 import { setProgressCancel, toast } from '@axium/client/toast';
 import * as io from 'ioium';
 import { encodeUUID, type UUID } from 'utilium';
