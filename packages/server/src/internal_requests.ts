@@ -79,6 +79,7 @@ export function convertToRequest(req: Http2ServerRequest): Request {
 		else for (const v of value) headers.append(key, String(v));
 	}
 
+	/** @see https://github.com/nodejs/node/issues/42529 */
 	const request = new Request(config.origin + req.url, {
 		// @ts-expect-error 2353
 		duplex: 'half',

@@ -30,6 +30,8 @@ import createSocketServer from '../socket.js';
 import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
+import { _featureBuiltinFrom, getFeatures } from '@axium/core/features';
+import { createFeatureCommand, formatFeatures } from '@axium/core/node/features';
 import './config.js';
 import './db.js';
 import './plugins.js';
@@ -88,11 +90,14 @@ axiumApps
 		}
 	});
 
+createFeatureCommand(program);
+
 program
 	.command('status')
 	.alias('stats')
 	.description('Get information about the server')
-	.action(async () => {
+	.option('-f, --features', 'Show feature information')
+	.action(async opt => {
 		console.log('Axium Server v' + $pkg.version);
 
 		console.log(styleText('whiteBright', 'Debug mode:'), config.debug ? styleText('yellow', 'enabled') : 'disabled');
@@ -114,6 +119,16 @@ program
 			console.log(styleText('red', 'Unavailable'));
 		}
 
+		const features = getFeatures().toArray();
+
+		if (opt.features) {
+			console.log(styleText('whiteBright', 'Built-in Features:'));
+			formatFeatures(
+				features.filter(f => f.from == _featureBuiltinFrom),
+				{ indent: 4 }
+			);
+		}
+
 		console.log(
 			styleText('whiteBright', 'Loaded plugins:'),
 			styleText(['dim', 'bold'], `(${plugins.size || 'none'})`),
@@ -124,6 +139,13 @@ program
 			if (!plugin._hooks?.statusText) continue;
 			const text = await plugin._hooks?.statusText();
 			console.log(styleText('bold', plugin.name), plugin.version + ':', text.includes('\n') ? '\n' + text : text);
+			if (opt.features) {
+				console.log(styleText('whiteBright', '    Plugin Features:'));
+				formatFeatures(
+					features.filter(f => f.from == plugin.name),
+					{ indent: 8 }
+				);
+			}
 		}
 	});
 

@@ -4,6 +4,7 @@ import { AccessControl, AccessControlUpdate, AccessTarget } from './access.js';
 import { App } from './apps.js';
 import { AuditEvent, AuditFilter, Severity } from './audit.js';
 import { AuthInfo, NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
+import { Feature, FeatureValues } from './features.js';
 import { PackageVersionInfo } from './packages.js';
 import {
 	Passkey,
@@ -78,6 +79,10 @@ const _API = {
 	apps: {
 		GET: App.array(),
 	},
+	features: {
+		GET: Feature.array(),
+		POST: [FeatureValues, FeatureValues],
+	},
 	sync: {
 		GET: [SyncOptions, SyncDiff],
 	},
@@ -131,6 +136,10 @@ const _API = {
 		GET: z.record(z.string(), z.any()),
 		POST: [z.record(z.string(), z.any()), z.record(z.string(), z.any())],
 		DELETE: z.record(z.string(), z.any()),
+	},
+	'users/:id/features': {
+		GET: Feature.array(),
+		POST: [FeatureValues, FeatureValues],
 	},
 	'passkeys/:id': {
 		GET: Passkey,

@@ -1,5 +1,5 @@
-import * as io from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
+import * as io from 'ioium/node';
 import { existsSync, symlinkSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join, relative, resolve } from 'node:path/posix';
 import config from './config.js';
@@ -52,7 +52,14 @@ export function linkRoutes(options: LinkOptions = {}) {
 }
 
 const hooksBuiltin = `
+import { loadFeatures } from '@axium/client/gui/features';
+import { getCurrentSession } from '@axium/client/user';
 import { errorText } from 'ioium';
+
+export async function init() {
+	const session = await getCurrentSession().catch(() => null);
+	await loadFeatures(session?.user?.id).catch(() => {});
+}
 
 export function handleError({ error, status }) {
 	console.error(error);

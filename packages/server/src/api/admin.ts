@@ -17,7 +17,7 @@ import { count, database as db } from '../db/index.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
 
-async function assertAdmin(route: RouteCommon, req: Request, sensitive: boolean = false): Promise<SessionAndUser> {
+export async function assertAdmin(route: RouteCommon, req: Request, sensitive: boolean = false): Promise<SessionAndUser> {
 	const admin = await requireSession(req, sensitive);
 
 	if (!admin.user.isAdmin) error(403, 'Not an administrator');

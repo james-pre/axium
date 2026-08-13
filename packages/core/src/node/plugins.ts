@@ -1,11 +1,12 @@
-import { _findPlugin, Plugin, plugins, type PluginInternal } from '../plugins.js';
+import type { Command } from 'commander';
 import * as io from 'ioium/node';
 import { dirname, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { _throw } from 'utilium';
 import { apps } from '../apps.js';
+import { addFeatures } from '../features.js';
+import { _findPlugin, Plugin, plugins, type PluginInternal } from '../plugins.js';
 import { getPackageJSON } from './packages.js';
-import type { Command } from 'commander';
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {
 	yield styleText('whiteBright', plugin.name);
@@ -107,6 +108,8 @@ export async function loadPlugin(
 			if (apps.has(app.id)) throw new ReferenceError(`App with ID "${app.id}" already exists.`);
 			apps.set(app.id, app);
 		}
+
+		addFeatures(plugin.features ?? {}, plugin.name);
 
 		plugins.set(plugin.name, plugin);
 		io.debug(`Loaded plugin: ${plugin.name} ${plugin.version}`);

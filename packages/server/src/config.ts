@@ -1,5 +1,6 @@
 import { serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
+import { FeatureId } from '@axium/core/features';
 import { loadPlugin, type PluginLoadOptions } from '@axium/core/node/plugins';
 import * as io from 'ioium/node';
 import { levelText } from 'logzen';
@@ -7,10 +8,10 @@ import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path/posix';
 import { deepAssign, type DeepRequired } from 'utilium';
 import * as z from 'zod';
-import { dirs, logger, systemDir } from './io.js';
-import { _duplicateStateWarnings, _unique } from './state.js';
 import * as cfg from './config_types.js';
 import { MxConfig } from './email.js';
+import { dirs, logger, systemDir } from './io.js';
+import { _duplicateStateWarnings, _unique } from './state.js';
 
 const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
 	keyof typeof Severity
@@ -123,6 +124,7 @@ export const Config = z
 				build: z.string(),
 			})
 			.partial(),
+		features: z.record(FeatureId, cfg.bool.nullish()),
 	})
 	.partial();
 
@@ -209,6 +211,7 @@ export const defaultConfig: DeepRequired<Config> = {
 		ssl_cert: resolve(dirs[0], 'ssl_cert.pem'),
 		build: '../build/handler.js',
 	},
+	features: {},
 };
 
 export function hostname(): string {
