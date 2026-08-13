@@ -7,7 +7,7 @@ const loadedLocales = Object.assign(Object.create(null), { en });
 
 /**
  * Add translations to a locale.
- * Note that translations are rendered as HTML, only replacements are escaped.
+ * Note that when $html is set, translations are rendered as HTML and only replacements are escaped.
  */
 export function extendLocale(locale: string, data: object) {
 	if (!loadedLocales[locale]) {
