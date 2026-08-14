@@ -51,24 +51,6 @@ export function linkRoutes(options: LinkOptions = {}) {
 	}
 }
 
-const hooksBuiltin = `
-import { loadFeatures } from '@axium/client/web/features';
-import { loadLocale } from '@axium/client/web/locales';
-import { getCurrentSession } from '@axium/client/user';
-import { errorText } from 'ioium';
-
-export async function init() {
-	await loadLocale().catch(() => {});
-	const session = await getCurrentSession().catch(() => null);
-	await loadFeatures(session?.user?.id).catch(() => {});
-}
-
-export function handleError({ error, status }) {
-	console.error(error);
-	return { message: errorText(error), stack: error.stack, status: error.status || status };
-}
-`;
-
 export function writePluginHooks() {
 	const hooksPath = join(import.meta.dirname, '../.hooks.js');
 	let hooks = `// auto-generated plugin hooks //\n`;
@@ -77,7 +59,7 @@ export function writePluginHooks() {
 		const specifier = relative(resolve(import.meta.dirname, '..'), resolve(plugin.dirname, plugin.server.web_client_hooks));
 		hooks += `import '${specifier}';\n`;
 	}
-	hooks += hooksBuiltin;
+	hooks += `export * from '@axium/client/web/hooks';\n`;
 	writeFileSync(hooksPath, hooks, 'utf8');
 	io.debug('Wrote hooks to', hooksPath);
 }
