@@ -7,7 +7,7 @@
  * @module
  */
 
-import { warnOnce } from 'ioium';
+import { error, errorText, warnOnce } from 'ioium';
 import * as z from 'zod';
 
 export const Id = z.stringFormat('feature-id', /^[a-z][\w-]*$/i);
@@ -67,6 +67,7 @@ export function set(id: string, value: boolean, quiet: boolean = false) {
 	if (!feature) throw new ReferenceError('Feature is not defined: ' + id);
 	if (feature.value === value && !quiet) warnOnce('Feature is already', value ? 'enabled:' : 'disabled:', id);
 	feature.value = value;
+	save();
 }
 
 export const Feature = z.object({
@@ -92,3 +93,48 @@ export function value(id: string): boolean {
 }
 
 export default value;
+
+export function toValues(): Record<string, boolean> {
+	return Object.fromEntries(features.entries().map(([id, feature]) => [id, feature.value]));
+}
+
+export function reset(id: string) {
+	const feature = features.get(id);
+	if (!feature) throw new ReferenceError('Feature is not defined: ' + id);
+	feature.value = feature.default;
+	save();
+}
+
+export function resetAll() {
+	for (const feature of features.values()) feature.value = feature.default;
+	try {
+		_save({});
+	} catch (e: any) {
+		error('Could not reset feature flag values:', errorText(e));
+	}
+}
+
+function save() {
+	const values = Object.fromEntries(
+		features
+			.entries()
+			.filter(([, feature]) => feature.value !== feature.default)
+			.map(([id, feature]) => [id, feature.value])
+	);
+	try {
+		_save(values);
+	} catch (e: any) {
+		error('Could not save feature flag values:', errorText(e));
+	}
+}
+
+let _save: (values: Record<string, boolean>) => void = () => {};
+
+export function persist(existingValues: Record<string, boolean>, save: (values: Record<string, boolean>) => void) {
+	_save = save;
+	for (const [id, value] of Object.entries(existingValues)) {
+		const feature = features.get(id);
+		if (feature) feature.value = value;
+		else warnOnce('Feature is not defined: ' + id);
+	}
+}

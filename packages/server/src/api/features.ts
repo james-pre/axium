@@ -46,6 +46,6 @@ addRoute({
 
 		for (const [id, value] of Object.entries(values)) features.set(id, value, true);
 
-		return Object.fromEntries(features.getAll().map(f => [f.id, f.value]));
+		return features.toValues();
 	},
 });

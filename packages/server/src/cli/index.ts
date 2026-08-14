@@ -2,8 +2,11 @@ export * from './common.js';
 import type { AuditEvent } from '@axium/core';
 import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
+import * as features from '@axium/core/features';
 import { formatBytes, formatMs } from '@axium/core/format';
 import { outputDaemonStatus } from '@axium/core/node';
+import { createFeatureCommand, formatFeatures, persistFeaturesTo } from '@axium/core/node/features';
+import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
 import { getPackageJSON, upgradeActivePackages } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';
 import { Argument, Option, program } from 'commander';
@@ -30,9 +33,6 @@ import createSocketServer from '../socket.js';
 import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
-import * as features from '@axium/core/features';
-import { createFeatureCommand, formatFeatures } from '@axium/core/node/features';
-import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
 import './config.js';
 import './db.js';
 import './plugins.js';
@@ -91,6 +91,7 @@ axiumApps
 		}
 	});
 
+persistFeaturesTo(join(dirs.at(-1)!, 'features.json'));
 createFeatureCommand(program);
 createLocalesCommand(program);
 
@@ -121,14 +122,12 @@ program
 			console.log(styleText('red', 'Unavailable'));
 		}
 
-		const configs = features.getAll().toArray();
+		const featureConfigs = features.getAll().toArray(),
+			builtinFeatures = featureConfigs.filter(f => f.from == features._builtinFrom);
 
-		if (opt.features) {
+		if (opt.features && builtinFeatures.length) {
 			console.log(styleText('whiteBright', 'Built-in Features:'));
-			formatFeatures(
-				configs.filter(f => f.from == features._builtinFrom),
-				{ indent: 4 }
-			);
+			formatFeatures(builtinFeatures, { indent: 4 });
 		}
 
 		console.log(
@@ -141,12 +140,10 @@ program
 			if (!plugin._hooks?.statusText) continue;
 			const text = await plugin._hooks?.statusText();
 			console.log(styleText('bold', plugin.name), plugin.version + ':', text.includes('\n') ? '\n' + text : text);
-			if (opt.features) {
+			const pluginFeatures = featureConfigs.filter(f => f.from == plugin.name);
+			if (opt.features && pluginFeatures.length) {
 				console.log(styleText('whiteBright', '    Plugin Features:'));
-				formatFeatures(
-					configs.filter(f => f.from == plugin.name),
-					{ indent: 8 }
-				);
+				formatFeatures(pluginFeatures, { indent: 8 });
 			}
 		}
 	});

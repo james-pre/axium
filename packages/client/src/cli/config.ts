@@ -1,3 +1,4 @@
+import { persistFeaturesTo } from '@axium/core/node/features';
 import { type PluginLoadOptions, loadPlugin } from '@axium/core/node/plugins';
 import * as io from 'ioium/node';
 import { existsSync, mkdirSync, writeFileSync } from 'node:fs';
@@ -11,6 +12,8 @@ export const configDir = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.c
 mkdirSync(configDir, { recursive: true });
 export const axcConfigPath = join(configDir, 'config.json');
 if (!existsSync(axcConfigPath)) writeFileSync(axcConfigPath, '{}');
+
+persistFeaturesTo(join(configDir, 'features.json'));
 
 export function session() {
 	if (!config.token) io.exit('Not logged in.', 4);

@@ -1,5 +1,5 @@
 import { Argument, type Command } from 'commander';
-import { assertYes } from 'ioium/node';
+import { assertYes, readJSON, writeJSON } from 'ioium/node';
 import { styleText } from 'node:util';
 import * as features from '../features.js';
 
@@ -27,6 +27,18 @@ export function formatFeatures(info: Iterable<features.Feature>, options: Format
 				feature.default === feature.value && styleText('dim', '(default)'),
 			].filter(v => !!v)
 		);
+}
+
+export function persistFeaturesTo(path: string) {
+	let existing = {};
+
+	try {
+		existing = readJSON(path, features.Values);
+	} catch {
+		// couldn't read
+	}
+
+	features.persist(existing, f => writeJSON(path, f));
 }
 
 const FeatureIdArg = new Argument('<id>', 'The ID of the feature to enable').argParser(value => features.Id.parse(value));
@@ -64,7 +76,7 @@ export function createFeatureCommand<C extends Command>(parent: C) {
 		.action(id => {
 			const feature = features.get(id);
 			if (!feature) throw new ReferenceError('Feature is not defined: ' + id);
-			features.set(id, feature.default);
+			features.reset(id);
 		});
 
 	cmd.command('reset-all')
@@ -72,7 +84,7 @@ export function createFeatureCommand<C extends Command>(parent: C) {
 		.option('-f, --force', 'Do not ask for confirmation')
 		.action(async ({ force }) => {
 			if (!force) await assertYes('Reset all features to their default values?');
-			for (const feature of features.getAll()) features.set(feature.id, feature.default, true);
+			features.resetAll();
 		});
 
 	return cmd;
