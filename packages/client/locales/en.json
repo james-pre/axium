@@ -249,6 +249,16 @@
 	},
 	"audit_severity": ["Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"],
 	"preference": {
-		"debug": "Debug mode"
+		"debug": "Debug mode",
+		"theme": "Theme"
+	},
+	"themes": {
+		"default": "Default",
+		"light": "Light",
+		"forest": "Forest",
+		"midnight": "Midnight",
+		"beach": "Beach",
+		"cherry": "Cherry",
+		"volcano": "Volcano"
 	}
 }
