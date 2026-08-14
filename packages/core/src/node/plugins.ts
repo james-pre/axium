@@ -4,7 +4,7 @@ import { dirname, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { _throw } from 'utilium';
 import { apps } from '../apps.js';
-import { addFeatures } from '../features.js';
+import { add as addFeatures } from '../features.js';
 import { _findPlugin, Plugin, plugins, type PluginInternal } from '../plugins.js';
 import * as locales from './locales.js';
 import { getPackageJSON } from './packages.js';

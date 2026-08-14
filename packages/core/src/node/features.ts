@@ -1,7 +1,7 @@
 import { Argument, type Command } from 'commander';
 import { assertYes } from 'ioium/node';
 import { styleText } from 'node:util';
-import { _featureBuiltinFrom, FeatureId, getFeature, getFeatures, setFeature, type Feature } from '../features.js';
+import * as features from '../features.js';
 
 export interface FormatFeatureOptions {
 	/** @default 0 */
@@ -10,10 +10,10 @@ export interface FormatFeatureOptions {
 	includeFrom?: boolean;
 }
 
-export function formatFeatures(features: Iterable<Feature>, options: FormatFeatureOptions = {}) {
+export function formatFeatures(info: Iterable<features.Feature>, options: FormatFeatureOptions = {}) {
 	const { indent = 0, includeFrom = false } = options;
 
-	const value = Array.from(features);
+	const value = Array.from(info);
 
 	for (const feature of value)
 		console.log(
@@ -21,7 +21,7 @@ export function formatFeatures(features: Iterable<Feature>, options: FormatFeatu
 				' '.repeat((indent || 1) - 1),
 				feature.id,
 				feature.experimental && styleText('cyan', '[experimental]'),
-				includeFrom && styleText('gray', feature.from == _featureBuiltinFrom ? '(builtin)' : `(from ${feature.from})`),
+				includeFrom && styleText('gray', feature.from == features._builtinFrom ? '(builtin)' : `(from ${feature.from})`),
 				':',
 				feature.value ? styleText('green', 'enabled') : styleText('red', 'disabled'),
 				feature.default === feature.value && styleText('dim', '(default)'),
@@ -29,7 +29,7 @@ export function formatFeatures(features: Iterable<Feature>, options: FormatFeatu
 		);
 }
 
-const FeatureIdArg = new Argument('<id>', 'The ID of the feature to enable').argParser(value => FeatureId.parse(value));
+const FeatureIdArg = new Argument('<id>', 'The ID of the feature to enable').argParser(value => features.Id.parse(value));
 
 export function createFeatureCommand<C extends Command>(parent: C) {
 	const cmd = parent.command('feature').description('Manage features');
@@ -38,12 +38,12 @@ export function createFeatureCommand<C extends Command>(parent: C) {
 		.description('List features')
 		.option('-F, --from <from>', 'Filter by source plugin')
 		.action(opt => {
-			const features = getFeatures();
+			const configs = features.getAll();
 
 			formatFeatures(
 				opt.from
-					? features.filter(f => (['none', 'builtin'].includes(opt.from!) ? _featureBuiltinFrom : opt.from) === f.from)
-					: features,
+					? configs.filter(f => (['none', 'builtin'].includes(opt.from!) ? features._builtinFrom : opt.from) === f.from)
+					: configs,
 				{ includeFrom: true }
 			);
 		});
@@ -51,20 +51,20 @@ export function createFeatureCommand<C extends Command>(parent: C) {
 	cmd.command('enable')
 		.description('Enable a feature')
 		.addArgument(FeatureIdArg)
-		.action(id => setFeature(id, true));
+		.action(id => features.set(id, true));
 
 	cmd.command('disable')
 		.description('Disable a feature')
 		.addArgument(FeatureIdArg)
-		.action(id => setFeature(id, false));
+		.action(id => features.set(id, false));
 
 	cmd.command('reset')
 		.description('Reset a feature to its default value')
 		.addArgument(FeatureIdArg)
 		.action(id => {
-			const feature = getFeature(id);
+			const feature = features.get(id);
 			if (!feature) throw new ReferenceError('Feature is not defined: ' + id);
-			setFeature(id, feature.default);
+			features.set(id, feature.default);
 		});
 
 	cmd.command('reset-all')
@@ -72,7 +72,7 @@ export function createFeatureCommand<C extends Command>(parent: C) {
 		.option('-f, --force', 'Do not ask for confirmation')
 		.action(async ({ force }) => {
 			if (!force) await assertYes('Reset all features to their default values?');
-			for (const feature of getFeatures()) setFeature(feature.id, feature.default, true);
+			for (const feature of features.getAll()) features.set(feature.id, feature.default, true);
 		});
 
 	return cmd;

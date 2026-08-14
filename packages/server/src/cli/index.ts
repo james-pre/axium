@@ -30,7 +30,7 @@ import createSocketServer from '../socket.js';
 import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
-import { _featureBuiltinFrom, getFeatures } from '@axium/core/features';
+import * as features from '@axium/core/features';
 import { createFeatureCommand, formatFeatures } from '@axium/core/node/features';
 import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
 import './config.js';
@@ -121,12 +121,12 @@ program
 			console.log(styleText('red', 'Unavailable'));
 		}
 
-		const features = getFeatures().toArray();
+		const configs = features.getAll().toArray();
 
 		if (opt.features) {
 			console.log(styleText('whiteBright', 'Built-in Features:'));
 			formatFeatures(
-				features.filter(f => f.from == _featureBuiltinFrom),
+				configs.filter(f => f.from == features._builtinFrom),
 				{ indent: 4 }
 			);
 		}
@@ -144,7 +144,7 @@ program
 			if (opt.features) {
 				console.log(styleText('whiteBright', '    Plugin Features:'));
 				formatFeatures(
-					features.filter(f => f.from == plugin.name),
+					configs.filter(f => f.from == plugin.name),
 					{ indent: 8 }
 				);
 			}

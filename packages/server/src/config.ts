@@ -1,6 +1,6 @@
 import { serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
-import { FeatureId } from '@axium/core/features';
+import { Id as FeatureId } from '@axium/core/features';
 import { loadPlugin, type PluginLoadOptions } from '@axium/core/node/plugins';
 import * as io from 'ioium/node';
 import { levelText } from 'logzen';

@@ -10,47 +10,59 @@
 import { warnOnce } from 'ioium';
 import * as z from 'zod';
 
-export const FeatureId = z.stringFormat('feature-id', /^[a-z][\w-]*$/i);
+export const Id = z.stringFormat('feature-id', /^[a-z][\w-]*$/i);
 
-export const FeatureValues = z.record(FeatureId, z.boolean());
+export const Values = z.record(Id, z.boolean());
 
-export const FeatureConfig = z.object({
+export const Config = z.object({
 	default: z.boolean(),
 	/** Whether this feature can be enabled and disabled by regular users and is visible to them */
 	user: z.boolean().default(false),
 	experimental: z.boolean().default(false),
 });
-export interface FeatureConfigInit extends z.input<typeof FeatureConfig> {}
-export interface FeatureConfig extends z.infer<typeof FeatureConfig> {}
+export interface ConfigInit extends z.input<typeof Config> {}
+export interface Config extends z.infer<typeof Config> {}
 
-export const FeatureState = z.object({
-	...FeatureConfig.shape,
+export const State = z.object({
+	...Config.shape,
 	/** Name of the plugin that defined this feature */
 	from: z.string(),
 	value: z.boolean(),
 });
-export interface FeatureState extends z.infer<typeof FeatureState> {}
+export interface State extends z.infer<typeof State> {}
 
 /** @internal @hidden */
-export const _featureBuiltinFrom = '<builtin>';
+export const _builtinFrom = '<builtin>';
 
-const features = new Map<string, FeatureState>();
+const features = new Map<string, State>();
 
-export function addFeatures(config: Record<string, FeatureConfigInit>, from: string) {
+export function add(config: Record<string, ConfigInit>, from: string) {
 	for (const [id, featureInit] of Object.entries(config ?? {})) {
-		if (!FeatureId.safeParse(id).success) throw new SyntaxError('Invalid feature ID: ' + id);
-		const feature = FeatureConfig.parse(featureInit);
+		if (!Id.safeParse(id).success) throw new SyntaxError('Invalid feature ID: ' + id);
+		const feature = Config.parse(featureInit);
 		const existing = features.get(id);
 		if (existing) warnOnce('Feature is defined by multiple plugins:', id, `(${existing.from}, ${from})`);
 		features.set(id, { ...feature, from, value: feature.default });
 	}
 }
 
-export function useFeatures(featuresInfo: Iterable<Feature>) {
+add(
+	{
+		// Indicator that an input is experimental, derived from `ZodLocaleInfo.experimental`
+		'zod-experimental-input-indicator': { default: false, experimental: true },
+		'zod-default-handling': { default: false, experimental: true },
+		// Use a "switch" instead of a checkbox
+		'input-checkbox-as-switch': { default: false, experimental: true },
+		themes: { default: false, experimental: true },
+	},
+	_builtinFrom
+);
+
+export function use(featuresInfo: Iterable<Feature>) {
 	for (const feature of featuresInfo) features.set(feature.id, { ...feature });
 }
 
-export function setFeature(id: string, value: boolean, quiet: boolean = false) {
+export function set(id: string, value: boolean, quiet: boolean = false) {
 	const feature = features.get(id);
 	if (!feature) throw new ReferenceError('Feature is not defined: ' + id);
 	if (feature.value === value && !quiet) warnOnce('Feature is already', value ? 'enabled:' : 'disabled:', id);
@@ -58,23 +70,25 @@ export function setFeature(id: string, value: boolean, quiet: boolean = false) {
 }
 
 export const Feature = z.object({
-	...FeatureState.shape,
-	id: FeatureId,
+	...State.shape,
+	id: Id,
 });
 
 export interface Feature extends z.infer<typeof Feature> {}
 
-export function getFeature(id: string): Feature | undefined {
+export function get(id: string): Feature | undefined {
 	const feature = features.get(id);
 	if (!feature) return undefined;
 	return { id, ...feature };
 }
 
-export function getFeatures(): IteratorObject<Feature> {
+export function getAll(): IteratorObject<Feature> {
 	return features.entries().map(([id, feature]) => ({ id, ...feature }));
 }
 
-export function feature(id: string): boolean {
+export function value(id: string): boolean {
 	if (!features.has(id)) warnOnce('Feature is not defined:', id);
 	return features.get(id)?.value ?? false;
 }
+
+export default value;

@@ -13,11 +13,11 @@
  * @module
  */
 
-import { getFeatures, setFeature, useFeatures } from '@axium/core/features';
+import { getAll, set, use } from '@axium/core/features';
 import { fetchAPI } from '../requests.js';
 
 function _setFeatureAttributes() {
-	const enabled = getFeatures()
+	const enabled = getAll()
 		.filter(f => f.value)
 		.map(f => f.id)
 		.toArray();
@@ -31,20 +31,20 @@ export async function loadFeatures(userId?: string): Promise<void> {
 		? await fetchAPI('GET', 'users/:id/features', {}, userId).catch(() => fetchAPI('GET', 'features'))
 		: await fetchAPI('GET', 'features');
 
-	useFeatures(features);
+	use(features);
 	_setFeatureAttributes();
 }
 
 export async function setUserFeatures(userId: string, update: Record<string, boolean>): Promise<Record<string, boolean>> {
 	const values = await fetchAPI('POST', 'users/:id/features', update, userId);
-	for (const [id, value] of Object.entries(values)) setFeature(id, value);
+	for (const [id, value] of Object.entries(values)) set(id, value);
 	_setFeatureAttributes();
 	return values;
 }
 
 export async function setGlobalFeatures(update: Record<string, boolean>): Promise<Record<string, boolean>> {
 	const values = await fetchAPI('POST', 'features', update);
-	for (const [id, value] of Object.entries(values)) setFeature(id, value);
+	for (const [id, value] of Object.entries(values)) set(id, value);
 	_setFeatureAttributes();
 	return values;
 }

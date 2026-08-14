@@ -4,7 +4,7 @@ import { AccessControl, AccessControlUpdate, AccessTarget } from './access.js';
 import { App } from './apps.js';
 import { AuditEvent, AuditFilter, Severity } from './audit.js';
 import { AuthInfo, NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
-import { Feature, FeatureValues } from './features.js';
+import { Feature, Values as FeatureValues } from './features.js';
 import { PackageVersionInfo } from './packages.js';
 import {
 	Passkey,

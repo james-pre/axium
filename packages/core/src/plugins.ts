@@ -1,7 +1,7 @@
 import { debug, warn } from 'ioium';
 import * as z from 'zod';
 import { App } from './apps.js';
-import { FeatureConfig, FeatureId } from './features.js';
+import * as features from './features.js';
 import { zAsyncFunction } from './schemas.js';
 
 const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
@@ -59,7 +59,7 @@ export const Plugin = z.looseObject({
 	/** In plugin's packages, this is the default. At runtime this is the loaded config */
 	config: z.record(z.string(), z.any()).optional(),
 	/** What features this plugin has */
-	features: z.record(FeatureId, FeatureConfig).optional(),
+	features: z.record(features.Id, features.Config).optional(),
 });
 
 export interface Plugin extends z.infer<typeof Plugin> {}

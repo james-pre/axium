@@ -1,5 +1,5 @@
 import type { AsyncResult, Result } from '@axium/core';
-import { FeatureValues, getFeature, getFeatures, setFeature } from '@axium/core/features';
+import * as features from '@axium/core/features';
 import * as z from 'zod';
 import { checkAuthForUser } from '../auth.js';
 import { error, parseBody } from '../requests.js';
@@ -13,15 +13,15 @@ addRoute({
 		await checkAuthForUser(request, userId);
 
 		// @todo support user customization
-		return getFeatures().toArray();
+		return features.getAll().toArray();
 	},
 	async POST(request, { id: userId }): AsyncResult<'POST', 'users/:id/features'> {
 		await checkAuthForUser(request, userId);
 
-		const values = await parseBody(request, FeatureValues);
+		const values = await parseBody(request, features.Values);
 
 		for (const id of Object.keys(values)) {
-			const feature = getFeature(id);
+			const feature = features.get(id);
 			if (!feature) error(404, 'Feature is not defined: ' + id);
 			if (!feature.user) error(405, 'Feature can not be changed by users: ' + id);
 		}
@@ -33,19 +33,19 @@ addRoute({
 addRoute({
 	path: '/api/features',
 	GET(): Result<'GET', 'features'> {
-		return getFeatures().toArray();
+		return features.getAll().toArray();
 	},
 	async POST(request): AsyncResult<'POST', 'features'> {
 		await assertAdmin(this, request, true);
 
-		const values = await parseBody(request, FeatureValues);
+		const values = await parseBody(request, features.Values);
 
 		for (const id of Object.keys(values)) {
-			if (!getFeature(id)) error(404, 'Feature is not defined: ' + id);
+			if (!features.get(id)) error(404, 'Feature is not defined: ' + id);
 		}
 
-		for (const [id, value] of Object.entries(values)) setFeature(id, value, true);
+		for (const [id, value] of Object.entries(values)) features.set(id, value, true);
 
-		return Object.fromEntries(getFeatures().map(f => [f.id, f.value]));
+		return Object.fromEntries(features.getAll().map(f => [f.id, f.value]));
 	},
 });
