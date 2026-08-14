@@ -8,6 +8,6 @@
 		"rootDir": "..",
 		"types": ["@sveltejs/kit"]
 	},
-	"include": ["**/*", "../lib/*"],
+	"include": ["**/*", "../lib/*", "../src/.*.ts", "../../client/dist/.*.ts"],
 	"references": [{ "path": ".." }]
 }

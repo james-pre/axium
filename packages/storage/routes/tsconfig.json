@@ -7,6 +7,6 @@
 		"target": "esnext",
 		"rootDir": ".."
 	},
-	"include": ["**/*", "../lib/*"],
+	"include": ["**/*", "../lib/*", "../src/.*.ts", "../../client/dist/.*.ts"],
 	"references": [{ "path": ".." }]
 }

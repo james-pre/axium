@@ -5,7 +5,7 @@
 		"rootDir": "src",
 		"outDir": "dist"
 	},
-	"include": ["src/**/*.ts"],
+	"include": ["src/**/*.ts", "src/.*.ts", "../client/dist/.*.ts"],
 	"exclude": [],
 	"references": [{ "path": "../core" }, { "path": "../server" }, { "path": "../client" }]
 }

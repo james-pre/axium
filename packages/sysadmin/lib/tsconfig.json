@@ -6,7 +6,7 @@
 		"module": "preserve",
 		"moduleResolution": "Bundler"
 	},
-	"include": ["**/*.svelte", "**/*.ts"],
+	"include": ["**/*.svelte", "**/*.ts", "../src/.*.ts", "../../client/dist/.*.ts"],
 	"exclude": [],
 	"references": [{ "path": ".." }]
 }

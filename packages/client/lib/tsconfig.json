@@ -7,6 +7,6 @@
 		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"types": ["@sveltejs/kit"]
 	},
-	"include": ["./**/*"],
+	"include": ["./**/*", "../src/.*.ts"],
 	"references": [{ "path": ".." }]
 }
