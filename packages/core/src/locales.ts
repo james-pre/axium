@@ -1,7 +1,8 @@
 import { deepAssign } from 'utilium';
 import { registry as zodRegistry } from 'zod/v4/core';
+import type { SchemaMetadata } from './schemas.js';
 
-export interface ZodLocaleInfo {
+export interface ZodLocaleInfo extends SchemaMetadata {
 	/**
 	 * Translation key for this schema
 	 */

@@ -105,3 +105,10 @@ export type InferFromTuple<T extends readonly z.ZodType[]> = T extends readonly 
 ]
 	? [z.infer<Head>, ...InferFromTuple<Rest>]
 	: [];
+
+export interface SchemaMetadata {
+	/** If set this schema is gated behind the provided feature flag */
+	feature?: string;
+	/** If set this control is experimental */
+	experimental?: boolean;
+}
