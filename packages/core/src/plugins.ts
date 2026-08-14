@@ -44,6 +44,8 @@ export const Plugin = z.looseObject({
 	version: z.string(),
 	description: z.string().optional(),
 	apps: z.array(App).optional(),
+	/** Path to a directory of `<language>.json` translation files, loaded when the plugin is loaded */
+	locales: z.string().optional(),
 	client: PluginCommon.extend({}).optional(),
 	server: PluginCommon.extend({
 		http_handler: z.string().optional(),

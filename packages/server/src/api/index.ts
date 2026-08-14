@@ -4,6 +4,7 @@ import './features.js';
 import './metadata.js';
 import './passkeys.js';
 import './images.js';
+import './locales.js';
 import './register.js';
 import './session.js';
 import './sync.js';

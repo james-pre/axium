@@ -6,6 +6,7 @@ import { _throw } from 'utilium';
 import { apps } from '../apps.js';
 import { addFeatures } from '../features.js';
 import { _findPlugin, Plugin, plugins, type PluginInternal } from '../plugins.js';
+import * as locales from './locales.js';
 import { getPackageJSON } from './packages.js';
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {
@@ -13,6 +14,7 @@ export function* pluginText(plugin: PluginInternal): Generator<string> {
 	yield `Version: ${plugin.version}`;
 	yield `Description: ${plugin.description ?? styleText('dim', '(none)')}`;
 	yield `CLI Integration: ${plugin.cli ? 'Yes' : 'No'}`;
+	yield `Locales: ${plugin.locales ?? styleText('dim', '(none)')}`;
 
 	if (plugin.isServer) {
 		yield `Hooks: ${plugin._hooks ? styleText(['dim', 'bold'], `(${Object.keys(plugin._hooks).length}) `) + Object.keys(plugin._hooks).join(', ') : plugin.server!.hooks || styleText('dim', '(none)')}`;
@@ -102,6 +104,16 @@ export async function loadPlugin(
 
 		if (plugin.name.startsWith('#') || plugin.name.includes(' ')) {
 			throw new Error('Invalid plugin name. Plugin names can not start with a hash or contain spaces.');
+		}
+
+		if (plugin.locales) {
+			const dir = resolve(plugin.dirname, plugin.locales);
+			try {
+				const languages = locales.load(dir);
+				io.debug(`Loaded ${languages.length} locale(s) for ${plugin.name}: ${languages.join(', ')}`);
+			} catch (e: any) {
+				io.warn(`Failed to load locales for '${plugin.name}' from ${dir}: ${io.errorText(e)}`);
+			}
 		}
 
 		for (const app of plugin.apps ?? []) {

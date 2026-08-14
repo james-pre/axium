@@ -32,6 +32,7 @@ import { dbInitTables } from './db.js';
 // other subcommands
 import { _featureBuiltinFrom, getFeatures } from '@axium/core/features';
 import { createFeatureCommand, formatFeatures } from '@axium/core/node/features';
+import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
 import './config.js';
 import './db.js';
 import './plugins.js';
@@ -91,6 +92,7 @@ axiumApps
 	});
 
 createFeatureCommand(program);
+createLocalesCommand(program);
 
 program
 	.command('status')
@@ -349,7 +351,7 @@ program
 	.option('-s, --diagnostics', 'Show build time and bundle size')
 	.option('-m, --no-minify', 'Whether to use minification')
 	.action(async options => {
-		const { time, size } = await io.track('Building', build(options));
+		const { time, size } = await build(options);
 
 		if (options.diagnostics) {
 			console.log(

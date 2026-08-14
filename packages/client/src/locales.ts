@@ -1,23 +1,11 @@
-import { debug, error, info, warn } from 'ioium';
-import type { FlattenKeys, GetByString, Split, UnionToIntersection } from 'utilium';
-import { deepAssign, getByString } from 'utilium';
+import { extendLocale, loadedLocales, type LocaleData, type LocaleKey, type LocaleKeys, type LocaleValue } from '@axium/core/locales';
+import { error, warn } from 'ioium';
 import en from '../locales/en.json' with { type: 'json' };
+import { getByString } from 'utilium';
 
-const loadedLocales = Object.assign(Object.create(null), { en });
+extendLocale('en', en);
 
-/**
- * Add translations to a locale.
- * Note that when $html is set, translations are rendered as HTML and only replacements are escaped.
- */
-export function extendLocale(locale: string, data: object) {
-	if (!loadedLocales[locale]) {
-		info('Adding new locale (no built-in): ' + locale);
-		loadedLocales[locale] = {};
-	} else debug('Extending locale: ' + locale);
-	deepAssign(loadedLocales[locale], data);
-}
-
-let currentLoaded = en;
+let currentLoaded: LocaleData;
 
 /**
  * Current locale
@@ -46,26 +34,13 @@ export function disjoin(list: Iterable<string>) {
 
 export let currentMonthNames: string[];
 
-type _locale = typeof currentLoaded;
-
-export interface Locale extends _locale {}
-
 export interface ReplacementOptions {
 	$default?: string;
 	/** Whether to treat the replacement as HTML */
 	$html?: boolean;
 }
 
-type _ArgsValue<V extends string[]> = UnionToIntersection<
-	{
-		[I in keyof V]: Split<V[I], '}'> extends [infer Name extends string, string]
-			? { [N in Name]: string | number | bigint | boolean }
-			: {};
-	}[keyof V & number]
->;
-
-type Replacements<K extends string> = ReplacementOptions &
-	(GetByString<Locale, K> extends string ? _ArgsValue<Split<GetByString<Locale, K> & string, '{'>> : Record<string, any>);
+type Replacements<K extends string> = ReplacementOptions & (K extends LocaleKey ? LocaleKeys[K & LocaleKey] : Record<string, LocaleValue>);
 
 type ReplacementsArgs<K extends string> = {} extends Replacements<K> ? [replacements?: Replacements<K>] : [replacements: Replacements<K>];
 
@@ -107,7 +82,7 @@ export function escape(text: string) {
  * text(`example.translation.key.${dynamicPart}`, { a: 1, b: 2 });
  * ```
  */
-export function text<const K extends string = FlattenKeys<Locale>>(key: K, ...args: ReplacementsArgs<K>): string {
+export function text<const K extends string = LocaleKey>(key: K, ...args: ReplacementsArgs<K>): string {
 	const values: Record<string, any> & ReplacementOptions = Object.assign(Object.create(null), args[0]);
 
 	let text: string | object | undefined = getByString(currentLoaded, key) || values.$default;

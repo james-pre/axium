@@ -53,10 +53,12 @@ export function linkRoutes(options: LinkOptions = {}) {
 
 const hooksBuiltin = `
 import { loadFeatures } from '@axium/client/web/features';
+import { loadLocale } from '@axium/client/web/locales';
 import { getCurrentSession } from '@axium/client/user';
 import { errorText } from 'ioium';
 
 export async function init() {
+	await loadLocale().catch(() => {});
 	const session = await getCurrentSession().catch(() => null);
 	await loadFeatures(session?.user?.id).catch(() => {});
 }

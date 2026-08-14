@@ -49,11 +49,12 @@
 		"zod": "^4.0.5"
 	},
 	"axium": {
+		"locales": "locales",
 		"server": {
 			"routes": "routes",
 			"hooks": "./dist/server/hooks.js",
 			"db": "./db.json",
-			"web_client_hooks": "./dist/web_hook.js"
+			"web_client_hooks": "./dist/common.js"
 		},
 		"client": {
 			"hooks": "./dist/client/hooks.js",

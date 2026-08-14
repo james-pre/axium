@@ -57,6 +57,7 @@
 		"@types/smtp-server": "^3.5.13"
 	},
 	"axium": {
+		"locales": "locales",
 		"server": {
 			"routes": "routes",
 			"hooks": "./dist/server/hooks.js",
