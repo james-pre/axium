@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { text, type ReplacementOptions } from '@axium/client';
 	import type { ZodPref } from '@axium/core';
+	import feature from '@axium/core/features';
 	import { zKeys, type ZodLocaleInfo } from '@axium/core/locales';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
@@ -138,7 +139,9 @@
 	</div>
 {/snippet}
 
-{#if schema.type == 'string'}
+{#if localeInfo?.feature && !feature(localeInfo.feature)}
+	<meta data-feature={localeInfo.feature} />
+{:else if schema.type == 'string'}
 	{@render _in({ type: schema.format == 'email' ? 'email' : 'text', ...pick(schema, 'minLength', 'maxLength') })}
 {:else if schema.type == 'number'}
 	{@render _in({ type: 'number', min: schema.minValue, max: schema.maxValue, step: schema.format?.includes('int') ? 1 : 0.1 })}
