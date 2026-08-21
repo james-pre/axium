@@ -49,7 +49,7 @@
 	},
 	"dependencies": {
 		"mailauth": "^5.0.2",
-		"postal-mime": "^2.7.5",
+		"postal-mime": "^3.0.0",
 		"smtp-server": "^3.19.2",
 		"zod": "^4.0.5"
 	},
