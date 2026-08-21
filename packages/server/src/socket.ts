@@ -1,7 +1,7 @@
 import type { ClientToServerEvents, InferEvents, ServerToClientEvents } from '@axium/core/socket';
 import * as z from 'zod';
 import { ClientToServer } from '@axium/core/socket';
-import * as cookie from 'cookie_v1';
+import { parseCookie } from 'cookie';
 import type { Http2Server } from 'node:http2';
 import { Server, type ExtendedError, type Socket as PlainSocket } from 'socket.io';
 import { getSessionAndUser, type SessionAndUser } from './auth.js';
@@ -67,7 +67,7 @@ function getToken(socket: Socket): string | undefined {
 	const header_token = headers.authorization?.replace('Bearer ', '');
 	if (header_token) return header_token;
 
-	if (config.debug || !config.auth.header_only) return cookie.parse(headers.cookie || '').session_token;
+	if (config.debug || !config.auth.header_only) return parseCookie(headers.cookie || '').session_token;
 }
 
 async function authenticate(socket: Socket, next: (err?: ExtendedError) => void): Promise<void> {

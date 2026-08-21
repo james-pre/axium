@@ -1,7 +1,7 @@
 import { type RequestMethod, type User, type UserInternal } from '@axium/core';
-import * as io from 'ioium';
 import { userProtectedFields, userPublicFields } from '@axium/core/user';
-import * as cookie from 'cookie_v1';
+import { parseCookie, stringifySetCookie } from 'cookie';
+import * as io from 'ioium';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import { audit } from './audit.js';
@@ -104,7 +104,7 @@ export function getToken(request: Request, sensitive: boolean = false): string |
 	if (header_token) return header_token;
 
 	if (config.debug || !config.auth.header_only) {
-		return cookie.parse(request.headers.get('cookie') || '')[sensitive ? 'elevated_token' : 'session_token'];
+		return parseCookie(request.headers.get('cookie') || '')[sensitive ? 'elevated_token' : 'session_token'];
 	}
 }
 
@@ -149,7 +149,9 @@ export async function createSessionData(
 
 	if (noCookie) return response;
 
-	const cookies = cookie.serialize(elevated ? 'elevated_token' : 'session_token', token, {
+	const cookies = stringifySetCookie({
+		name: elevated ? 'elevated_token' : 'session_token',
+		value: token,
 		httpOnly: true,
 		path: '/',
 		expires,

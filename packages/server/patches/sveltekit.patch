@@ -1,47 +1,23 @@
---- a/src/core/config/index.js	
-+++ b/src/core/config/index.js	
-@@ -94,9 +94,9 @@
- /**
-  * @param {import('@sveltejs/kit').Config} config
-  * @returns {import('types').ValidatedConfig}
-  */
--function process_config(config, { cwd = process.cwd() } = {}) {
-+export function process_config(config, { cwd = process.cwd() } = {}) {
- 	const validated = validate_config(config);
- 
- 	validated.kit.outDir = path.resolve(cwd, validated.kit.outDir);
- 
---- a/src/exports/vite/index.js	
-+++ b/src/exports/vite/index.js	
-@@ -86,9 +86,9 @@
- /** @type {Set<string>} */
- const warned = new Set();
- 
- /** @type {import('svelte/compiler').PreprocessorGroup} */
--const warning_preprocessor = {
-+export const warning_preprocessor = {
- 	script: ({ content, filename }) => {
- 		if (!filename) return;
- 
- 		const basename = path.basename(filename);
-@@ -185,9 +185,9 @@
+--- a/src/exports/vite/index.js
++++ b/src/exports/vite/index.js
+@@ -230,9 +230,9 @@
   *
   * @param {{ svelte_config: import('types').ValidatedConfig }} options
-  * @return {Promise<import('vite').Plugin[]>}
+  * @return {Promise<Plugin[]>}
   */
 -async function kit({ svelte_config }) {
 +export async function kit({ svelte_config }) {
- 	/** @type {import('vite')} */
+ 	/** @type {typeof import('vite')} */
  	const vite = await import_peer('vite');
  
  	// @ts-ignore `vite.rolldownVersion` only exists in `vite 8`
-@@ -1128,8 +1128,9 @@
- 				try {
- 					const bundle = /** @type {import('vite').Rollup.RollupOutput} */ (
- 						await vite.build({
- 							configFile: vite_config.configFile,
-+							...(globalThis.__axiumNestedConfig ?? {}),
- 							// CLI args
- 							mode: vite_config_env.mode,
- 							logLevel: vite_config.logLevel,
- 							clearScreen: vite_config.clearScreen,
+@@ -1346,8 +1346,9 @@
+ 
+ 						const bundle = /** @type {import('vite').Rollup.RollupOutput} */ (
+ 							await vite.build({
+ 								configFile: vite_config.configFile,
++								...(globalThis.__axiumNestedConfig ?? {}),
+ 								// CLI args
+ 								mode: vite_config_env.mode,
+ 								logLevel: vite_config.logLevel,
+ 								clearScreen: vite_config.clearScreen,
