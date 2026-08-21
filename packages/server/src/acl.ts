@@ -15,11 +15,9 @@ type _TableNames = keyof {
 
 type _TargetNames = keyof db.Schema &
 	keyof {
-		[K in keyof db.Schema as db.Schema[K] extends DBAccessControllable
-			? `acl.${K}` extends keyof db.Schema
-				? K
-				: never
-			: never]: null;
+		[
+			K in keyof db.Schema as db.Schema[K] extends DBAccessControllable ? (`acl.${K}` extends keyof db.Schema ? K : never) : never
+		]: null;
 	};
 
 /**

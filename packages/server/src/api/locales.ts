@@ -11,7 +11,7 @@ function resolveLocale(requested: string): string | undefined {
 	const available = Object.keys(loadedLocales);
 	if (available.includes(requested)) return requested;
 
-	for (let tag = requested; tag.includes('-'); ) {
+	for (let tag = requested; tag.includes('-');) {
 		tag = tag.slice(0, tag.lastIndexOf('-'));
 		if (available.includes(tag)) return tag;
 	}

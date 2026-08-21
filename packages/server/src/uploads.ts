@@ -52,8 +52,7 @@ export interface UploadChunkProgress extends Disposable {
 }
 
 export type UploadChunkResult<Init extends UploadInit = UploadInit, Data = null | undefined> =
-	| UploadChunkFinal<Init, Data>
-	| UploadChunkProgress;
+	UploadChunkFinal<Init, Data> | UploadChunkProgress;
 
 export interface UploadSuccessCallback<T, Init extends UploadInit = UploadInit, Data = undefined> {
 	(upload: UploadChunkFinal<Init, Data>): T | Promise<T>;
