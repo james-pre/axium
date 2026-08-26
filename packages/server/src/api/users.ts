@@ -218,12 +218,21 @@ addRoute({
 			case 'extend_session': {
 				const session = await requireSession(request);
 
+				const expires = in30days();
+
+				await db
+					.updateTable('sessions')
+					.set({ expires })
+					.where('id', '=', session.id)
+					.execute()
+					.catch(withError('Failed to update session', 500));
+
 				const cookies = stringifySetCookie({
 					name: 'session_token',
 					value: session.token,
 					httpOnly: true,
 					path: '/',
-					expires: in30days(),
+					expires,
 					secure: config.auth.secure_cookies,
 					sameSite: 'lax',
 				});

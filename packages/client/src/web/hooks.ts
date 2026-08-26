@@ -5,12 +5,14 @@ import { loadLocale } from '@axium/client/web/locales';
 import feature from '@axium/core/features';
 import { errorText } from 'ioium';
 
+const day = 86400_000;
+
 export async function init() {
 	await loadLocale().catch(() => {});
 	const session = await getCurrentSession().catch(() => null);
 	await loadFeatures(session?.userId).catch(() => {});
 
-	if (session)
+	if (session && session.expires.getTime() < Date.now() + day)
 		try {
 			await extendCurrentSession(session.userId);
 		} catch {
