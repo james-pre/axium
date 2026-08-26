@@ -92,7 +92,7 @@ export const UserRegistration = z.object({
 });
 
 export const UserAuthOptions = z.object({
-	type: z.literal(['login', 'action', 'client_login']),
+	type: z.literal(['login', 'action', 'client_login', 'extend_session']),
 	client: z.string().max(200).optional(),
 });
 

@@ -1,5 +1,5 @@
 import { themeStyles } from '@axium/client/themes';
-import { getCurrentSession } from '@axium/client/user';
+import { extendCurrentSession, getCurrentSession } from '@axium/client/user';
 import { loadFeatures } from '@axium/client/web/features';
 import { loadLocale } from '@axium/client/web/locales';
 import feature from '@axium/core/features';
@@ -8,7 +8,14 @@ import { errorText } from 'ioium';
 export async function init() {
 	await loadLocale().catch(() => {});
 	const session = await getCurrentSession().catch(() => null);
-	await loadFeatures(session?.user?.id).catch(() => {});
+	await loadFeatures(session?.userId).catch(() => {});
+
+	if (session)
+		try {
+			await extendCurrentSession(session.userId);
+		} catch {
+			console.debug('Failed to extend current session');
+		}
 
 	if (feature('themes')) {
 		const theme = themeStyles[session?.user?.preferences?.theme || 'default'] || {};

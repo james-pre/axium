@@ -42,6 +42,12 @@ export async function getCurrentSession(): Promise<Session & { user: User }> {
 	return _currentSession;
 }
 
+export async function extendCurrentSession(userId: string): Promise<void> {
+	const optionsJSON = await fetchAPI('PUT', 'users/:id/auth', { type: 'extend_session' }, userId);
+	const response = await startAuthentication({ optionsJSON });
+	await fetchAPI('POST', 'users/:id/auth', response, userId);
+}
+
 export async function getSessions(userId: string): Promise<Session[]> {
 	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/sessions', {}, userId);

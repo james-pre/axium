@@ -21,7 +21,7 @@ export interface SessionInternal extends Session {
 	token: string;
 }
 
-const in30days = () => new Date(Date.now() + 2592000000);
+export const in30days = () => new Date(Date.now() + 2592000000);
 const in10minutes = () => new Date(Date.now() + 600000);
 
 export async function createSession(userId: string, name: string | null, elevated: boolean = false) {

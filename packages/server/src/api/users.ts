@@ -14,13 +14,15 @@ import {
 	getPasskeysByUserId,
 	getSessions,
 	getUser,
+	in30days,
 	requireSession,
 	useVerification,
 } from '../auth.js';
 import { config } from '../config.js';
 import { database as db } from '../db/index.js';
-import { createSessionData, error, parseBody, stripUser, withError } from '../requests.js';
+import { createSessionData, error, json, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
+import { stringifySetCookie } from 'cookie';
 
 interface UserAuth {
 	data: string;
@@ -142,6 +144,13 @@ addRoute({
 	},
 });
 
+const userVerificationNeeded = {
+	login: 'preferred',
+	action: 'required',
+	client_login: 'preferred',
+	extend_session: 'discouraged',
+} satisfies Record<UserAuthOptions['type'], 'required' | 'preferred' | 'discouraged'>;
+
 addRoute({
 	path: '/api/users/:id/auth',
 	params,
@@ -160,9 +169,12 @@ addRoute({
 
 		if (!passkeys) error(409, 'No passkeys exists for this user');
 
+		if (type == 'extend_session') await requireSession(request).catch(withError('Must have an existing session to extend', 404));
+
 		const options = await webauthn.generateAuthenticationOptions({
 			rpID: config.auth.rp_id,
 			allowCredentials: passkeys.map(passkey => pick(passkey, 'id', 'transports')),
+			userVerification: userVerificationNeeded[type],
 		});
 
 		challenges.set(userId, { data: options.challenge, type, client });
@@ -203,6 +215,23 @@ addRoute({
 					error(403, 'You can not authorize sensitive actions with a newly created passkey');
 
 				return await createSessionData(userId, request, { elevated: true });
+			case 'extend_session': {
+				const session = await requireSession(request);
+
+				const cookies = stringifySetCookie({
+					name: 'session_token',
+					value: session.token,
+					httpOnly: true,
+					path: '/',
+					expires: in30days(),
+					secure: config.auth.secure_cookies,
+					sameSite: 'lax',
+				});
+
+				const response = json({ userId, token: session.token });
+				response.headers.set('Set-Cookie', cookies);
+				return response;
+			}
 		}
 	},
 });
