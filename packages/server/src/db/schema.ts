@@ -221,6 +221,13 @@ export function getFull(opt: GetFullOptions = {}): SchemaDecl & { versions: Reco
 				}
 			}
 
+			// @todo make sure dependencies aren't messed up
+			for (const script of schema.scripts) {
+				const duplicate = fullSchema.scripts.findIndex(existing => existing.path == script.path);
+				if (duplicate != -1) fullSchema.scripts.splice(duplicate, 1);
+				fullSchema.scripts.push(script);
+			}
+
 			if (version === target) break;
 		}
 
