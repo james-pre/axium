@@ -10,7 +10,7 @@ declare module '@axium/client/cli/sync' {
 	}
 }
 
-sync.useSchema('storage', StorageItemMetadata);
+sync.schemas.set('storage', StorageItemMetadata);
 
 export let remotePWD = '/';
 
