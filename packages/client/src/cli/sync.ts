@@ -1,5 +1,7 @@
+import { schemas } from '../sync.js';
 import { sync as syncCache } from './cache.js';
-import type { ZodObject, ZodUUID } from 'zod';
+
+export { schemas };
 
 export interface $Objects {}
 
@@ -14,12 +16,6 @@ let _byType: Partial<ObjectValues>;
 function byType(): Partial<ObjectValues> {
 	_byType ||= Object.groupBy(syncCache.data!.objects, o => o.$type);
 	return _byType;
-}
-
-const schemas = new Map<string, ZodObject>();
-
-export function useSchema<Type extends ObjectType, S extends ZodObject<{ id: ZodUUID }>>(type: Type, schema: S): void {
-	schemas.set(type, schema);
 }
 
 export function get<Type extends ObjectType>(type: Type): ObjectValues[Type] {

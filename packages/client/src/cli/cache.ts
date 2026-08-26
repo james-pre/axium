@@ -7,6 +7,7 @@ import * as z from 'zod';
 import type Cache from '../cache.js';
 import { CacheData } from '../cache.js';
 import { fetchAPI } from '../requests.js';
+import { applyDiff } from '../sync.js';
 import { apiUserCache, getCurrentSession } from '../user.js';
 
 export const dir = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'axium');
@@ -113,26 +114,7 @@ export const sync = useAt({
 
 		const diff = await fetchAPI('GET', 'sync', { since: sync.index });
 
-		const deleted = new Set(diff.deleted);
-
-		const objects = sync.objects.filter(o => !deleted.has(o.id));
-
-		const existing = Object.fromEntries(objects.map(o => [o.id, o]));
-
-		for (const obj of diff.created) objects.push(obj);
-
-		for (const updated of diff.updated) {
-			const base = existing[updated.id];
-
-			if (!base) throw new ReferenceError("Can not update object because it isn't cached");
-
-			if (base.$type !== updated.$type)
-				throw new ReferenceError(`Type mismatch whilst updating cache object: currently ${base.$type}, incoming ${updated.$type}`);
-
-			Object.assign(base, updated);
-		}
-
-		return { objects, index: diff.index };
+		return { objects: applyDiff(sync.objects, diff), index: diff.index };
 	},
 	async isValid({ index }) {
 		const md = await fetchAPI('GET', 'sync/metadata');
