@@ -288,7 +288,7 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 		alter_tables,
 		drop_indexes: Array.from(fromIndexes.difference(toIndexes)),
 		add_indexes,
-		scripts: Array.from(fromScripts.difference(toScripts)),
+		scripts: Array.from(toScripts.difference(fromScripts)),
 	};
 }
 
@@ -432,7 +432,8 @@ export function isEmpty(delta: Version): boolean {
 		!delta.drop_tables.length &&
 		!Object.keys(delta.alter_tables).length &&
 		!Object.keys(delta.add_indexes).length &&
-		!delta.drop_indexes.length
+		!delta.drop_indexes.length &&
+		!delta.scripts.length
 	);
 }
 
