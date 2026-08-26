@@ -89,8 +89,8 @@ export interface ServerToClient {}
 export const ServerToClient = {} as ServerToClient;
 export interface ServerToClientEvents extends InferEvents<ServerToClient> {}
 
-export function addServerToClient(schemas: Record<keyof ServerToClient, EventSchemaLike>) {
-	for (const [event, schema] of Object.entries<EventSchemaLike>(schemas)) (ServerToClient as any)[event] = parseFunction(schema);
+export function addServerToClient(schemas: Partial<Record<keyof ServerToClient, EventSchemaLike>>) {
+	for (const [event, schema] of Object.entries(schemas)) (ServerToClient as any)[event] = parseFunction(schema);
 }
 
 // client -> server //
@@ -99,6 +99,6 @@ export interface ClientToServer {}
 export const ClientToServer = {} as ClientToServer;
 export interface ClientToServerEvents extends InferEvents<ClientToServer> {}
 
-export function addClientToServer(schemas: Record<keyof ClientToServer, EventArgs>) {
+export function addClientToServer(schemas: Partial<Record<keyof ClientToServer, EventArgs>>) {
 	for (const [event, schema] of Object.entries<EventArgs>(schemas)) (ClientToServer as any)[event] = parseTuple(schema);
 }
