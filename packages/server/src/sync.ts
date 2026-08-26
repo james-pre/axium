@@ -1,14 +1,16 @@
 import type { SyncDiff, SyncDiffObject, UserInternal } from '@axium/core';
-import { warnOnce } from 'ioium';
+import { debug, error, errorText, warnOnce } from 'ioium';
 import type { ReferenceExpression, SelectQueryBuilder } from 'kysely';
 import type { WithRequired } from 'utilium';
 import type { TargetName } from './acl.js';
 import { from as aclFrom, existsIn } from './acl.js';
-import { database } from './db/connection.js';
+import { database, listen } from './db/connection.js';
 import type { Schema } from './db/index.js';
+import { io, type Socket } from './socket.js';
 
 export interface GetEventsOptions {
 	since?: bigint;
+	until?: bigint;
 }
 
 export type Op = 'c' | 'u' | 'd';
@@ -63,6 +65,7 @@ export async function getEvents<T extends { id: string }>(
 		.selectAll()
 		.$narrowType<{ op: Op; type: TargetName }>()
 		.$if(!!options.since, qb => qb.where('index', '>', options.since!))
+		.$if(!!options.until, qb => qb.where('index', '<=', options.until!))
 		.execute();
 
 	if (!allEvents.length) return [];
@@ -139,6 +142,76 @@ export function computeDiff(events: Event<any>[]): SyncDiff {
 export async function getCurrentIndex(): Promise<bigint> {
 	const last = await database.selectFrom('sync_events').select('index').orderBy('index', 'desc').limit(1).executeTakeFirst();
 	return last?.index || 0n;
+}
+
+/** The Postgres notification channel used by the `add_sync_event` trigger function */
+export const channel = 'axium_sync';
+
+/**
+ * Send each connected client the changes it hasn't seen yet.
+ * Clients only get objects they have access to, just like `GET /api/sync`.
+ */
+export async function broadcast(): Promise<void> {
+	if (!io) return;
+
+	const users = new Map<string, { user: UserInternal; sockets: Socket[] }>();
+
+	for (const socket of io.sockets.sockets.values()) {
+		const { user } = socket.data;
+		if (!user) continue;
+
+		const group = users.get(user.id) || { user, sockets: [] };
+		group.sockets.push(socket);
+		users.set(user.id, group);
+	}
+
+	if (!users.size) return;
+
+	const index = await getCurrentIndex();
+
+	for (const { user, sockets } of users.values()) {
+		const stale = sockets.filter(socket => socket.data.syncIndex < index);
+		if (!stale.length) continue;
+
+		const since = stale.reduce((lowest, socket) => (socket.data.syncIndex < lowest ? socket.data.syncIndex : lowest), index);
+
+		const events = await getEvents(user, { since, until: index });
+
+		for (const socket of stale) {
+			const missed = events.filter(event => event.index > socket.data.syncIndex);
+			socket.data.syncIndex = index;
+
+			if (!missed.length) continue;
+
+			socket.emit('sync', { ...computeDiff(missed), index });
+		}
+	}
+}
+
+/** Pending broadcasts, so notifications that arrive while broadcasting aren't lost */
+let queued: Promise<void> = Promise.resolve();
+
+let broadcastTimeout: NodeJS.Timeout | null = null;
+
+/** How long to wait for more events before broadcasting */
+const broadcastDelay = 50;
+
+function scheduleBroadcast(): void {
+	if (broadcastTimeout) return;
+
+	broadcastTimeout = setTimeout(() => {
+		broadcastTimeout = null;
+		queued = queued.then(broadcast).catch(e => error('sync: failed to broadcast:', errorText(e)));
+	}, broadcastDelay);
+}
+
+/**
+ * Start pushing changes to connected clients as they happen.
+ * The socket server must be created first.
+ */
+export async function watch(): Promise<void> {
+	await listen(channel, scheduleBroadcast);
+	debug('sync: watching for changes');
 }
 
 export async function getInit<T extends { id: string }>(user: Pick<UserInternal, 'id' | 'roles' | 'tags'>): Promise<SyncDiffObject[]> {

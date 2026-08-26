@@ -155,6 +155,10 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"scripts": [{ "when": "before", "path": "../../db-scripts/add_sync_event.sql" }]
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]

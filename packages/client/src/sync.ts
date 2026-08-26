@@ -54,3 +54,27 @@ export function applyDiff<T extends { id: string; $type?: string }>(objects: rea
 
 	return updated;
 }
+
+const listeners = new Set<(diff: SyncDiff) => void>();
+
+/**
+ * Handle changes to synced objects pushed by the server.
+ * The socket must be connected for these to be received.
+ * @returns a function that removes the listener
+ */
+export function onSync(listener: (diff: SyncDiff) => void): () => void {
+	listeners.add(listener);
+	return () => listeners.delete(listener);
+}
+
+addListener('sync', diff => {
+	io.debug(`sync: ${diff.created.length} created, ${diff.updated.length} updated, ${diff.deleted.length} deleted`);
+
+	for (const listener of listeners) {
+		try {
+			listener(diff);
+		} catch (e) {
+			io.error('Sync listener failed: ' + io.errorText(e));
+		}
+	}
+});

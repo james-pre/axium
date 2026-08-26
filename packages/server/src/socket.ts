@@ -8,6 +8,7 @@ import { getSessionAndUser, type SessionAndUser } from './auth.js';
 import { config } from './config.js';
 import type { UserInternal } from '@axium/core';
 import { warn } from 'ioium';
+import { getCurrentIndex } from './sync.js';
 
 // server -> server
 export interface ServerToServer extends Record<string, z.ZodFunction<any, z.ZodVoid>> {}
@@ -18,6 +19,8 @@ export interface SocketData {
 	/** The authenticated session and user for this connection. */
 	session: SessionAndUser;
 	user: UserInternal;
+	/** The last sync index sent to this client. */
+	syncIndex: bigint;
 }
 
 export interface Socket extends PlainSocket<ClientToServerEvents, ServerToClientEvents, ServerToServerEvents, SocketData> {}
@@ -83,7 +86,7 @@ async function authenticate(socket: Socket, next: (err?: ExtendedError) => void)
 
 	if (session.user.isSuspended) return next(new Error('User is suspended'));
 
-	socket.data = { session, user: session.user };
+	socket.data = { session, user: session.user, syncIndex: await getCurrentIndex() };
 
 	// Local clients (the Axium client daemon/CLI) identify via their user agent; everything else is a browser.
 	const type = /axium[- ]client/i.test(socket.handshake.headers['user-agent'] || '') ? 'local' : 'web';

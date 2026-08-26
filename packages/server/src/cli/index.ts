@@ -30,6 +30,7 @@ import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOpt
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
 import { serve } from '../serve.js';
 import createSocketServer from '../socket.js';
+import * as sync from '../sync.js';
 import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
@@ -207,6 +208,8 @@ program
 		db.connect();
 		await db.clean({});
 		await runLoadHooks();
+
+		if (opt.socket) await sync.watch().catch((e: unknown) => io.warn('Failed to watch for sync events: ' + io.errorText(e)));
 
 		// eslint-disable-next-line @typescript-eslint/no-misused-promises
 		process.on('beforeExit', () => db.database.destroy());
@@ -395,6 +398,7 @@ program
 			process.stdout.cursorTo(0);
 			server = await serve(config.web);
 			createSocketServer(server);
+			await sync.watch().catch((e: unknown) => io.warn('Failed to watch for sync events: ' + io.errorText(e)));
 			server.listen(config.web.port);
 			process.stdout.write(`Build #${buildId} finished in ${formatMs(time)}`);
 			building = false;

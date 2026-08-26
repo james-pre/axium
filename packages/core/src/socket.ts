@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { SyncDiff } from './api.js';
 import type { InferFromTuple } from './schemas.js';
 
 /** Used to avoid having `z.function` + `z.void` */
@@ -85,8 +86,12 @@ export type InferEvents<T> = {
 
 // server -> client //
 
-export interface ServerToClient {}
-export const ServerToClient = {} as ServerToClient;
+export interface ServerToClient {
+	sync: z.ZodFunction<z.ZodTuple<[typeof SyncDiff]>, z.ZodVoid>;
+}
+export const ServerToClient = {
+	sync: parseFunction([SyncDiff]),
+} as any as ServerToClient;
 export interface ServerToClientEvents extends InferEvents<ServerToClient> {}
 
 export function addServerToClient(schemas: Partial<Record<keyof ServerToClient, EventSchemaLike>>) {
