@@ -79,7 +79,7 @@ case "$sub" in
 					continue
 				fi
 
-				echo "--- $pkg ---"
+				printf '\033[1m--- %s ---\033[0m\n' "$pkg"
 				echo "$output"
 			done
 		fi
