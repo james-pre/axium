@@ -26,6 +26,7 @@
 		"./components/*": "./lib/*.svelte"
 	},
 	"files": [
+		"db-scripts",
 		"dist",
 		"lib",
 		"routes",

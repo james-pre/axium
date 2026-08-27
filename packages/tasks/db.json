@@ -86,6 +86,22 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"tasks": {
+					"add_triggers": {
+						"sync_events": {
+							"forEach": "row",
+							"when": "after",
+							"events": ["insert", "update", "delete"],
+							"execute": "add_task_list_sync_event"
+						}
+					}
+				}
+			},
+			"scripts": [{ "when": "before", "path": "db-scripts/add_task_list_sync_event.sql" }]
 		}
 	],
 	"wipe": ["task_lists", "tasks", "acl.task_lists"],
