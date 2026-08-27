@@ -54,6 +54,7 @@ add(
 		// Use a "switch" instead of a checkbox
 		'input-checkbox-as-switch': { default: false, experimental: true },
 		themes: { default: false, experimental: true },
+		pwa: { default: true, experimental: true },
 	},
 	_builtinFrom
 );

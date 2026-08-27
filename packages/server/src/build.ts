@@ -31,11 +31,13 @@ const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
 			assets: join(fileURLToPath(new URL(import.meta.resolve('@axium/client'))), '../../assets'),
 			appTemplate: join(import.meta.dirname, '../template.html'),
 			routes: config.web.routes,
+			serviceWorker: fileURLToPath(import.meta.resolve('@axium/client/web/service-worker')),
 			hooks: {
 				universal: devNull,
 				client: join(import.meta.dirname, '../.hooks.js'),
 			},
 		},
+		serviceWorker: { register: false },
 		typescript: {
 			config(tsconfig) {
 				tsconfig.compilerOptions.allowArbitraryExtensions = true;

@@ -16,6 +16,7 @@ export { default as Logout } from './Logout.svelte';
 export { default as MediaControls } from './MediaControls.svelte';
 export { default as NumberBar } from './NumberBar.svelte';
 export { default as Popover } from './Popover.svelte';
+export { default as PWAIndicator } from './PWAIndicator.svelte';
 export { default as Register } from './Register.svelte';
 export { default as SessionList } from './SessionList.svelte';
 export { default as SidebarLayout } from './SidebarLayout.svelte';
