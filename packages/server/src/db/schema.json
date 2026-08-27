@@ -158,7 +158,17 @@
 		},
 		{
 			"delta": true,
-			"scripts": [{ "when": "before", "path": "../../db-scripts/add_sync_event.sql" }]
+			"alter_tables": {
+				"sync_events": {
+					"add_triggers": {
+						"notify": { "forEach": "row", "when": "after", "events": ["insert"], "execute": "notify_sync_event" }
+					}
+				}
+			},
+			"scripts": [
+				{ "when": "before", "path": "../../db-scripts/add_sync_event.sql" },
+				{ "when": "before", "path": "../../db-scripts/notify_sync_event.sql" }
+			]
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]
