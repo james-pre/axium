@@ -19,8 +19,9 @@
 
 	const { user } = page.data.session || {};
 
-	let tasks = $state(list.tasks),
-		open = $state(false);
+	const tasks = $derived(list.tasks);
+
+	let open = $state(false);
 
 	const { show_completed_subtasks } = user ? await preferences.get(user.id, 'tasks') : {};
 	const showCompletedInline = show_completed_subtasks == 'inline';
@@ -211,7 +212,7 @@
 				<div
 					class="menu-item"
 					onclick={() => {
-						tasks = tasks.filter(task => !task.completed);
+						list.tasks = tasks.filter(task => !task.completed);
 						toastStatus(
 							fetchAPI('POST', 'task_lists/:id', { action: 'delete_completed' }, list.id),
 							text('tasks.toast_delete_completed')
