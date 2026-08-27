@@ -1,9 +1,15 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
+	import { syncObject } from '@axium/client/reactive';
 	import { TaskList } from '@axium/tasks/components';
 
 	const { data } = $props();
+
+	let list = $state(data.list);
+
+	syncObject(list, () => goto('/tasks'), 'task_lists');
 
 	let opener = $state.raw<Window | null>(window.opener);
 
@@ -15,7 +21,7 @@
 </script>
 
 <svelte:head>
-	<title>{text('tasks.list_page_title', { name: data.list.name })}</title>
+	<title>{text('tasks.list_page_title', list)}</title>
 </svelte:head>
 
 <div class="list-container">
@@ -34,7 +40,7 @@
 		</div>
 	{/if}
 
-	<TaskList list={data.list} user={data.session?.user} />
+	<TaskList bind:list />
 </div>
 
 <style>

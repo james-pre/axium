@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
+	import { syncObjects } from '@axium/client/reactive';
 	import { toast } from '@axium/client/toast';
 	import { Note } from '@axium/notes/components';
 
@@ -8,9 +9,13 @@
 
 	let notes = $state(data.notes);
 	$effect(() => {
-		notes.sort((a, b) => +!!b.pinned - +!!a.pinned);
+		notes.sort((a, b) => +b.pinned - +a.pinned);
 	});
+
+	const onfocusout = syncObjects(notes, 'notes');
 </script>
+
+<svelte:window {onfocusout} />
 
 <svelte:head>
 	<title>{text('app_name.notes')}</title>

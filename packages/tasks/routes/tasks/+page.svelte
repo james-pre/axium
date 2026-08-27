@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { FormDialog, Icon, AppPreferencesDialog } from '@axium/client/components';
 	import { fetchAPI, text } from '@axium/client';
+	import { AppPreferencesDialog, FormDialog, Icon } from '@axium/client/components';
+	import { syncObjects } from '@axium/client/reactive';
 	import { TaskListInit, TasksPreferences } from '@axium/tasks/common';
 	import { TaskList } from '@axium/tasks/components';
 
@@ -8,7 +9,11 @@
 
 	let lists = $state(data.lists);
 	let dialog = $state<HTMLDialogElement>();
+
+	const onfocusout = syncObjects(lists, 'task_lists');
 </script>
+
+<svelte:window {onfocusout} />
 
 <svelte:head>
 	<title>{text('app_name.tasks')}</title>
