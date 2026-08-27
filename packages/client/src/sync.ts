@@ -14,16 +14,17 @@ export function parseObject<T extends SyncDiffObject>(object: SyncDiffObject): T
 }
 
 /**
- * Apply a diff to some synced objects, returning the updated objects.
+ *  Apply a diff to some synced objects, updating them in place.
  * Existing objects are updated in place, so bound references stay valid.
- * @param type If set, only objects of this type are created or updated.
  */
-export function applyDiff<T extends { id: string; $type?: string }>(objects: readonly T[], diff: SyncDiff, type?: string): T[] {
+export function applyDiff<T extends { id: string; $type?: string }>(objects: T[], diff: SyncDiff, type?: string): void {
 	const deleted = new Set(diff.deleted);
 
-	const updated = objects.filter(object => !deleted.has(object.id));
+	for (let i = objects.length - 1; i >= 0; i--) {
+		if (deleted.has(objects[i].id)) objects.splice(i, 1);
+	}
 
-	const existing = new Map(updated.map(object => [object.id, object]));
+	const existing = new Map(objects.map(object => [object.id, object]));
 
 	for (const incoming of [...diff.created, ...diff.updated]) {
 		if (type && incoming.$type != type) continue;
@@ -39,7 +40,7 @@ export function applyDiff<T extends { id: string; $type?: string }>(objects: rea
 		const current = existing.get(incoming.id);
 
 		if (!current) {
-			updated.push(object);
+			objects.push(object);
 			existing.set(object.id, object);
 			continue;
 		}
@@ -51,8 +52,6 @@ export function applyDiff<T extends { id: string; $type?: string }>(objects: rea
 
 		Object.assign(current, object);
 	}
-
-	return updated;
 }
 
 const listeners = new Set<(diff: SyncDiff) => void>();

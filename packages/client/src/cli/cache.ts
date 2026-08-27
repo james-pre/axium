@@ -113,8 +113,8 @@ export const sync = useAt({
 		if (!sync) return await fetchAPI('GET', 'sync/init');
 
 		const diff = await fetchAPI('GET', 'sync', { since: sync.index });
-
-		return { objects: applyDiff(sync.objects, diff), index: diff.index };
+		applyDiff(sync.objects, diff);
+		return { objects: sync.objects, index: diff.index };
 	},
 	async isValid({ index }) {
 		const md = await fetchAPI('GET', 'sync/metadata');
