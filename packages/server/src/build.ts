@@ -60,6 +60,7 @@ const baseViteConfig: WithRequired<InlineConfig, 'build'> = {
 	},
 	ssr: {
 		external: ['@axium/server'],
+		noExternal: ['cookie'],
 	},
 	optimizeDeps: {
 		exclude: [],
