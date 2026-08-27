@@ -1,9 +1,9 @@
-import { themeStyles } from '@axium/client/themes';
-import { extendCurrentSession, getCurrentSession } from '@axium/client/user';
-import { loadFeatures } from '@axium/client/web/features';
-import { loadLocale } from '@axium/client/web/locales';
 import feature from '@axium/core/features';
 import { errorText } from 'ioium';
+import { themeStyles } from '../themes.js';
+import { extendCurrentSession, getCurrentSession } from '../user.js';
+import { loadFeatures } from './features.js';
+import { loadLocale } from './locales.js';
 
 const day = 86400_000;
 
