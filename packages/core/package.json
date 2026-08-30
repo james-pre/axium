@@ -39,7 +39,7 @@
 	},
 	"dependencies": {
 		"@types/semver": "^7.7.1",
-		"ioium": "^1.7.0",
+		"ioium": "^1.8.1",
 		"mime": "^4.0.7",
 		"semver": "^7.7.3",
 		"subpatch": "^0.4.0"
