@@ -52,7 +52,7 @@
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.35.0",
-		"@axium/core": ">=0.38.0",
+		"@axium/core": ">=0.39.0",
 		"@simplewebauthn/browser": "^13.3.0",
 		"@sveltejs/adapter-node": "^5.2.12",
 		"@sveltejs/kit": "2.70.3",
