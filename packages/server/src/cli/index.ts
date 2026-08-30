@@ -24,7 +24,7 @@ import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { getEvents, styleSeverity } from '../audit.js';
 import { build } from '../build.js';
-import { config, configFiles, setConfig } from '../config.js';
+import { config, configFiles, reloadConfigs, setConfig } from '../config.js';
 import * as db from '../db/index.js';
 import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from '../io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
@@ -479,6 +479,8 @@ program
 		await upgradeActivePackages(filter, opt, {
 			builtin: [$pkg, getPackageJSON('@axium/client', import.meta.filename)],
 			async postinstall() {
+				await io.track('Reloading configuration', reloadConfigs());
+
 				// re-link //
 				io.track('Linking routes', linkRoutes);
 				io.track('Writing web client hooks for plugins', writePluginHooks);
