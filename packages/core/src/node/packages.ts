@@ -1,5 +1,5 @@
 import * as io from 'ioium/node';
-import { execFileSync, execSync } from 'node:child_process';
+import { execSync, spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import { findPackageJSON } from 'node:module';
 import { styleText } from 'node:util';
@@ -145,7 +145,13 @@ export async function upgradeActivePackages(filter: string[], opt: PackageUpgrad
 		io.warn('--dry-run: No packages were changed.');
 	} else {
 		io.track('Upgrading packages', () => {
-			execFileSync('npm', ['install', ...packages.map(pkg => `${pkg.name}@${pkg.latest}`)]);
+			const args = ['install', '--loglevel=error', ...packages.map(pkg => `${pkg.name}@${pkg.latest}`)];
+			const { error, status, stdout, stderr } = spawnSync('npm', args, { encoding: 'utf8' });
+
+			if (error) throw error;
+			if (!status) return;
+
+			throw new Error(`npm ${args.join(' ')}\n${stdout}\n${stderr}`);
 		});
 	}
 
