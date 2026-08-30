@@ -111,7 +111,8 @@ case "$sub" in
 		git -C "$root" add "packages/$pkg/package.json" "package-lock.json"
 		git -C "$root" commit -m "$tag"
 		git -C "$root" tag "$tag" -m "$tag"
-		changelog="+ $(git -C "$root" log --reverse ${last_tag:+"$last_tag..HEAD"} --format=%B -- "packages/$pkg" | sed '/^$/d')"
+		changelog="+ $tag
+$(git -C "$root" log --reverse "${last_tag:+$last_tag..}HEAD~1" --format=%B -- "packages/$pkg" | sed '/^$/d')"
 		git -C "$root" push --follow-tags
 		echo ""
 		echo "$changelog"
