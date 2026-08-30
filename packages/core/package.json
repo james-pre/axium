@@ -42,7 +42,7 @@
 		"ioium": "^1.7.0",
 		"mime": "^4.0.7",
 		"semver": "^7.7.3",
-		"subpatch": "^0.3.0"
+		"subpatch": "^0.4.0"
 	},
 	"optionalDependencies": {
 		"commander": "^15.0.0"
