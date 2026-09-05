@@ -48,7 +48,7 @@ export async function prepareImageUpload(request: Request, cfg: ImageUploadConfi
 	}
 
 	if (!(data.buffer instanceof ArrayBuffer)) error(500, 'Unexpectedly got a shared buffer from sharp.');
-	return { data: data as Uint8Array<ArrayBuffer>, type };
+	return { data, type };
 }
 
 addRoute({

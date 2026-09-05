@@ -59,7 +59,7 @@
 		"@sveltejs/vite-plugin-svelte": "^7.0.0",
 		"kysely": "^0.29.0",
 		"svelte": "^5.36.0",
-		"utilium": "^3.5.0",
+		"utilium": "^3.6.2",
 		"zod": "^4.0.5"
 	},
 	"dependencies": {

@@ -235,7 +235,7 @@ export interface ConfigFile extends z.infer<typeof ConfigFile> {}
  * Update the current config
  */
 export function setConfig(other: Config) {
-	deepAssign(config, other, true);
+	deepAssign(config, other, { replaceArrays: true });
 	logger.detach(io);
 	if (config.log.console) logger.attach(io, { output: config.log.level });
 	io._setDebugOutput(config.debug);
