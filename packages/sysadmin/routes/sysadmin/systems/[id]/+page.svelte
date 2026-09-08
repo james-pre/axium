@@ -17,6 +17,11 @@
 	let loading = $state(true);
 
 	const matchingUser = $derived(info && systemUsers.find(u => u.username === info!.user.username));
+
+	const storageDevices = $derived(new Map((info?.storage.devices ?? []).map(device => [device.name, device])));
+	const unusedDevices = $derived(
+		(info?.storage.devices ?? []).filter(device => info!.storage.volumes.every(volume => !volume.devices.includes(device.name)))
+	);
 	const connectedUser = $derived(system.connectedUserId ? systemUsers.find(u => u.id === system.connectedUserId) : undefined);
 
 	async function setConnectedUser(connectedUserId: string | null) {
@@ -147,14 +152,57 @@
 				{/if}
 			</div>
 
-			{#if info.storage.length}
+			{#if info.storage.devices.length || info.storage.volumes.length}
 				<div class="component">
 					<h3><Icon i="hard-drive" /> {text('sysadmin.system.storage')}</h3>
-					{#each info.storage as disk}
-						<div class="line">
-							<span>{disk.model}</span>
+					{#each info.storage.volumes as volume}
+						{const disks = $derived(volume.devices.map(name => storageDevices.get(name)).filter(disk => !!disk))}
+						<div class="storage-line">
+							<span class="mount">{volume.mountPoints.join(' ')}</span>
+							{#if disks.length === 1}
+								<span class="subtle">{disks[0].model}</span>
+							{/if}
+							<span class="tags">
+								<span class="tag">{volume.filesystem}</span>
+								{#if volume.profile}
+									<span class="tag raid">{volume.profile.toUpperCase()}</span>
+								{/if}
+								{#if disks.length > 1}
+									<span class="subtle">{text('sysadmin.system.storage_array', { count: disks.length })}</span>
+								{:else if disks[0]?.interface}
+									<span class="subtle">{disks[0].interface}</span>
+								{/if}
+							</span>
 						</div>
-						<NumberBar value={fraction(disk.used, disk.total)} max={1} text={usageText(disk.used, disk.total)} />
+						<NumberBar value={fraction(volume.used, volume.total)} max={1} text={usageText(volume.used, volume.total)} />
+						{#if disks.length > 1}
+							<div class="disks">
+								{#each disks as disk}
+									<div class="disk">
+										<span class="icon-text">
+											<Icon i={disk.rotational ? 'hard-drive' : 'memory'} />
+											{disk.model}
+										</span>
+										<span class="subtle">
+											{formatBytes(disk.size)}
+											{#if disk.interface}<span class="dot">·</span>{disk.interface}{/if}
+										</span>
+									</div>
+								{/each}
+							</div>
+						{/if}
+					{/each}
+					{#each unusedDevices as disk}
+						<div class="storage-line">
+							<span class="mount">{disk.model}</span>
+							<span class="tags">
+								<span class="subtle">
+									{formatBytes(disk.size)}
+									{#if disk.interface}<span class="dot">·</span>{disk.interface}{/if}
+								</span>
+								<span class="tag unused">{text('sysadmin.system.storage_unused')}</span>
+							</span>
+						</div>
 					{/each}
 				</div>
 			{/if}
@@ -359,6 +407,62 @@
 		.subtle {
 			margin-right: auto;
 		}
+	}
+
+	.storage-line {
+		display: flex;
+		align-items: center;
+		gap: 0.35em 1em;
+		flex-wrap: wrap;
+	}
+
+	.mount {
+		font-weight: bold;
+	}
+
+	.tags {
+		margin-left: auto;
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
+		flex-wrap: wrap;
+	}
+
+	.tag {
+		padding: 0.1em 0.6em;
+		border-radius: 1em;
+		font-size: 0.85em;
+		line-height: 1.5;
+		background-color: hsl(0 0 calc(var(--bg-light) + (var(--light-step) * 2)));
+	}
+
+	.raid {
+		background-color: var(--bg-strong);
+	}
+
+	.unused {
+		color: hsl(0 0 var(--fg-light));
+		background-color: transparent;
+		border: 1px solid hsl(0 0 calc(var(--bg-light) + (var(--light-step) * 3)));
+	}
+
+	.disks {
+		display: grid;
+		grid-template-columns: repeat(auto-fit, minmax(15em, 1fr));
+		gap: 0.5em;
+	}
+
+	.disk {
+		display: flex;
+		flex-direction: column;
+		gap: 0.15em;
+		padding: 0.5em 0.75em;
+		border-radius: 0.5em;
+		background-color: hsl(0 0 calc(var(--bg-light) + var(--light-step)));
+	}
+
+	.dot {
+		margin: 0 0.15em;
 	}
 
 	.net-line {

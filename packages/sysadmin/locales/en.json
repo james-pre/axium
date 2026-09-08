@@ -63,6 +63,8 @@
 			"memory_speed": "{speed} MT/s",
 			"swap": "Swap",
 			"storage": "Storage",
+			"storage_unused": "Unused",
+			"storage_array": "{count} drives",
 			"network": "Network",
 			"wireless": "Wireless",
 			"wired": "Wired",

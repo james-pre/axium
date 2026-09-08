@@ -6,11 +6,15 @@ import { program } from 'commander';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
 import type { System, SystemUser } from '../common.js';
-import type { SystemInfo, TotalUsed } from '../info.js';
+import type { StorageDevice, SystemInfo, TotalUsed } from '../info.js';
 import './socket.js';
 
 function usage(info: TotalUsed) {
 	return styleText('blueBright', formatBytes(info.used)) + '/' + styleText('blueBright', formatBytes(info.total));
+}
+
+function drive(device: StorageDevice) {
+	return styleText('blueBright', formatBytes(device.size)) + (device.interface ? ' ' + styleText('dim', device.interface) : '');
 }
 
 const num = (value: number | bigint | undefined) =>
@@ -36,8 +40,20 @@ function dumpInfo(system: System, info: SystemInfo) {
 	console.log('Memory:', usage(memory));
 	if (memory.swap) console.log(tab, 'Swap:', usage(memory.swap));
 
+	const models = new Map(storage.devices.map(device => [device.name, device]));
+
 	console.log('Storage:');
-	for (const drive of storage) console.log(tab, styleText('yellow', drive.model), usage(drive));
+	for (const volume of storage.volumes) {
+		const labels = [volume.filesystem, ...(volume.profile ? [volume.profile.toUpperCase()] : [])];
+		console.log(tab, styleText('cyanBright', volume.mountPoints.join(' ')), styleText('dim', labels.join(' ')), usage(volume));
+		for (const name of volume.devices) {
+			const device = models.get(name);
+			console.log(tab2, styleText('yellow', device?.model ?? name), device ? drive(device) : '');
+		}
+	}
+	for (const device of storage.devices.filter(d => storage.volumes.every(v => !v.devices.includes(d.name)))) {
+		console.log(tab, styleText('yellow', device.model), drive(device), styleText('dim', '(unused)'));
+	}
 
 	console.log('Network:');
 	for (const iface of networkInterfaces) {

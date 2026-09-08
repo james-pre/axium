@@ -35,9 +35,42 @@ export const Memory = z.object({
 });
 export interface Memory extends z.infer<typeof Memory> {}
 
-export const Storage = z.object({
-	...TotalUsed.shape,
+export const StorageDevice = z.object({
+	/** Kernel name of the block device, e.g. 'nvme0n1' or 'sda' */
+	name: z.string(),
 	model: z.string(),
+	/** Capacity in bytes */
+	size: z.coerce.bigint(),
+	/** How the device is attached, e.g. 'PCIe 4.0 x4' or 'SATA 6.0 Gbps' */
+	interface: z.string().optional(),
+	/** Whether the device is a spinning disk rather than solid state */
+	rotational: z.boolean(),
+	/** Whether the device's media can be removed, e.g. a card reader or optical drive */
+	removable: z.boolean(),
+});
+export interface StorageDevice extends z.infer<typeof StorageDevice> {}
+
+export const StorageVolume = z.object({
+	...TotalUsed.shape,
+	/** Every mount point of the filesystem; more than one for e.g. BTRFS subvolumes or bind mounts */
+	mountPoints: z.string().array(),
+	/** Filesystem type, e.g. 'btrfs' or 'ext4' */
+	filesystem: z.string(),
+	/** Names of the devices backing this volume, matching `StorageDevice.name` */
+	devices: z.string().array(),
+	/**
+	 * The RAID or allocation profile the volume is stored with, e.g. 'raid1'.
+	 * Only known for filesystems that manage their own devices (BTRFS) and MD arrays; unset when it is plain 'single'.
+	 */
+	profile: z.string().optional(),
+});
+export interface StorageVolume extends z.infer<typeof StorageVolume> {}
+
+export const Storage = z.object({
+	/** Physical devices, including ones not backing any volume */
+	devices: StorageDevice.array(),
+	/** Mounted filesystems, each of which may span several devices */
+	volumes: StorageVolume.array(),
 });
 export interface Storage extends z.infer<typeof Storage> {}
 
@@ -64,7 +97,7 @@ export const SystemInfo = z.object({
 	cpus: CPU.array(),
 	gpus: GPU.array(),
 	memory: Memory,
-	storage: Storage.array(),
+	storage: Storage,
 	networkInterfaces: NetworkInterface.array(),
 	/** e.g. 'arm', 'arm64', 'ia32', 'loong64', 'mips', 'mipsel', 'ppc64', 'riscv64', 's390x', and 'x64' */
 	arch: z.string(),

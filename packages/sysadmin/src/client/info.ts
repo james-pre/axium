@@ -1,7 +1,8 @@
 import { execFileSync } from 'node:child_process';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import type { GPU, Memory, NetworkInterface, Storage, SystemInfo } from '../info.js';
+import * as path from 'node:path';
+import type { GPU, Memory, NetworkInterface, Storage, StorageDevice, StorageVolume, SystemInfo } from '../info.js';
 
 /** Read a sysfs/procfs file, returning the trimmed contents or undefined if unreadable. */
 function read(path: string): string | undefined {
@@ -67,15 +68,167 @@ function gpus(): GPU[] {
 	return result;
 }
 
-/** Map mounted block devices to the filesystem usage (bytes) of their mount point. */
-function mountUsage(): Map<string, { total: bigint; used: bigint }> {
-	const usage = new Map<string, { total: bigint; used: bigint }>();
+/** PCIe generations by their per-lane transfer rate in GT/s, as reported by `current_link_speed`. */
+const pcieGenerations: Record<string, string> = {
+	'2.5': '1.0',
+	'5.0': '2.0',
+	'8.0': '3.0',
+	'16.0': '4.0',
+	'32.0': '5.0',
+	'64.0': '6.0',
+	'128.0': '7.0',
+};
+
+/** Format a link rate given in Mbit/s, e.g. 10000 -> '10 Gbps'. */
+function formatLinkRate(mbps: number): string {
+	return mbps >= 1000 ? `${(mbps / 1000).toFixed(1).replace(/\.0$/, '')} Gbps` : `${mbps} Mbps`;
+}
+
+/** The SATA link speed of an `ataN` device directory, e.g. '6.0 Gbps'. */
+function sataSpeed(ata: string): string | undefined {
+	for (const link of list(ata)) {
+		if (!link.startsWith('link')) continue;
+		for (const classLink of list(`${ata}/${link}/ata_link`)) {
+			const speed = read(`${ata}/${link}/ata_link/${classLink}/sata_spd`);
+			// Reported as `<unknown>` for PATA links and for ports with nothing negotiated.
+			if (speed && !speed.startsWith('<')) return speed;
+		}
+	}
+}
+
+/** How a disk is attached, e.g. 'PCIe 4.0 x4', 'SATA 6.0 Gbps' or 'USB 10 Gbps'. */
+function diskInterface(dev: string): string | undefined {
+	let dir: string;
+	try {
+		dir = fs.realpathSync(`/sys/block/${dev}/device`);
+	} catch {
+		return undefined;
+	}
+
+	// Walk toward the root of the device tree; the nearest bus we recognize is the one the disk hangs off.
+	for (; dir.startsWith('/sys/devices/'); dir = path.dirname(dir)) {
+		const name = path.basename(dir);
+
+		if (/^ata\d+$/.test(name)) {
+			const speed = sataSpeed(dir);
+			return speed ? `SATA ${speed}` : 'SATA';
+		}
+
+		// PCI(e) endpoints expose the negotiated link; `current_link_speed` is like `16.0 GT/s PCIe`.
+		const link = read(`${dir}/current_link_speed`);
+		if (link) {
+			const rate = link.split(' ')[0];
+			const generation = pcieGenerations[Number(rate).toFixed(1)];
+			const width = read(`${dir}/current_link_width`);
+			return `PCIe ${generation ?? `${rate} GT/s`}${width && width !== '0' ? ` x${width}` : ''}`;
+		}
+
+		// USB devices (as opposed to their interfaces) carry the descriptor fields; `speed` is in Mbit/s.
+		if (fs.existsSync(`${dir}/idVendor`)) {
+			const speed = Number(read(`${dir}/speed`));
+			return speed > 0 ? `USB ${formatLinkRate(speed)}` : 'USB';
+		}
+	}
+}
+
+function devices(): StorageDevice[] {
+	const result: StorageDevice[] = [];
+
+	for (const name of list('/sys/block')) {
+		// Skip virtual devices (zram, loop, device-mapper, MD) which have no backing `device`.
+		if (!fs.existsSync(`/sys/block/${name}/device`)) continue;
+
+		const sectors = read(`/sys/block/${name}/size`);
+		if (!sectors) continue;
+
+		result.push({
+			name,
+			model: read(`/sys/block/${name}/device/model`)?.trim() || name,
+			size: BigInt(sectors) * 512n,
+			interface: diskInterface(name),
+			rotational: read(`/sys/block/${name}/queue/rotational`) === '1',
+			removable: read(`/sys/block/${name}/removable`) === '1',
+		});
+	}
+
+	return result.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+/**
+ * Resolve a block device to the physical disks backing it, recursing through `slaves` so
+ * device-mapper (LVM, LUKS) and MD stacks resolve to real hardware rather than virtual devices.
+ */
+function physicalDisks(dev: string, into = new Set<string>()): Set<string> {
+	if (fs.existsSync(`/sys/class/block/${dev}/partition`)) {
+		// Partitions live inside their disk's directory: `.../nvme0n1/nvme0n1p3`.
+		try {
+			return physicalDisks(path.basename(path.dirname(fs.realpathSync(`/sys/class/block/${dev}`))), into);
+		} catch {
+			return into;
+		}
+	}
+
+	if (fs.existsSync(`/sys/block/${dev}/device`)) into.add(dev);
+	else for (const slave of list(`/sys/block/${dev}/slaves`)) physicalDisks(slave, into);
+
+	return into;
+}
+
+interface Btrfs {
+	fsid: string;
+	/** Member devices, as they are named in /sys/block */
+	devices: string[];
+	profile?: string;
+}
+
+/** BTRFS filesystems keyed by each of their member devices. The kernel is the only source that knows all members. */
+function btrfsFilesystems(): Map<string, Btrfs> {
+	const result = new Map<string, Btrfs>();
+
+	for (const fsid of list('/sys/fs/btrfs')) {
+		const devices = list(`/sys/fs/btrfs/${fsid}/devices`);
+		if (!devices.length) continue;
+
+		// `allocation/data` holds a directory per chunk profile in use alongside its counter files.
+		const profile = list(`/sys/fs/btrfs/${fsid}/allocation/data`).find(entry => /^(single|dup|raid\d+(c\d+)?)$/.test(entry));
+
+		const info: Btrfs = { fsid, devices, profile: profile === 'single' ? undefined : profile };
+		for (const dev of devices) result.set(dev, info);
+	}
+
+	return result;
+}
+
+function volumes(): StorageVolume[] {
 	const mounts = read('/proc/mounts');
-	if (!mounts) return usage;
+	if (!mounts) return [];
+
+	const btrfs = btrfsFilesystems();
+	// Several mount points can share one filesystem (BTRFS subvolumes, bind mounts); they are one volume.
+	const byFilesystem = new Map<string, StorageVolume>();
 
 	for (const line of mounts.split('\n')) {
-		const [source, mountPoint] = line.split(' ');
+		const [source, rawMountPoint, filesystem] = line.split(' ');
 		if (!source?.startsWith('/dev/')) continue;
+
+		// /proc/mounts octal-escapes characters that would otherwise break the field separators.
+		const mountPoint = rawMountPoint.replace(/\\(\d{3})/g, (_, code) => String.fromCharCode(parseInt(code, 8)));
+
+		let dev: string;
+		try {
+			// The source may be a symlink, e.g. /dev/mapper/foo -> /dev/dm-0.
+			dev = fs.realpathSync(source).slice('/dev/'.length);
+		} catch {
+			continue;
+		}
+
+		const btrfsInfo = btrfs.get(dev);
+
+		const existing = byFilesystem.get(btrfsInfo?.fsid ?? dev);
+		if (existing) {
+			if (!existing.mountPoints.includes(mountPoint)) existing.mountPoints.push(mountPoint);
+			continue;
+		}
 
 		let stat: fs.StatsFsBase<bigint>;
 		try {
@@ -84,38 +237,26 @@ function mountUsage(): Map<string, { total: bigint; used: bigint }> {
 			continue;
 		}
 
-		const total = stat.blocks * stat.bsize;
-		const used = (stat.blocks - stat.bfree) * stat.bsize;
-		usage.set(source.slice('/dev/'.length), { total, used });
+		// BTRFS tracks its own members; anything else spanning devices does so through MD or device-mapper.
+		const devices = new Set<string>();
+		for (const member of btrfsInfo?.devices ?? [dev]) physicalDisks(member, devices);
+		if (!devices.size) continue;
+
+		byFilesystem.set(btrfsInfo?.fsid ?? dev, {
+			mountPoints: [mountPoint],
+			filesystem,
+			devices: [...devices].sort((a, b) => a.localeCompare(b)),
+			profile: btrfsInfo?.profile ?? read(`/sys/block/${dev}/md/level`),
+			total: stat.blocks * stat.bsize,
+			used: (stat.blocks - stat.bfree) * stat.bsize,
+		});
 	}
-	return usage;
+
+	return [...byFilesystem.values()].sort((a, b) => a.mountPoints[0].localeCompare(b.mountPoints[0]));
 }
 
-function storage(): Storage[] {
-	const usage = mountUsage();
-	const result: Storage[] = [];
-
-	for (const dev of list('/sys/block')) {
-		// Skip virtual devices (zram, loop, device-mapper) which have no backing `device`.
-		if (!fs.existsSync(`/sys/block/${dev}/device`)) continue;
-
-		const sectors = read(`/sys/block/${dev}/size`);
-		if (!sectors) continue;
-		// `size` is always in 512-byte sectors regardless of logical block size.
-		const total = BigInt(sectors) * 512n;
-
-		// Sum filesystem usage across mounted partitions of this disk.
-		let used = 0n;
-		for (const [mounted, info] of usage) {
-			if (mounted === dev || mounted.startsWith(dev + 'p') || (mounted.startsWith(dev) && /\d$/.test(mounted))) {
-				used += info.used;
-			}
-		}
-
-		const model = read(`/sys/block/${dev}/device/model`)?.trim() || dev;
-		result.push({ model, total, used });
-	}
-	return result;
+function storage(): Storage {
+	return { devices: devices(), volumes: volumes() };
 }
 
 type DmiMemory = Pick<Memory, 'speed' | 'formFactor' | 'type'>;
