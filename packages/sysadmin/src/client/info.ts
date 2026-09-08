@@ -68,7 +68,7 @@ function gpus(): GPU[] {
 	return result;
 }
 
-/** PCIe generations by their per-lane transfer rate in GT/s, as reported by `current_link_speed`. */
+/** PCIe generations by their per-lane transfer rate in GT/s, as reported by `max_link_speed`. */
 const pcieGenerations: Record<string, string> = {
 	'2.5': '1.0',
 	'5.0': '2.0',
@@ -82,6 +82,18 @@ const pcieGenerations: Record<string, string> = {
 /** Format a link rate given in Mbit/s, e.g. 10000 -> '10 Gbps'. */
 function formatLinkRate(mbps: number): string {
 	return mbps >= 1000 ? `${(mbps / 1000).toFixed(1).replace(/\.0$/, '')} Gbps` : `${mbps} Mbps`;
+}
+
+/** A PCIe `*_link_speed` value (`16.0 GT/s PCIe`) in GT/s, or Infinity when it is missing or unparseable. */
+function linkRate(path: string): number {
+	const rate = Number(read(path)?.split(' ')[0]);
+	return rate > 0 ? rate : Infinity;
+}
+
+/** A PCIe `*_link_width` value in lanes, or Infinity when it is missing or unparseable. */
+function linkWidth(path: string): number {
+	const width = Number(read(path));
+	return width > 0 ? width : Infinity;
 }
 
 /** The SATA link speed of an `ataN` device directory, e.g. '6.0 Gbps'. */
@@ -114,13 +126,15 @@ function diskInterface(dev: string): string | undefined {
 			return speed ? `SATA ${speed}` : 'SATA';
 		}
 
-		// PCI(e) endpoints expose the negotiated link; `current_link_speed` is like `16.0 GT/s PCIe`.
-		const link = read(`${dir}/current_link_speed`);
-		if (link) {
-			const rate = link.split(' ')[0];
-			const generation = pcieGenerations[Number(rate).toFixed(1)];
-			const width = read(`${dir}/current_link_width`);
-			return `PCIe ${generation ?? `${rate} GT/s`}${width && width !== '0' ? ` x${width}` : ''}`;
+		if (fs.existsSync(`${dir}/max_link_speed`)) {
+			const parent = path.dirname(dir);
+			const rate = Math.min(linkRate(`${dir}/max_link_speed`), linkRate(`${parent}/max_link_speed`));
+			const width = Math.min(linkWidth(`${dir}/max_link_width`), linkWidth(`${parent}/max_link_width`));
+
+			if (Number.isFinite(rate)) {
+				const generation = pcieGenerations[rate.toFixed(1)];
+				return `PCIe ${generation ?? `${rate} GT/s`}${Number.isFinite(width) ? ` x${width}` : ''}`;
+			}
 		}
 
 		// USB devices (as opposed to their interfaces) carry the descriptor fields; `speed` is in Mbit/s.
