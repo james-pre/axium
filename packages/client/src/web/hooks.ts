@@ -18,11 +18,7 @@ export async function init() {
 	await loadLocale().catch(() => {});
 
 	if (session && session.expires.getTime() < Date.now() + day)
-		try {
-			await extendCurrentSession(session.userId);
-		} catch {
-			console.debug('Failed to extend current session');
-		}
+		void extendCurrentSession(session.userId).catch(() => console.debug('Failed to extend current session'));
 
 	if (feature('themes')) {
 		const theme = themeStyles[session?.user?.preferences?.theme || 'default'] || {};
