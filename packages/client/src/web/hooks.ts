@@ -9,12 +9,13 @@ import * as pwa from './pwa.js';
 const day = 86400_000;
 
 export async function init() {
+	const session = await getCurrentSession().catch(() => null);
+	await loadFeatures(session?.userId).catch(() => {});
+
 	if (feature('pwa')) void pwa.register().catch(e => console.debug('Failed to register service worker:', errorText(e)));
 	else void pwa.unregister().catch(() => {});
 
 	await loadLocale().catch(() => {});
-	const session = await getCurrentSession().catch(() => null);
-	await loadFeatures(session?.userId).catch(() => {});
 
 	if (session && session.expires.getTime() < Date.now() + day)
 		try {
