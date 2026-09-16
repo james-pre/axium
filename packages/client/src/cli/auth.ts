@@ -2,15 +2,14 @@ import { NewSessionResponse } from '@axium/core';
 import * as io from 'ioium/node';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
+import * as os from 'node:os';
 import { createInterface } from 'node:readline/promises';
 import { styleText } from 'node:util';
-import { config, resolveServerURL } from '../config.js';
+import $pkg from '../../package.json' with { type: 'json' };
 import { prefix, setPrefix, setToken } from '../requests.js';
 import { getCurrentSession } from '../user.js';
 import * as cache from './cache.js';
-import { saveConfig } from './config.js';
-import * as os from 'node:os';
-import $pkg from '../../package.json' with { type: 'json' };
+import { configManager, resolveServerURL } from './config.js';
 
 export const clientUA = `Axium Client/${$pkg.version} (${os.type()}; ${process.arch})`;
 
@@ -97,8 +96,6 @@ export async function login(url?: string) {
 
 	console.log(`Welcome ${session.user.name}! Your session is valid until ${session.expires.toLocaleDateString()}.`);
 
-	config.token = token;
-	config.server = url;
-	saveConfig();
+	configManager.update({ token, server: url });
 	await cache.update(true);
 }

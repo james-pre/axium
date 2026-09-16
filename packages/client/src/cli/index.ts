@@ -9,13 +9,13 @@ import { basename } from 'node:path';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
-import { config } from '../config.js';
+import { config, configManager } from './config.js';
 import { prefix, useUserAgent } from '../requests.js';
 import { connect as connectSocket } from '../socket.js';
 import { logout } from '../user.js';
 import { clientUA, login } from './auth.js';
 import * as cache from './cache.js';
-import { axcConfigPath, loadConfig, saveConfig, session } from './config.js';
+import { session } from './config.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) || process.argv.includes('--debug');
@@ -24,12 +24,14 @@ if (debug) io._setDebugOutput(true);
 
 useUserAgent(clientUA);
 
-await loadConfig({ plugins: { safe } });
+const loadOptions = { plugins: { safe } };
+
+configManager.loadDefaults(loadOptions);
 cache.load();
 
 process.on('SIGHUP', () => {
 	io.info('Reloading configuration due to SIGHUP.');
-	void loadConfig({ plugins: { safe } });
+	configManager.reloadFiles();
 });
 
 program
@@ -93,16 +95,10 @@ program
 
 const axcPlugin = createPluginCommand('client', program, {
 	safe,
-	loadedBy: () => axcConfigPath,
+	loadedBy: () => configManager.filePaths.next().value!,
 	enabled: config.plugins,
-	enable(spec) {
-		config.plugins.push(spec);
-		saveConfig();
-	},
-	disable(spec) {
-		config.plugins = config.plugins.filter(p => p !== spec);
-		saveConfig();
-	},
+	enable: spec => configManager.update({ plugins: [...config.plugins, spec] }),
+	disable: spec => configManager.update({ plugins: config.plugins.filter(p => p !== spec) }),
 });
 
 axcPlugin

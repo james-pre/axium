@@ -2,7 +2,7 @@ import { program } from 'commander';
 import * as io from 'ioium/node';
 import { getByString, isJSON, setByString } from 'utilium';
 import * as z from 'zod';
-import { config, Config, ConfigFile, configFiles, saveConfig } from '../config.js';
+import { config, configManager } from '../config.js';
 import { sharedOptions as opts } from './common.js';
 
 const axiumConfig = program
@@ -47,7 +47,7 @@ axiumConfig
 		if (opt.json && !isJSON(value)) io.exit('Invalid JSON');
 		const obj: Record<string, any> = {};
 		setByString(obj, key, opt.json ? JSON.parse(value) : value);
-		saveConfig(Config.parse(obj), opt.global);
+		configManager.update(obj, opt.global ? 'system' : 'local');
 	});
 
 axiumConfig
@@ -56,7 +56,7 @@ axiumConfig
 	.alias('files')
 	.description('List loaded config files')
 	.action(() => {
-		for (const path of configFiles.keys()) console.log(path);
+		for (const path of configManager.filePaths) console.log(path);
 	});
 
 axiumConfig
@@ -65,7 +65,7 @@ axiumConfig
 	.action(() => {
 		const opt = axiumConfig.optsWithGlobals();
 		try {
-			const schema = z.toJSONSchema(ConfigFile, { io: 'input' });
+			const schema = z.toJSONSchema(configManager.fileSchema as unknown as z.ZodObject<any>, { io: 'input' });
 			console.log(opt.json ? JSON.stringify(schema, configReplacer(opt), 4) : schema);
 		} catch (e: any) {
 			io.exit(e);

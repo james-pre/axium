@@ -3,7 +3,7 @@ import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
 import * as z from 'zod';
-import { configFiles, findConfigPaths, saveConfig, saveConfigTo } from '../config.js';
+import { config, configManager, findConfigPaths } from '../config.js';
 import * as db from '../db/index.js';
 import { sharedOptions as opts } from './common.js';
 
@@ -16,22 +16,19 @@ const axiumPlugin = createPluginCommand('server', program, {
 	safe,
 	loadedBy: opts => targetConfigPath(opts.global),
 	get enabled() {
-		return configFiles
-			.values()
-			.flatMap(data => data.plugins ?? [])
-			.toArray();
+		return config.plugins;
 	},
 	enable(spec, { global }) {
 		const path = targetConfigPath(global);
-		const { plugins = [] } = configFiles.get(path) ?? {};
+		const { plugins = [] } = configManager.configAt(path) ?? {};
 		plugins.push(spec);
-		saveConfig({ plugins }, global);
+		configManager.update({ plugins }, global && 'system');
 	},
 	disable(spec) {
-		for (const [path, data] of configFiles) {
-			if (!data.plugins?.includes(spec)) continue;
-			data.plugins = data.plugins.filter(p => p !== spec);
-			saveConfigTo(path, data);
+		for (const file of configManager.files) {
+			if (!file.data.plugins?.includes(spec)) continue;
+			file.data.plugins = file.data.plugins.filter(p => p !== spec);
+			configManager.updateFile(file.path, file.data);
 		}
 	},
 });
@@ -50,11 +47,11 @@ axiumPlugin
 		db.connect();
 		await plugin._hooks?.remove?.(opt);
 
-		for (const [path, data] of configFiles) {
-			if (!data.plugins) continue;
+		for (const file of configManager.files) {
+			if (!file.data.plugins) continue;
 
-			data.plugins = data.plugins.filter(p => p !== plugin.specifier);
-			saveConfigTo(path, data);
+			file.data.plugins = file.data.plugins.filter(p => p !== plugin.specifier);
+			configManager.updateFile(file.path, file.data);
 		}
 
 		plugins.delete(plugin.name);

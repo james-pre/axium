@@ -12,7 +12,7 @@ import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { audit, events, getEvents } from '../audit.js';
 import { createVerification, requireSession, type SessionAndUser } from '../auth.js';
-import { config, configFiles, type Config } from '../config.js';
+import { config, configManager } from '../config.js';
 import { count, database as db } from '../db/index.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
@@ -47,7 +47,7 @@ addRoute({
 		return {
 			...(await count('users', 'passkeys', 'sessions')),
 			auditEvents,
-			configFiles: configFiles.size,
+			configFiles: configManager.filePaths.toArray().length,
 			plugins: plugins.size,
 			versions: {
 				server: $pkg.version,
@@ -141,7 +141,7 @@ addRoute({
 /**
  * Redacts critical information that we don't want to send over the API, even to admins.
  */
-function _redactConfig(config: Config): Config {
+function _redactConfig<T extends { db?: { password?: string } }>(config: T): T {
 	if (config.db?.password) {
 		config.db.password = '*'.repeat(config.db.password.length);
 	}
@@ -155,8 +155,8 @@ addRoute({
 		await assertAdmin(this, req);
 
 		return {
-			config: _redactConfig(config),
-			files: Object.fromEntries(configFiles.entries().map(([path, cfg]) => [path, _redactConfig(cfg)])),
+			config: _redactConfig(structuredClone(configManager.data)),
+			files: Object.fromEntries(configManager.files.map(file => [file.path, _redactConfig(file.data)])),
 		};
 	},
 });

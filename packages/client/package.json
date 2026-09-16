@@ -57,6 +57,7 @@
 		"zod": "^4.0.5"
 	},
 	"dependencies": {
+		"@james-pre/config": "^1.1.0",
 		"@simplewebauthn/browser": "^13.1.0",
 		"commander": "^15.0.0",
 		"music-metadata": "^11.12.3",

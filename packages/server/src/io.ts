@@ -11,7 +11,7 @@ import { _unique } from './state.js';
 
 export const systemDir = '/etc/axium';
 
-export const dirs = _unique('dirs', [systemDir]);
+export const dirs: string[] = _unique('dirs', []);
 for (let dir = resolve(process.cwd()); dir !== '/'; dir = dirname(dir)) {
 	if (fs.existsSync(join(dir, '.axium'))) dirs.push(join(dir, '.axium'));
 }

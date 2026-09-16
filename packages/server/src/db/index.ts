@@ -12,7 +12,7 @@ import { styleText } from 'node:util';
 import pg from 'pg';
 import type { Entries, Expand } from 'utilium';
 import * as z from 'zod';
-import { config, saveConfig } from '../config.js';
+import { config, configManager } from '../config.js';
 import { dirs, systemDir } from '../io.js';
 
 import { connect, database } from './connection.js';
@@ -185,7 +185,7 @@ export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'alrea
 
 export async function init(opt: InitOptions): Promise<void> {
 	if (!config.db.password) {
-		saveConfig({ db: { password: randomBytes(32).toString('base64') } }, true);
+		configManager.update({ db: { password: randomBytes(32).toString('base64') } }, 'system');
 		io.debug('Generated password and wrote to global config');
 	}
 
@@ -431,7 +431,7 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 export function rotatePassword() {
 	const password = io.track('Generating new password', () => randomBytes(32).toString('base64'));
 
-	io.track('Updating global config', () => saveConfig({ db: { password } }, true));
+	io.track('Updating global config', () => configManager.update({ db: { password } }, 'system'));
 
 	_sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
 }
