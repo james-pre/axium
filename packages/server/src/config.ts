@@ -125,7 +125,7 @@ const schema = z.looseObject({
 
 export const configManager = _unique(
 	'config',
-	new jpConfig.Manager<LoadOptions, typeof schema>(schema, { enableIncludes: true, system: 'axium' })
+	new jpConfig.Manager(schema, { enableIncludes: true, system: 'axium' }).$loadOptions<LoadOptions>()
 )
 	.on('change', () => {
 		logger.detach(io);
