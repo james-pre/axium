@@ -1,4 +1,4 @@
-import { configDir, saveConfig } from '@axium/client/cli/config';
+import { configDir } from '@axium/client/cli/config';
 import { fetchAPI } from '@axium/client/requests';
 import * as io from 'ioium/node';
 import mime from 'mime';
@@ -248,6 +248,6 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 
 	setItems(sync.item, Array.from(_items.values()));
 	sync.last_synced = new Date();
-	saveConfig();
+
 	return stats;
 }

@@ -45,7 +45,7 @@ export const configManager = new ConfigManager(
 
 export const config = configManager.data;
 
-const configDir = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'axium');
+export const configDir = join(process.env.XDG_CONFIG_HOME || join(homedir(), '.config'), 'axium');
 mkdirSync(configDir, { recursive: true });
 persistFeaturesTo(join(configDir, 'features.json'));
 
