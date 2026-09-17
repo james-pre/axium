@@ -1,4 +1,4 @@
-import { ClientConfig, resolveServerURL } from '@axium/client/config';
+import { configManager as clientConfigManager, resolveServerURL } from '@axium/client/cli/config';
 import type { UserInternal } from '@axium/core';
 import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program } from 'commander';
@@ -140,10 +140,10 @@ program
 
 		const configPath = join(configDir, 'config.json');
 
-		let clientConfig: ClientConfig = { plugins: [] };
+		let clientConfig: typeof clientConfigManager.data = { plugins: [] };
 		if (fs.existsSync(configPath)) {
 			try {
-				clientConfig = io.readJSON(configPath, ClientConfig);
+				clientConfig = io.readJSON(configPath, clientConfigManager.schema);
 			} catch (e) {
 				io.exit(`Failed to read ${configPath}: ${io.errorText(e)}`);
 			}
