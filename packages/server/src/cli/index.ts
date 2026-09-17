@@ -26,7 +26,7 @@ import { getEvents, styleSeverity } from '../audit.js';
 import { build } from '../build.js';
 import { config, configManager } from '../config.js';
 import * as db from '../db/index.js';
-import { _portActions, _portMethods, dirs, logger, restrictedPorts, type PortOptions } from '../io.js';
+import { _portActions, _portMethods, localDir, logger, restrictedPorts, type PortOptions } from '../io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
 import { serve } from '../serve.js';
 import createSocketServer from '../socket.js';
@@ -92,7 +92,7 @@ axiumApps
 		}
 	});
 
-persistFeaturesTo(join(dirs.at(-1)!, 'features.json'));
+persistFeaturesTo(join(localDir(), 'features.json'));
 createFeatureCommand(program);
 createLocalesCommand(program);
 
@@ -203,7 +203,7 @@ program
 
 		if (opt.socket) createSocketServer(server);
 
-		logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
+		logger.attach(createWriteStream(join(localDir(), 'server.log')), { output: allLogLevels });
 
 		db.connect();
 		await db.clean({});
@@ -375,7 +375,7 @@ program
 		let buildId = 0,
 			server: Http2Server | undefined;
 
-		logger.attach(createWriteStream(join(dirs.at(-1)!, 'server.log')), { output: allLogLevels });
+		logger.attach(createWriteStream(join(localDir(), 'server.log')), { output: allLogLevels });
 		db.connect();
 		await db.clean({});
 		await runLoadHooks();

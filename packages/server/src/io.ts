@@ -17,6 +17,10 @@ for (let dir = resolve(process.cwd()); dir !== '/'; dir = dirname(dir)) {
 }
 if (process.env.AXIUM_DIR) dirs.push(process.env.AXIUM_DIR);
 
+export function localDir() {
+	return dirs.at(-1) || systemDir;
+}
+
 try {
 	fs.mkdirSync(systemDir, { recursive: true });
 } catch {

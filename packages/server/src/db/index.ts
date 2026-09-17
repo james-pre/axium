@@ -13,7 +13,7 @@ import pg from 'pg';
 import type { Entries, Expand } from 'utilium';
 import * as z from 'zod';
 import { config, configManager } from '../config.js';
-import { dirs, systemDir } from '../io.js';
+import { localDir, systemDir } from '../io.js';
 
 import { connect, database } from './connection.js';
 
@@ -268,7 +268,7 @@ export const UpgradesInfo = z.object({
 
 export interface UpgradesInfo extends z.infer<typeof UpgradesInfo> {}
 
-const upgradesFilePath = process.getuid?.() == 0 ? join(systemDir, 'db_upgrades.json') : join(dirs.at(-1)!, 'db_upgrades.json');
+const upgradesFilePath = join(process.getuid?.() == 0 ? systemDir : localDir(), 'db_upgrades.json');
 
 export function getUpgradeInfo(): UpgradesInfo {
 	if (!existsSync(upgradesFilePath)) io.writeJSON(upgradesFilePath, { current: {}, upgrades: [] });
