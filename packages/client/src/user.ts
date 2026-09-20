@@ -9,6 +9,7 @@ import type {
 	UserPublic,
 	Verification,
 } from '@axium/core';
+import { PasskeyRegistration } from '@axium/core/passkeys';
 import { UserRegistrationInit } from '@axium/core/user';
 import { startAuthentication, startRegistration } from '@simplewebauthn/browser';
 import * as z from 'zod';
@@ -75,7 +76,7 @@ export async function register(_data: Record<string, unknown>): Promise<void> {
 
 	const response = await startRegistration({ optionsJSON: options });
 
-	await fetchAPI('POST', 'register', { userId, response, ...data });
+	await fetchAPI('POST', 'register', { userId, response: PasskeyRegistration.parse(response), ...data });
 }
 
 function _checkId(userId: string): void {
@@ -153,7 +154,7 @@ export async function createPasskey(userId: string): Promise<Passkey> {
 
 	const response = await startRegistration({ optionsJSON: options });
 
-	return await fetchAPI('PUT', 'users/:id/passkeys', response, userId);
+	return await fetchAPI('PUT', 'users/:id/passkeys', PasskeyRegistration.parse(response), userId);
 }
 
 export async function updatePasskey(passkeyId: string, data: z.input<typeof PasskeyChangeable>): Promise<Passkey> {
