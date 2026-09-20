@@ -1,5 +1,6 @@
 /** Register a new user. */
 import type { AsyncResult } from '@axium/core/api';
+import { PasskeyCreationOptions } from '@axium/core/passkeys';
 import { UserRegistration, UserRegistrationInit } from '@axium/core/user';
 import { generateRegistrationOptions, verifyRegistrationResponse } from '@simplewebauthn/server';
 import { randomUUID } from 'node:crypto';
@@ -38,7 +39,7 @@ async function PUT(request: Request): AsyncResult<'PUT', 'register'> {
 
 	registrations.set(userId, options.challenge);
 
-	return { userId, options };
+	return { userId, options: PasskeyCreationOptions.parse(options) };
 }
 
 async function POST(request: Request) {

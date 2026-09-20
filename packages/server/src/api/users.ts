@@ -1,6 +1,6 @@
 import { appPreferences } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
-import { PasskeyAuthResponse, PasskeyRegistration } from '@axium/core/passkeys';
+import { PasskeyAuthOptions, PasskeyAuthResponse, PasskeyCreationOptions, PasskeyRegistration } from '@axium/core/passkeys';
 import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
 import * as webauthn from '@simplewebauthn/server';
 import { encodeUUID, omit, pick, type UUID } from 'utilium';
@@ -179,7 +179,7 @@ addRoute({
 
 		challenges.set(userId, { data: options.challenge, type, client });
 
-		return options;
+		return PasskeyAuthOptions.parse(options);
 	},
 	async POST(request, { id: userId }) {
 		const response = await parseBody(request, PasskeyAuthResponse);
@@ -276,7 +276,7 @@ addRoute({
 
 		registrations.set(userId, options.challenge);
 
-		return options;
+		return PasskeyCreationOptions.parse(options);
 	},
 
 	/**

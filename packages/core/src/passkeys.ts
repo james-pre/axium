@@ -91,7 +91,7 @@ export const PasskeyRegistration = z.object({
 		clientDataJSON: z.string(),
 		attestationObject: z.string(),
 		authenticatorData: z.string().optional(),
-		transports: PasskeyTransport.array().optional(),
+		transports: z.string().array().optional(),
 		publicKeyAlgorithm: z.number().optional(),
 		publicKey: z.string().optional(),
 	}),
@@ -126,7 +126,7 @@ export const Passkey = z.object({
 	userId: z.uuid(),
 	deviceType: z.literal(['singleDevice', 'multiDevice']),
 	backedUp: z.boolean(),
-	transports: z.literal(['ble', 'cable', 'hybrid', 'internal', 'nfc', 'smart-card', 'usb']).array(),
+	transports: z.string().array(),
 });
 
 export interface Passkey extends z.infer<typeof Passkey> {}
