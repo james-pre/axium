@@ -1,6 +1,6 @@
 import type { Preferences, UserInternal, VerificationRole } from '@axium/core';
 import { plugins } from '@axium/core/plugins';
-import type { AuthenticatorTransportFuture, CredentialDeviceType } from '@simplewebauthn/server';
+import type { CredentialDeviceType } from '@simplewebauthn/server';
 import * as io from 'ioium/node';
 import type * as kysely from 'kysely';
 import { sql } from 'kysely';
@@ -247,9 +247,8 @@ export interface Schema extends Omit<schema.Raw, 'users' | 'verifications' | 'pa
 	>;
 
 	passkeys: Expand<
-		Omit<schema.Raw['passkeys'], 'transports'> & {
+		schema.Raw['passkeys'] & {
 			deviceType: CredentialDeviceType;
-			transports: AuthenticatorTransportFuture[];
 		}
 	>;
 	[key: `acl.${string}`]: DBAccessControl & Record<string, unknown>;

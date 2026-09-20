@@ -169,6 +169,16 @@
 				{ "when": "before", "path": "../../db-scripts/add_sync_event.sql" },
 				{ "when": "before", "path": "../../db-scripts/notify_sync_event.sql" }
 			]
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"passkeys": {
+					"alter_columns": {
+						"transports": { "default": "'{}'::text[]", "ops": ["set_required"] }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]
