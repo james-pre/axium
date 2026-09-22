@@ -1,11 +1,11 @@
 import { configDir, session } from '@axium/client/cli/config';
-import { formatBytes } from '@axium/core/format';
 import { Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { statSync, unlinkSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
+import { bytes as formatBytes } from 'utilium/format';
 import * as api from '../api.js';
 import { config, saveConfig } from '../config.js';
 import { resolveItem } from '../local.js';

@@ -3,7 +3,6 @@ import type { AuditEvent } from '@axium/core';
 import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import * as features from '@axium/core/features';
-import { formatBytes, formatMs } from '@axium/core/format';
 import { outputDaemonStatus } from '@axium/core/node';
 import { createFeatureCommand, formatFeatures, persistFeaturesTo } from '@axium/core/node/features';
 import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
@@ -19,6 +18,7 @@ import type { Http2Server } from 'node:http2';
 import { join, relative, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import type { Entries } from 'utilium';
+import * as format from 'utilium/format';
 import { searchForWorkspaceRoot } from 'vite';
 import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
@@ -356,9 +356,9 @@ program
 		if (options.diagnostics) {
 			console.log(
 				'Took',
-				styleText('blueBright', formatMs(time)),
+				styleText('blueBright', format.ms(time)),
 				'with a bundle size of',
-				styleText('blueBright', formatBytes(size))
+				styleText('blueBright', format.bytes(size))
 			);
 		}
 	});
@@ -400,7 +400,7 @@ program
 			createSocketServer(server);
 			await sync.watch().catch((e: unknown) => io.warn('Failed to watch for sync events: ' + io.errorText(e)));
 			server.listen(config.web.port);
-			process.stdout.write(`Build #${buildId} finished in ${formatMs(time)}`);
+			process.stdout.write(`Build #${buildId} finished in ${format.ms(time)}`);
 			building = false;
 		}
 

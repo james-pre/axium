@@ -1,12 +1,12 @@
 import { configManager as clientConfigManager, resolveServerURL } from '@axium/client/cli/config';
 import type { UserInternal } from '@axium/core';
-import { formatDateRange } from '@axium/core/format';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import * as fs from 'node:fs';
 import { userInfo } from 'node:os';
 import { join } from 'node:path';
 import { styleText } from 'node:util';
+import { dateRange as formatDateRange } from 'utilium/format';
 import { isRoot } from 'utilium/node';
 import { audit } from '../audit.js';
 import { createSession } from '../auth.js';

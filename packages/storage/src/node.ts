@@ -1,9 +1,9 @@
-import { formatBytes } from '@axium/core/format';
-import { styleText } from 'node:util';
-import type { StorageItemMetadata } from './common.js';
-import { Readable, Writable } from 'node:stream';
-import { createReadStream, createWriteStream } from 'node:fs';
 import { userInfo } from '@axium/client';
+import { createReadStream, createWriteStream } from 'node:fs';
+import { Readable, Writable } from 'node:stream';
+import { styleText } from 'node:util';
+import { bytes as formatBytes } from 'utilium/format';
+import type { StorageItemMetadata } from './common.js';
 
 const executables = ['application/x-pie-executable', 'application/x-sharedlib', 'application/vnd.microsoft.portable-executable'];
 
