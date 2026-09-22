@@ -4,7 +4,6 @@ export * from './apps.js';
 export * from './audit.js';
 export * from './auth.js';
 export * as features from './features.js';
-export * from './format.js';
 export * as icons from './icons.js';
 export * from './location.js';
 export * from './parse.js';

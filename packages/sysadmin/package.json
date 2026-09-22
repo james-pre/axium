@@ -41,7 +41,7 @@
 		"@axium/server": ">=0.47.0",
 		"@sveltejs/kit": "^2.27.3",
 		"kysely": "^0.29.0",
-		"utilium": "^3.0.0"
+		"utilium": "^3.8.0"
 	},
 	"dependencies": {
 		"commander": "^15.0.0",

@@ -53,7 +53,7 @@
 		"ioium": "^1.7.0",
 		"semver": "^7.7.4",
 		"svelte": "^5.36.0",
-		"utilium": "^3.2.0",
+		"utilium": "^3.8.0",
 		"zod": "^4.0.5"
 	},
 	"dependencies": {

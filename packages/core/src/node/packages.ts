@@ -5,7 +5,7 @@ import { findPackageJSON } from 'node:module';
 import { styleText } from 'node:util';
 import { lte, major } from 'semver';
 import $pkg from '../../package.json' with { type: 'json' };
-import { formatBytes } from '../format.js';
+import { bytes as formatBytes } from 'utilium/format';
 import { fetchPackageMetadata, getActivePackages, isPath, type PackageJSON, type PackageVersionInfo } from '../packages.js';
 
 export function getPackageJSON(specifier: string, from: string): PackageJSON & Record<string, any> & { __path: string } {

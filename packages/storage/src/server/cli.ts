@@ -1,4 +1,5 @@
-import { formatBytes, parseByteSize } from '@axium/core';
+import { bytes as formatBytes } from 'utilium/format';
+import { parseByteSize } from '@axium/core';
 import { lookupUser } from '@axium/server/cli';
 import { count, database } from '@axium/server/database';
 import { Option, program } from 'commander';

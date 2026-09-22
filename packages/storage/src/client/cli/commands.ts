@@ -1,4 +1,4 @@
-import { formatBytes } from '@axium/core';
+import { bytes as formatBytes } from 'utilium/format';
 import { Command } from 'commander';
 import * as io from 'ioium/node';
 import mime from 'mime';

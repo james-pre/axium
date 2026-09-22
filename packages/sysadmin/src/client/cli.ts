@@ -1,7 +1,7 @@
 import { session } from '@axium/client/cli/config';
 import { fetchAPI } from '@axium/client/requests';
 import { connect } from '@axium/client/socket';
-import { formatBytes, formatDuration } from '@axium/core';
+import * as format from 'utilium/format';
 import { program } from 'commander';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
@@ -10,11 +10,11 @@ import type { StorageDevice, SystemInfo, TotalUsed } from '../info.js';
 import './socket.js';
 
 function usage(info: TotalUsed) {
-	return styleText('blueBright', formatBytes(info.used)) + '/' + styleText('blueBright', formatBytes(info.total));
+	return styleText('blueBright', format.bytes(info.used)) + '/' + styleText('blueBright', format.bytes(info.total));
 }
 
 function drive(device: StorageDevice) {
-	return styleText('blueBright', formatBytes(device.size)) + (device.interface ? ' ' + styleText('dim', device.interface) : '');
+	return styleText('blueBright', format.bytes(device.size)) + (device.interface ? ' ' + styleText('dim', device.interface) : '');
 }
 
 const num = (value: number | bigint | undefined) =>
@@ -62,7 +62,7 @@ function dumpInfo(system: System, info: SystemInfo) {
 			console.log(tab2, iface.connection ? 'Connected to ' + iface.connection : 'Connected', 'at', num(iface.speed), 'MBit/s');
 	}
 
-	console.log('Uptime:', formatDuration(uptime));
+	console.log('Uptime:', format.duration(uptime));
 
 	for (const [key, value] of Object.entries(rest)) {
 		console.log(key + ':', value);

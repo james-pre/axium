@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-import { formatBytes } from '@axium/core';
+import { bytes as formatBytes } from 'utilium/format';
 import { createPluginCommand, outputDaemonStatus } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { CommanderError, program } from 'commander';
