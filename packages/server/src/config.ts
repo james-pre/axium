@@ -159,7 +159,7 @@ export const configManager = _unique(
 			if (serverConfig) {
 				plugin.config ||= {};
 				let configPath;
-				for (const dir of dirs) {
+				for (const dir of [systemDir, ...dirs]) {
 					configPath = join(dir, 'plugins', toBaseName(plugin.name) + '.json');
 					if (!existsSync(configPath)) continue;
 

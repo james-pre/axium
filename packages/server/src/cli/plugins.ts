@@ -3,14 +3,14 @@ import { _findPlugin, plugins } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
 import * as z from 'zod';
-import { config, configManager, findConfigPaths } from '../config.js';
+import { config, configManager } from '../config.js';
 import * as db from '../db/index.js';
 import { sharedOptions as opts } from './common.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 
-/** The config file a plugin is enabled into, mirroring how `config.save` picks its target. */
-const targetConfigPath = (global: boolean) => findConfigPaths().at(global ? 0 : -1)!;
+/** The config file a plugin is enabled into, which is the one `configManager.update` writes to. */
+const targetConfigPath = (global: boolean) => configManager.findPath(global ? 'system' : undefined);
 
 const axiumPlugin = createPluginCommand('server', program, {
 	safe,
