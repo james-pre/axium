@@ -52,6 +52,7 @@
 		"@axium/tasks": "workspace:*",
 		"@commander-js/extra-typings": "^15.0.0",
 		"@eslint/js": "^10.0.1",
+		"@james-pre/monorepo": "^0.1.0",
 		"@types/node": "^26.0.0",
 		"eslint": "^10.1.0",
 		"globals": "^17.4.0",

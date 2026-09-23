@@ -33,14 +33,9 @@ jobs:
 
             - name: Resolve package
               id: resolve
-              run: |
-                  PACKAGE="$(echo ${{ github.event.release.tag_name }} | sed 's/@.*$//')"
-                  if [ ! -d "packages/$PACKAGE" ]; then
-                      echo "Package directory not found"
-                      exit 1
-                  fi
-                  echo "path=packages/$PACKAGE" >> $GITHUB_OUTPUT
-                  echo "::debug::Resolved package to 'packages/$PACKAGE'"
+              run: npx monorepo release resolve "$TAG"
+              env:
+                  TAG: ${{ github.event.release.tag_name }}
 
             - name: Build (TypeScript)
               run: npx tsc -b
