@@ -6,7 +6,6 @@ export * from './auth.js';
 export * as features from './features.js';
 export * as icons from './icons.js';
 export * from './location.js';
-export * from './parse.js';
 export * from './passkeys.js';
 export * from './plugins.js';
 export * from './preferences.js';

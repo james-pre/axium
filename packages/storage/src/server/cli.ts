@@ -1,10 +1,10 @@
-import { bytes as formatBytes } from 'utilium/format';
-import { parseByteSize } from '@axium/core';
 import { lookupUser } from '@axium/server/cli';
 import { count, database } from '@axium/server/database';
 import { Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { styleText } from 'node:util';
+import { parseBytes } from 'utilium';
+import { bytes as formatBytes } from 'utilium/format';
 import * as z from 'zod';
 import { parseItem } from './db.js';
 
@@ -22,7 +22,7 @@ cli.command('usage')
 		console.log(`${items} items totaling ${formatBytes(BigInt(size))}`);
 	});
 
-const _byteSize = (msg: string) => (v: string) => parseByteSize(v) ?? io.exit(msg);
+const _byteSize = (msg: string) => (v: string) => parseBytes(v) ?? io.exit(msg);
 
 cli.command('query')
 	.alias('q')
