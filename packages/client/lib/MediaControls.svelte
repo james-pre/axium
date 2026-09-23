@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { formatDuration } from '@axium/core';
+	import { duration as formatDuration } from 'utilium/format';
 	import Icon from './Icon.svelte';
 	import type { MediaState } from './reactive/media.svelte.js';
 	import type { Snippet } from 'svelte';

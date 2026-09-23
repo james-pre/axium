@@ -2,7 +2,7 @@
 	import { text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
-	import { formatBytes } from '@axium/core/format';
+	import { bytes as formatBytes } from 'utilium/format';
 	import { mediaAccept, type KinoUpload } from '@axium/kino/common';
 
 	interface Props {

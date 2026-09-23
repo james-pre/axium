@@ -7,7 +7,7 @@
 	import '@axium/client/styles/list';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import type { AccessControllable, UserPublic } from '@axium/core';
-	import { formatBytes } from '@axium/core/format';
+	import { bytes as formatBytes } from 'utilium/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { getDirectoryMetadata, getUserStorageRoot, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, _downloadItems, copyShortURL, moveItems, toastUpload, uploadEntries } from '@axium/storage/client/frontend';

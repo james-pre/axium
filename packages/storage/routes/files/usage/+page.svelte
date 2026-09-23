@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { NumberBar } from '@axium/client/components';
-	import { formatBytes } from '@axium/core/format';
+	import { bytes as formatBytes } from 'utilium/format';
 	import { List } from '@axium/storage/components';
 
 	const { data } = $props();

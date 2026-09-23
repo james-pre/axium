@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { formatBytes } from '@axium/core/format';
+	import { bytes as formatBytes } from 'utilium/format';
 	import { NumberBar } from '@axium/client/components';
 	import { getUserStats } from '@axium/storage/client';
 	import type { UserStorageInfo } from '@axium/storage/common';

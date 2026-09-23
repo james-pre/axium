@@ -4,7 +4,7 @@
 	import { toast } from '@axium/client/toast';
 	import '@axium/client/styles/account';
 	import { Preferences, User, Username } from '@axium/core';
-	import { formatDateRange } from '@axium/core/format';
+	import { dateRange as formatDateRange } from 'utilium/format';
 
 	const { data } = $props();
 	let user = $state(data.user);

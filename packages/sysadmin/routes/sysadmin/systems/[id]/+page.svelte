@@ -3,7 +3,7 @@
 	import { Icon, NumberBar } from '@axium/client/components';
 	import { connect } from '@axium/client/socket';
 	import { toastStatus } from '@axium/client/toast';
-	import { formatBytes, formatDuration } from '@axium/core';
+	import * as format from 'utilium/format';
 	import { systemTypeIcons, type SystemInfo } from '@axium/sysadmin';
 	import '@axium/sysadmin/common';
 
@@ -36,8 +36,8 @@
 	}
 
 	function usageText(used: bigint, total: bigint): string {
-		if (used <= 0n) return formatBytes(total);
-		return text('sysadmin.system.usage', { used: formatBytes(used), total: formatBytes(total) });
+		if (used <= 0n) return format.bytes(total);
+		return text('sysadmin.system.usage', { used: format.bytes(used), total: format.bytes(total) });
 	}
 
 	const socket = await connect();
@@ -184,7 +184,7 @@
 											{disk.model}
 										</span>
 										<span class="subtle">
-											{formatBytes(disk.size)}
+											{format.bytes(disk.size)}
 											{#if disk.interface}<span class="dot">·</span>{disk.interface}{/if}
 										</span>
 									</div>
@@ -197,7 +197,7 @@
 							<span class="mount">{disk.model}</span>
 							<span class="tags">
 								<span class="subtle">
-									{formatBytes(disk.size)}
+									{format.bytes(disk.size)}
 									{#if disk.interface}<span class="dot">·</span>{disk.interface}{/if}
 								</span>
 								<span class="tag unused">{text('sysadmin.system.storage_unused')}</span>
@@ -248,7 +248,7 @@
 				<dt>{text('sysadmin.system.arch')}</dt>
 				<dd>{info.arch} <span class="subtle">({info.machine})</span></dd>
 				<dt>{text('sysadmin.system.uptime')}</dt>
-				<dd>{formatDuration(info.uptime)}</dd>
+				<dd>{format.duration(info.uptime)}</dd>
 			</dl>
 		</section>
 	{/if}

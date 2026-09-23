@@ -4,7 +4,7 @@
 	import { FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import { toastStatus } from '@axium/client/toast';
-	import { formatBytes } from '@axium/core/format';
+	import { bytes as formatBytes } from 'utilium/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
 	import { clearUserTrash, deleteItem, updateItemMetadata } from '@axium/storage/client';
 	import { formatItemName } from '@axium/storage/client/frontend';

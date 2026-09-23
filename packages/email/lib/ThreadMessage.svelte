@@ -2,7 +2,7 @@
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
-	import { formatBytes } from '@axium/core/format';
+	import { bytes as formatBytes } from 'utilium/format';
 	import { splitQuoted, type Email } from '@axium/email/common';
 
 	let {
