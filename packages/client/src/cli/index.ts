@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
 import { createPluginCommand } from '@axium/core/node';
+import { waitForPlugins } from '@axium/core/node/plugins';
 import { _findPlugin, plugins } from '@axium/core/plugins';
 import { configCommand } from '@james-pre/config/cli';
 import { Service } from '@james-pre/systemd';
@@ -29,11 +30,12 @@ useUserAgent(clientUA);
 const loadOptions = { plugins: { safe } };
 
 configManager.loadDefaults(loadOptions);
+await waitForPlugins();
 cache.load();
 
 process.on('SIGHUP', () => {
 	io.info('Reloading configuration due to SIGHUP.');
-	configManager.reloadFiles();
+	configManager.reloadFiles({ plugins: { safe, reload: true } });
 });
 
 program

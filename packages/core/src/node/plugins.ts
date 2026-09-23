@@ -33,10 +33,23 @@ export interface PluginLoadOptions {
 	/** If set, do not run code from plugins */
 	safe?: boolean;
 	/**
-	 * If set, we are reloading plugins (e.g. from a config reload)
-	 * @todo actually support partially reloading plugins
+	 * If set, a plugin that is already loaded has its default config restored and is returned, rather than failing.
+	 * Its code is not reloaded.
 	 */
 	reload?: boolean;
+}
+
+const loading = new Set<Promise<unknown>>();
+
+/** Track plugins that load in the background, like from a config listener, so {@link waitForPlugins} waits for them. */
+export function trackPluginLoading(promise: Promise<unknown>): void {
+	loading.add(promise);
+	promise.finally(() => loading.delete(promise)).catch(() => {});
+}
+
+/** Wait for the plugins being loaded, including any that start loading meanwhile. */
+export async function waitForPlugins(): Promise<void> {
+	while (loading.size) await Promise.all(loading);
 }
 
 export async function loadPlugin(
@@ -82,6 +95,14 @@ export async function loadPlugin(
 
 		if (!plugin[type]) throw new Error(`Plugin does not support running ${type}-side`);
 
+		const existing = plugins.get(plugin.name);
+		if (existing) {
+			if (!options.reload) throw new Error('Plugin already loaded');
+			if (existing.config) for (const key of Object.keys(existing.config)) delete existing.config[key];
+			existing.config = Object.assign(existing.config ?? {}, plugin.config);
+			return existing;
+		}
+
 		if (!options.safe) {
 			if (plugin.cli) await import(resolve(plugin.dirname, plugin.cli));
 
@@ -99,8 +120,6 @@ export async function loadPlugin(
 				}
 			}
 		}
-
-		if (plugins.has(plugin.name)) throw new Error('Plugin already loaded');
 
 		if (plugin.name.startsWith('#') || plugin.name.includes(' ')) {
 			throw new Error('Invalid plugin name. Plugin names can not start with a hash or contain spaces.');

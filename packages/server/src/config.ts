@@ -1,7 +1,7 @@
 import { serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
 import { Id as FeatureId } from '@axium/core/features';
-import { loadPlugin, type PluginLoadOptions } from '@axium/core/node/plugins';
+import { loadPlugin, trackPluginLoading, type PluginLoadOptions } from '@axium/core/node/plugins';
 import * as jpConfig from '@james-pre/config';
 import * as io from 'ioium/node';
 import { levelText } from 'logzen';
@@ -123,6 +123,31 @@ const schema = z.looseObject({
 	plugins: z.string().array().default([]),
 });
 
+async function loadPlugins(path: string, file: { plugins?: string[] }, options: Partial<LoadOptions>): Promise<void> {
+	for (const pluginPath of file.plugins ?? []) {
+		const plugin = await loadPlugin('server', pluginPath, path, options.plugins);
+		if (!plugin) continue;
+		const serverConfig = serverConfigs.get(plugin.name);
+		if (serverConfig) {
+			plugin.config ||= {};
+			let configPath;
+			for (const dir of [systemDir, ...dirs]) {
+				configPath = join(dir, 'plugins', toBaseName(plugin.name) + '.json');
+				if (!existsSync(configPath)) continue;
+
+				try {
+					const data = io.readJSON(configPath, serverConfig.partial());
+					deepAssign(plugin.config, data, { replaceArrays: true });
+					io.debug(`Loaded config for plugin ${plugin.name} from ${configPath}`);
+				} catch (e: any) {
+					io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath}: ${e}`);
+				}
+			}
+			plugin._configPath = configPath;
+		}
+	}
+}
+
 export const configManager = _unique(
 	'config',
 	new jpConfig.Manager(schema, { enableIncludes: true, system: 'axium/config' }).$loadOptions<LoadOptions>()
@@ -150,31 +175,7 @@ export const configManager = _unique(
 		io.debug('Loaded config:', path);
 		if (file.web?.build) file.web.build = resolve(dirname(path), file.web.build);
 	})
-	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	.on('post_load', async (path, file, options) => {
-		for (const pluginPath of file.plugins ?? []) {
-			const plugin = await loadPlugin('server', pluginPath, path, options.plugins);
-			if (!plugin) continue;
-			const serverConfig = serverConfigs.get(plugin.name);
-			if (serverConfig) {
-				plugin.config ||= {};
-				let configPath;
-				for (const dir of [systemDir, ...dirs]) {
-					configPath = join(dir, 'plugins', toBaseName(plugin.name) + '.json');
-					if (!existsSync(configPath)) continue;
-
-					try {
-						const data = io.readJSON(configPath, serverConfig.partial());
-						deepAssign(plugin.config, data, { replaceArrays: true });
-						io.debug(`Loaded config for plugin ${plugin.name} from ${configPath}`);
-					} catch (e: any) {
-						io.warn(`Failed to load config for plugin ${plugin.name} at ${configPath}: ${e}`);
-					}
-				}
-				plugin._configPath = configPath;
-			}
-		}
-	});
+	.on('post_load', (path, file, options) => trackPluginLoading(loadPlugins(path, file, options)));
 
 export function hostname(): string {
 	return new URL(config.origin).hostname;

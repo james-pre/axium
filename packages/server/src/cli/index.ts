@@ -6,6 +6,7 @@ import * as features from '@axium/core/features';
 import { createFeatureCommand, formatFeatures, persistFeaturesTo } from '@axium/core/node/features';
 import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
 import { getPackageJSON, upgradeActivePackages } from '@axium/core/node/packages';
+import { waitForPlugins } from '@axium/core/node/plugins';
 import { plugins } from '@axium/core/plugins';
 import { configCommand } from '@james-pre/config/cli';
 import { Service } from '@james-pre/systemd';
@@ -37,7 +38,7 @@ import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common
 import { dbInitTables } from './db.js';
 // other subcommands
 import './db.js';
-import './plugins.js';
+import { safe } from './plugins.js';
 import './user.js';
 
 program
@@ -486,7 +487,8 @@ program
 		await upgradeActivePackages(filter, opt, {
 			builtin: [$pkg, getPackageJSON('@axium/client', import.meta.filename)],
 			async postinstall() {
-				io.track('Reloading configuration', () => configManager.reloadFiles());
+				io.track('Reloading configuration', () => configManager.reloadFiles({ plugins: { safe, reload: true } }));
+				await waitForPlugins();
 
 				// re-link //
 				io.track('Linking routes', linkRoutes);

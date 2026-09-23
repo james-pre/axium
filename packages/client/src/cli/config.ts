@@ -1,5 +1,5 @@
 import { persistFeaturesTo } from '@axium/core/node/features';
-import { type PluginLoadOptions, loadPlugin } from '@axium/core/node/plugins';
+import { type PluginLoadOptions, loadPlugin, trackPluginLoading } from '@axium/core/node/plugins';
 import { Manager as ConfigManager } from '@james-pre/config';
 import { debug, warn } from 'ioium';
 import * as io from 'ioium/node';
@@ -23,6 +23,10 @@ export function resolveServerURL(server: string) {
 	return url.href;
 }
 
+async function loadPlugins(path: string, options?: PluginLoadOptions): Promise<void> {
+	for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, path, options);
+}
+
 export const configManager = new ConfigManager(
 	z.looseObject({
 		token: z.base64url().nullish(),
@@ -36,10 +40,7 @@ export const configManager = new ConfigManager(
 		if (config.server) setPrefix(config.server);
 		if (config.token) setToken(config.token);
 	})
-	// eslint-disable-next-line @typescript-eslint/no-misused-promises
-	.on('post_load', async (path, file, options) => {
-		for (const plugin of config.plugins ?? []) await loadPlugin('client', plugin, path, options.plugins);
-	})
+	.on('post_load', (path, file, options) => trackPluginLoading(loadPlugins(path, options.plugins)))
 	.on('load_error', (path, stage, error) => io.warn('Failed to load config:', io.errorText(error)))
 	.on('write', path => io.debug('Saved config to', path));
 

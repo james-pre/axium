@@ -7,7 +7,7 @@ import { config, configManager } from '../config.js';
 import * as db from '../db/index.js';
 import { sharedOptions as opts } from './common.js';
 
-const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
+export const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 
 /** The config file a plugin is enabled into, which is the one `configManager.update` writes to. */
 const targetConfigPath = (global: boolean) => configManager.findPath(global ? 'system' : undefined);

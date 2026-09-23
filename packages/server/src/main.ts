@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { waitForPlugins } from '@axium/core/node/plugins';
 import { runIntegrations } from '@axium/core/plugins';
 import { program } from 'commander';
 import * as io from 'ioium/node';
@@ -6,11 +7,6 @@ import { parseArgs } from 'node:util';
 import * as z from 'zod';
 import './cli/index.js';
 import { configManager, loadConfigFromDirs } from './config.js';
-
-process.on('SIGHUP', () => {
-	io.info('Reloading configuration due to SIGHUP.');
-	configManager.reloadFiles();
-});
 
 // Need these before Command is set up (e.g. for CLI integrations)
 const {
@@ -34,11 +30,18 @@ if (debug) {
 
 const options = { plugins: { safe } };
 
+process.on('SIGHUP', () => {
+	io.info('Reloading configuration due to SIGHUP.');
+	configManager.reloadFiles({ plugins: { safe, reload: true } });
+});
+
 configManager.loadDefaults(options);
 
 loadConfigFromDirs(options);
 
 if (configFromCLI) configManager.loadFile(configFromCLI, options);
+
+await waitForPlugins();
 
 await runIntegrations();
 
