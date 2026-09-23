@@ -3,11 +3,13 @@ import type { AuditEvent } from '@axium/core';
 import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import * as features from '@axium/core/features';
-import { outputDaemonStatus } from '@axium/core/node';
 import { createFeatureCommand, formatFeatures, persistFeaturesTo } from '@axium/core/node/features';
 import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
 import { getPackageJSON, upgradeActivePackages } from '@axium/core/node/packages';
 import { plugins } from '@axium/core/plugins';
+import { configCommand } from '@james-pre/config/cli';
+import { Service } from '@james-pre/systemd';
+import { serviceCommand } from '@james-pre/systemd/cli';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { allLogLevels } from 'logzen';
@@ -34,7 +36,6 @@ import * as sync from '../sync.js';
 import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common.js';
 import { dbInitTables } from './db.js';
 // other subcommands
-import './config.js';
 import './db.js';
 import './plugins.js';
 import './user.js';
@@ -95,6 +96,11 @@ axiumApps
 persistFeaturesTo(join(localDir(), 'features.json'));
 createFeatureCommand(program);
 createLocalesCommand(program);
+configCommand(program, configManager, { defaultType: 'local' });
+serviceCommand(program, {
+	service: user => new Service('axium', { user }),
+	source: () => ({ link: join(import.meta.dirname, '../../axium.service') }),
+});
 
 program
 	.command('status')
@@ -112,7 +118,7 @@ program
 			configManager.filePaths.toArray().join(', ')
 		);
 
-		outputDaemonStatus('axium');
+		console.log(styleText('whiteBright', 'Daemon:'), new Service('axium').shortStatus());
 
 		process.stdout.write(styleText('whiteBright', 'Database: '));
 

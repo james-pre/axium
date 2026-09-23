@@ -1,21 +1,23 @@
 #! /usr/bin/env node
 
-import { bytes as formatBytes } from 'utilium/format';
-import { createPluginCommand, outputDaemonStatus } from '@axium/core/node';
+import { createPluginCommand } from '@axium/core/node';
 import { _findPlugin, plugins } from '@axium/core/plugins';
+import { configCommand } from '@james-pre/config/cli';
+import { Service } from '@james-pre/systemd';
+import { serviceCommand } from '@james-pre/systemd/cli';
 import { CommanderError, program } from 'commander';
 import * as io from 'ioium/node';
-import { basename } from 'node:path';
+import { basename, join } from 'node:path';
 import { styleText } from 'node:util';
+import { bytes as formatBytes } from 'utilium/format';
 import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
-import { config, configManager } from './config.js';
 import { prefix, useUserAgent } from '../requests.js';
 import { connect as connectSocket } from '../socket.js';
 import { logout } from '../user.js';
 import { clientUA, login } from './auth.js';
 import * as cache from './cache.js';
-import { session } from './config.js';
+import { config, configManager, session } from './config.js';
 
 const safe = z.stringbool().default(false).parse(process.env.SAFE?.toLowerCase()) || process.argv.includes('--safe');
 const debug = z.stringbool().default(false).parse(process.env.DEBUG?.toLowerCase()) || process.argv.includes('--debug');
@@ -62,6 +64,12 @@ program.command('logout').action(async () => {
 	await logout(userId, id);
 });
 
+configCommand(program, configManager, { defaultType: 'user', sensitive: ['token'] });
+serviceCommand(program, {
+	service: user => new Service('axium-client', { user: user ?? true }),
+	source: () => ({ link: join(import.meta.dirname, '../../axium-client.service') }),
+});
+
 program.command('status').action(() => {
 	if (!config.token) return console.log('Not logged in.');
 
@@ -77,8 +85,7 @@ program.command('status').action(() => {
 	);
 	const { user } = session;
 	console.log(styleText('whiteBright', 'User:'), user.name, `<${user.email}>`, styleText('dim', `(${user.id})`));
-
-	outputDaemonStatus('axium-client', true);
+	console.log(styleText('whiteBright', 'Daemon:'), new Service('axium-client', { user: true }).shortStatus());
 });
 
 program
