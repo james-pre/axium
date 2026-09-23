@@ -99,6 +99,7 @@ createLocalesCommand(program);
 configCommand(program, configManager, { defaultType: 'local' });
 serviceCommand(program, {
 	service: user => new Service('axium', { user }),
+	serviceUser: service => (service.options.user ? undefined : { name: 'axium' }),
 	source: () => ({ link: join(import.meta.dirname, '../../axium.service') }),
 });
 

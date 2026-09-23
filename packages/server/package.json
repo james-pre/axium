@@ -64,7 +64,7 @@
 	},
 	"dependencies": {
 		"@james-pre/config": "^1.2.0",
-		"@james-pre/systemd": "^0.1.1",
+		"@james-pre/systemd": "^0.2.0",
 		"@simplewebauthn/server": "^14.0.0",
 		"@types/pg": "^8.11.11",
 		"@types/semver": "^7.7.1",

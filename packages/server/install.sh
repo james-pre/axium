@@ -37,7 +37,6 @@ sysadmin|System administration
 "
 
 DEFAULT_INSTALL_DIR="/var/lib/axium"
-SERVICE_PATH="/etc/systemd/system/axium.service"
 SERVICE_USER="axium"
 
 NODEJS_V_REQUIRED=22
@@ -171,7 +170,6 @@ INSTALL_DIR=''             # self-contained npm project dir; always used
 USE_GIT=0                  # whether to `git init` the install dir
 SELECTED_PLUGINS=''        # space-separated plugin short names
 SERVICE_INSTALLED=0
-SERVICE_ENABLED=0
 
 # Scratch space for passing data out of subshelled loops.
 TMP_SEL=$(mktemp 2>/dev/null || echo /tmp/axium-sel.$$)
@@ -420,40 +418,6 @@ esac
 ok 'System dependencies installed'
 
 # ===========================================================================
-# Create the service user
-# ===========================================================================
-#
-# The `axium` system user the daemon runs as. It gets a real login shell (so
-# admins can `su - axium` to manage the instance) and its home set to the
-# install dir, falling back to `/` if that is somehow unset.
-
-if [ -n "$INSTALL_DIR" ]; then _home=$INSTALL_DIR; else _home=/; fi
-# Prefer a real login shell, falling back to sh if bash is absent.
-if [ -x /bin/bash ]; then _shell=/bin/bash; else _shell=/bin/sh; fi
-
-if id "$SERVICE_USER" >/dev/null 2>&1; then
-	# Already exists: make sure home points at the install dir.
-	run_root usermod --home "$_home" "$SERVICE_USER" 2>/dev/null || true
-	info "Note: reusing system user '${SERVICE_USER}' (home set to ${_home})."
-else
-	step "Creating system user '${SERVICE_USER}'"
-	# --no-create-home: the install dir is created/owned separately; don't
-	# scaffold a skeleton home over it (and `/` must never be touched).
-	run_root useradd --system --no-create-home --home-dir "$_home" --shell "$_shell" "$SERVICE_USER" 2>/dev/null \
-		|| run_root useradd -r -d "$_home" -s "$_shell" "$SERVICE_USER" 2>/dev/null \
-		|| warn "Could not create '${SERVICE_USER}' user; create it manually if the service fails to start."
-	ok "Created system user '${SERVICE_USER}' (home: ${_home}, shell: ${_shell})"
-fi
-
-# Add the invoking user to the axium group so they can read/manage the install
-# and config later (config dirs are made group-writable below).
-if [ -n "$INVOKING_USER" ] && [ "$INVOKING_USER" != "$SERVICE_USER" ]; then
-	run_root usermod -aG "$SERVICE_USER" "$INVOKING_USER" 2>/dev/null \
-		&& ok "Added '${INVOKING_USER}' to the '${SERVICE_USER}' group (effective on next login)" \
-		|| warn "Could not add '${INVOKING_USER}' to the '${SERVICE_USER}' group."
-fi
-
-# ===========================================================================
 # Install Axium
 # ===========================================================================
 
@@ -510,6 +474,17 @@ _axium_bin_target="$INSTALL_DIR/node_modules/@axium/server/dist/main.js"
 run_root ln -sf "$_axium_bin_target" "/usr/local/bin/axium" \
 	&& ok "Linked /usr/local/bin/axium -> ${_axium_bin_target}"
 					
+# Run the axium CLI as root from the install dir
+axium_cli() {
+	( cd "$INSTALL_DIR" && run_root npx axium "$@" < "$TTY" )
+}
+
+# The system user the daemon runs as. It gets a real login shell, so admins can
+# `su - axium` to manage the instance, and its home is the install dir. The
+# invoking user joins its group so they can manage the install and config.
+if [ -x /bin/bash ]; then _shell=/bin/bash; else _shell=/bin/sh; fi
+axium_cli service user --home "$INSTALL_DIR" --shell "$_shell" ${INVOKING_USER:+--member "$INVOKING_USER"}
+
 run_root chown -R "$SERVICE_USER:$SERVICE_USER" "$INSTALL_DIR"
 if [ "$CONFIG_SCOPE" = global ]; then
 	run_root mkdir -p /etc/axium
@@ -517,11 +492,6 @@ if [ "$CONFIG_SCOPE" = global ]; then
 fi
 
 ok "Axium installed in ${INSTALL_DIR}"
-
-# Run the axium CLI as the service user from the install dir
-axium_cli() {
-	( cd "$INSTALL_DIR" && run_root npx axium "$@" < "$TTY" )
-}
 
 # ===========================================================================
 # Initialize Axium
@@ -651,50 +621,16 @@ if ! command -v systemctl >/dev/null 2>&1; then
 elif ! ask_yn 'Install the Axium systemd service?' y; then
 	info 'Skipping systemd service.'
 else
-	# The unit ships inside @axium/server and is installed as a *symlink* into
-	# /etc/systemd/system (via `systemctl link`). This is load-bearing: the unit
-	# uses %Y (the directory of the resolved fragment), and for a symlinked unit
-	# systemd resolves that to the real file's location — i.e. the package dir.
-	# The unit then walks `%Y/../../..` out of node_modules to the install root
-	# for `npx --prefix`. The real path is owned by the service user (above).
-	_unit_src="$INSTALL_DIR/node_modules/@axium/server/axium.service"
-	if [ ! -f "$_unit_src" ]; then
-		warn 'Could not locate the axium.service unit; skipping service installation.'
-	else
-		# Re-runs: drop any stale link first.
-		if [ -e "$SERVICE_PATH" ] || [ -L "$SERVICE_PATH" ]; then
-			run_root rm -f "$SERVICE_PATH"
-			run_root systemctl daemon-reload
-		fi
-
-		run_root systemctl link "$_unit_src" >/dev/null
-
-		# On SELinux systems (Fedora/RHEL) the unit file keeps the label of
-		# wherever it physically lives. `systemctl link` only labels the symlink
-		# in /etc; systemd (init_t) actually opens the real file and is denied
-		# `read` on labels like user_home_t/var_lib_t; so the unit loads as
-		# "not found". Relabel the real file as systemd_unit_file_t, persisting
-		# it with semanage (survives reboots/restorecon) when that tool exists.
-		if command -v selinuxenabled >/dev/null 2>&1 && selinuxenabled; then
-			_unit_real=$(readlink -f "$_unit_src")
-			if command -v semanage >/dev/null 2>&1; then
-				run_root semanage fcontext -a -t systemd_unit_file_t "$_unit_real" 2>/dev/null || true
-			fi
-			if command -v restorecon >/dev/null 2>&1; then
-				run_root restorecon "$_unit_real" 2>/dev/null || true
-			fi
-		fi
-
-		run_root systemctl daemon-reload
+	_enable=''
+	ask_yn 'Enable the service (start automatically on boot)?' y && _enable='--enable'
+	if axium_cli service install --replace $_enable; then
 		SERVICE_INSTALLED=1
-
-		if ask_yn 'Enable the service (start automatically on boot)?' y; then
-			run_root systemctl enable axium >/dev/null 2>&1 && SERVICE_ENABLED=1
-		fi
+	else
+		warn 'Could not install the systemd service.'
 	fi
 fi
 
-if [ "$SERVICE_INSTALLED" = 1 ] && ask_yn 'Start the Axium daemon now?' y && ! run_root systemctl start axium; then
+if [ "$SERVICE_INSTALLED" = 1 ] && ask_yn 'Start the Axium daemon now?' y && ! axium_cli service start; then
 	warn 'Failed to start the daemon. Check: journalctl -u axium -e'
 fi
 
@@ -709,7 +645,7 @@ info "Node.js in use: ${C_DIM}$(command -v $NODE), $(node --version)${C_RESET}"
 info "Use ${C_DIM}axium help${C_RESET} for more information"
 
 if [ "$SERVICE_INSTALLED" = 1 ]; then
-	info "    Manage the daemon: ${C_DIM}systemctl {start,stop,status} axium${C_RESET}"
+	info "    Manage the daemon: ${C_DIM}axium service {start,stop,status}${C_RESET}"
 	info "    View logs:         ${C_DIM}journalctl -t axium -f${C_RESET}"
 fi
 
