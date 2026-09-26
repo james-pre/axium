@@ -102,6 +102,7 @@
 			"heading": "Your library",
 			"empty": "Nothing has been uploaded yet.",
 			"recently_watched": "Recently watched",
+			"recent_failed": "Couldn't load your recently watched list",
 			"no_recent": "You haven't watched anything yet.",
 			"recent_movies": "Movies",
 			"recent_tv": "TV Shows",
