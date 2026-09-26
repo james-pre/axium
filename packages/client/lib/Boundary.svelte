@@ -15,7 +15,7 @@
 	const { children, pending: loading, inline, showStack, error: errorKey }: Props = $props();
 </script>
 
-<svelte:boundary>
+<svelte:boundary onerror={e => console.error(e)}>
 	{@render children?.()}
 
 	{#snippet pending()}
