@@ -43,6 +43,17 @@ export async function getCurrentSession(): Promise<Session & { user: User }> {
 	return _currentSession;
 }
 
+/** Get the current session, or `null` if there isn't a valid one (e.g. missing or expired) */
+export async function currentSession(): Promise<(Session & { user: User }) | null> {
+	try {
+		_currentSession ||= await fetchAPI('GET', 'session');
+		return _currentSession;
+	} catch (e) {
+		if (typeof e == 'object' && e !== null && 'status' in e && e.status === 401) return null;
+		throw e;
+	}
+}
+
 export async function extendCurrentSession(userId: string): Promise<void> {
 	const optionsJSON = await fetchAPI('PUT', 'users/:id/auth', { type: 'extend_session' }, userId);
 	const response = await startAuthentication({ optionsJSON });
