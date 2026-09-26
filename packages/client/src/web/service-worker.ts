@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-misused-promises */
 import { base, build, files, version } from '$service-worker';
 import type { PageMessage } from './pwa.js';
 
@@ -10,15 +9,16 @@ declare const globalThis: ServiceWorkerGlobalScope;
 
 const cacheName = 'axium@' + version;
 
-const versionFile = `${base}/_app/version.json`;
+const versionFile = `${base}/_app/version.json`,
+	shell = `${base}/_axium/shell`;
 
-const precache = new Set([...build, ...files]);
+const precache = new Set([...build, ...files, shell]);
 
 async function install(): Promise<void> {
 	let error = null;
 	try {
 		const cache = await caches.open(cacheName);
-		await Promise.all(Array.from(precache).map(url => cache.add(new Request(url, files.includes(url) ? { cache: 'no-cache' } : {}))));
+		await Promise.all(Array.from(precache).map(url => cache.add(new Request(url, build.includes(url) ? {} : { cache: 'no-cache' }))));
 	} catch (e: any) {
 		error = e instanceof Error ? e.message : String(e);
 		await caches.delete(cacheName);
@@ -40,26 +40,40 @@ async function activate(): Promise<void> {
 
 globalThis.addEventListener('activate', event => event.waitUntil(activate()));
 
-globalThis.addEventListener('fetch', async event => {
+async function maybeCached(request: Request): Promise<Response> {
+	const { pathname } = new URL(request.url);
+
+	const cache = await caches.open(cacheName);
+
+	const hit = await cache.match(pathname);
+	if (hit) return hit;
+
+	const response = await fetch(request);
+	if (response.ok && response.status != 206) await cache.put(pathname, response.clone());
+	return response;
+}
+
+globalThis.addEventListener('fetch', event => {
 	const { request } = event;
 
 	if (request.method != 'GET') return;
 
 	const url = new URL(request.url);
-	if (url.origin != location.origin) return;
-	if (url.pathname == versionFile) return;
+	if (url.origin != location.origin || url.pathname == versionFile) return;
+
+	if (request.mode == 'navigate') {
+		const res = fetch(request).catch(async e => {
+			const hit = await caches.match(shell, { cacheName });
+			if (hit) return hit;
+			throw e;
+		});
+		return event.respondWith(res);
+	}
 
 	// @todo API responses, `/raw`.
 	if (!precache.has(url.pathname)) return;
 
-	const cache = await caches.open(cacheName);
-
-	const hit = await cache.match(url.pathname);
-	if (hit) return event.respondWith(hit);
-
-	const response = await fetch(request);
-	if (response.ok && response.status != 206) await cache.put(url.pathname, response.clone());
-	return event.respondWith(response);
+	event.respondWith(maybeCached(request));
 });
 
 globalThis.addEventListener('message', (event: ExtendableMessageEvent & { data: PageMessage }) => {
