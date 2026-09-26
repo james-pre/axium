@@ -24,7 +24,7 @@
 			</a>
 		</p>
 	{:catch error}
+		{console.log(text('storage.Usage.error'), error)}
 		<p>{text('storage.Usage.error')}</p>
-		<p>{error.message}</p>
 	{/await}
 {/if}
