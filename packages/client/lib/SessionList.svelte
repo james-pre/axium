@@ -34,7 +34,7 @@
 		id={'logout-session:' + session.id}
 		submit={async () => {
 			await logout(user.id, session.id);
-			sessions.splice(sessions.indexOf(session), 1);
+			sessions = sessions.filter(s => s.id != session.id);
 			if (session.id == currentSession?.id) window.location.href = '/';
 		}}
 		submitText={text('generic.logout')}
