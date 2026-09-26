@@ -18,20 +18,31 @@ export function dynamicRows(max: number = 40, min: number = 3): Attachment<HTMLT
 		element.style.resize = 'none';
 		element.style.fieldSizing = 'content';
 		element.style.height = 'max-content';
-		element.style.overflowY = 'scroll';
+		element.style.overflowY = 'auto';
 
+		/** Counts wrapped lines as well as explicit ones. */
 		function update() {
-			if (!element.value) return;
-			element.rows = Math.max(Math.min(element.value.split('\n').length, max), min);
+			element.rows = 2;
+			const twoRows = element.clientHeight;
+			element.rows = 1;
+			const oneRow = element.clientHeight;
+			const lines = 1 + Math.round((element.scrollHeight - oneRow) / (twoRows - oneRow));
+			element.rows = Math.max(Math.min(lines, max), min);
 		}
 
-		if (!navigator.userAgent.includes('Firefox')) return;
+		if (CSS.supports('field-sizing', 'content')) return;
 		update();
 		element.addEventListener('input', update);
-		element.addEventListener('keyup', update);
+		let width = element.clientWidth;
+		const resize = new ResizeObserver(() => {
+			if (element.clientWidth == width) return;
+			width = element.clientWidth;
+			update();
+		});
+		resize.observe(element);
 		return () => {
 			element.removeEventListener('input', update);
-			element.removeEventListener('keyup', update);
+			resize.disconnect();
 		};
 	};
 }
