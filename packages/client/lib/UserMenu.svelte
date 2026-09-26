@@ -1,6 +1,7 @@
 <script lang="ts">
-	import { fetchAPI, text } from '@axium/client';
+	import { text } from '@axium/client';
 	import type { UserPublic } from '@axium/core/user';
+	import AppList from './AppList.svelte';
 	import Icon from './Icon.svelte';
 	import Logout from './Logout.svelte';
 	import Popover from './Popover.svelte';
@@ -30,26 +31,7 @@
 			</a>
 		{/if}
 
-		{#await fetchAPI('GET', 'apps')}
-			<i>{text('generic.loading')}</i>
-		{:then apps}
-			{#each apps as app}
-				<a class="menu-item" href="/{app.id}">
-					{#if app.image}
-						<img src={app.image} alt={app.name} width="1em" height="1em" />
-					{:else if app.icon}
-						<Icon i={app.icon} --size="1.5em" />
-					{:else}
-						<Icon i="image-circle-xmark" --size="1.5em" />
-					{/if}
-					<span>{text('app_name.' + app.id, { $default: app.name })}</span>
-				</a>
-			{:else}
-				<i>{text('AppMenu.none')}</i>
-			{/each}
-		{:catch}
-			<i>{text('AppMenu.failed')}</i>
-		{/await}
+		<AppList />
 
 		<button class="menu-item danger reset" command="show-modal" commandfor="logout">
 			<Icon i="right-from-bracket" --size="1.5em" />
