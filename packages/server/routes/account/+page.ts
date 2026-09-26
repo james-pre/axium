@@ -16,8 +16,8 @@ export async function load({ parent }) {
 	return {
 		session,
 		user,
-		passkeys: await getPasskeys(user.id),
-		sessions: await getSessions(user.id),
-		auth: await getAuthInfo(user.id),
+		passkeys: getPasskeys(user.id),
+		sessions: getSessions(user.id),
+		auth: getAuthInfo(user.id),
 	};
 }
