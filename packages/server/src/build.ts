@@ -38,6 +38,7 @@ const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
 			},
 		},
 		serviceWorker: { register: false },
+		paths: { relative: false },
 		typescript: {
 			config(tsconfig) {
 				tsconfig.compilerOptions.allowArbitraryExtensions = true;
