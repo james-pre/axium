@@ -60,6 +60,15 @@
 	"ZodInput": {
 		"invalid_type": "Invalid input type: {type}"
 	},
+	"error": {
+		"network": {
+			"title": "Offline",
+			"message": "Couldn't reach the server. Check your connection and try again."
+		},
+		"Page": {
+			"reload": "Reload"
+		}
+	},
 	"generic": {
 		"action_irreversible": "This action can't be undone.",
 		"cancel": "Cancel",
@@ -97,6 +106,11 @@
 			"edit_username": "Pick a unique username",
 			"email_verified_on": "Email verified on {date}",
 			"greeting": "Welcome, {name}",
+			"load_failed": {
+				"passkeys": "Couldn't load your passkeys",
+				"recovery": "Couldn't load your recovery options",
+				"sessions": "Couldn't load your sessions"
+			},
 			"passkeys": {
 				"backed_up": "This passkey is backed up",
 				"create": "Create",

@@ -5,18 +5,20 @@ export interface ErrorLike {
 	stack?: string;
 }
 
-export function title(error: ErrorLike, titleId?: string) {
-	if (error.message?.includes('NetworkError')) return text('error.network.title');
+export function title(error: ErrorLike | string, titleId?: string) {
+	const message = typeof error == 'string' ? error : error.message;
 
-	const [defaultTitle] = error.message?.split('\n') || [];
+	if (message?.includes('NetworkError')) return text('error.network.title');
+
+	const [defaultTitle] = message?.split('\n') || [];
 
 	return titleId ? text(titleId, { $default: defaultTitle }) : defaultTitle;
 }
 
-export function message(error: ErrorLike, id?: string) {
-	if (error.message.includes('NetworkError')) return text('error.network.message');
+export function message(error: ErrorLike | string, id?: string) {
+	const message = typeof error == 'string' ? error : error.message;
 
-	const { message } = error;
+	if (message.includes('NetworkError')) return text('error.network.message');
 
-	return id ? text(id, { $default: error.message }) : message;
+	return id ? text(id, { $default: message }) : message;
 }
