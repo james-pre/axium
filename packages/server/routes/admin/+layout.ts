@@ -1,4 +1,4 @@
-import { getCurrentSession, text } from '@axium/client';
+import { currentSession, text } from '@axium/client';
 import type { Session, User } from '@axium/core';
 import type { LayoutLoadEvent, LayoutRouteId } from './$types';
 
@@ -26,7 +26,7 @@ export async function load({
 		{ name: text('page.admin.tab.audit'), href: '/admin/audit', icon: 'file-shield', active: route.id.endsWith('/admin/audit') },
 	] satisfies { name: string; href: LayoutRouteId; icon: string; active: boolean }[];
 
-	session ||= await getCurrentSession().catch(() => null);
+	session ||= await currentSession();
 
 	if (!session) location.href = '/login?after=' + encodeURIComponent(location.pathname + location.search);
 

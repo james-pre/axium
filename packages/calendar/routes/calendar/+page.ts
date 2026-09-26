@@ -1,6 +1,6 @@
 import { EventFilter, getSpanFilter, type Calendar } from '@axium/calendar/common';
 import { fetchAPI } from '@axium/client/requests';
-import { getCurrentSession } from '@axium/client/user';
+import { currentSession } from '@axium/client/user';
 import type { Session, User } from '@axium/core';
 import { redirect } from '@sveltejs/kit';
 import { prettifyError } from 'zod';
@@ -11,11 +11,8 @@ export const ssr = false;
 export async function load({ parent, url }) {
 	let { session }: { session?: (Session & { user: User }) | null } = await parent();
 
-	try {
-		session ||= await getCurrentSession();
-	} catch (e) {
-		redirect(307, '/login?after=/calendar');
-	}
+	session ||= await currentSession();
+	if (!session) redirect(307, '/login?after=/calendar');
 
 	const filter: EventFilter = getSpanFilter('week', new Date());
 	try {

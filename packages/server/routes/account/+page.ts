@@ -1,10 +1,10 @@
-import { getAuthInfo, getCurrentSession, getPasskeys, getSessions } from '@axium/client/user';
+import { currentSession, getAuthInfo, getPasskeys, getSessions } from '@axium/client/user';
 import type { Session, User } from '@axium/core';
 
 export async function load({ parent }) {
 	let { session }: { session?: (Session & { user: User }) | null } = await parent();
 
-	session ||= await getCurrentSession().catch(() => null);
+	session ||= await currentSession();
 
 	if (!session) {
 		window.location.href = '/login?after=/account';

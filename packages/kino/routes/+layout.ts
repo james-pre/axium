@@ -1,5 +1,5 @@
 import { text } from '@axium/client';
-import { getCurrentSession } from '@axium/client/user';
+import { currentSession } from '@axium/client/user';
 import type { Session, User } from '@axium/core';
 
 export const ssr = false;
@@ -7,7 +7,7 @@ export const ssr = false;
 export async function load({ route, parent }) {
 	let { session }: { session?: (Session & { user: User }) | null } = await parent();
 
-	session ||= await getCurrentSession().catch(() => null);
+	session ||= await currentSession();
 
 	const id = route.id || '';
 

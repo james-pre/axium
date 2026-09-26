@@ -1,6 +1,6 @@
 import { connect } from '@axium/client/socket';
 import { schemas } from '@axium/client/sync';
-import { getCurrentSession } from '@axium/client/user';
+import { currentSession } from '@axium/client/user';
 import type { Session, UserPublic } from '@axium/core';
 import { TaskList } from '@axium/tasks/common';
 
@@ -11,7 +11,7 @@ export const ssr = false;
 export async function load({ parent }) {
 	let { session }: { session?: (Session & { user: UserPublic }) | null } = await parent();
 
-	session ||= await getCurrentSession().catch(() => null);
+	session ||= await currentSession();
 
 	if (session) await connect().catch(() => null);
 
