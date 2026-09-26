@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import SidebarLayout from '@axium/client/components/SidebarLayout';
 	import { Usage } from '@axium/storage/components';
 
@@ -10,5 +11,7 @@
 		<Usage userId={data.session?.userId} />
 	{/snippet}
 
-	{@render children()}
+	{#key page.url.pathname}
+		{@render children()}
+	{/key}
 </SidebarLayout>

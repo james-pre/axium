@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { text } from '@axium/client';
 	import { drag } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
@@ -66,7 +67,7 @@
 		{@render action(
 			'folder-arrow-up',
 			text('page.files.back'),
-			() => (location.href = parentHref),
+			() => goto(parentHref),
 			drag.target('storage', ids => moveTo(ids, item.parentId))
 		)}
 		{@render action('pencil', text('page.files.rename'), () => dialogs.rename.showModal())}
@@ -75,7 +76,7 @@
 		{@render action('link-horizontal', text('page.files.copy_link'), () => copyShortURL(item.id))}
 		{@render action('trash', text('page.files.trash'), () =>
 			toastStatus(
-				updateItemMetadata(item.id, { trash: true }).then(() => (location.href = parentHref)),
+				updateItemMetadata(item.id, { trash: true }).then(() => goto(parentHref)),
 				text('storage.generic.trash_success')
 			)
 		)}
@@ -84,7 +85,7 @@
 		<Folder bind:items user={data.session?.user} id={item.id} />
 	{:else}
 		<div class="preview-container">
-			<Preview {item} {shareDialog} onDelete={() => (location.href = parentHref)} noTopBar />
+			<Preview {item} {shareDialog} onDelete={() => goto(parentHref)} noTopBar />
 		</div>
 	{/if}
 	<FormDialog

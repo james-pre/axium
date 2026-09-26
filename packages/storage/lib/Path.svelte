@@ -170,7 +170,7 @@
 </script>
 
 {#if item.parents}
-	<span bind:this={container} class:initialized class="Path parents" data-sveltekit-reload>
+	<span bind:this={container} class:initialized class="Path parents">
 		<span class:canTruncateName class="path">
 			{#each visibleParts as part, index (part.id)}
 				{#if ellipsisIndex === index}

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { goto } from '$app/navigation';
 	import { preferences, text } from '@axium/client';
 	import { closeOnBackGesture, contextMenu, drag, selectable, selectionControls, Selection } from '@axium/client/attachments';
 	import { SyncedClipboard } from '@axium/client/reactive';
@@ -129,7 +130,7 @@
 		if (item.type != 'inode/directory') {
 			activeId = item.id;
 			dialogs.preview.showModal();
-		} else if (appMode) location.href = '/files/' + item.id;
+		} else if (appMode) void goto('/files/' + item.id);
 		else getDirectoryMetadata(item.id).then(result => (items = result));
 	}
 
