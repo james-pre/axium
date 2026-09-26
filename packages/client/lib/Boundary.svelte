@@ -27,7 +27,7 @@
 	{/snippet}
 
 	{#snippet failed(error: any)}
-		{@const message = err.message(error, errorKey)}
+		{const message = err.message(error, errorKey)}
 		{#if inline}
 			<p class="error boundary">{message}</p>
 		{:else}
