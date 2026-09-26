@@ -83,73 +83,89 @@ export async function toastStatus(promise: Promise<unknown>, successMessage: str
 	}
 }
 
-let progressToast: HTMLDivElement | undefined,
-	progressMain: HTMLSpanElement,
-	progressMessage: HTMLSpanElement,
-	progressBar: HTMLProgressElement,
-	progressCancelButton: HTMLButtonElement,
-	progressCancel: (() => void) | undefined;
+export interface ProgressToast extends Disposable {
+	/** Aborted when the toast's cancel button is clicked */
+	readonly signal: AbortSignal;
+	progress(this: void, value: number, max: number, message?: any): void;
+	done(this: void): void;
+}
+
+let activeProgressToasts = 0;
 
 function warnBeforeUnload(e: BeforeUnloadEvent) {
 	e.preventDefault();
 }
 
 /**
- * Register a callback used to cancel the operation shown in the progress toast.
- * The toast's cancel button is only shown while a callback is registered.
+ * Show an operation's progress in its own toast until it is done.
+ * Leaving the page asks for confirmation while any progress toast is shown.
  */
-export function setProgressCancel(cancel?: () => void): void {
-	progressCancel = cancel;
-	if (progressToast) progressCancelButton.style.display = cancel ? '' : 'none';
+export function progressToast(message: string, cancellable: boolean = true): ProgressToast {
+	const controller = new AbortController();
+
+	const toast = document.createElement('div');
+	toast.classList.add('toast', 'progress');
+
+	const header = document.createElement('div');
+	header.classList.add('toast-header');
+	toast.appendChild(header);
+
+	const main = document.createElement('span');
+	main.textContent = message;
+	header.appendChild(main);
+
+	if (cancellable) {
+		const cancel = document.createElement('button');
+		cancel.classList.add('reset');
+		cancel.onclick = () => controller.abort();
+		mount(Icon, { target: cancel, props: { i: 'xmark-large' } });
+		header.appendChild(cancel);
+	}
+
+	const subtle = document.createElement('span');
+	subtle.classList.add('subtle');
+	toast.appendChild(subtle);
+
+	const bar = document.createElement('progress');
+	toast.appendChild(bar);
+
+	list.appendChild(toast);
+	if (!activeProgressToasts++) addEventListener('beforeunload', warnBeforeUnload);
+
+	let isDone = false;
+
+	return {
+		signal: controller.signal,
+		progress(value, max, message) {
+			bar.value = value;
+			bar.max = max;
+			subtle.textContent = message == undefined ? '' : String(message);
+		},
+		done() {
+			if (isDone) return;
+			isDone = true;
+			toast.remove();
+			if (!--activeProgressToasts) removeEventListener('beforeunload', warnBeforeUnload);
+		},
+		[Symbol.dispose]() {
+			this.done();
+		},
+	};
 }
+
+let ioProgress: ProgressToast | undefined;
 
 useProgress({
 	start(message: string): void {
-		if (!progressToast) {
-			progressToast = document.createElement('div');
-			progressToast.classList.add('toast', 'progress');
-
-			const header = document.createElement('div');
-			header.classList.add('toast-header');
-			progressToast.appendChild(header);
-
-			progressMain = document.createElement('span');
-			header.appendChild(progressMain);
-
-			progressCancelButton = document.createElement('button');
-			progressCancelButton.classList.add('reset');
-			progressCancelButton.onclick = () => progressCancel?.();
-			mount(Icon, { target: progressCancelButton, props: { i: 'xmark-large' } });
-			header.appendChild(progressCancelButton);
-
-			progressMessage = document.createElement('span');
-			progressMessage.classList.add('subtle');
-			progressToast.appendChild(progressMessage);
-
-			progressBar = document.createElement('progress');
-			progressToast.appendChild(progressBar);
-
-			list.appendChild(progressToast);
-			addEventListener('beforeunload', warnBeforeUnload);
-		}
-		progressMain.textContent = message;
-		progressMessage.textContent = '';
-		progressCancelButton.style.display = progressCancel ? '' : 'none';
-		progressBar.removeAttribute('value');
-		progressBar.max = 1;
+		ioProgress?.done();
+		ioProgress = progressToast(message, false);
 	},
 	progress(value: number, max: number, message?: any): void {
-		if (!progressToast) return;
-		progressBar.value = value;
-		progressBar.max = max;
-		progressMessage.textContent = message == undefined ? '' : String(message);
+		ioProgress?.progress(value, max, message);
 	},
 	done(): void {
-		if (!progressToast) return;
-		progressToast.remove();
-		progressToast = undefined;
-		progressCancel = undefined;
-		removeEventListener('beforeunload', warnBeforeUnload);
+		ioProgress?.done();
+		ioProgress = undefined;
 	},
 });
 

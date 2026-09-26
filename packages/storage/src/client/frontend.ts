@@ -1,7 +1,6 @@
 import type { StorageItemMetadata } from '@axium/storage/common';
 import { copy } from '@axium/client/web';
-import { setProgressCancel, toast } from '@axium/client/toast';
-import * as io from 'ioium';
+import { progressToast, toast } from '@axium/client/toast';
 import { encodeUUID, type UUID } from 'utilium';
 import { origin, text } from '@axium/client';
 import { createDirectory, createItemFromFile, updateItemMetadata } from './api.js';
@@ -48,7 +47,7 @@ interface PendingUpload {
 }
 
 /**
- * Sequentially upload files, reporting the overall progress in bytes via `io.progress`.
+ * Sequentially upload files, reporting the overall progress in bytes.
  * The upload can be cancelled from the progress toast.
  */
 async function uploadAll(uploads: PendingUpload[], onItem?: (item: StorageItemMetadata) => void): Promise<void> {
@@ -57,28 +56,21 @@ async function uploadAll(uploads: PendingUpload[], onItem?: (item: StorageItemMe
 	const totalBytes = uploads.reduce((total, { file }) => total + file.size, 0);
 	let uploadedBytes = 0;
 
-	const controller = new AbortController();
-
-	setProgressCancel(() => controller.abort());
-	io.start(
+	using status = progressToast(
 		uploads.length == 1
 			? text('storage.generic.uploading_one', { name: uploads[0].name })
 			: text('storage.generic.uploading_many', { count: uploads.length })
 	);
 
-	try {
-		for (const { file, parentId, name, top } of uploads) {
-			const item = await createItemFromFile(file, {
-				parentId,
-				name,
-				onProgress: uploaded => io.progress(uploadedBytes + uploaded, totalBytes, uploads.length > 1 ? name : undefined),
-				signal: controller.signal,
-			});
-			uploadedBytes += file.size;
-			if (top) onItem?.(item);
-		}
-	} finally {
-		io.done(true);
+	for (const { file, parentId, name, top } of uploads) {
+		const item = await createItemFromFile(file, {
+			parentId,
+			name,
+			onProgress: uploaded => status.progress(uploadedBytes + uploaded, totalBytes, uploads.length > 1 ? name : undefined),
+			signal: status.signal,
+		});
+		uploadedBytes += file.size;
+		if (top) onItem?.(item);
 	}
 }
 

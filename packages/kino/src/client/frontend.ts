@@ -1,43 +1,35 @@
 import { text } from '@axium/client';
-import { setProgressCancel, toast } from '@axium/client/toast';
-import * as io from 'ioium';
+import { progressToast, toast, type ProgressToast } from '@axium/client/toast';
 import type { KinoUpload, MediaExt } from '../common.js';
 import { mediaExtensions } from '../common.js';
 import { uploadEpisode, uploadMovie } from './api.js';
 
 /**
- * Report the outcome of an upload as a toast, reporting cancellation as info rather than an error.
- * Returns the upload when it succeeded so callers can update their state.
+ * Show an upload's progress in its own toast, then toast the outcome.
+ * Returns the upload's result when it succeeded so callers can update their state.
  */
-async function toastUpload(upload: (signal: AbortSignal) => Promise<KinoUpload>, name: string): Promise<KinoUpload | undefined> {
-	const controller = new AbortController();
-
-	setProgressCancel(() => controller.abort());
-	io.start(text('kino.uploading', { name }));
+async function toastUpload<T>(message: string, upload: (status: ProgressToast) => Promise<T>): Promise<T | undefined> {
+	using status = progressToast(message);
 
 	try {
-		const result = await upload(controller.signal);
+		const result = await upload(status);
 		void toast('success', text('kino.upload_success'));
 		return result;
 	} catch (e) {
 		if (e instanceof DOMException && e.name == 'AbortError') void toast('info', text('kino.upload_cancelled'));
 		else void toast('error', e);
-	} finally {
-		io.done(true);
 	}
 }
 
 export function uploadMovieFile(file: File, id: number): Promise<KinoUpload | undefined> {
-	return toastUpload(
-		signal => uploadMovie(file, id, { signal, onProgress: (uploaded, total) => io.progress(uploaded, total) }),
-		file.name
+	return toastUpload(text('kino.uploading', { name: file.name }), ({ signal, progress }) =>
+		uploadMovie(file, id, { signal, onProgress: progress })
 	);
 }
 
 export function uploadEpisodeFile(file: File, id: number, season: number, episode: number): Promise<KinoUpload | undefined> {
-	return toastUpload(
-		signal => uploadEpisode(file, id, season, episode, { signal, onProgress: (uploaded, total) => io.progress(uploaded, total) }),
-		file.name
+	return toastUpload(text('kino.uploading', { name: file.name }), ({ signal, progress }) =>
+		uploadEpisode(file, id, season, episode, { signal, onProgress: progress })
 	);
 }
 
@@ -167,7 +159,7 @@ interface PendingEpisode extends EpisodeTarget {
 }
 
 /**
- * Upload episodes one at a time, reporting the overall progress in bytes via `io.progress`.
+ * Upload episodes one at a time, reporting the overall progress in bytes.
  * The upload can be cancelled from the progress toast, which leaves already finished uploads in place.
  *
  * Returns how many were uploaded so callers know whether anything needs refreshing.
@@ -177,32 +169,21 @@ async function uploadAll(id: number, uploads: PendingEpisode[]): Promise<number>
 	let uploadedBytes = 0,
 		count = 0;
 
-	const controller = new AbortController();
-
-	setProgressCancel(() => controller.abort());
-	io.start(
+	const message =
 		uploads.length == 1
 			? text('kino.uploading', { name: uploads[0].file.name })
-			: text('kino.uploading_many', { count: uploads.length })
-	);
+			: text('kino.uploading_many', { count: uploads.length });
 
-	try {
+	await toastUpload(message, async ({ signal, progress }) => {
 		for (const { file, season, episode } of uploads) {
 			await uploadEpisode(file, id, season, episode, {
-				signal: controller.signal,
-				onProgress: uploaded => io.progress(uploadedBytes + uploaded, totalBytes, uploads.length > 1 ? file.name : undefined),
+				signal,
+				onProgress: uploaded => progress(uploadedBytes + uploaded, totalBytes, uploads.length > 1 ? file.name : undefined),
 			});
 			uploadedBytes += file.size;
 			count++;
 		}
-
-		void toast('success', text('kino.upload_success'));
-	} catch (e) {
-		if (e instanceof DOMException && e.name == 'AbortError') void toast('info', text('kino.upload_cancelled'));
-		else void toast('error', e);
-	} finally {
-		io.done(true);
-	}
+	});
 
 	return count;
 }
