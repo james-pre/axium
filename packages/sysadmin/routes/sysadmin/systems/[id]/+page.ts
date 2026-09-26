@@ -1,7 +1,5 @@
 import { fetchAPI } from '@axium/client/requests';
 
-export const ssr = false;
-
 export async function load({ parent, params }) {
 	const { session } = await parent();
 

@@ -1,7 +1,5 @@
 import { fetchAPI } from '@axium/client/requests';
 
-export const ssr = false;
-
 export async function load({ url }: { url: URL }) {
 	const token = url.searchParams.get('token');
 	if (!token) return { error: 'No token provided' };

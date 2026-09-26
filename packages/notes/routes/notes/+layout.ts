@@ -6,6 +6,8 @@ import { Note } from '@axium/notes/common';
 
 schemas.set('notes', Note);
 
+export const ssr = false;
+
 export async function load({ parent }) {
 	let { session }: { session?: (Session & { user: UserPublic }) | null } = await parent();
 

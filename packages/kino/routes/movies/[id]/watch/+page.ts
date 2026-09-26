@@ -1,8 +1,6 @@
 import { getMovie, getViews } from '@axium/kino/client';
 import { error } from '@sveltejs/kit';
 
-export const ssr = false;
-
 export async function load({ params }) {
 	const id = Number(params.id);
 

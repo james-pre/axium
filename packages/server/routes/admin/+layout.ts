@@ -2,8 +2,6 @@ import { getCurrentSession, text } from '@axium/client';
 import type { Session, User } from '@axium/core';
 import type { LayoutLoadEvent, LayoutRouteId } from './$types';
 
-export const ssr = false;
-
 export async function load({
 	parent,
 	route,

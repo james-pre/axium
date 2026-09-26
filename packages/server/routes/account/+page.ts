@@ -1,8 +1,6 @@
 import { getAuthInfo, getCurrentSession, getPasskeys, getSessions } from '@axium/client/user';
 import type { Session, User } from '@axium/core';
 
-export const ssr = false;
-
 export async function load({ parent }) {
 	let { session }: { session?: (Session & { user: User }) | null } = await parent();
 

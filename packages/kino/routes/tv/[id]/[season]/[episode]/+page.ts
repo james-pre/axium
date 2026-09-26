@@ -1,7 +1,5 @@
 import { getEpisode, getTv } from '@axium/kino/client';
 
-export const ssr = false;
-
 export async function load({ params }) {
 	const id = Number(params.id),
 		season = Number(params.season);

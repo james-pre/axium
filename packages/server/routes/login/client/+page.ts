@@ -3,8 +3,6 @@ import type { PageLoadEvent } from './$types';
 import type { SessionAndUser } from '@axium/server/auth';
 import { fetchAPI } from '@axium/client/requests';
 
-export const ssr = false;
-
 export async function load({ parent, url }: Omit<PageLoadEvent, 'parent'> & { parent?(): Promise<{ session: SessionAndUser }> }) {
 	const { session = await getCurrentSession() } = (await parent?.()) ?? {};
 
