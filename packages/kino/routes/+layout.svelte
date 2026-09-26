@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { SidebarLayout } from '@axium/client/components';
 	import { SearchBar } from '@axium/kino/components';
 
@@ -8,7 +9,9 @@
 <SidebarLayout tabs={data.tabs}>
 	<div class="kino">
 		<SearchBar />
-		{@render children()}
+		{#key page.url.pathname}
+			{@render children()}
+		{/key}
 	</div>
 </SidebarLayout>
 
