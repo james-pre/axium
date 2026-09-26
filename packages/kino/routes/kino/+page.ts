@@ -6,12 +6,9 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/kino');
 
-	const [movies, shows, views] = await Promise.all([
-		getUploadedMovies(),
-		getUploadedShows(),
-		// The library is the point of the page, so don't fail it over the recently watched list
-		getViews().catch(() => []),
-	]);
+	const views = getViews();
+
+	const [movies, shows] = await Promise.all([getUploadedMovies(), getUploadedShows()]);
 
 	return { movies, shows, views };
 }

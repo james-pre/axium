@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
+	import { Boundary } from '@axium/client/components';
 	import { MediaGrid, RecentGrid } from '@axium/kino/components';
 
 	const { data } = $props();
@@ -14,12 +15,15 @@
 
 <h1>{text('page.kino.heading')}</h1>
 
-{#if data.views.length}
-	<section>
-		<h2>{text('page.kino.recently_watched')}</h2>
-		<RecentGrid views={data.views} empty={text('page.kino.no_recent')} />
-	</section>
-{/if}
+<Boundary error="page.kino.recent_failed" inline>
+	{const views = await data.views}
+	{#if views.length}
+		<section>
+			<h2>{text('page.kino.recently_watched')}</h2>
+			<RecentGrid {views} empty={text('page.kino.no_recent')} />
+		</section>
+	{/if}
+</Boundary>
 
 {#if !movies.length && !shows.length}
 	<p class="subtle">{text('page.kino.empty')}</p>
