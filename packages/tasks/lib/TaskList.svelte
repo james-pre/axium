@@ -2,6 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { fetchAPI, preferences, text } from '@axium/client';
+	import { contextMenu, dynamicRows, type ContextMenuItem } from '@axium/client/attachments';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { copy } from '@axium/client/web';
 	import { toastStatus } from '@axium/client/toast';
@@ -40,6 +41,30 @@
 		return `[${task.completed ? 'x' : ' '}] ${task.summary}` + children;
 	}
 
+	function taskActions(task: Task): WithRequired<ContextMenuItem, 'i'>[] {
+		const actions: WithRequired<ContextMenuItem, 'i'>[] = [
+			{
+				i: 'arrow-turn-down-right',
+				text: text('tasks.add_subtask'),
+				action: () => fetchAPI('PUT', 'task_lists/:id', { summary: '', parentId: task.id }, list.id).then(t => tasks.push(t)),
+			},
+			{
+				i: 'trash',
+				text: text('generic.delete'),
+				action: () =>
+					toastStatus(
+						fetchAPI('DELETE', 'tasks/:id', {}, task.id).then(() => {
+							tasks.splice(tasks.indexOf(task), 1);
+						}),
+						text('tasks.toast_task_deleted')
+					),
+			},
+		];
+		if (user?.preferences?.debug)
+			actions.push({ i: 'hashtag', text: text('tasks.copy_id'), action: () => copy('text/plain', task.id) });
+		return actions;
+	}
+
 	let acl = $state<HTMLDialogElement>();
 </script>
 
@@ -76,48 +101,30 @@
 {/snippet}
 
 {#snippet task_tree(node: TaskTreeNode, depth: number = 0, isCompletedMirror: boolean = false)}
-	{const task = $derived(node.task)}
-	<div class="task" style:margin-left="{depth * 1.75}em">
+	{const task = $derived(node.task),
+		actions = $derived(taskActions(task))}
+	<div class="task" style:margin-left="{depth * 1.75}em" {@attach contextMenu(...actions)}>
 		{@render task_checkbox(node, !showCompletedInline && isCompletedMirror != task.completed)}
-		<input
-			type="text"
+		<textarea
 			name="summary"
 			class="editable-text"
+			rows="1"
 			bind:value={task.summary}
+			onkeydown={e => {
+				if (e.key == 'Enter' && !e.isComposing) e.preventDefault();
+			}}
 			oninput={e => {
-				task.summary = e.currentTarget.value;
+				task.summary = e.currentTarget.value.replaceAll('\n', ' ');
 				fetchAPI('PATCH', 'tasks/:id', { summary: task.summary }, task.id);
 			}}
-		/>
+			{@attach dynamicRows(40, 1)}></textarea>
 		<Popover showToggle="hover">
-			<div
-				class="menu-item"
-				onclick={() => {
-					fetchAPI('PUT', 'task_lists/:id', { summary: '', parentId: task.id }, list.id).then(t => tasks.push(t));
-				}}
-			>
-				<Icon i="arrow-turn-down-right" />
-				<span>{text('tasks.add_subtask')}</span>
-			</div>
-			<div
-				class="menu-item"
-				onclick={() =>
-					toastStatus(
-						fetchAPI('DELETE', 'tasks/:id', {}, task.id).then(() => {
-							tasks.splice(tasks.indexOf(task), 1);
-						}),
-						text('tasks.toast_task_deleted')
-					)}
-			>
-				<Icon i="trash" />
-				<span>{text('generic.delete')}</span>
-			</div>
-			{#if user?.preferences?.debug}
-				<div class="menu-item" onclick={() => copy('text/plain', task.id)}>
-					<Icon i="hashtag" --size="14px" />
-					<span>{text('tasks.copy_id')}</span>
+			{#each actions as item}
+				<div class="menu-item" onclick={item.action}>
+					<Icon i={item.i} />
+					<span>{item.text}</span>
 				</div>
-			{/if}
+			{/each}
 		</Popover>
 	</div>
 	{#each node.subtasks as sub (sub.task.id)}
@@ -314,8 +321,9 @@
 			}
 		}
 
-		input {
+		textarea {
 			padding: 0.125em 0.25em;
+			width: 100%;
 		}
 	}
 
