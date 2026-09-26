@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { bytes as formatBytes } from 'utilium/format';
-	import { NumberBar } from '@axium/client/components';
+	import { Boundary, NumberBar } from '@axium/client/components';
 	import { getUserStats } from '@axium/storage/client';
 	import type { UserStorageInfo } from '@axium/storage/common';
 
@@ -11,20 +11,18 @@
 {#if !info && !userId}
 	<p>{text('storage.Usage.login_prompt')}</p>
 {:else}
-	{#await info || getUserStats(userId!) then info}
+	<Boundary error="storage.Usage.error" inline>
+		{const usage = info || (await getUserStats(userId!))}
 		<p>
 			<a href="/files/usage">
 				<NumberBar
-					max={!!info.limits.user_size && Number(info.limits.user_size * 1_000_000n)}
-					value={Number(info.usedBytes)}
-					text="{formatBytes(info.usedBytes)} {!info.limits.user_size
+					max={!!usage.limits.user_size && Number(usage.limits.user_size * 1_000_000n)}
+					value={Number(usage.usedBytes)}
+					text="{formatBytes(usage.usedBytes)} {!usage.limits.user_size
 						? ''
-						: '/ ' + formatBytes(info.limits.user_size * 1_000_000n)}"
+						: '/ ' + formatBytes(usage.limits.user_size * 1_000_000n)}"
 				/>
 			</a>
 		</p>
-	{:catch error}
-		{console.log(text('storage.Usage.error'), error)}
-		<p>{text('storage.Usage.error')}</p>
-	{/await}
+	</Boundary>
 {/if}
