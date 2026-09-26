@@ -10,7 +10,7 @@ export async function load({ params, url }) {
 
 	if (!episode.upload) error(404, 'This episode has not been uploaded');
 
-	const adjacent = await getAdjacentEpisodes(show, season, episodeNumber);
+	const adjacent = getAdjacentEpisodes(show, season, episodeNumber);
 
-	return { show, season, episode, upload: episode.upload, autoplay: url.searchParams.has('play'), ...adjacent };
+	return { show, season, episode, upload: episode.upload, autoplay: url.searchParams.has('play'), adjacent };
 }

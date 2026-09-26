@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { Icon, Video } from '@axium/client/components';
+	import { Boundary, Icon, Video } from '@axium/client/components';
 	import { MediaState } from '@axium/client/reactive';
 	import { episodeDataURL } from '@axium/kino/client';
 	import type { KinoEpisode } from '@axium/kino/common';
@@ -9,7 +9,7 @@
 
 	const { data } = $props();
 
-	const { show, season, episode, upload, previous, next, autoplay } = $derived(data);
+	const { show, season, episode, upload, adjacent, autoplay } = $derived(data);
 
 	const code = $derived(text('kino.episode_code', { season, episode: episode.episode_number }));
 
@@ -71,8 +71,11 @@
 		{autoplay}
 	>
 		{#snippet extraControls()}
-			{@render nav('previous', previous)}
-			{@render nav('next', next)}
+			<Boundary inline>
+				{const { previous, next } = await adjacent}
+				{@render nav('previous', previous)}
+				{@render nav('next', next)}
+			</Boundary>
 		{/snippet}
 	</Video>
 </div>
