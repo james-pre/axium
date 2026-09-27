@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import type { UserPublic } from '@axium/core/user';
-	import AppList from './AppList.svelte';
 	import Icon from './Icon.svelte';
 	import Logout from './Logout.svelte';
 	import Popover from './Popover.svelte';
@@ -13,11 +12,18 @@
 {#if user}
 	<Popover class="mobile-top">
 		{#snippet toggle()}
-			<div class="UserMenu toggle">
+			<button class="UserMenu reset" aria-label={user.name}>
 				<UserPFP {user} />
-				{user.name}
-			</div>
+			</button>
 		{/snippet}
+
+		<div class="UserMenu-header">
+			<UserPFP {user} --size="2.5em" />
+			<div>
+				<strong>{user.name}</strong>
+				{#if user.email}<span class="subtle">{user.email}</span>{/if}
+			</div>
+		</div>
 
 		<a class="menu-item" href="/account">
 			<Icon i="user" --size="1.5em" />
@@ -31,8 +37,6 @@
 			</a>
 		{/if}
 
-		<AppList />
-
 		<button class="menu-item danger reset" command="show-modal" commandfor="logout">
 			<Icon i="right-from-bracket" --size="1.5em" />
 			<span>{text('generic.logout')}</span>
@@ -41,30 +45,42 @@
 
 	<Logout />
 {:else}
-	<div class="UserMenu login">
-		<a href="/login?after={location.pathname}">Login</a>
-	</div>
+	<a class="UserMenu login" href="/login?after={location.pathname}">{text('UserMenu.login')}</a>
 {/if}
 
 <style>
 	.UserMenu {
+		display: inline-flex;
+		border-radius: 50%;
+
+		:global(.UserPFP) {
+			margin: 0;
+		}
+	}
+
+	.login {
 		border-radius: 0.5em;
-		padding: 0.5em;
+		padding: 0.5em 0.75em;
 		border: var(--border-accent);
-		cursor: pointer;
 		background-color: var(--bg-alt);
 	}
 
-	:global(.UserMenu + div:popover-open) {
-		cursor: default;
+	.UserMenu-header {
+		display: flex;
+		align-items: center;
+		gap: 0.75em;
+		padding: 0.5em 0.75em 0.75em;
+		margin-bottom: 0.25em;
+		border-bottom: var(--border-accent);
 
-		@media (width > 700px) {
-			position: fixed;
-			left: unset;
-			right: anchor(right);
-			top: calc(anchor(bottom) + 0.5em);
-			width: fit-content;
-			height: fit-content;
+		:global(.UserPFP) {
+			margin: 0;
+		}
+
+		div {
+			display: flex;
+			flex-direction: column;
+			min-width: 0;
 		}
 	}
 </style>
