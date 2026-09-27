@@ -55,6 +55,7 @@ add(
 		'input-checkbox-as-switch': { default: false, experimental: true },
 		themes: { default: false, experimental: true },
 		pwa: { default: true, experimental: true },
+		'app-list-is-grid': { default: false, experimental: true },
 	},
 	_builtinFrom
 );
