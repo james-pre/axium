@@ -1,5 +1,6 @@
 export * from './access.js';
 export * from './cache.js';
+export * from './metadata.js';
 export * from './locales.js';
 export * as preferences from './preferences.js';
 export * from './requests.js';
