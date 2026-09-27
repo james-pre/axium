@@ -20,7 +20,7 @@
 			<span>{content.name}</span>
 		</a>
 		{#if content.children}
-			<div class="middle">{@render content.children()}</div>
+			<div class="middle" style:justify-content={content.align ?? 'center'}>{@render content.children()}</div>
 		{/if}
 	{:else}
 		<a class="title" href="/">

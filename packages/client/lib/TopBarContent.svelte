@@ -5,6 +5,8 @@
 		name: string;
 		icon?: string;
 		href: string;
+		/** How to align the content. Defaults to centered. */
+		align?: 'left' | 'center' | 'right';
 		/** Rendered in the middle of the top bar, e.g. a search bar. */
 		children?: Snippet;
 	}
