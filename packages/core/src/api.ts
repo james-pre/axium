@@ -65,20 +65,21 @@ export const SyncState = z.object({
 });
 export interface SyncState extends z.infer<typeof SyncState> {}
 
+export const InstanceMetadata = z.object({
+	name: z.string(),
+	// Administrator-only info. Also included in debug mode.
+	versions: PackageVersionInfo.array().optional(),
+	routes: z.record(z.string(), z.object({ params: z.record(z.string(), z.string().nullable()), methods: z.string().array() })).optional(),
+});
+export interface InstanceMetadata extends z.infer<typeof InstanceMetadata> {}
+
 /**
  * Schemas for all API endpoints
  * @internal
  */
 const _API = {
 	metadata: {
-		GET: z.object({
-			name: z.string(),
-			// Administrator-only info. Also included in debug mode.
-			versions: PackageVersionInfo.array().optional(),
-			routes: z
-				.record(z.string(), z.object({ params: z.record(z.string(), z.string().nullable()), methods: z.string().array() }))
-				.optional(),
-		}),
+		GET: InstanceMetadata,
 	},
 	apps: {
 		GET: App.array(),
