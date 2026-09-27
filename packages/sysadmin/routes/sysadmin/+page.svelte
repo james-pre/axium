@@ -17,8 +17,6 @@
 </svelte:head>
 
 <div class="sysadmin-main">
-	<h1>{text('sysadmin.page_title')}</h1>
-
 	<section>
 		<div class="section-header">
 			<h2>{text('sysadmin.systems')}</h2>

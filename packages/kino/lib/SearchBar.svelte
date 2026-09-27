@@ -119,6 +119,7 @@
 	input {
 		flex: 1 1 auto;
 		min-width: 0;
+		padding: 0;
 		border: none;
 		outline: none;
 		background: none;

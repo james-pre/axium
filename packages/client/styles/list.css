@@ -2,7 +2,7 @@ div:has(> .list) {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
-	overflow-y: hidden;
+	overflow-y: clip;
 
 	> :where(button),
 	> .Popover > :where(button) {
@@ -14,8 +14,7 @@ div:has(> .list) {
 	display: flex;
 	flex-direction: column;
 	min-height: 0;
-	overflow-x: hidden;
-	overflow-y: scroll;
+	overflow-x: clip;
 	margin: 0.5em 0;
 }
 
@@ -24,7 +23,7 @@ div.list-header {
 	border-bottom: 1.5px solid var(--fg-accent);
 	position: sticky;
 	background-color: inherit;
-	top: 0em;
+	top: var(--top-bar-height, 0px);
 	z-index: 1;
 
 	@media (width < 700px) {

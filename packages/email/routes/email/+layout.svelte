@@ -2,7 +2,7 @@
 	import { afterNavigate, invalidateAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { text } from '@axium/client';
-	import { Icon } from '@axium/client/components';
+	import { Icon, TopBarContent } from '@axium/client/components';
 	import { Composer } from '@axium/email/components';
 	import { setContext } from 'svelte';
 	import { emailApp, type EmailApp } from './context.js';
@@ -32,6 +32,8 @@
 
 	const current = $derived(page.params.folder ?? 'inbox');
 </script>
+
+<TopBarContent name={text('app_name.email')} icon="envelope" href="/email" />
 
 <div id="email-app">
 	<div id="email-sidebar" bind:this={sidebar}>

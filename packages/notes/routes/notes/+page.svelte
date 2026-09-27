@@ -22,7 +22,6 @@
 </svelte:head>
 
 <div id="notes-main">
-	<h1>{text('app_name.notes')}</h1>
 	<button
 		id="create-note"
 		class="icon-text mobile-float-right"

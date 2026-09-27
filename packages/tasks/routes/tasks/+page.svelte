@@ -20,8 +20,6 @@
 </svelte:head>
 
 <div id="tasks-main">
-	<h1>{text('app_name.tasks')}</h1>
-
 	<div>
 		<AppPreferencesDialog appId="tasks" userId={data.session.userId} schema={TasksPreferences} />
 

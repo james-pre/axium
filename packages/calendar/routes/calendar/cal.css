@@ -1,13 +1,9 @@
-body:has(#cal-app) {
-	top: 4em;
-}
-
 #cal-app {
 	display: grid;
 	grid-template-rows: 3em 1fr;
 	grid-template-columns: 15em 1fr;
-	inset: 0;
-	position: absolute;
+	position: fixed;
+	inset: var(--top-bar-height, 0px) 0 0;
 
 	h3,
 	h4 {
