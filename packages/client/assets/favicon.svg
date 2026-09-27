@@ -1,0 +1,15 @@
+<svg width="512" height="512" xmlns="http://www.w3.org/2000/svg">
+	<defs>
+		<style>
+			rect {
+				transform-box: fill-box;
+				transform-origin: center;
+				fill: #ccc;
+			}
+		</style>
+	</defs>
+	<rect style="fill: #cdc" x="208" y="256" width="96" height="20" rx="10" />
+	<rect style="fill: #ecc" x="244" y="288" width="24" height="128" rx="12" />
+	<rect x="184" y="96" width="16" height="320" rx="8" transform="rotate(20)" />
+	<rect x="312" y="96" width="16" height="320" rx="8" transform="rotate(-20)" />
+</svg>
