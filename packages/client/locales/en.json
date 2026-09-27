@@ -10,6 +10,7 @@
 		"placeholder": "Add users and roles"
 	},
 	"AppMenu": {
+		"label": "Apps",
 		"failed": "Couldn't load apps.",
 		"none": "No apps available."
 	},
@@ -50,7 +51,8 @@
 	},
 	"UserMenu": {
 		"account": "Your Account",
-		"admin": "Administration"
+		"admin": "Administration",
+		"login": "Log in"
 	},
 	"Version": {
 		"error": "Latest unknown",

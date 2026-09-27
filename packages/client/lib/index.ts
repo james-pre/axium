@@ -22,6 +22,8 @@ export { default as PWAIndicator } from './PWAIndicator.svelte';
 export { default as Register } from './Register.svelte';
 export { default as SessionList } from './SessionList.svelte';
 export { default as SidebarLayout } from './SidebarLayout.svelte';
+export { default as TopBar } from './TopBar.svelte';
+export { default as TopBarContent } from './TopBarContent.svelte';
 export { default as Upload } from './Upload.svelte';
 export { default as URLText } from './URLText.svelte';
 export { default as UserCard } from './UserCard.svelte';

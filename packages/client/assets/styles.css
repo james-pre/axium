@@ -228,7 +228,6 @@ div.success {
 	align-items: center;
 	flex-direction: column;
 	gap: 1em;
-	overflow-y: scroll;
 }
 
 .danger {
@@ -413,9 +412,9 @@ h6 {
 }
 
 #toasts {
-	position: absolute;
+	position: fixed;
 	right: 1em;
-	top: 1em;
+	top: calc(var(--top-bar-height, 0px) + 1em);
 	width: 0;
 	height: 0;
 	overflow: visible;
