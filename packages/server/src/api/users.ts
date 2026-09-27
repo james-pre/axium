@@ -260,7 +260,7 @@ addRoute({
 		const { user } = await checkAuthForUser(request, userId);
 
 		const options = await webauthn.generateRegistrationOptions({
-			rpName: config.auth.rp_name,
+			rpName: config.name,
 			rpID: config.auth.rp_id,
 			userID: encodeUUID(userId as UUID),
 			userName: user.username,

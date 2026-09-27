@@ -23,7 +23,7 @@ async function PUT(request: Request): AsyncResult<'PUT', 'register'> {
 	if (user) error(409, 'Generated UUID is already in use, please retry.');
 
 	const options = await generateRegistrationOptions({
-		rpName: config.auth.rp_name,
+		rpName: config.name,
 		rpID: config.auth.rp_id,
 		userID: encodeUUID(userId),
 		userName: username,

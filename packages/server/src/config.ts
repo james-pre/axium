@@ -58,7 +58,6 @@ const schema = z.looseObject({
 			email: cfg.bool.default(true),
 		}),
 		rp_id: z.string().default('test.localhost'),
-		rp_name: z.string().default('Axium'),
 		secure_cookies: cfg.bool.default(true),
 		/** Whether only the `Authorization` header can be used to authenticate requests. */
 		header_only: cfg.bool.default(false),
@@ -90,6 +89,8 @@ const schema = z.looseObject({
 			key_file: z.string().default(resolve(systemDir, 'dkim_key.pem')),
 		}),
 	}),
+	/** The name of this Axium instance. Note this is public-facing. */
+	name: z.string().default('Axium'),
 	log: z.looseObject({
 		level: z.enum(levelText).default('info'),
 		console: cfg.bool.default(true),

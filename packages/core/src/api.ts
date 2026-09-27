@@ -72,8 +72,12 @@ export interface SyncState extends z.infer<typeof SyncState> {}
 const _API = {
 	metadata: {
 		GET: z.object({
-			versions: PackageVersionInfo.array(),
-			routes: z.record(z.string(), z.object({ params: z.record(z.string(), z.string().nullable()), methods: z.string().array() })),
+			name: z.string(),
+			// Administrator-only info. Also included in debug mode.
+			versions: PackageVersionInfo.array().optional(),
+			routes: z
+				.record(z.string(), z.object({ params: z.record(z.string(), z.string().nullable()), methods: z.string().array() }))
+				.optional(),
 		}),
 	},
 	apps: {

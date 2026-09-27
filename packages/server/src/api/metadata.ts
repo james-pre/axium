@@ -5,18 +5,16 @@ import type { ZodType } from 'zod';
 import { requireSession } from '../auth.js';
 import { config } from '../config.js';
 import { getAllVersions } from '../io.js';
-import { error } from '../requests.js';
 import { addRoute, routes } from '../routes.js';
 
 addRoute({
 	path: '/api/metadata',
 	async GET(request): AsyncResult<'GET', 'metadata'> {
-		if (!config.debug) {
-			const { user } = await requireSession(request);
-			if (!user.isAdmin) error(403, 'User is not an administrator');
-		}
+		const session = await requireSession(request).catch(() => null);
+		if (!config.debug && !session?.user.isAdmin) return { name: config.name };
 
 		return {
+			name: config.name,
 			versions: await getAllVersions(),
 			routes: Object.fromEntries(
 				routes
