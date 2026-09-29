@@ -44,10 +44,11 @@
 	.sidebar-container {
 		display: grid;
 		grid-template-columns: 15em 1fr;
-		min-height: calc(100dvh - var(--top-bar-height, 0px));
+		height: calc(100dvh - var(--top-bar-height, 0px));
 
 		@media (width < 700px) {
 			grid-template-columns: 1fr;
+			height: auto;
 		}
 	}
 
@@ -59,18 +60,11 @@
 		gap: 0.5em;
 		padding: 0 1em 1em 0;
 		border-radius: 0 1em 1em 0;
-		position: sticky;
-		top: var(--top-bar-height, 0px);
-		align-self: start;
-		height: calc(100dvh - var(--top-bar-height, 0px));
-		overflow-y: auto;
 
 		@media (width < 700px) {
 			position: fixed;
 			grid-column: unset;
 			inset: auto 0 0;
-			height: auto;
-			overflow-y: visible;
 			border-radius: 1em;
 			display: flex;
 			flex-direction: row;
@@ -110,13 +104,15 @@
 
 	.sidebar-content {
 		grid-column: 2;
-		padding: 1em;
+		padding: 0 1em 1em;
 		min-width: 0;
 		overflow-x: clip;
+		overflow-y: auto;
 
 		@media (width < 700px) {
-			padding-bottom: 5em;
+			padding: 1em 1em 5em;
 			grid-column: 1;
+			overflow-y: visible;
 		}
 	}
 
