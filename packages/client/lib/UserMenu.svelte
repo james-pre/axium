@@ -21,7 +21,7 @@
 			<UserPFP {user} --size="2.5em" />
 			<div>
 				<strong>{user.name}</strong>
-				{#if user.email}<span class="subtle">{user.email}</span>{/if}
+				<span class="subtle">{user.username}</span>
 			</div>
 		</div>
 
