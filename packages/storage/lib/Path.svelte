@@ -170,7 +170,7 @@
 </script>
 
 {#if item.parents}
-	<span bind:this={container} class:initialized class="Path parents">
+	<p bind:this={container} class:initialized class="Path parents">
 		<span class:canTruncateName class="path">
 			{#each visibleParts as part, index (part.id)}
 				{#if ellipsisIndex === index}
@@ -200,9 +200,9 @@
 			<span data-ellipsis class="ellipsis">...</span>
 			<span data-name class="name">{item.name}</span>
 		</span>
-	</span>
+	</p>
 {:else}
-	<span class="Path name standalone">{item.name}</span>
+	<p class="Path name standalone">{item.name}</p>
 {/if}
 
 <style>
