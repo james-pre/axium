@@ -19,11 +19,20 @@
 			</button>
 		</a>
 	</div>
-	<ContactList contacts={data.contacts} />
+	<div class="contacts">
+		<ContactList contacts={data.contacts} />
+	</div>
 </div>
 
 <style>
 	.contact-list-container {
 		margin: 2em;
+	}
+
+	.contacts {
+		margin-top: 1em;
+		padding: 0 1em;
+		border-radius: 1em;
+		background-color: var(--bg-menu);
 	}
 </style>
