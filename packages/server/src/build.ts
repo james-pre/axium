@@ -113,7 +113,11 @@ const _circularDepWarning = /Circular dependency: (\.\.\/)*node_modules/;
 
 function allowWrite(text: string, stack?: string) {
 	return (
-		!stack?.includes('svelte') && !stack?.includes('vite') && !text.includes('No Svelte config file') && !_circularDepWarning.test(text)
+		!stack?.includes('svelte') &&
+		!stack?.includes('vite') &&
+		!stack?.includes('rollup') &&
+		!text.includes('No Svelte config file') &&
+		!_circularDepWarning.test(text)
 	);
 }
 

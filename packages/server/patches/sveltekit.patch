@@ -21,3 +21,13 @@
  								mode: vite_config_env.mode,
  								logLevel: vite_config.logLevel,
  								clearScreen: vite_config.clearScreen,
+--- a/src/exports/vite/build/build_service_worker.js
++++ b/src/exports/vite/build/build_service_worker.js
+@@ -151,6 +151,7 @@
+ 		},
+ 		configFile: false,
+ 		define: vite_config.define,
++		logLevel: vite_config.logLevel,
+ 		publicDir: false,
+ 		plugins: [sw_virtual_modules],
+ 		resolve: {
