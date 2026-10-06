@@ -1,3 +1,4 @@
+import type { SyncDiff } from '@axium/core';
 import { App, Session, SyncState, User } from '@axium/core';
 import * as io from 'ioium/node';
 import { existsSync, mkdirSync, statSync, unlinkSync } from 'node:fs';
@@ -7,7 +8,7 @@ import * as z from 'zod';
 import type Cache from '../cache.js';
 import { CacheData } from '../cache.js';
 import { fetchAPI } from '../requests.js';
-import { applyDiff } from '../sync.js';
+import { applyDiff, onSync } from '../sync.js';
 import { apiUserCache, getCurrentSession } from '../user.js';
 
 export const dir = join(process.env.XDG_CACHE_HOME || join(homedir(), '.cache'), 'axium');
@@ -106,20 +107,34 @@ export const meta = useAt({
 	isValid: meta => meta.fetched + _dayMs > Date.now(),
 });
 
+function applySyncDiff(state: SyncState, diff: SyncDiff): SyncState {
+	applyDiff(state.objects, diff);
+	if (diff.index > state.index) state.index = diff.index;
+	return state;
+}
+
 export const sync = useAt({
 	path: 'sync.json',
 	schema: SyncState,
-	async update(sync) {
-		if (!sync) return await fetchAPI('GET', 'sync/init');
+	async update(state) {
+		if (!state) return await fetchAPI('GET', 'sync/init');
 
-		const diff = await fetchAPI('GET', 'sync', { since: sync.index });
-		applyDiff(sync.objects, diff);
-		return { objects: sync.objects, index: diff.index };
+		const diff = await fetchAPI('GET', 'sync', { since: state.index });
+
+		if (diff.index < state.index) return await fetchAPI('GET', 'sync/init');
+
+		return applySyncDiff(state, diff);
 	},
 	async isValid({ index }) {
 		const md = await fetchAPI('GET', 'sync/metadata');
-		return md.index >= index;
+		return md.index == index;
 	},
+});
+
+onSync(diff => {
+	if (!sync.data) return;
+	applySyncDiff(sync.data, diff);
+	sync.save();
 });
 
 const persistedAPICaches: { path: string; cache: Cache<any, any> }[] = [];

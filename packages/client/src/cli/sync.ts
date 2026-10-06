@@ -11,23 +11,14 @@ type ObjectValues = keyof $Objects extends never
 	? Record<string, { id: string }[]>
 	: { [K in keyof $Objects]: ($Objects[K] & { id: string })[] };
 
-let _byType: Partial<ObjectValues>;
-
-function byType(): Partial<ObjectValues> {
-	_byType ||= Object.groupBy(syncCache.data!.objects, o => o.$type);
-	return _byType;
-}
-
 export function get<Type extends ObjectType>(type: Type): ObjectValues[Type] {
-	const value = byType()[type] || [];
+	const value = syncCache.data!.objects.filter(o => o.$type == type) as ObjectValues[Type];
 	const schema = schemas.get(type);
 	if (!schema) return value;
 	return value.map(obj => schema.parse(obj) as ObjectValues[Type][number]);
 }
 
-export function save<Type extends ObjectType>(type: Type, objects: ObjectValues[Type]): void {
-	_byType ||= {};
-	_byType[type] = objects;
-	syncCache.data!.objects = syncCache.data!.objects.filter(o => o.$type !== type);
-	for (const object of objects) syncCache.data!.objects.push(Object.assign(object, { $type: type }));
+/** Pull changes from the server into the local cache. */
+export async function pull(): Promise<void> {
+	await syncCache.update();
 }

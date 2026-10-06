@@ -98,8 +98,14 @@ program
 	.action(async opt => {
 		for (const plugin of plugins.values()) await plugin._client?.run?.();
 
+		if (!opt.socket || !config.token) return;
+
 		// Hold a socket connection to the server for the lifetime of the daemon.
-		if (opt.socket && config.token) await connectSocket({ rejectUnauthorized: !opt.insecure });
+		const socket = await connectSocket({ rejectUnauthorized: !opt.insecure });
+
+		const catchUp = () => cache.sync.update().catch(e => io.error('Failed to update sync cache:', io.errorText(e)));
+		await catchUp();
+		socket.io.on('reconnect', catchUp);
 	});
 
 const axcPlugin = createPluginCommand('client', program, {
