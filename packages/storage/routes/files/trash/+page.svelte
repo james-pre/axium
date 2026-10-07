@@ -35,7 +35,7 @@
 	<title>{text('page.files.trash_page.title')}</title>
 </svelte:head>
 
-<button command="show-modal" commandfor="clear-trash">{text('page.files.trash_page.clear')}</button>
+<button id="clear-trash-trigger" command="show-modal" commandfor="clear-trash">{text('page.files.trash_page.clear')}</button>
 
 <div class="list">
 	<div class="list-item list-header">
@@ -105,6 +105,10 @@
 </FormDialog>
 
 <style>
+	#clear-trash-trigger {
+		padding: 1em 0;
+	}
+
 	.list-item {
 		grid-template-columns: 1em 4fr 15em 5em 1em 1em;
 	}

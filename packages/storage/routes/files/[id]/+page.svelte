@@ -120,4 +120,8 @@
 		align-items: center;
 		margin-top: 1em;
 	}
+
+	:global(.Path) {
+		padding: 1em 0;
+	}
 </style>
