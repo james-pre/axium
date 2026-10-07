@@ -1,4 +1,4 @@
-#! /usr/bin/env node
+#!/usr/bin/env -S node --disable-warning=ExperimentalWarning
 
 import { createPluginCommand } from '@axium/core/node';
 import { waitForPlugins } from '@axium/core/node/plugins';
