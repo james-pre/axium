@@ -12,9 +12,11 @@ addRoute({
 
 		const session = await requireSession(req);
 
-		const events = await sync.getEvents(session.user, options);
+		const index = await sync.getCurrentIndex();
 
-		return events.length ? sync.computeDiff(events) : { deleted: [], created: [], updated: [], index: await sync.getCurrentIndex() };
+		const events = await sync.getEvents(session.user, { ...options, until: index });
+
+		return events.length ? { ...sync.computeDiff(events), index } : { deleted: [], created: [], updated: [], index };
 	},
 });
 
