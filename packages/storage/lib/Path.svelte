@@ -202,7 +202,7 @@
 		</span>
 	</p>
 {:else}
-	<p class="Path name standalone">{item.name}</p>
+	<span class="Path name standalone">{item.name}</span>
 {/if}
 
 <style>
