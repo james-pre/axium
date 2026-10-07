@@ -54,15 +54,8 @@ export function walkItems(path: string): StorageItemMetadata | null {
 	return currentItem;
 }
 
-let _items: StorageItemMetadata[];
-
 export function getItems(): StorageItemMetadata[] {
-	_items ||= sync.get('storage');
-	return _items;
-}
-
-export function writeItems(): void {
-	sync.save('storage', _items);
+	return sync.get('storage');
 }
 
 export function resolveItem(path: string): StorageItemMetadata | null {
@@ -72,7 +65,7 @@ export function resolveItem(path: string): StorageItemMetadata | null {
 
 export function getDirectory(path: string): StorageItemMetadata[] {
 	path = resolvePath(path);
-	const items = sync.get('storage');
+	const items = getItems();
 	if (path == '/') return items.filter(item => item.parentId === null);
 	const dir = walkItems(path);
 	if (!dir) throw ENOENT;

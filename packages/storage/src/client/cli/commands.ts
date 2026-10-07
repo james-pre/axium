@@ -1,13 +1,14 @@
-import { bytes as formatBytes } from 'utilium/format';
+import { pull } from '@axium/client/cli/sync';
 import { Command } from 'commander';
 import * as io from 'ioium/node';
 import mime from 'mime';
 import * as fs from 'node:fs';
 import { basename, join, parse } from 'node:path';
+import { bytes as formatBytes } from 'utilium/format';
 import type { StorageItemMetadata } from '../../common.js';
 import { colorItem, formatItems, streamRead } from '../../node.js';
 import * as api from '../api.js';
-import { getDirectory, getItems, resolveItem, resolvePathWithParent, writeItems } from '../local.js';
+import { getDirectory, resolveItem, resolvePathWithParent } from '../local.js';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -31,10 +32,8 @@ export const mkdir = new Command('mkdir')
 	.argument('<path>', 'remote folder path to create')
 	.action(async (path: string) => {
 		const { parent, name } = resolvePathWithParent(path);
-		const item = await api.createDirectory(name, parent?.id);
-		const items = getItems();
-		items.push(item);
-		writeItems();
+		await api.createDirectory(name, parent?.id);
+		await pull();
 	});
 
 export const remove = new Command('remove')
@@ -45,34 +44,26 @@ export const remove = new Command('remove')
 		const item = resolveItem(path);
 		if (!item) throw 'Could not resolve path.';
 		await api.deleteItem(item.id);
-		const items = getItems();
-		const index = items.findIndex(i => i.id === item.id);
-		if (index != -1) {
-			items.splice(index, 1);
-			writeItems();
-		}
+		await pull();
 	});
 
-async function doUpload(local: string, name: string, size: number, parentId?: string, text: string = name): Promise<StorageItemMetadata> {
+function onProgress(uploaded: number, total: number): void {
+	io.progress(uploaded, total, Math.round((uploaded / total) * 100) + '%', `${formatBytes(uploaded)}/${formatBytes(total)}`);
+}
+
+async function doUpload(
+	local: string,
+	name: string,
+	size: number,
+	parentId?: string,
+	text: string = name,
+	existingId?: string
+): Promise<StorageItemMetadata> {
 	const type = mime.getType(local) || 'application/octet-stream';
 	using _ = io.start('Uploading ' + text);
-	const item = await api.createItem(streamRead(local), {
-		parentId,
-		name,
-		size,
-		type,
-		onProgress(uploaded, total) {
-			io.progress(
-				uploaded,
-				total,
-				Math.round((uploaded / total) * 100) + '%',
-				`${formatBytes(BigInt(uploaded))}/${formatBytes(BigInt(total))}`
-			);
-		},
-	});
-	const items = getItems();
-	items.push(item);
-	return item;
+	const stream = streamRead(local);
+	if (existingId) return await api.updateItem(existingId, size, stream, onProgress);
+	return await api.createItem(stream, { parentId, name, size, type, onProgress });
 }
 
 export const upload = new Command('upload')
@@ -88,15 +79,19 @@ export const upload = new Command('upload')
 		let { parent, name } = resolvePathWithParent(remotePath);
 
 		if (!stats.isDirectory()) {
+			let existing = existingTarget;
 			if (existingTarget?.type == 'inode/directory') {
-				if (opts.targetDirectory) {
-					parent = existingTarget;
-					name = basename(local);
-				} else throw 'Directory exists at remote path: ' + existingTarget.name;
-			} else if (existingTarget && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
+				if (!opts.targetDirectory) throw 'Directory exists at remote path: ' + existingTarget.name;
+				parent = existingTarget;
+				name = basename(local);
+				existing = resolveItem(join(remotePath, name));
+				if (existing?.type == 'inode/directory') throw 'Directory exists at remote path: ' + existing.name;
+			}
 
-			await doUpload(local, name, stats.size, parent?.id);
-			writeItems();
+			if (existing && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
+
+			await doUpload(local, name, stats.size, parent?.id, name, existing?.id);
+			await pull();
 			return;
 		}
 
@@ -137,7 +132,7 @@ export const upload = new Command('upload')
 				await doUpload(full, base, Number(stats.size), parentId, path);
 			}
 		}
-		writeItems();
+		await pull();
 	});
 
 export const download = new Command('download')
