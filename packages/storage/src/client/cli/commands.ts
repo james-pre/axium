@@ -127,7 +127,7 @@ export const upload = new Command('upload')
 			} else parentId = id;
 
 			if (stats.isDirectory()) {
-				await io.track('Creating directory: ' + path, api.createDirectory(base, parentId));
+				dirs.set(path, await io.track('Creating directory: ' + path, api.createDirectory(base, parentId)));
 			} else {
 				await doUpload(full, base, Number(stats.size), parentId, path);
 			}
