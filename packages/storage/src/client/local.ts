@@ -83,12 +83,11 @@ export interface ResolvedWithParent {
  * Resolve the name, directory path, and parent metadata for a given path.
  */
 export function resolvePathWithParent(path: string): ResolvedWithParent {
-	const { dir, base: name } = parse(path);
-	const parent = resolveItem(dir);
-	if (dir) {
-		if (!parent) io.exit('Could not resolve parent folder.');
-		if (parent.type != 'inode/directory') io.exit('Parent path is not a directory.');
-	}
+	const { dir, base: name } = parse(resolvePath(path));
 	if (!name) io.exit('Invalid path.');
+	if (dir == '/') return { parent: null, dir, name };
+	const parent = walkItems(dir);
+	if (!parent) io.exit('Could not resolve parent folder.');
+	if (parent.type != 'inode/directory') io.exit('Parent path is not a directory.');
 	return { parent, dir, name };
 }

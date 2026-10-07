@@ -80,11 +80,24 @@ export interface Delta {
 	local_only: (fs.Dirent<string> & { _path: string })[];
 }
 
+/** Whether a path, or any folder containing it, is excluded from a Sync. */
+function isIgnored(sync: Sync, path: string): boolean {
+	for (let current = path; current != '.'; current = dirname(current)) {
+		if (!sync.include_dotfiles && basename(current)[0] == '.') return true;
+		if (sync.exclude.some(glob => matchesGlob(current, glob))) return true;
+	}
+	return false;
+}
+
 /**
  * Computes the changes between the local and remote, in the direction of the remote.
  */
 export function computeDelta(sync: Sync): Delta {
-	const items = new Map(getItems(sync.item).map(i => [i.path, i]));
+	const items = new Map(
+		getItems(sync.item)
+			.filter(i => !isIgnored(sync, i.path))
+			.map(i => [i.path, i])
+	);
 	const itemsSet = new Set(items.keys());
 	const files = new Map(
 		fs
@@ -93,7 +106,7 @@ export function computeDelta(sync: Sync): Delta {
 				const _path = relative(sync.local_path, join(d.parentPath, d.name));
 				return [_path, Object.assign(d, { _path })] as [string, fs.Dirent & { _path: string }];
 			})
-			.filter(([p]) => (sync.include_dotfiles || basename(p)[0] != '.') && !sync.exclude.some(glob => matchesGlob(p, glob)))
+			.filter(([p]) => !isIgnored(sync, p))
 	);
 
 	const synced = itemsSet.intersection(files);
@@ -175,7 +188,7 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 		dirent => (!opt.verbose ? '' : opt.delete == 'local' ? 'Deleting local ' : 'Uploading ') + dirent._path,
 		async dirent => {
 			if (opt.delete == 'local') {
-				fs.unlinkSync(join(sync.local_path, dirent._path));
+				fs.rmSync(join(sync.local_path, dirent._path), { recursive: true });
 				_items.delete(dirent._path);
 				return;
 			}

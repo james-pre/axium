@@ -8,7 +8,7 @@ import { bytes as formatBytes } from 'utilium/format';
 import type { StorageItemMetadata } from '../../common.js';
 import { colorItem, formatItems, streamRead } from '../../node.js';
 import * as api from '../api.js';
-import { getDirectory, resolveItem, resolvePathWithParent } from '../local.js';
+import { getDirectory, resolveItem, resolvePath, resolvePathWithParent } from '../local.js';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -37,7 +37,7 @@ export const mkdir = new Command('mkdir')
 	});
 
 export const remove = new Command('remove')
-	.command('rm')
+	.alias('rm')
 	.description('Remove a file or folder')
 	.argument('<path>', 'remote path to remove')
 	.action(async (path: string) => {
@@ -75,17 +75,20 @@ export const upload = new Command('upload')
 	.option('-T, --no-target-directory', 'always treat the remote path as a file')
 	.action(async (local: string, remotePath: string, opts) => {
 		const stats = fs.statSync(local);
+		const isRoot = resolvePath(remotePath) == '/';
 		const existingTarget = resolveItem(remotePath);
-		let { parent, name } = resolvePathWithParent(remotePath);
 
 		if (!stats.isDirectory()) {
-			let existing = existingTarget;
-			if (existingTarget?.type == 'inode/directory') {
-				if (!opts.targetDirectory) throw 'Directory exists at remote path: ' + existingTarget.name;
+			let parent, name, existing;
+			if (isRoot || existingTarget?.type == 'inode/directory') {
+				if (!opts.targetDirectory) throw 'Directory exists at remote path: ' + remotePath;
 				parent = existingTarget;
 				name = basename(local);
 				existing = resolveItem(join(remotePath, name));
 				if (existing?.type == 'inode/directory') throw 'Directory exists at remote path: ' + existing.name;
+			} else {
+				({ parent, name } = resolvePathWithParent(remotePath));
+				existing = existingTarget;
 			}
 
 			if (existing && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
@@ -97,7 +100,9 @@ export const upload = new Command('upload')
 
 		if (!opts.recursive) throw '--recursive/-r not specified but the local path is a directory';
 
-		if (existingTarget) throw 'Folder exists at remote path. Merging is not supported yet.';
+		if (isRoot || existingTarget) throw 'Folder exists at remote path. Merging is not supported yet.';
+
+		const { parent, name } = resolvePathWithParent(remotePath);
 
 		const toUpload: { path: string; stats: fs.BigIntStats; full: string }[] = [];
 		let sum = 0n;
