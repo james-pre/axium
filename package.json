@@ -26,7 +26,7 @@
 		"build:locales": "axium locales typegen packages/*",
 		"build": "tsc -b && axium locales typegen packages/* && for dir in packages/*/; do case $(basename $dir) in core|client) ;; *) (cd $dir && axium build);; esac; done",
 		"watch": "tsc -b -w",
-		"postinstall": "npm run --silent postinstall -w @axium/server -w @axium/core",
+		"postinstall": "npm run --silent postinstall -w @axium/core",
 		"clean": "rm -rf packages/*/tsconfig.tsbuildinfo packages/*/dist packages/server/node_modules/{.vite,.vite-temp} packages/server/build",
 		"wc-source": "wc -l $(git ls-files | grep -v package-lock.json | grep -v packages/client/assets/icons | grep -v LICENSE.md) | sort -h"
 	},

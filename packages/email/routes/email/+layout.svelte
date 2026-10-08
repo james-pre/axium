@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { afterNavigate, invalidateAll } from '$app/navigation';
+	import { afterNavigate, refreshAll } from '$app/navigation';
 	import { page } from '$app/state';
 	import { text } from '@axium/client';
 	import { Icon, TopBarContent } from '@axium/client/components';
@@ -56,6 +56,6 @@
 			<Icon i="pen" />
 			<span>{text('email.compose')}</span>
 		</button>
-		<Composer bind:this={composer} userId={data.session.userId} onSent={() => invalidateAll()} />
+		<Composer bind:this={composer} userId={data.session.userId} onSent={() => refreshAll()} />
 	{/if}
 </div>

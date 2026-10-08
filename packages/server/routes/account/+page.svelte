@@ -20,7 +20,7 @@
 	import { toast, toastStatus } from '@axium/client/toast';
 	import { contextMenu } from '@axium/client/attachments';
 	import { upload } from 'utilium/dom';
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import Passkeys from './Passkeys.svelte';
 
 	const { data }: PageProps = $props();
@@ -162,7 +162,7 @@
 			schema={Preferences}
 			updateValue={async (preferences: Preferences) => {
 				await fetchAPI('PATCH', 'users/:id', { preferences }, user.id);
-				await invalidateAll();
+				await refreshAll();
 			}}
 		/>
 	</div>

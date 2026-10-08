@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { fetchAPI, text } from '@axium/client';
 	import { contextMenu } from '@axium/client/attachments';
 	import { Icon } from '@axium/client/components';
@@ -19,7 +19,7 @@
 		try {
 			const result = await fetchAPI('PATCH', 'email/:id', changes, email.id);
 			Object.assign(email, result, { attachments: email.attachments });
-			if ('folder' in changes) await invalidateAll();
+			if ('folder' in changes) await refreshAll();
 		} catch (e) {
 			toast('error', e);
 		}
@@ -62,7 +62,7 @@
 			i: 'trash',
 			danger: true,
 			text: email.folder == 'trash' || email.folder == 'drafts' ? text('email.delete_forever') : text('generic.delete'),
-			action: () => toastStatus(fetchAPI('DELETE', 'email/:id', {}, email.id).then(invalidateAll), text('email.toast_deleted')),
+			action: () => toastStatus(fetchAPI('DELETE', 'email/:id', {}, email.id).then(refreshAll), text('email.toast_deleted')),
 		},
 	])}
 >

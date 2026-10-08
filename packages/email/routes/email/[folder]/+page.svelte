@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { goto, invalidateAll } from '$app/navigation';
+	import { goto, refreshAll } from '$app/navigation';
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import type { Email } from '@axium/email/common';
@@ -39,7 +39,7 @@
 			<Icon i="bars" />
 		</button>
 		<span class="label">{text(`email.${data.folder}`)}</span>
-		<button class="reset" onclick={() => invalidateAll()} title={text('email.refresh')}>
+		<button class="reset" onclick={() => refreshAll()} title={text('email.refresh')}>
 			<Icon i="rotate-right" --size="16px" />
 		</button>
 	</div>

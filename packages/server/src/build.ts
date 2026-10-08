@@ -1,22 +1,14 @@
 import nodeAdapter from '@sveltejs/adapter-node';
-import type { Config as SvelteConfig } from '@sveltejs/kit';
-import { svelte as viteSveltePlugin, type Options as SvelteViteOptions } from '@sveltejs/vite-plugin-svelte';
-import { exit } from 'ioium/node';
-import { findPackageJSON } from 'node:module';
+import { sveltekit, type Config as SvelteKitConfig } from '@sveltejs/kit/vite';
 import { devNull } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { pick, type WithRequired } from 'utilium';
-import { build as buildVite, type InlineConfig } from 'vite';
+import { createBuilder, type InlineConfig, type Plugin } from 'vite';
 import config from './config.js';
 import { overrideWrite } from './io.js';
 
-const sveltekitPackageJSON = findPackageJSON('@sveltejs/kit', import.meta.url);
-if (!sveltekitPackageJSON) exit('Could not resolve @sveltejs/kit package.', 6);
-const { process_config: processSvelteConfig } = await import(join(sveltekitPackageJSON, '../src/core/config/index.js'));
-const { kit: svelteKitPlugin } = await import(join(sveltekitPackageJSON, '../src/exports/vite/index.js'));
-
-const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
+const svelteKitConfig: SvelteKitConfig = {
 	compilerOptions: {
 		runes: true,
 		warningFilter(w) {
@@ -26,33 +18,20 @@ const baseSvelteConfig: WithRequired<SvelteConfig, 'kit'> = {
 			async: true,
 		},
 	},
-	kit: {
-		files: {
-			assets: join(fileURLToPath(new URL(import.meta.resolve('@axium/client'))), '../../assets'),
-			appTemplate: join(import.meta.dirname, '../template.html'),
-			routes: config.web.routes,
-			serviceWorker: fileURLToPath(import.meta.resolve('@axium/client/web/service-worker')),
-			hooks: {
-				universal: devNull,
-				client: join(import.meta.dirname, '../.hooks.js'),
-			},
-		},
-		serviceWorker: { register: false },
-		paths: { relative: false },
-		typescript: {
-			config(tsconfig) {
-				tsconfig.compilerOptions.allowArbitraryExtensions = true;
-				tsconfig.include.push('../lib/**/*');
-				return tsconfig;
-			},
+	adapter: nodeAdapter(),
+	files: {
+		assets: join(fileURLToPath(new URL(import.meta.resolve('@axium/client'))), '../../assets'),
+		appTemplate: join(import.meta.dirname, '../template.html'),
+		routes: config.web.routes,
+		serviceWorker: fileURLToPath(import.meta.resolve('@axium/client/web/service-worker')),
+		hooks: {
+			universal: devNull,
+			client: join(import.meta.dirname, '../.hooks.js'),
 		},
 	},
+	serviceWorker: { register: false },
+	paths: { relative: false },
 };
-
-const vitePluginSvelteOptions = {
-	configFile: false,
-	...pick(baseSvelteConfig, 'extensions', 'preprocess', 'onwarn', 'compilerOptions'),
-} satisfies SvelteViteOptions;
 
 const baseViteConfig: WithRequired<InlineConfig, 'build'> = {
 	configFile: false,
@@ -78,47 +57,10 @@ const baseViteConfig: WithRequired<InlineConfig, 'build'> = {
 	logLevel: 'silent',
 };
 
-async function createConfig(options: BuildOptions): Promise<WithRequired<InlineConfig, 'build'>> {
-	const svelteConfig = processSvelteConfig({
-		...baseSvelteConfig,
-		kit: {
-			...baseSvelteConfig.kit,
-			adapter: nodeAdapter(),
-		},
-	});
-
-	const viteConfig = structuredClone(baseViteConfig);
-
-	const logLevel = options.verbose ? 'info' : 'silent';
-	Object.assign(viteConfig, { logLevel, build: pick(options, 'minify') });
-
-	viteConfig.plugins = [...viteSveltePlugin(vitePluginSvelteOptions), ...(await svelteKitPlugin({ svelte_config: svelteConfig }))];
-
-	// SvelteKit uses a nested call to Vite's `build` that fails if we don't have a vite config file
-	// We get around that with a sveltekit patch and this "hidden"/internal global
-	const __axiumNestedConfig: WithRequired<InlineConfig, 'build'> = {
-		configFile: false,
-		appType: 'custom',
-		plugins: [viteSveltePlugin(vitePluginSvelteOptions), await svelteKitPlugin({ svelte_config: svelteConfig })],
-		logLevel,
-		build: { minify: options.minify },
-	};
-
-	Object.assign(globalThis, { __axiumNestedConfig });
-
-	return viteConfig;
-}
-
 const _circularDepWarning = /Circular dependency: (\.\.\/)*node_modules/;
 
 function allowWrite(text: string, stack?: string) {
-	return (
-		!stack?.includes('svelte') &&
-		!stack?.includes('vite') &&
-		!stack?.includes('rollup') &&
-		!text.includes('No Svelte config file') &&
-		!_circularDepWarning.test(text)
-	);
+	return !stack?.includes('svelte') && !stack?.includes('vite') && !stack?.includes('rollup') && !_circularDepWarning.test(text);
 }
 
 export interface BuildOptions {
@@ -139,30 +81,30 @@ export interface BuildStats {
 	size: bigint;
 }
 
-export async function build(options: BuildOptions = {}) {
+export async function build(options: BuildOptions = {}): Promise<BuildStats> {
 	using override = overrideWrite(allowWrite, process.stdout, process.stderr);
 	if (options.verbose) override.cancel();
 
 	const startTime = performance.now();
 
-	const viteConfig = await createConfig(options);
-
-	try {
-		const result = await buildVite(viteConfig);
-		let size = 0n;
-		const outputs = Array.isArray(result) ? result : [result];
-		for (const out of outputs) {
-			if (!out || !('output' in out)) continue;
-			for (const chunk of out.output) {
-				size += BigInt(chunk.type === 'chunk' ? chunk.code.length : chunk.source.length);
+	let size = 0n;
+	const bundleSize: Plugin = {
+		name: 'axium:bundle-size',
+		generateBundle(_, bundle) {
+			for (const output of Object.values(bundle)) {
+				size += BigInt(output.type === 'chunk' ? output.code.length : output.source.length);
 			}
-		}
+		},
+	};
 
-		return {
-			time: Math.round(performance.now() - startTime),
-			size,
-		};
-	} finally {
-		// nothing
-	}
+	const builder = await createBuilder({
+		...baseViteConfig,
+		logLevel: options.verbose ? 'info' : 'silent',
+		build: pick(options, 'minify'),
+		plugins: [...(await sveltekit(svelteKitConfig)), bundleSize],
+	});
+
+	await builder.buildApp();
+
+	return { time: Math.round(performance.now() - startTime), size };
 }

@@ -8,14 +8,12 @@ export type PageMessage = { type: 'activate' } | { type: 'status' };
 export interface WorkerInstalled {
 	type: 'install';
 	version: string;
-	base: string;
 	error: string | null;
 }
 
 export interface WorkerUpdateActivated {
 	type: 'update';
 	version: string;
-	base: string;
 }
 
 export type WorkerMessage = WorkerInstalled | WorkerUpdateActivated;

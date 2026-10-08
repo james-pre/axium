@@ -1,4 +1,6 @@
-import { base, build, files, version } from '$service-worker';
+import { version } from '$app/env';
+import { assets, immutable } from '$app/manifest';
+import { asset, resolve } from '$app/paths';
 import type { PageMessage } from './pwa.js';
 
 /// <reference no-default-lib="true"/>
@@ -9,10 +11,12 @@ declare const globalThis: ServiceWorkerGlobalScope;
 
 const cacheName = 'axium@' + version;
 
-const versionFile = `${base}/_app/version.json`,
-	shell = `${base}/_axium/shell`;
+const versionFile = resolve('_app/version.json'),
+	shell = resolve('_axium/shell');
 
-const precache = new Set([...build, ...files, shell]);
+const build = immutable.map(({ path }) => resolve(path));
+
+const precache = new Set([...build, ...assets.map(({ path }) => asset(path)), shell]);
 
 async function install(): Promise<void> {
 	let error = null;
@@ -25,7 +29,7 @@ async function install(): Promise<void> {
 		throw e;
 	} finally {
 		const clients = await globalThis.clients.matchAll({ includeUncontrolled: true, type: 'window' });
-		for (const client of clients) client.postMessage({ type: 'install', version, base, error });
+		for (const client of clients) client.postMessage({ type: 'install', version, error });
 	}
 }
 
@@ -35,7 +39,7 @@ async function activate(): Promise<void> {
 	await Promise.all((await caches.keys()).filter(key => key.startsWith('axium@') && key !== cacheName).map(key => caches.delete(key)));
 	await globalThis.clients.claim();
 	const clients = await globalThis.clients.matchAll({ includeUncontrolled: true, type: 'window' });
-	for (const client of clients) client.postMessage({ type: 'update', version, base });
+	for (const client of clients) client.postMessage({ type: 'update', version });
 }
 
 globalThis.addEventListener('activate', event => event.waitUntil(activate()));

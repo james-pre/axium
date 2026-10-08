@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { invalidateAll } from '$app/navigation';
+	import { refreshAll } from '$app/navigation';
 	import { text } from '@axium/client';
 	import { uploadShowDrop } from '@axium/kino/client/frontend';
 	import { DropZone, MediaDetail, SeasonList, TvWatchButton } from '@axium/kino/components';
@@ -16,7 +16,7 @@
 <DropZone
 	label={text('kino.drop_show')}
 	onDrop={async entries => {
-		if (await uploadShowDrop(entries, show.id)) await invalidateAll();
+		if (await uploadShowDrop(entries, show.id)) await refreshAll();
 	}}
 >
 	<MediaDetail

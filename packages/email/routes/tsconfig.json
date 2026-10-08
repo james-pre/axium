@@ -1,6 +1,7 @@
 {
-	"extends": ["../tsconfig.json", "../.svelte-kit/tsconfig.json"],
+	"extends": ["../tsconfig.json", "$app/tsconfig"],
 	"compilerOptions": {
+		"typeRoots": null,
 		"moduleResolution": "bundler",
 		"module": "esnext",
 		"noEmit": true,
