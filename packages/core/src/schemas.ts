@@ -78,8 +78,6 @@ export type ZodSpecificType =
 	| z.ZodUnknown
 	| z.ZodNaN
 	// collections
-	| z.ZodRecord<z.ZodString, ZodSpecificType>
-	| z.ZodTuple<ZodSpecificType[]>
 	| z.ZodMap<ZodSpecificType, ZodSpecificType>
 	| z.ZodSet<ZodSpecificType>
 	// wrappers
