@@ -106,7 +106,7 @@
 
 <style>
 	#clear-trash-trigger {
-		padding: 1em 0;
+		margin: 1em 0;
 	}
 
 	.list-item {
