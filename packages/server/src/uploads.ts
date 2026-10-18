@@ -20,6 +20,10 @@ export interface Upload<Init extends UploadInit = UploadInit, Data = null | unde
 	uploadedBytes: bigint;
 	sessionId: string;
 	userId: string;
+	/** Aborted when the upload is removed */
+	signal: AbortSignal;
+	/** Restarts the inactivity timeout */
+	refresh(): void;
 	/** User provided */
 	init: Init;
 	/** Application provided */
@@ -78,13 +82,17 @@ export class UploadManager<Init extends UploadInit = UploadInit, Data = null | u
 		const file = join(this.config.temp_dir, token.toHex());
 
 		let removed = false;
+		const controller = new AbortController();
 
 		const remove = (isSuccess: boolean = false) => {
 			if (removed) return;
 			removed = true;
+			clearTimeout(timeout);
 			this.delete(tokenB64);
-			if (isSuccess) void stream.close();
-			else void stream.abort();
+			controller.abort();
+			if (isSuccess) stream.close().catch(() => {});
+			else stream.abort().catch(() => {});
+
 			hash.end();
 			try {
 				unlinkSync(file);
@@ -103,14 +111,14 @@ export class UploadManager<Init extends UploadInit = UploadInit, Data = null | u
 			uploadedBytes: 0n,
 			sessionId: session.id,
 			userId: session.userId,
+			signal: controller.signal,
+			refresh: () => timeout.refresh(),
 			init,
 			data,
 			remove,
 		});
 
-		setTimeout(() => {
-			remove();
-		}, this.config.timeout * 60_000);
+		const timeout = setTimeout(() => remove(), this.config.timeout * 60_000);
 
 		return tokenB64;
 	}
@@ -157,6 +165,8 @@ export class UploadManager<Init extends UploadInit = UploadInit, Data = null | u
 
 		if (!request.body) error(400, 'Missing request body');
 
+		upload.refresh();
+
 		let actualSize = 0n;
 		const counter = new TransformStream<Uint8Array<ArrayBuffer>, Uint8Array<ArrayBuffer>>({
 			transform(chunk, controller) {
@@ -173,12 +183,16 @@ export class UploadManager<Init extends UploadInit = UploadInit, Data = null | u
 		});
 
 		try {
-			await request.body.pipeThrough(counter).pipeTo(upload.stream, { preventClose: true });
+			await request.body.pipeThrough(counter).pipeTo(upload.stream, { preventClose: true, signal: upload.signal });
 		} catch (e) {
+			const wasRemoved = upload.signal.aborted;
 			upload.remove();
 			if (request.signal.aborted) return progressResult(true);
+			if (wasRemoved) error(410, 'Upload timed out or was cancelled');
 			throw e;
 		}
+
+		upload.refresh();
 
 		// A short chunk means the request was aborted mid-transfer, e.g. the user cancelled the upload
 		if (request.signal.aborted || actualSize < size) {

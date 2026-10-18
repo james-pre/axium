@@ -14,7 +14,7 @@ export interface UploadInit extends z.infer<typeof UploadInit> {}
 export const UploadConfig = z.object({
 	/** Where to put in-progress chunked uploads */
 	temp_dir: z.string(),
-	/** How many minutes before an in-progress upload times out */
+	/** How many minutes an in-progress upload can go without receiving data before it times out */
 	timeout: z.number(),
 });
 export interface UploadConfig extends z.infer<typeof UploadConfig> {}
