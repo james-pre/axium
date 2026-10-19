@@ -12,6 +12,25 @@ async function handleError(response: Response): Promise<never> {
 	throw json.message;
 }
 
+/** Whether request bodies can be streams, rather than being coerced to a string. */
+let supportsRequestStreams: boolean;
+try {
+	const request = new Request('about:blank', {
+		method: 'POST',
+		body: new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(new Uint8Array([0]));
+				controller.close();
+			},
+		}),
+		duplex: 'half',
+	} as RequestInit);
+	const data = await request.arrayBuffer();
+	supportsRequestStreams = data.byteLength == 1;
+} catch {
+	supportsRequestStreams = false;
+}
+
 export type ProgressHandler = (this: void, uploaded: number, total: number) => void;
 
 export interface UploadChunkedOptions {
@@ -90,10 +109,10 @@ export async function uploadChunked<T>(options: UploadChunkedOptions): Promise<T
 		let init: object = { duplex: 'half' };
 
 		/** @see https://bugzilla.mozilla.org/show_bug.cgi?id=1387483 */
-		if (globalThis.navigator?.userAgent?.toLowerCase().includes('firefox')) {
+		if (!supportsRequestStreams) {
 			await body.cancel();
 			init = {};
-			warnOnce('Using a workaround for uploading on Firefox [https://bugzilla.mozilla.org/show_bug.cgi?id=1387483]');
+			warnOnce('Using a workaround since upload streams are not supported [https://bugzilla.mozilla.org/show_bug.cgi?id=1387483]');
 
 			const chunkData = new Uint8Array(chunkSize);
 			let bytesReadForChunk = 0;
