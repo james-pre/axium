@@ -41,7 +41,9 @@
 		"logout_all_question": "Are you sure you want to log out all sessions?",
 		"logout_all_submit": "Logout All Sessions",
 		"logout_all_trigger": "Logout All",
-		"logout_single": "Are you sure you want to log out this session?"
+		"logout_single": "Are you sure you want to log out this session?",
+		"rename_placeholder": "Session name",
+		"toast_renamed": "Session renamed"
 	},
 	"Upload": {
 		"upload": "Upload"

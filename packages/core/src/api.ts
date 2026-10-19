@@ -18,6 +18,7 @@ import { PluginInternal, PluginUpdate } from './plugins.js';
 import type { RequestMethod } from './requests.js';
 import {
 	LogoutSessions,
+	SessionChangeable,
 	User,
 	UserAdminChange,
 	UserAuthOptions,
@@ -123,6 +124,7 @@ const _API = {
 	},
 	'users/:id/sessions': {
 		GET: Session.array(),
+		PATCH: [SessionChangeable, Session],
 		DELETE: [LogoutSessions, Session.array()],
 	},
 	'users/:id/passkeys': {

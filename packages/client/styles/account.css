@@ -70,7 +70,7 @@
 }
 
 .session {
-	grid-template-columns: 1fr 15em 15em 1em;
+	grid-template-columns: 1fr 15em 15em 1em 1em;
 
 	.current {
 		border-radius: 2em;
@@ -84,7 +84,8 @@
 		background-color: #733;
 	}
 
-	.logout {
+	.logout,
+	.rename {
 		display: contents;
 	}
 }

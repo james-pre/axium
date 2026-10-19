@@ -1,7 +1,7 @@
 import { appPreferences } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import { PasskeyAuthOptions, PasskeyAuthResponse, PasskeyCreationOptions, PasskeyRegistration } from '@axium/core/passkeys';
-import { LogoutSessions, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
+import { LogoutSessions, SessionChangeable, UserAuthOptions, UserChangeable, type User } from '@axium/core/user';
 import * as webauthn from '@simplewebauthn/server';
 import { encodeUUID, omit, pick, type UUID } from 'utilium';
 import * as z from 'zod';
@@ -333,6 +333,24 @@ addRoute({
 		return (await getSessions(userId).catch(e => error(503, 'Failed to get sessions' + (config.debug ? ': ' + e : '')))).map(s =>
 			omit(s, 'token')
 		);
+	},
+	async PATCH(request, { id: userId }): AsyncResult<'PATCH', 'users/:id/sessions'> {
+		const { id, name } = await parseBody(request, SessionChangeable);
+
+		await checkAuthForUser(request, userId);
+
+		const result = await db
+			.updateTable('sessions')
+			.set({ name })
+			.where('id', '=', id)
+			.where('userId', '=', userId)
+			.returningAll()
+			.executeTakeFirstOrThrow()
+			.catch((e: Error) =>
+				e.message == 'no result' ? error(404, 'Session does not exist') : withError('Failed to update session')(e)
+			);
+
+		return omit(result, 'token');
 	},
 	async DELETE(request, { id: userId }): AsyncResult<'DELETE', 'users/:id/sessions'> {
 		const body = await parseBody(request, LogoutSessions);

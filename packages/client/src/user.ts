@@ -4,6 +4,7 @@ import type {
 	Passkey,
 	PasskeyChangeable,
 	Session,
+	SessionChangeable,
 	User,
 	UserChangeable,
 	UserPublic,
@@ -63,6 +64,11 @@ export async function extendCurrentSession(userId: string): Promise<void> {
 export async function getSessions(userId: string): Promise<Session[]> {
 	_checkId(userId);
 	return await fetchAPI('GET', 'users/:id/sessions', {}, userId);
+}
+
+export async function updateSession(userId: string, data: SessionChangeable): Promise<Session> {
+	_checkId(userId);
+	return await fetchAPI('PATCH', 'users/:id/sessions', data, userId);
 }
 
 export async function logout(userId: string, ...sessionId: string[]): Promise<Session[]> {

@@ -96,9 +96,15 @@ export const UserAuthOptions = z.object({
 	client: z.string().max(200).optional(),
 });
 
-export type UserAuthOptions = z.infer<typeof UserAuthOptions>;
+export interface UserAuthOptions extends z.infer<typeof UserAuthOptions> {}
 
 export const LogoutSessions = z.object({
 	id: z.array(z.uuid()).optional(),
 	confirm_all: z.boolean().optional(),
 });
+
+export const SessionChangeable = z.object({
+	id: z.uuid(),
+	name: z.string().trim().min(1).max(100),
+});
+export interface SessionChangeable extends z.infer<typeof SessionChangeable> {}
