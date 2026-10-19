@@ -79,7 +79,7 @@
 			"tmdb_api_key": "",
 			"remux": "both",
 			"upload": {
-				"temp_dir": "/tmp/axium",
+				"temp_dir": "/srv/axium/tmp",
 				"timeout": 15
 			},
 			"images": {

@@ -95,7 +95,7 @@
 			"max_transfer_size": 100,
 			"trash_duration": 30,
 			"upload": {
-				"temp_dir": "/tmp/axium",
+				"temp_dir": "/srv/axium/tmp",
 				"timeout": 15
 			}
 		}
