@@ -218,7 +218,7 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Http2Server> {
 
 	if (!opt.secure && !config.web.secure) return createServer(handle);
 
-	return createSecureServer(
+	const server = createSecureServer(
 		{
 			allowHTTP1: true,
 			settings: {
@@ -230,4 +230,6 @@ export async function serve(opt: Partial<ServeOptions>): Promise<Http2Server> {
 		},
 		handle
 	);
+	server.on('session', session => session.setLocalWindowSize(1048576 * 32));
+	return server;
 }
