@@ -5,7 +5,7 @@ export const SyncRuleType = z.literal(['+', '-']).register(zKeys, { prefix: 'sto
 
 /** `+pattern` includes and `-pattern` excludes matching paths. */
 export const SyncRule = z
-	.templateLiteral([SyncRuleType, z.string().trim().nonempty()])
+	.templateLiteral([SyncRuleType, z.string().trim().nonempty()], { error: 'Rules must be + or - followed by a pattern' })
 	.overwrite(rule => `${rule[0] as SyncRuleType}${rule.slice(1).trim()}` as const);
 
 export type SyncRuleType = z.infer<typeof SyncRuleType>;

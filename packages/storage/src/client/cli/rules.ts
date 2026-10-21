@@ -1,4 +1,4 @@
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import * as io from 'ioium/node';
 import { spawnSync } from 'node:child_process';
 import * as fs from 'node:fs';
@@ -6,21 +6,53 @@ import { tmpdir } from 'node:os';
 import { join, relative, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import * as z from 'zod';
-import { SyncRule, SyncRules, syncRulesHelp } from '../../rules.js';
-import { setSyncRules } from '../api.js';
+import { newlyExcluded, SyncRule, SyncRules, syncRulesHelp } from '../../rules.js';
+import { setSyncRules, updateItemMetadata } from '../api.js';
 import { findSync, saveConfig } from '../config.js';
-import { pullRules, type Sync } from '../sync.js';
+import { fetchRemote, pullRules, type Sync } from '../sync.js';
 
 function colorRule(rule: string): string {
 	return styleText(rule[0] == '+' ? 'green' : 'red', rule);
 }
 
-async function saveRules(sync: Sync, rules: string[]): Promise<void> {
+interface SaveOptions {
+	excluded: 'ask' | 'keep' | 'trash';
+}
+
+/** Saves rules, offering to trash server items that they newly exclude. */
+async function saveRules(sync: Sync, rules: string[], options: SaveOptions): Promise<void> {
 	const parsed = SyncRule.array().safeParse(rules);
 	if (!parsed.success) io.exit(z.prettifyError(parsed.error));
+
+	const remote = await io.track('Fetching ' + sync.name, fetchRemote(sync));
+	const excluded = newlyExcluded(remote, new SyncRules(sync.rules), new SyncRules(parsed.data));
+
 	const updated = await io.track('Saving rules', setSyncRules(sync.item, parsed.data));
 	sync.rules = updated.rules;
 	saveConfig();
+
+	if (!excluded.length) return;
+
+	console.log(excluded.length, 'item(s) on the server are now excluded:');
+	for (const [path, item] of excluded.slice(0, 20)) console.log('\t' + path + (item.directory ? '/' : ''));
+	if (excluded.length > 20) console.log(styleText('dim', `\tand ${excluded.length - 20} more`));
+
+	const trash =
+		options.excluded == 'ask'
+			? process.stdin.isTTY && (await io.confirm('Move them to the server trash? Local copies are kept.', false))
+			: options.excluded == 'trash';
+
+	if (!trash) {
+		console.log('They were kept on the server, but are no longer synced.');
+		return;
+	}
+
+	io.start('Moving excluded items to the trash');
+	for (const [i, [path, item]] of excluded.entries()) {
+		io.progress(i, excluded.length, path);
+		await updateItemMetadata(item.id, { trash: true });
+	}
+	io.progress(excluded.length, excluded.length);
 }
 
 /** Finds a Sync and updates its rules from the server. */
@@ -39,6 +71,10 @@ function listRules(sync: Sync): void {
 	const width = sync.rules.length.toString().length;
 	for (const [i, rule] of sync.rules.entries()) console.log(styleText('dim', (i + 1).toString().padStart(width)), colorRule(rule));
 }
+
+const excludedOption = new Option('--excluded <action>', 'what to do with items on the server that become excluded')
+	.choices(['ask', 'keep', 'trash'] satisfies SaveOptions['excluded'][])
+	.default('ask');
 
 export const rules = new Command('rules')
 	.description('Manage which paths are synced')
@@ -67,11 +103,12 @@ for (const [name, sign] of [
 		.argument('<sync>', 'name, local path, or remote path of a synced folder')
 		.argument('<pattern...>', 'patterns to match')
 		.option('--at <position>', 'insert at a position instead of at the end', Number.parseInt)
-		.action(async (search: string, patterns: string[], options: { at?: number }) => {
+		.addOption(excludedOption)
+		.action(async (search: string, patterns: string[], options: SaveOptions & { at?: number }) => {
 			const sync = await syncWithRules(search);
 			const updated = sync.rules.slice();
 			updated.splice(options.at ? options.at - 1 : updated.length, 0, ...patterns.map(pattern => `${sign}${pattern}` as const));
-			await saveRules(sync, updated);
+			await saveRules(sync, updated, options);
 			listRules(sync);
 		});
 }
@@ -82,7 +119,8 @@ rules
 	.description('Remove rules from a synced folder')
 	.argument('<sync>', 'name, local path, or remote path of a synced folder')
 	.argument('<rule...>', 'rules or their positions, put rules starting with - after --')
-	.action(async (search: string, removed: string[]) => {
+	.addOption(excludedOption)
+	.action(async (search: string, removed: string[], options: SaveOptions) => {
 		const sync = await syncWithRules(search);
 
 		const indices = new Set<number>();
@@ -94,7 +132,8 @@ rules
 
 		await saveRules(
 			sync,
-			sync.rules.filter((_, i) => !indices.has(i))
+			sync.rules.filter((_, i) => !indices.has(i)),
+			options
 		);
 		listRules(sync);
 	});
@@ -103,7 +142,8 @@ rules
 	.command('edit')
 	.description('Edit the rules for a synced folder in your editor')
 	.argument('<sync>', 'name, local path, or remote path of a synced folder')
-	.action(async (search: string) => {
+	.addOption(excludedOption)
+	.action(async (search: string, options: SaveOptions) => {
 		const sync = await syncWithRules(search);
 
 		using directory = fs.mkdtempDisposableSync(join(tmpdir(), 'axium-rules-'));
@@ -126,7 +166,7 @@ rules
 			return;
 		}
 
-		await saveRules(sync, edited);
+		await saveRules(sync, edited, options);
 		listRules(sync);
 	});
 
