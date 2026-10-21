@@ -1,15 +1,17 @@
-import { configDir, session } from '@axium/client/cli/config';
+import { session } from '@axium/client/cli/config';
 import { Option, program } from 'commander';
 import * as io from 'ioium/node';
-import { rmSync, statSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
-import { join, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { styleText } from 'node:util';
 import { bytes as formatBytes } from 'utilium/format';
+import * as z from 'zod';
+import { SyncRule, syncRulesHelp } from '../../rules.js';
 import * as api from '../api.js';
 import { config, saveConfig } from '../config.js';
 import { resolveItem, resolvePath } from '../local.js';
-import { computeDelta, doSync, fetchSyncItems } from '../sync.js';
+import type { ConflictMode, Sync, SyncOptions } from '../sync.js';
+import { computeDelta, describeAction, doSync, fetchRemote, removeSyncedState, summarizeActions } from '../sync.js';
 import * as commands from './commands.js';
 import filesShell from './shell.js';
 
@@ -32,35 +34,35 @@ cli.command('usage')
 		console.log(`Space: ${formatBytes(usedBytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000n) : ''}`);
 	});
 
-cli.command('status')
-	.option('-v, --verbose', 'Show more details')
-	.option('--refresh', 'Force refresh metadata from the server')
-	.action(async opt => {
-		console.log(styleText('bold', `${config.sync.length} synced folder(s):`));
-		for (const sync of config.sync) {
-			if (opt.refresh) await fetchSyncItems(sync.item, sync.name);
-			const delta = computeDelta(sync);
+/** Find a Sync by its name, local path, or remote path. */
+function findSync(search: string): Sync {
+	const local = resolve(search);
+	const remote = resolvePath(search);
+	const sync = config.sync.find(
+		candidate => candidate.local_path == local || candidate.name == search || candidate.remote_path == remote
+	);
+	if (!sync) io.exit('Can not find a synced folder matching ' + search);
+	return sync;
+}
 
-			if (opt.verbose) {
-				console.log(styleText('underline', sync.local_path + ':'));
-				if (delta.synced.length == delta.items.length && !delta.local_only.length) {
-					console.log('\t' + styleText('blueBright', 'All files are synced!'));
-					continue;
-				}
-				for (const { _path } of delta.local_only) console.log('\t' + styleText('green', '+ ' + _path));
-				for (const { path } of delta.remote_only) console.log('\t' + styleText('red', '- ' + path));
-				for (const { path, modifiedAt } of delta.modified) {
-					const outdated = modifiedAt.getTime() > statSync(join(sync.local_path, path)).mtime.getTime();
-					console.log('\t' + styleText('yellow', '~ ' + path) + (outdated ? ' (outdated)' : ''));
-				}
-			} else {
-				console.log(
-					sync.local_path + ':',
-					Object.entries(delta)
-						.map(([name, items]) => `${styleText('blueBright', items.length.toString())} ${name.replaceAll('_', '-')}`)
-						.join(', ')
-				);
-			}
+cli.command('status')
+	.description('Show pending changes in synced folders')
+	.option('-v, --verbose', 'list each pending change')
+	.argument('[sync]', 'name, local path, or remote path of a synced folder')
+	.action(async (search: string | undefined, options: { verbose?: boolean }) => {
+		const syncs = search ? [findSync(search)] : config.sync;
+		if (!search) console.log(styleText('bold', `${syncs.length} synced folder(s):`));
+
+		for (const sync of syncs) {
+			const remote = await fetchRemote(sync).catch(e => {
+				io.warn(`Could not fetch ${sync.name}, only showing local changes: ${io.errorText(e)}`);
+				return null;
+			});
+			const { actions } = await computeDelta(sync, remote);
+			const last = styleText('dim', `(last synced ${sync.last_synced ? io.prettyDate(sync.last_synced) : 'never'})`);
+
+			console.log(sync.local_path + ':', actions.length ? summarizeActions(actions) : styleText('blueBright', 'up to date'), last);
+			if (options.verbose) for (const action of actions) console.log('\t' + describeAction(action));
 		}
 	});
 
@@ -90,7 +92,11 @@ cli.command('add')
 	.description('Add a folder to be synced')
 	.argument('<path>', 'local path to the folder to sync')
 	.argument('<remote>', 'remote folder path')
-	.action(async (localPath: string, remoteName: string) => {
+	.option('-r, --rule <rule...>', 'rules for which paths to sync')
+	.option('--trash', 'move local files to the trash when they are deleted remotely')
+	.option('--no-trash', 'permanently delete local files when they are deleted remotely')
+	.addHelpText('after', '\n' + syncRulesHelp)
+	.action(async (localPath: string, remoteName: string, options) => {
 		localPath = resolve(localPath);
 		remoteName = resolvePath(remoteName);
 
@@ -108,17 +114,19 @@ cli.command('add')
 		if (!remote) io.exit('Could not resolve remote path.');
 		if (remote.type != 'inode/directory') io.exit('Remote path is not a directory.');
 
+		const rules = SyncRule.array().safeParse(options.rule ?? []);
+		if (!rules.success) io.exit(z.prettifyError(rules.error));
+
 		config.sync.push({
 			name: remote.name,
 			item: remote.id,
 			local_path: localPath,
-			last_synced: new Date(),
+			last_synced: null,
 			remote_path: remoteName,
-			include_dotfiles: false,
-			exclude: [],
+			rules: rules.data,
+			trash: options.trash,
 		});
 
-		await fetchSyncItems(remote.id);
 		saveConfig();
 	});
 
@@ -126,35 +134,40 @@ cli.command('unsync')
 	.alias('remove-sync')
 	.alias('rm-sync')
 	.description('Stop syncing a folder')
-	.argument('<path>', 'local path to the folder to stop syncing')
-	.action((localPath: string) => {
-		localPath = resolve(localPath);
-
-		const index = config.sync.findIndex(sync => sync.local_path == localPath);
-		if (index == -1) io.exit('This local path is not being synced.');
-
-		rmSync(join(configDir, 'sync', config.sync[index].item + '.json'), { force: true });
-
-		config.sync.splice(index, 1);
+	.argument('<sync>', 'name, local path, or remote path of the synced folder')
+	.action((search: string) => {
+		const sync = findSync(search);
+		removeSyncedState(sync);
+		config.sync.splice(config.sync.indexOf(sync), 1);
 		saveConfig();
 	});
 
 cli.command('sync')
 	.description('Sync files')
 	.addOption(
-		new Option('--delete <mode>', 'Delete local/remote files that were deleted remotely/locally')
-			.choices(['local', 'remote', 'none'])
-			.default('none')
+		new Option('-c, --conflicts <mode>', 'how to resolve files changed both locally and remotely')
+			.choices(['ask', 'both', 'local', 'remote', 'skip'] satisfies ConflictMode[])
+			.default(process.stdin.isTTY && process.stdout.isTTY ? 'ask' : 'both')
 	)
-	.option('-d, --dry-run', 'Show what would be done, but do not make any changes', false)
-	.option('-v, --verbose', 'Show more details', false)
-	.argument('[sync]', 'The name of the Sync to sync')
-	.action(async (name, opt) => {
-		if (name) {
-			const sync = config.sync.find(s => s.name == name);
-			if (!sync) io.exit('Can not find a Sync with that name.');
-			await doSync(sync, opt);
-		} else for (const sync of config.sync) await doSync(sync, opt);
+	.option('-d, --dry-run', 'show what would be done, but do not make any changes', false)
+	.option('-v, --verbose', 'list each change', false)
+	.option('--trash', 'move local files to the trash when they are deleted or overwritten by remote changes')
+	.option('--no-trash', 'permanently delete local files instead of moving them to the trash')
+	.argument('[sync]', 'name, local path, or remote path of a synced folder')
+	.addHelpText('after', '\n' + syncRulesHelp)
+	.action(async (search: string | undefined, options: SyncOptions) => {
+		let failed = false;
 
-		if (!opt.dryRun) saveConfig();
+		for (const sync of search ? [findSync(search)] : config.sync) {
+			try {
+				const stats = await doSync(sync, options);
+				failed ||= !!stats.failed.length;
+			} catch (e) {
+				io.error(`${sync.name}: ${io.errorText(e)}`);
+				failed = true;
+			}
+		}
+
+		if (!options.dryRun) saveConfig();
+		if (failed) process.exitCode = 1;
 	});
