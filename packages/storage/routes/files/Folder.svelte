@@ -15,16 +15,19 @@
 		user?: UserPublic;
 		id: string | null;
 	} = $props();
+
+	function onAdd(item: StorageItemMetadata, replaced?: string) {
+		if (replaced) items = items.filter(existing => existing.id != replaced);
+		items.push(item);
+	}
 </script>
 
 <div
 	class="upload-zone"
-	{@attach drag.uploadTarget(text('storage.Folder.drop_upload'), entries =>
-		toastUpload(uploadEntries(entries, id, item => items.push(item)))
-	)}
+	{@attach drag.uploadTarget(text('storage.Folder.drop_upload'), entries => toastUpload(uploadEntries(entries, id, onAdd)))}
 >
 	<List appMode enableDrag bind:items {user} folderId={id} />
-	<Add parentId={id ?? undefined} {user} onAdd={item => items.push(item)} />
+	<Add parentId={id ?? undefined} {user} {onAdd} />
 </div>
 
 <style>

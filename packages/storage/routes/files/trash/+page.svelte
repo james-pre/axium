@@ -46,7 +46,11 @@
 	</div>
 	{#each items as item (item.id)}
 		{const restore = () => ((activeId = item.id), restoreDialog.showModal()),
-			remove = () => ((activeId = item.id), deleteDialog.showModal())}
+			remove = () => {
+				activeId = item.id;
+				if (data.confirm_delete) deleteDialog.showModal();
+				else toastStatus(useAndClearActive(() => deleteItem(item.id))(), text('storage.generic.delete_success'));
+			}}
 		<div
 			class="list-item"
 			{@attach contextMenu(

@@ -10,7 +10,7 @@ import * as z from 'zod';
 import type { StorageItemInit, StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 import { defaultCASMime, getLimits } from './config.js';
-import { getUserStats, parseItem } from './db.js';
+import { deleteRecursive, getUserStats, parseItem } from './db.js';
 
 export interface NewItemResult {
 	existing?: { id: string };
@@ -52,6 +52,23 @@ export async function checkNewItem(init: StorageItemInit, session: SessionAndUse
 	const isDirectory = type == 'inode/directory';
 
 	if (isDirectory && size > 0) error(400, 'Directories can not have content');
+
+	if (parentId) {
+		const conflict = await database
+			.selectFrom('storage')
+			.select(['id', 'type', 'trashedAt'])
+			.where('parentId', '=', parentId)
+			.where('name', '=', init.name)
+			.executeTakeFirst()
+			.catch(withError('Could not check for existing items'));
+
+		if (conflict && !conflict.trashedAt) error(409, 'A file with that name already exists in this folder.');
+
+		if (conflict) {
+			await authSessionForItem('storage', conflict.id, { manage: true }, session, true);
+			await deleteRecursive(conflict.type != 'inode/directory', conflict.id);
+		}
+	}
 
 	if (!useCAS(type)) return {};
 

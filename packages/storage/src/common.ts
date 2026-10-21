@@ -110,6 +110,10 @@ export const StoragePreferences = z
 		open_with_single_click: z.boolean().default(false),
 		/** Whether to start uploading immediately after files are selected, instead of waiting for the upload button */
 		upload_on_select: z.boolean().default(false),
+		/** Whether to ask for confirmation before moving items */
+		confirm_move: z.boolean().default(true),
+		/** Whether to ask for confirmation before permanently deleting items */
+		confirm_delete: z.boolean().default(true),
 	})
 	.register(zKeys, { prefix: 'storage.preferences' });
 

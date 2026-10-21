@@ -65,11 +65,20 @@
 		"generic": {
 			"copy_id": "Copy ID",
 			"copy_ids": "Copy IDs",
+			"delete": "Delete",
+			"delete_permanent_confirm": "Are you sure you want to permanently delete {name}?",
+			"delete_success": "File deleted",
 			"download": "Download",
+			"move": "Move",
+			"move_confirm": "Move {count} item(s) into {name}?",
+			"move_here_confirm": "Move {count} item(s) into this folder?",
 			"name": "Name",
 			"no_name_in_dialog": "this",
 			"no_item": "No item is selected",
 			"rename": "Rename",
+			"replace": "Replace",
+			"replace_confirm": "{name} already exists in this folder. Replace it?",
+			"replace_confirm_many": "{count} items already exist in this folder. Replace them?",
 			"trash": "Trash",
 			"trash_success": "File trashed",
 			"rename_success": "File renamed",
@@ -84,7 +93,9 @@
 			"sort_folders_first": "Sort folders before other files",
 			"full_path_in_special": "Show full path in usage and trash",
 			"open_with_single_click": "Open files with a single click",
-			"upload_on_select": "Start uploading as soon as files are selected"
+			"upload_on_select": "Start uploading as soon as files are selected",
+			"confirm_move": "Confirm before moving files",
+			"confirm_delete": "Confirm before permanently deleting files"
 		},
 		"Add": {
 			"content": "Content",

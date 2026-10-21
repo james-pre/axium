@@ -8,7 +8,8 @@
 	import type { StorageItemMetadata } from '@axium/storage/common';
 	import { flushSync } from 'svelte';
 
-	const { parentId, user, onAdd }: { parentId?: string; user?: UserPublic; onAdd?(item: StorageItemMetadata): void } = $props();
+	const { parentId, user, onAdd }: { parentId?: string; user?: UserPublic; onAdd?(item: StorageItemMetadata, replaced?: string): void } =
+		$props();
 
 	let files = $state<FileList>()!,
 		isDirectoryUpload = $state(false),

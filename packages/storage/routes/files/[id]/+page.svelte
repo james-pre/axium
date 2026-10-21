@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
-	import { text } from '@axium/client';
+	import { preferences, text } from '@axium/client';
 	import { drag } from '@axium/client/attachments';
 	import { AccessControlDialog, FormDialog, Icon } from '@axium/client/components';
+	import { confirm } from '@axium/client/dialogs';
 	import { toastStatus } from '@axium/client/toast';
 	import { getDirectoryMetadata, updateItemMetadata } from '@axium/storage/client';
 	import { _downloadItem, copyShortURL, moveItems } from '@axium/storage/client/frontend';
@@ -21,8 +22,14 @@
 
 	const parentHref = $derived('/files' + (item.parentId ? '/' + item.parentId : ''));
 
-	function moveTo(ids: string[], parentId: string | null) {
-		toastStatus(
+	async function moveTo(ids: string[], parentId: string | null) {
+		if (user && (await preferences.appPref(user.id, 'files', 'confirm_move'))) {
+			const name = item.parents?.find(parent => parent.id == parentId)?.name ?? text('app_name.files');
+			const message = text('storage.generic.move_confirm', { count: ids.length, name });
+			if (!(await confirm(message, { confirmText: text('storage.generic.move') }))) return;
+		}
+
+		await toastStatus(
 			moveItems(ids, parentId).then(async () => {
 				if (item.type == 'inode/directory') items = await getDirectoryMetadata(item.id);
 			}),

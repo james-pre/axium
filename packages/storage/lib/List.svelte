@@ -4,14 +4,23 @@
 	import { closeOnBackGesture, contextMenu, drag, selectable, selectionControls, Selection } from '@axium/client/attachments';
 	import { SyncedClipboard } from '@axium/client/reactive';
 	import { AccessControlDialog, Icon, InlineEdit } from '@axium/client/components';
+	import { confirm } from '@axium/client/dialogs';
 	import { copy } from '@axium/client/web';
 	import '@axium/client/styles/list';
 	import { toast, toastStatus } from '@axium/client/toast';
 	import type { AccessControllable, UserPublic } from '@axium/core';
 	import { bytes as formatBytes } from 'utilium/format';
 	import { forMime as iconForMime } from '@axium/core/icons';
-	import { getDirectoryMetadata, getUserStorageRoot, updateItemMetadata } from '@axium/storage/client';
-	import { _downloadItem, _downloadItems, copyShortURL, moveItems, toastUpload, uploadEntries } from '@axium/storage/client/frontend';
+	import { deleteItem, getDirectoryMetadata, getUserStorageRoot, updateItemMetadata } from '@axium/storage/client';
+	import {
+		_downloadItem,
+		_downloadItems,
+		copyShortURL,
+		formatItemName,
+		moveItems,
+		toastUpload,
+		uploadEntries,
+	} from '@axium/storage/client/frontend';
 	import { StorageItemSorting, StoragePreferences, type StorageItemMetadata } from '@axium/storage/common';
 	import Path from './Path.svelte';
 	import Preview from './Preview.svelte';
@@ -86,11 +95,12 @@
 		{
 			key: 'v',
 			ctrl: true,
-			action() {
+			async action() {
 				if (clipboard.isCopy || !clipboard.size) return;
 
 				// Pasting into the folder the items already live in is a no-op.
 				const ids = [...clipboard].filter(id => !items.some(item => item.id == id && item.parentId == folderId));
+				if (ids.length && !(await confirmMove(ids.length))) return;
 				clipboard.clear();
 				if (!ids.length) return;
 
@@ -106,9 +116,29 @@
 		},
 	]);
 
-	const { sort_folders_first, full_path_in_special, open_with_single_click } = user
+	const { sort_folders_first, full_path_in_special, open_with_single_click, confirm_move, confirm_delete } = user
 		? await preferences.get(user.id, 'files')
 		: StoragePreferences.safeParse({}).data || {};
+
+	/** Resolves to whether `count` items should be moved into the folder named `name`, or the current folder. */
+	async function confirmMove(count: number, name?: string): Promise<boolean> {
+		if (!confirm_move) return true;
+		const message = name ? text('storage.generic.move_confirm', { count, name }) : text('storage.generic.move_here_confirm', { count });
+		return await confirm(message, { confirmText: text('storage.generic.move') });
+	}
+
+	async function trashOrDelete(item: StorageItemMetadata, permanent: boolean) {
+		if (!permanent) {
+			activeId = item.id;
+			return toastStatus(updateItemMetadata(item.id, { trash: true }).then(removeActiveItem), text('storage.generic.trash_success'));
+		}
+
+		const message = text('storage.generic.delete_permanent_confirm', { name: formatItemName(item) });
+		if (confirm_delete && !(await confirm(message, { confirmText: text('storage.generic.delete'), danger: true }))) return;
+
+		activeId = item.id;
+		await toastStatus(deleteItem(item.id).then(removeActiveItem), text('storage.generic.delete_success'));
+	}
 
 	const sortedItems = $derived(
 		items.toSorted((_a, _b) => {
@@ -186,14 +216,16 @@
 				enableDrag &&
 				drag.target(
 					'storage',
-					ids =>
-						toastStatus(
+					async ids => {
+						if (!(await confirmMove(ids.length, item.name))) return;
+						await toastStatus(
 							moveItems(ids, item.id).then(moved => {
 								items = items.filter(item => !moved.includes(item.id));
 								selection.clear();
 							}),
 							text('storage.generic.move_success')
-						),
+						);
+					},
 					item.id
 				)}
 			{@attach enableDrag &&
@@ -287,16 +319,7 @@
 				<span class="icon-text action" onclick={() => _downloadItem(item)}>
 					<Icon i="download" --size="14px" />
 				</span>
-				<span
-					class="icon-text action"
-					onclick={() => {
-						activeId = item.id;
-						toastStatus(
-							updateItemMetadata(item.id, { trash: true }).then(removeActiveItem),
-							text('storage.generic.trash_success')
-						);
-					}}
-				>
+				<span class="icon-text action" onclick={e => trashOrDelete(item, e.shiftKey)}>
 					<Icon i="trash" --size="14px" />
 				</span>
 			</div>

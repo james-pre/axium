@@ -7,7 +7,10 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/files/trash');
 
-	const [items, { full_path_in_special }] = await Promise.all([getUserTrash(session.userId), preferences.get(session.userId, 'files')]);
+	const [items, { full_path_in_special, confirm_delete }] = await Promise.all([
+		getUserTrash(session.userId),
+		preferences.get(session.userId, 'files'),
+	]);
 
-	return { session, items, full_path_in_special };
+	return { session, items, full_path_in_special, confirm_delete };
 }
