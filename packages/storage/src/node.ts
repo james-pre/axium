@@ -21,6 +21,7 @@ const archives = [
 export function colorItem(item: StorageItemMetadata): string {
 	const { type, name } = item;
 
+	if (item.trashedAt) return styleText('dim', name + ' (trashed)');
 	if (type === 'inode/directory') return styleText('blue', name);
 	if (type.startsWith('image/') || type.startsWith('video/')) return styleText('magenta', name);
 	if (type.startsWith('audio/')) return styleText('cyan', name);
