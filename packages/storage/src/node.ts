@@ -1,5 +1,5 @@
 import { userInfo } from '@axium/client';
-import { createReadStream, createWriteStream } from 'node:fs';
+import { createReadStream, createWriteStream, utimesSync, type TimeLike } from 'node:fs';
 import { Readable, Writable } from 'node:stream';
 import { styleText } from 'node:util';
 import { bytes as formatBytes } from 'utilium/format';
@@ -70,6 +70,7 @@ export function streamRead(path: string, start?: number, end?: number): Readable
 	return Readable.toWeb(createReadStream(path, { start, end, highWaterMark })) as ReadableStream;
 }
 
-export async function streamWrite(path: string, stream: ReadableStream): Promise<void> {
+export async function streamWrite(path: string, stream: ReadableStream, mtime?: TimeLike): Promise<void> {
 	await stream.pipeTo(Writable.toWeb(createWriteStream(path, { highWaterMark })));
+	if (mtime) utimesSync(path, mtime, mtime);
 }

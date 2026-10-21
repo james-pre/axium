@@ -203,9 +203,9 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 				_items.set(dirent._path, Object.assign(pick(dir, 'id', 'modifiedAt'), { path: dirent._path }));
 			} else {
 				const type = mime.getType(dirent._path) || 'application/octet-stream';
-				const { size } = fs.statSync(join(sync.local_path, dirent._path));
+				const { size, mtime } = fs.statSync(join(sync.local_path, dirent._path));
 				const stream = streamRead(join(sync.local_path, dirent._path));
-				const file = await createItem(stream, { ...uploadOpts, type, size });
+				const file = await createItem(stream, { ...uploadOpts, type, size, modifiedAt: mtime });
 				_items.set(dirent._path, Object.assign(pick(file, 'id', 'modifiedAt', 'hash'), { path: dirent._path }));
 			}
 		}
@@ -233,7 +233,7 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 			if (!item.hash) {
 				fs.mkdirSync(fullPath, { recursive: true });
 			} else {
-				await streamWrite(fullPath, await downloadItemStream(item.id));
+				await streamWrite(fullPath, await downloadItemStream(item.id), item.modifiedAt);
 			}
 		}
 	);
@@ -245,12 +245,12 @@ export async function doSync(sync: Sync, opt: SyncOptions): Promise<SyncStats> {
 		item => (opt.verbose ? 'Updating ' : '') + item.path,
 		async item => {
 			if (item.modifiedAt.getTime() > fs.statSync(join(sync.local_path, item.path)).mtime.getTime()) {
-				await streamWrite(join(sync.local_path, item.path), await downloadItemStream(item.id));
+				await streamWrite(join(sync.local_path, item.path), await downloadItemStream(item.id), item.modifiedAt);
 				return 'server.';
 			} else {
-				const { size } = fs.statSync(join(sync.local_path, item.path));
+				const { size, mtime } = fs.statSync(join(sync.local_path, item.path));
 				const stream = streamRead(join(sync.local_path, item.path));
-				const updated = await updateItem(item.id, size, stream);
+				const updated = await updateItem(item.id, stream, { size, modifiedAt: mtime });
 				_items.set(item.path, Object.assign(pick(updated, 'id', 'modifiedAt', 'hash'), { path: item.path }));
 				return 'local.';
 			}

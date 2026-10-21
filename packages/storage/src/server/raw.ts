@@ -44,7 +44,7 @@ addRoute({
 
 uploads.addEndpoint('/raw/storage/upload', upload => {
 	return upload.data.itemId
-		? finishItemUpdate(upload.data.itemId, upload.init.size, upload.hash, upload.writeTo)
+		? finishItemUpdate(upload.data.itemId, upload.init.size, upload.hash, upload.writeTo, upload.init.modifiedAt)
 		: createNewItem(upload.init, upload.userId, upload.writeTo);
 });
 

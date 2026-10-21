@@ -54,7 +54,7 @@ function onProgress(uploaded: number, total: number): void {
 async function doUpload(
 	local: string,
 	name: string,
-	size: number,
+	stats: fs.Stats | fs.BigIntStats,
 	parentId?: string,
 	text: string = name,
 	existingId?: string
@@ -62,8 +62,10 @@ async function doUpload(
 	const type = mime.getType(local) || 'application/octet-stream';
 	using _ = io.start('Uploading ' + text);
 	const stream = streamRead(local);
-	if (existingId) return await api.updateItem(existingId, size, stream, onProgress);
-	return await api.createItem(stream, { parentId, name, size, type, onProgress });
+	const size = Number(stats.size),
+		modifiedAt = stats.mtime;
+	if (existingId) return await api.updateItem(existingId, stream, { size, modifiedAt, onProgress });
+	return await api.createItem(stream, { parentId, name, size, type, modifiedAt, onProgress });
 }
 
 export const upload = new Command('upload')
@@ -93,7 +95,7 @@ export const upload = new Command('upload')
 
 			if (existing && !opts.force) throw 'File exists at remote path, use --force to overwrite it';
 
-			await doUpload(local, name, stats.size, parent?.id, name, existing?.id);
+			await doUpload(local, name, stats, parent?.id, name, existing?.id);
 			await pull();
 			return;
 		}
@@ -134,7 +136,7 @@ export const upload = new Command('upload')
 			if (stats.isDirectory()) {
 				dirs.set(path, await io.track('Creating directory: ' + path, api.createDirectory(base, parentId)));
 			} else {
-				await doUpload(full, base, Number(stats.size), parentId, path);
+				await doUpload(full, base, stats, parentId, path);
 			}
 		}
 		await pull();
@@ -152,7 +154,7 @@ async function doDownload(item: StorageItemMetadata, local: string, text: string
 			controller.enqueue(chunk);
 		},
 	});
-	await streamWrite(local, (await api.downloadItemStream(item.id)).pipeThrough(progress));
+	await streamWrite(local, (await api.downloadItemStream(item.id)).pipeThrough(progress), item.modifiedAt);
 }
 
 export const download = new Command('download')

@@ -1,5 +1,4 @@
 import { getConfig, type AsyncResult, type Result } from '@axium/core';
-import { UploadSize } from '@axium/core/uploads';
 import * as acl from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database, type Schema } from '@axium/server/database';
@@ -12,6 +11,7 @@ import type { StorageItemMetadata } from '../common.js';
 import {
 	batchFormatVersion,
 	GetItemOptions,
+	StorageContentUpdate,
 	StorageItemInit,
 	StorageItemUpdate,
 	syncProtocolVersion,
@@ -106,7 +106,7 @@ addRoute({
 	async POST(request, { id: itemId }): Promise<Response> {
 		type R = Result<'POST', 'storage/item/:id'>;
 
-		const size = await parseBody(request, UploadSize);
+		const { size, modifiedAt } = await parseBody(request, StorageContentUpdate);
 
 		const { item, session } = await checkItemUpdate(request, itemId);
 
@@ -116,7 +116,7 @@ addRoute({
 			{
 				...pick(getConfig('@axium/storage'), 'batch', 'max_transfer_size'),
 				status: 'accepted',
-				token: uploads.start({ ...item, size }, session, { itemId }),
+				token: uploads.start({ ...item, size, modifiedAt }, session, { itemId }),
 			} satisfies R,
 			{ status: 202 }
 		);

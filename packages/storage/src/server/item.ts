@@ -167,7 +167,8 @@ export async function finishItemUpdate(
 	itemId: string,
 	size: bigint,
 	hash: Uint8Array<ArrayBuffer>,
-	writeContent?: (path: string) => void
+	writeContent?: (path: string) => void,
+	modifiedAt: Date = new Date()
 ): Promise<StorageItemMetadata> {
 	const tx = await database.startTransaction().execute();
 
@@ -179,7 +180,7 @@ export async function finishItemUpdate(
 		const result = await tx
 			.updateTable('storage')
 			.where('id', '=', itemId)
-			.set({ size, modifiedAt: new Date(), hash })
+			.set({ size, modifiedAt, hash })
 			.returningAll()
 			.executeTakeFirstOrThrow();
 

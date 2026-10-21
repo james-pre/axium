@@ -197,9 +197,19 @@ serverConfigs.set('@axium/storage', StorageConfig);
 export const StorageItemInit = z.object({
 	...UploadInit.shape,
 	parentId: z.uuid().nullish(),
+	/** Defaults to the time the upload finishes */
+	modifiedAt: z.coerce.date().optional(),
 });
 
 export interface StorageItemInit extends z.infer<typeof StorageItemInit> {}
+
+export const StorageContentUpdate = z.object({
+	size: UploadSize,
+	/** Defaults to the time the upload finishes */
+	modifiedAt: z.coerce.date().optional(),
+});
+
+export interface StorageContentUpdate extends z.infer<typeof StorageContentUpdate> {}
 
 export const UploadInitResult = z.discriminatedUnion('status', [
 	StoragePublicConfig.safeExtend({
@@ -247,7 +257,7 @@ const StorageAPI = {
 		GET: [GetItemOptions, StorageItemMetadata],
 		DELETE: StorageItemMetadata,
 		PATCH: [StorageItemUpdate, StorageItemMetadata],
-		POST: [UploadSize, UploadInitResult],
+		POST: [StorageContentUpdate, UploadInitResult],
 	},
 	'storage/directory/:id': {
 		GET: StorageItemMetadata.array(),

@@ -54,6 +54,7 @@ export interface CreateItemInit {
 	name: string;
 	size: number;
 	type: string;
+	modifiedAt?: Date;
 	signal?: AbortSignal;
 }
 
@@ -68,18 +69,18 @@ export async function createItem(stream: ReadableStream<Uint8Array<ArrayBuffer>>
 }
 
 export async function createItemFromFile(file: File, init: Partial<CreateItemInit>): Promise<StorageItemMetadata> {
-	return await createItem(file.stream(), { ...pick(file, 'name', 'size', 'type'), ...init });
+	return await createItem(file.stream(), { ...pick(file, 'name', 'size', 'type'), modifiedAt: new Date(file.lastModified), ...init });
 }
+
+export interface UpdateItemInit extends Pick<CreateItemInit, 'size' | 'modifiedAt' | 'onProgress' | 'signal'> {}
 
 export async function updateItem(
 	fileId: string,
-	newSize: number | bigint,
 	stream: ReadableStream<Uint8Array<ArrayBuffer>>,
-	onProgress?: ProgressHandler,
-	signal?: AbortSignal
+	init: UpdateItemInit
 ): Promise<StorageItemMetadata> {
-	const upload = await fetchAPI('POST', 'storage/item/:id', newSize, fileId);
-	return await _upload(upload, stream, Number(newSize), onProgress, signal);
+	const upload = await fetchAPI('POST', 'storage/item/:id', pick(init, 'size', 'modifiedAt'), fileId);
+	return await _upload(upload, stream, init.size, init.onProgress, init.signal);
 }
 
 export async function getItemMetadata(fileId: string, options: GetItemOptions = {}): Promise<StorageItemMetadata> {
