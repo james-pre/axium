@@ -1,7 +1,16 @@
 import * as z from 'zod';
+import { zKeys } from '@axium/core/locales';
+
+export const SyncRuleType = z.literal(['+', '-']).register(zKeys, { prefix: 'storage.sync_rule' });
 
 /** `+pattern` includes and `-pattern` excludes matching paths. */
-export const SyncRule = z.string().regex(/^[+-] ?\S/, 'Rules must start with + or - followed by a pattern');
+export const SyncRule = z
+	.templateLiteral([SyncRuleType, z.string().trim().nonempty()])
+	.overwrite(rule => `${rule[0] as SyncRuleType}${rule.slice(1).trim()}` as const);
+
+export type SyncRuleType = z.infer<typeof SyncRuleType>;
+
+export type SyncRule = z.infer<typeof SyncRule>;
 
 export const syncRulesHelp = `Rules:
   +pattern  include matching paths
@@ -47,7 +56,7 @@ function globSource(glob: string): string {
 }
 
 function compile(rule: string): CompiledRule {
-	let pattern = rule.slice(1).trimStart();
+	let pattern = rule.slice(1);
 	const directoryOnly = pattern.endsWith('/');
 	if (directoryOnly) pattern = pattern.slice(0, -1);
 	const anchored = pattern.includes('/');
@@ -104,4 +113,21 @@ export class SyncRules {
 		const decidedBy = this.rules.findLastIndex(rule => matches(rule, segments, true));
 		return this.rules.slice(decidedBy + 1).some(rule => rule.include && (!rule.anchored || couldMatchInside(rule, segments)));
 	}
+}
+
+/** Finds items synced by `before` but excluded by `after`, leaving out the contents of folders that are found. */
+export function newlyExcluded<T extends { directory: boolean }>(items: Map<string, T>, before: SyncRules, after: SyncRules): [string, T][] {
+	const excluded: [string, T][] = [];
+
+	for (const [path, item] of items
+		.entries()
+		.toArray()
+		.sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))) {
+		if (!before.includes(path, item.directory) || after.includes(path, item.directory)) continue;
+		if (item.directory && after.shouldDescend(path)) continue;
+		if (excluded.some(([folder]) => path.startsWith(folder + '/'))) continue;
+		excluded.push([path, item]);
+	}
+
+	return excluded;
 }

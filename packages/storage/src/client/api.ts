@@ -15,6 +15,7 @@ import type {
 } from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
+import type { SyncRule } from '../rules.js';
 
 function rawStorage(suffix?: string): string | URL {
 	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
@@ -158,7 +159,7 @@ export async function getSync(itemId: string): Promise<StorageSync> {
 	return await fetchAPI('GET', 'storage/sync/:id', undefined, itemId);
 }
 
-export async function setSyncRules(itemId: string, rules: string[]): Promise<StorageSync> {
+export async function setSyncRules(itemId: string, rules: SyncRule[]): Promise<StorageSync> {
 	return await fetchAPI('PUT', 'storage/sync/:id', { rules }, itemId);
 }
 

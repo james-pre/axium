@@ -62,6 +62,10 @@
 		}
 	},
 	"storage": {
+		"sync_rule": {
+			"+": "Include",
+			"-": "Exclude"
+		},
 		"generic": {
 			"copy_id": "Copy ID",
 			"copy_ids": "Copy IDs",

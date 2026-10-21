@@ -70,7 +70,7 @@ for (const [name, sign] of [
 		.action(async (search: string, patterns: string[], options: { at?: number }) => {
 			const sync = await syncWithRules(search);
 			const updated = sync.rules.slice();
-			updated.splice(options.at ? options.at - 1 : updated.length, 0, ...patterns.map(pattern => sign + pattern));
+			updated.splice(options.at ? options.at - 1 : updated.length, 0, ...patterns.map(pattern => `${sign}${pattern}` as const));
 			await saveRules(sync, updated);
 			listRules(sync);
 		});
@@ -87,7 +87,7 @@ rules
 
 		const indices = new Set<number>();
 		for (const rule of removed) {
-			const index = /^\d+$/.test(rule) ? parseInt(rule) - 1 : sync.rules.indexOf(rule);
+			const index = /^\d+$/.test(rule) ? parseInt(rule) - 1 : sync.rules.indexOf(rule as SyncRule);
 			if (!(index in sync.rules)) io.exit('No such rule: ' + rule);
 			indices.add(index);
 		}
