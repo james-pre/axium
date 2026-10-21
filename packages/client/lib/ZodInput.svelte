@@ -152,7 +152,7 @@
 	const placeholder = noLabel == 'placeholder' ? labelText : undefined;
 
 	/** Array element types that indicate the array should put elements on their own lines */
-	const largeArrayTypes = ['object', 'array', 'record', 'tuple'];
+	const largeArrayTypes = ['object', 'array', 'record', 'tuple', 'template_literal'];
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
@@ -390,6 +390,7 @@
 			gap: 0.25em;
 			display: flex;
 			flex-direction: column;
+			flex: 1;
 		}
 	}
 
