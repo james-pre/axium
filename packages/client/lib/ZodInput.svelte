@@ -5,7 +5,7 @@
 	import { zKeys, type ZodLocaleInfo } from '@axium/core/locales';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
-	import { prettifyError } from 'zod';
+	import { prettifyError, type z } from 'zod';
 	import Icon from './Icon.svelte';
 	import ZodInput from './ZodInput.svelte';
 
@@ -107,6 +107,37 @@
 
 	const oninput = onchange;
 
+	function isSchemaPart(part: unknown): part is z.core.$ZodType {
+		return typeof part == 'object' && part !== null;
+	}
+
+	/** Splits a template literal into the values of its parts, using defaults when it does not match. */
+	function splitTemplate(parts: readonly unknown[], template: unknown): string[] {
+		const sources = parts.map((part, i) =>
+			isSchemaPart(part)
+				? `(?<part${i}>${part._zod.pattern?.source.replace(/^\^|\$$/g, '') ?? '.*'})`
+				: String(part).replace(/[.*+?^${}()|[\]\\/]/g, '\\$&')
+		);
+		const groups = typeof template == 'string' ? new RegExp('^' + sources.join('') + '$').exec(template)?.groups : undefined;
+
+		return parts.map((part, i) => {
+			if (!isSchemaPart(part)) return String(part);
+			return groups?.[`part${i}`] ?? (part._zod.def.type == 'literal' ? String([...(part._zod.values ?? [])][0]) : '');
+		});
+	}
+
+	function setTemplatePart(parts: readonly unknown[], index: number, event: Event & { currentTarget: HTMLInputElement | HTMLSelectElement }) {
+		const values = splitTemplate(parts, value);
+		values[index] = event.currentTarget.value;
+		value = values.join('');
+		onchange(event);
+	}
+
+	function partText(part: z.core.$ZodType, literal: string): string {
+		const prefix = zKeys.get(part)?.prefix;
+		return prefix ? text(`${prefix}.${literal}`, { $default: literal }) : literal;
+	}
+
 	/** Localize text for a given field in the current schema. */
 	function subText(name: string, replacements?: ReplacementOptions & Record<string, any>): string | undefined {
 		if (!localeInfo?.prefix) return replacements?.$default;
@@ -173,7 +204,42 @@
 		</select>
 	</div>
 {:else if schema.type == 'template_literal'}
-	<!-- todo -->
+	{const parts = splitTemplate(schema.def.parts, value)}
+	<div class="ZodInput">
+		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
+		{#if error}<span class="ZodInput-error">{error}</span>{/if}
+		<div class={['ZodInput-template', error && 'error']}>
+			{#each schema.def.parts as part, i}
+				{#if !isSchemaPart(part)}
+					<span>{part}</span>
+				{:else if part._zod.def.type == 'literal' && part._zod.values?.size == 1}
+					<span>{partText(part, parts[i])}</span>
+				{:else if part._zod.def.type == 'literal'}
+					<select
+						id={i ? undefined : id}
+						value={parts[i]}
+						onchange={e => setTemplatePart(schema.def.parts, i, e)}
+						disabled={readonly}
+						required={!optional}
+					>
+						{#each part._zod.values ?? [] as literal}
+							<option value={literal}>{partText(part, String(literal))}</option>
+						{/each}
+					</select>
+				{:else}
+					<input
+						type="text"
+						id={i ? undefined : id}
+						value={parts[i]}
+						onchange={e => setTemplatePart(schema.def.parts, i, e)}
+						oninput={e => setTemplatePart(schema.def.parts, i, e)}
+						{readonly}
+						required={!optional}
+					/>
+				{/if}
+			{/each}
+		</div>
+	</div>
 {:else if schema.type == 'readonly'}
 	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.innerType} readonly />
 {:else if schema.type == 'default'}
@@ -276,6 +342,33 @@
 
 		input {
 			anchor-name: --zod-input;
+		}
+	}
+
+	.ZodInput-template {
+		display: flex;
+		align-items: center;
+		border-radius: 0.5em;
+		padding: 0.5em;
+		border: var(--border-accent);
+		anchor-name: --zod-input;
+
+		&.error {
+			border-color: var(--fg-error);
+		}
+
+		> :where(select, input, span) {
+			border: none;
+			border-radius: 0;
+			anchor-name: none;
+
+			&:not(:last-child) {
+				border-right: var(--border-elevated);
+			}
+		}
+
+		> input {
+			flex: 1;
 		}
 	}
 
