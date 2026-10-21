@@ -116,7 +116,7 @@ addRoute({
 			{
 				...pick(getConfig('@axium/storage'), 'batch', 'max_transfer_size'),
 				status: 'accepted',
-				token: uploads.start({ ...item, size, modifiedAt }, session, { itemId }),
+				token: uploads.start({ ...pick(item, 'name', 'type', 'parentId'), size, modifiedAt }, session, { itemId }),
 			} satisfies R,
 			{ status: 202 }
 		);
