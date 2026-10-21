@@ -120,7 +120,7 @@ cli.command('add')
 		if (existing && options.rule && existing.rules.join('\n') != rules.data.join('\n'))
 			io.exit('This folder is already synced with different rules. Use `axc files rules` to change them.');
 
-		const synced = existing ?? (await api.setSyncRules(remote.id, rules.data));
+		const synced = existing ?? (await api.createSync(remote.id, { rules: rules.data }));
 		await api.updateSyncDevice(remote.id, { host: hostname(), localPath, lastSynced: null });
 
 		config.sync.push({
@@ -144,13 +144,19 @@ cli.command('config')
 	.option('--trash', 'move local files to the trash when they are deleted or overwritten by remote changes')
 	.option('--no-trash', 'permanently delete local files instead of moving them to the trash')
 	.option('--auto-trash', 'use the trash if one exists')
-	.action(async (search: string, options: { trash?: boolean; autoTrash?: boolean }) => {
+	.option('--hidden', 'leave the folder out of the root of Files')
+	.option('--no-hidden', 'show the folder in the root of Files')
+	.action(async (search: string, options: { trash?: boolean; autoTrash?: boolean; hidden?: boolean }) => {
 		const sync = findSync(search);
 
 		if (options.autoTrash) delete sync.trash;
 		else if (options.trash !== undefined) sync.trash = options.trash;
 
-		const remote = await api.getSync(sync.item).catch(e => {
+		const remote = await (options.hidden === undefined
+			? api.getSync(sync.item)
+			: io.track('Saving', api.updateSync(sync.item, { hidden: options.hidden }))
+		).catch(e => {
+			if (options.hidden !== undefined) io.exit('Could not save: ' + io.errorText(e));
 			io.warn('Could not fetch synced folder: ' + io.errorText(e));
 			return null;
 		});
@@ -168,6 +174,8 @@ cli.command('config')
 		console.log('Last synced: ' + formatDate(sync.last_synced));
 
 		if (!remote) return;
+
+		console.log('Hidden:      ' + (remote.hidden ? 'yes' : 'no'));
 
 		console.log('Devices:');
 		for (const device of remote.devices) {

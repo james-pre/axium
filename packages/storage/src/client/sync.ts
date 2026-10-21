@@ -16,10 +16,10 @@ import { SyncRule, SyncRules } from '../rules.js';
 import {
 	createDirectory,
 	createItem,
+	createSync,
 	downloadItemStream,
 	getItemMetadata,
 	getSync,
-	setSyncRules,
 	updateItem,
 	updateItemMetadata,
 	updateSyncDevice,
@@ -158,7 +158,10 @@ function scanLocal(sync: Sync, rules: SyncRules): Map<string, LocalItem> {
 export async function pullRules(sync: Sync): Promise<void> {
 	const remote = await getSync(sync.item).catch((e: Error & { status?: number }) => {
 		if (e.status != 404) throw e;
-		return setSyncRules(sync.item, sync.rules);
+		return createSync(sync.item, { rules: sync.rules }).catch((e: Error & { status?: number }) => {
+			if (e.status != 409) throw e;
+			return getSync(sync.item);
+		});
 	});
 	sync.rules = remote.rules;
 }

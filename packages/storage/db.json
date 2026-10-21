@@ -122,6 +122,7 @@
 					"columns": {
 						"itemId": { "type": "uuid", "primary": true, "required": true, "references": "storage.id", "onDelete": "cascade" },
 						"rules": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
+						"hidden": { "type": "boolean", "required": true, "default": "false" },
 						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" }
 					}
 				},

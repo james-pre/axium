@@ -226,11 +226,15 @@ export const UploadInitResult = z.discriminatedUnion('status', [
 
 export type UploadInitResult = z.infer<typeof UploadInitResult>;
 
-export const StorageSyncInit = z.object({
-	rules: SyncRule.array(),
-});
+export const StorageSyncSettings = z
+	.object({
+		rules: SyncRule.array(),
+		/** Whether the folder is left out of the root of Files */
+		hidden: z.boolean(),
+	})
+	.register(zKeys, { prefix: 'storage.sync_settings' });
 
-export interface StorageSyncInit extends z.infer<typeof StorageSyncInit> {}
+export interface StorageSyncSettings extends z.infer<typeof StorageSyncSettings> {}
 
 export const StorageSyncDeviceInit = z.object({
 	host: z.string().nonempty().max(255),
@@ -248,13 +252,24 @@ export const StorageSyncDevice = StorageSyncDeviceInit.extend({
 export interface StorageSyncDevice extends z.infer<typeof StorageSyncDevice> {}
 
 /** A folder being synced with local folders on devices. */
-export const StorageSync = StorageSyncInit.extend({
+export const StorageSync = StorageSyncSettings.extend({
 	itemId: z.uuid(),
 	createdAt: z.coerce.date(),
 	devices: StorageSyncDevice.array(),
 });
 
 export interface StorageSync extends z.infer<typeof StorageSync> {}
+
+export const StorageSyncInfo = StorageSync.extend({
+	item: StorageItemMetadata,
+	usage: z.object({
+		/** In bytes */
+		size: z.coerce.bigint(),
+		items: z.int().nonnegative(),
+	}),
+});
+
+export interface StorageSyncInfo extends z.infer<typeof StorageSyncInfo> {}
 
 const StorageAPI = {
 	'users/:id/storage': {
@@ -270,6 +285,9 @@ const StorageAPI = {
 	'users/:id/storage/trash': {
 		GET: StorageItemMetadata.array(),
 		DELETE: z.int().nonnegative(),
+	},
+	'users/:id/storage/syncs': {
+		GET: StorageSyncInfo.array(),
 	},
 	'users/:id/storage/shared': {
 		GET: StorageItemMetadata.array(),
@@ -298,7 +316,8 @@ const StorageAPI = {
 	},
 	'storage/sync/:id': {
 		GET: StorageSync,
-		PUT: [StorageSyncInit, StorageSync],
+		PUT: [StorageSyncSettings.partial(), StorageSync],
+		PATCH: [StorageSyncSettings.partial(), StorageSync],
 		DELETE: StorageSync,
 	},
 	'storage/sync/:id/device': {

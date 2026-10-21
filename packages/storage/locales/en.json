@@ -141,6 +141,10 @@
 		"Usage": {
 			"error": "Couldn't load your uploads.",
 			"login_prompt": "Log in to see storage usage."
+		},
+		"sync_settings": {
+			"rules": "Rules",
+			"hidden": "Hide in Files"
 		}
 	}
 }

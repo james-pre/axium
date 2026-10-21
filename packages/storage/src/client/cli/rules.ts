@@ -7,7 +7,7 @@ import { join, relative, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import * as z from 'zod';
 import { newlyExcluded, SyncRule, SyncRules, syncRulesHelp } from '../../rules.js';
-import { setSyncRules, updateItemMetadata } from '../api.js';
+import { updateItemMetadata, updateSync } from '../api.js';
 import { findSync, saveConfig } from '../config.js';
 import { fetchRemote, pullRules, type Sync } from '../sync.js';
 
@@ -27,7 +27,7 @@ async function saveRules(sync: Sync, rules: string[], options: SaveOptions): Pro
 	const remote = await io.track('Fetching ' + sync.name, fetchRemote(sync));
 	const excluded = newlyExcluded(remote, new SyncRules(sync.rules), new SyncRules(parsed.data));
 
-	const updated = await io.track('Saving rules', setSyncRules(sync.item, parsed.data));
+	const updated = await io.track('Saving rules', updateSync(sync.item, { rules: parsed.data }));
 	sync.rules = updated.rules;
 	saveConfig();
 

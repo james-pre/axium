@@ -237,6 +237,17 @@ addRoute({
 			.where('userId', '=', userId)
 			.where('trashedAt', 'is', null)
 			.where('parentId', 'is', null)
+			.where(eb =>
+				eb.not(
+					eb.exists(
+						eb
+							.selectFrom('storage_syncs')
+							.select('itemId')
+							.whereRef('storage_syncs.itemId', '=', 'storage.id')
+							.where('hidden', '=', true)
+					)
+				)
+			)
 			.execute()
 			.catch(withError('Could not get storage items'));
 

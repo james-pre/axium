@@ -8,6 +8,8 @@ import type {
 	StorageSync,
 	StorageSyncDevice,
 	StorageSyncDeviceInit,
+	StorageSyncInfo,
+	StorageSyncSettings,
 	UploadInitResult,
 	UserStorage,
 	UserStorageInfo,
@@ -15,7 +17,6 @@ import type {
 } from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
-import type { SyncRule } from '../rules.js';
 
 function rawStorage(suffix?: string): string | URL {
 	const raw = '/raw/storage' + (suffix ? '/' + suffix : '');
@@ -103,6 +104,11 @@ export async function getDirectoryMetadata(parentId: string): Promise<StorageIte
 	return await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
 }
 
+/** Gets the metadata for every item in a directory and its subdirectories, along with their paths. */
+export async function getRecursiveMetadata(parentId: string): Promise<(StorageItemMetadata & { path: string })[]> {
+	return await fetchAPI('GET', 'storage/directory/:id/recursive', undefined, parentId);
+}
+
 export async function downloadItem(fileId: string): Promise<Blob> {
 	const response = await fetch(rawStorage(fileId), {
 		headers: token ? { Authorization: 'Bearer ' + token } : {},
@@ -159,8 +165,16 @@ export async function getSync(itemId: string): Promise<StorageSync> {
 	return await fetchAPI('GET', 'storage/sync/:id', undefined, itemId);
 }
 
-export async function setSyncRules(itemId: string, rules: SyncRule[]): Promise<StorageSync> {
-	return await fetchAPI('PUT', 'storage/sync/:id', { rules }, itemId);
+export async function createSync(itemId: string, settings: Partial<StorageSyncSettings>): Promise<StorageSync> {
+	return await fetchAPI('PUT', 'storage/sync/:id', settings, itemId);
+}
+
+export async function updateSync(itemId: string, settings: Partial<StorageSyncSettings>): Promise<StorageSync> {
+	return await fetchAPI('PATCH', 'storage/sync/:id', settings, itemId);
+}
+
+export async function getUserSyncs(userId: string): Promise<StorageSyncInfo[]> {
+	return await fetchAPI('GET', 'users/:id/storage/syncs', undefined, userId);
 }
 
 export async function updateSyncDevice(itemId: string, device: StorageSyncDeviceInit): Promise<StorageSyncDevice> {
