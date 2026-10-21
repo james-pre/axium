@@ -126,7 +126,11 @@
 		});
 	}
 
-	function setTemplatePart(parts: readonly unknown[], index: number, event: Event & { currentTarget: HTMLInputElement | HTMLSelectElement }) {
+	function setTemplatePart(
+		parts: readonly unknown[],
+		index: number,
+		event: Event & { currentTarget: HTMLInputElement | HTMLSelectElement }
+	) {
 		const values = splitTemplate(parts, value);
 		values[index] = event.currentTarget.value;
 		value = values.join('');
