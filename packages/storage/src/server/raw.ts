@@ -85,6 +85,13 @@ addRoute({
 	async POST(request, { id: itemId }) {
 		const { item, session } = await checkItemUpdate(request, itemId);
 
+		const type = request.headers.get('content-type') || 'application/octet-stream';
+
+		if (type != item.type) {
+			await audit('storage_type_mismatch', session?.userId, { item: item.id });
+			error(400, 'Content type does not match existing item type');
+		}
+
 		const size = Number(request.headers.get('content-length'));
 		if (Number.isNaN(size)) error(411, 'Missing or invalid content length header');
 

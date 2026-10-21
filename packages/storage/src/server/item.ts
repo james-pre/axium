@@ -1,5 +1,4 @@
 import { getConfig } from '@axium/core';
-import { audit } from '@axium/server/audit';
 import { authRequestForItem, authSessionForItem, type SessionAndUser, type SessionInternal } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
@@ -152,13 +151,6 @@ export async function checkItemUpdate(request: Request, itemId: string): Promise
 	if (item.immutable) error(405, 'Item is immutable');
 	if (item.type == 'inode/directory') error(409, 'Directories do not have content');
 	if (item.trashedAt) error(410, 'Trashed items can not be changed');
-
-	const type = request.headers.get('content-type') || 'application/octet-stream';
-
-	if (type != item.type) {
-		await audit('storage_type_mismatch', session?.userId, { item: item.id });
-		error(400, 'Content type does not match existing item type');
-	}
 
 	return { item: parseItem(item), session };
 }
