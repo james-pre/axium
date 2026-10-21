@@ -2,17 +2,20 @@ import { session } from '@axium/client/cli/config';
 import { Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { stat } from 'node:fs/promises';
+import { hostname } from 'node:os';
 import { resolve } from 'node:path';
 import { styleText } from 'node:util';
 import { bytes as formatBytes } from 'utilium/format';
 import * as z from 'zod';
 import { SyncRule, syncRulesHelp } from '../../rules.js';
 import * as api from '../api.js';
-import { config, saveConfig } from '../config.js';
+import { config, findSync, saveConfig } from '../config.js';
 import { resolveItem, resolvePath } from '../local.js';
-import type { ConflictMode, Sync, SyncOptions } from '../sync.js';
-import { computeDelta, describeAction, doSync, fetchRemote, removeSyncedState, summarizeActions } from '../sync.js';
+import type { ConflictMode, SyncOptions } from '../sync.js';
+import { computeDelta, describeAction, doSync, fetchRemote, pullRules, removeSyncedState, summarizeActions } from '../sync.js';
+import { hasTrash } from '../trash.js';
 import * as commands from './commands.js';
+import { rules } from './rules.js';
 import filesShell from './shell.js';
 
 const cli = program
@@ -23,7 +26,8 @@ const cli = program
 	.addCommand(commands.mkdir)
 	.addCommand(commands.remove)
 	.addCommand(commands.upload)
-	.addCommand(commands.download);
+	.addCommand(commands.download)
+	.addCommand(rules);
 
 cli.command('usage')
 	.description('Show your usage')
@@ -34,17 +38,6 @@ cli.command('usage')
 		console.log(`Space: ${formatBytes(usedBytes)} ${limits.user_size ? ' / ' + formatBytes(limits.user_size * 1_000_000n) : ''}`);
 	});
 
-/** Find a Sync by its name, local path, or remote path. */
-function findSync(search: string): Sync {
-	const local = resolve(search);
-	const remote = resolvePath(search);
-	const sync = config.sync.find(
-		candidate => candidate.local_path == local || candidate.name == search || candidate.remote_path == remote
-	);
-	if (!sync) io.exit('Can not find a synced folder matching ' + search);
-	return sync;
-}
-
 cli.command('status')
 	.description('Show pending changes in synced folders')
 	.option('-v, --verbose', 'list each pending change')
@@ -54,9 +47,9 @@ cli.command('status')
 		if (!search) console.log(styleText('bold', `${syncs.length} synced folder(s):`));
 
 		for (const sync of syncs) {
-			const remote = await fetchRemote(sync).catch(e => {
+			const [remote] = await Promise.all([fetchRemote(sync), pullRules(sync)]).catch(e => {
 				io.warn(`Could not fetch ${sync.name}, only showing local changes: ${io.errorText(e)}`);
-				return null;
+				return [null];
 			});
 			const { actions } = await computeDelta(sync, remote);
 			const last = styleText('dim', `(last synced ${sync.last_synced ? io.prettyDate(sync.last_synced) : 'never'})`);
@@ -64,6 +57,8 @@ cli.command('status')
 			console.log(sync.local_path + ':', actions.length ? summarizeActions(actions) : styleText('blueBright', 'up to date'), last);
 			if (options.verbose) for (const action of actions) console.log('\t' + describeAction(action));
 		}
+
+		saveConfig();
 	});
 
 cli.command('shell').description('Open an interactive shell').action(filesShell);
@@ -117,17 +112,68 @@ cli.command('add')
 		const rules = SyncRule.array().safeParse(options.rule ?? []);
 		if (!rules.success) io.exit(z.prettifyError(rules.error));
 
+		const existing = await api.getSync(remote.id).catch((e: Error & { status?: number }) => {
+			if (e.status != 404) throw e;
+			return null;
+		});
+
+		if (existing && options.rule && existing.rules.join('\n') != rules.data.join('\n'))
+			io.exit('This folder is already synced with different rules. Use `axc files rules` to change them.');
+
+		const synced = existing ?? (await api.setSyncRules(remote.id, rules.data));
+		await api.updateSyncDevice(remote.id, { host: hostname(), localPath, lastSynced: null });
+
 		config.sync.push({
 			name: remote.name,
 			item: remote.id,
 			local_path: localPath,
 			last_synced: null,
 			remote_path: remoteName,
-			rules: rules.data,
+			rules: synced.rules,
 			trash: options.trash,
 		});
 
 		saveConfig();
+
+		if (existing) console.log(`Using the ${existing.rules.length} rule(s) already set for this folder.`);
+	});
+
+cli.command('config')
+	.description('Show or change the settings of a synced folder')
+	.argument('<sync>', 'name, local path, or remote path of a synced folder')
+	.option('--trash', 'move local files to the trash when they are deleted or overwritten by remote changes')
+	.option('--no-trash', 'permanently delete local files instead of moving them to the trash')
+	.option('--auto-trash', 'use the trash if one exists')
+	.action(async (search: string, options: { trash?: boolean; autoTrash?: boolean }) => {
+		const sync = findSync(search);
+
+		if (options.autoTrash) delete sync.trash;
+		else if (options.trash !== undefined) sync.trash = options.trash;
+
+		const remote = await api.getSync(sync.item).catch(e => {
+			io.warn('Could not fetch synced folder: ' + io.errorText(e));
+			return null;
+		});
+		if (remote) sync.rules = remote.rules;
+		saveConfig();
+
+		const formatDate = (date: Date | null) => (date ? io.prettyDate(date) : 'never');
+		const trash = sync.trash === undefined ? `auto (${hasTrash() ? 'on' : 'off'})` : sync.trash ? 'on' : 'off';
+
+		console.log(styleText('bold', sync.name));
+		console.log('Local path:  ' + sync.local_path);
+		console.log('Remote path: ' + sync.remote_path);
+		console.log('Rules:       ' + (sync.rules.length || 'none') + styleText('dim', ' (see `axc files rules`)'));
+		console.log('Trash:       ' + trash);
+		console.log('Last synced: ' + formatDate(sync.last_synced));
+
+		if (!remote) return;
+
+		console.log('Devices:');
+		for (const device of remote.devices) {
+			const current = device.host == hostname() ? styleText('dim', ' (this device)') : '';
+			console.log(`  ${device.host}${current}: ${device.localPath}, last synced ${formatDate(device.lastSynced)}`);
+		}
 	});
 
 cli.command('unsync')
@@ -135,8 +181,11 @@ cli.command('unsync')
 	.alias('rm-sync')
 	.description('Stop syncing a folder')
 	.argument('<sync>', 'name, local path, or remote path of the synced folder')
-	.action((search: string) => {
+	.action(async (search: string) => {
 		const sync = findSync(search);
+		await api
+			.removeSyncDevice(sync.item, hostname())
+			.catch(e => io.warn('Could not remove this device from the synced folder: ' + io.errorText(e)));
 		removeSyncedState(sync);
 		config.sync.splice(config.sync.indexOf(sync), 1);
 		saveConfig();

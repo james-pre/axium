@@ -5,7 +5,7 @@ import mime from 'mime';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import * as fs from 'node:fs';
-import { tmpdir } from 'node:os';
+import { hostname, tmpdir } from 'node:os';
 import { basename, dirname, join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import { bytes as formatBytes } from 'utilium/format';
@@ -13,7 +13,17 @@ import * as z from 'zod';
 import { streamRead, streamWrite } from '../node.js';
 import '../polyfills.js';
 import { SyncRule, SyncRules } from '../rules.js';
-import { createDirectory, createItem, downloadItemStream, getItemMetadata, updateItem, updateItemMetadata } from './api.js';
+import {
+	createDirectory,
+	createItem,
+	downloadItemStream,
+	getItemMetadata,
+	getSync,
+	setSyncRules,
+	updateItem,
+	updateItemMetadata,
+	updateSyncDevice,
+} from './api.js';
 import { hasTrash, moveToTrash } from './trash.js';
 
 /** Converts `include_dotfiles` and `exclude` into rules. */
@@ -142,6 +152,15 @@ function scanLocal(sync: Sync, rules: SyncRules): Map<string, LocalItem> {
 
 	walk('');
 	return items;
+}
+
+/** Updates a Sync's rules from the server, registering the folder with the server if needed. */
+export async function pullRules(sync: Sync): Promise<void> {
+	const remote = await getSync(sync.item).catch((e: Error & { status?: number }) => {
+		if (e.status != 404) throw e;
+		return setSyncRules(sync.item, sync.rules);
+	});
+	sync.rules = remote.rules;
 }
 
 /** Fetches every item in a synced folder, including ones excluded by its rules. */
@@ -591,7 +610,7 @@ export async function doSync(sync: Sync, options: SyncOptions): Promise<SyncStat
 
 	options = { ...options, trash: options.trash ?? sync.trash ?? hasTrash() };
 
-	const remote = await io.track('Fetching ' + sync.name, fetchRemote(sync));
+	const [remote] = await io.track('Fetching ' + sync.name, Promise.all([fetchRemote(sync), pullRules(sync)]));
 	const delta = await io.track('Comparing ' + sync.name, computeDelta(sync, remote));
 	const stats: SyncStats = { completed: [], skipped: [], failed: [] };
 
@@ -626,6 +645,10 @@ export async function doSync(sync: Sync, options: SyncOptions): Promise<SyncStat
 	}
 
 	if (!stats.failed.length) sync.last_synced = new Date();
+
+	await updateSyncDevice(sync.item, { host: hostname(), localPath: sync.local_path, lastSynced: sync.last_synced }).catch(e =>
+		io.warn('Could not report sync status: ' + io.errorText(e))
+	);
 
 	const summary = [
 		stats.completed.length && summarizeActions(stats.completed),

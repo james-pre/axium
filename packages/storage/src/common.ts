@@ -3,6 +3,7 @@ import type {} from '@axium/core/apps';
 import { zKeys } from '@axium/core/locales';
 import { UploadConfig, UploadInit, UploadName, UploadSize } from '@axium/core/uploads';
 import * as z from 'zod';
+import { SyncRule } from './rules.js';
 
 /**
  * An update to file metadata.
@@ -225,6 +226,36 @@ export const UploadInitResult = z.discriminatedUnion('status', [
 
 export type UploadInitResult = z.infer<typeof UploadInitResult>;
 
+export const StorageSyncInit = z.object({
+	rules: SyncRule.array(),
+});
+
+export interface StorageSyncInit extends z.infer<typeof StorageSyncInit> {}
+
+export const StorageSyncDeviceInit = z.object({
+	host: z.string().nonempty().max(255),
+	localPath: z.string().nonempty(),
+	lastSynced: z.coerce.date().nullable(),
+});
+
+export interface StorageSyncDeviceInit extends z.infer<typeof StorageSyncDeviceInit> {}
+
+export const StorageSyncDevice = StorageSyncDeviceInit.extend({
+	itemId: z.uuid(),
+	userId: z.uuid(),
+});
+
+export interface StorageSyncDevice extends z.infer<typeof StorageSyncDevice> {}
+
+/** A folder being synced with local folders on devices. */
+export const StorageSync = StorageSyncInit.extend({
+	itemId: z.uuid(),
+	createdAt: z.coerce.date(),
+	devices: StorageSyncDevice.array(),
+});
+
+export interface StorageSync extends z.infer<typeof StorageSync> {}
+
 const StorageAPI = {
 	'users/:id/storage': {
 		OPTIONS: UserStorageInfo,
@@ -264,6 +295,15 @@ const StorageAPI = {
 	},
 	'storage/directory/:id/recursive': {
 		GET: StorageItemMetadata.extend({ path: z.string() }).array(),
+	},
+	'storage/sync/:id': {
+		GET: StorageSync,
+		PUT: [StorageSyncInit, StorageSync],
+		DELETE: StorageSync,
+	},
+	'storage/sync/:id/device': {
+		PUT: [StorageSyncDeviceInit, StorageSyncDevice],
+		DELETE: [StorageSyncDeviceInit.pick({ host: true }), StorageSyncDevice],
 	},
 } as const;
 

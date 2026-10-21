@@ -12,6 +12,7 @@ import './api.js';
 import './batch.js';
 import { getTotalUse } from './db.js';
 import './raw.js';
+import './syncs.js';
 import './zip.js';
 
 addShortcut('/f/:id', { id: z.base64url() }, ({ id }) => `/files/${decodeUUID(Uint8Array.fromBase64(id, { alphabet: 'base64url' }))}`);

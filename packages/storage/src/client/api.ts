@@ -2,7 +2,17 @@ import { fetchAPI, origin, prefix, token } from '@axium/client/requests';
 import { uploadChunked, type ProgressHandler } from '@axium/client/uploads';
 import { pick } from 'utilium';
 import { prettifyError } from 'zod';
-import type { GetItemOptions, StorageItemUpdate, UploadInitResult, UserStorage, UserStorageInfo, UserStorageOptions } from '../common.js';
+import type {
+	GetItemOptions,
+	StorageItemUpdate,
+	StorageSync,
+	StorageSyncDevice,
+	StorageSyncDeviceInit,
+	UploadInitResult,
+	UserStorage,
+	UserStorageInfo,
+	UserStorageOptions,
+} from '../common.js';
 import { StorageItemMetadata } from '../common.js';
 import '../polyfills.js';
 
@@ -142,6 +152,22 @@ export async function clearUserTrash(userId: string): Promise<number> {
 
 export async function itemsSharedWith(userId: string): Promise<StorageItemMetadata[]> {
 	return await fetchAPI('GET', 'users/:id/storage/shared', undefined, userId);
+}
+
+export async function getSync(itemId: string): Promise<StorageSync> {
+	return await fetchAPI('GET', 'storage/sync/:id', undefined, itemId);
+}
+
+export async function setSyncRules(itemId: string, rules: string[]): Promise<StorageSync> {
+	return await fetchAPI('PUT', 'storage/sync/:id', { rules }, itemId);
+}
+
+export async function updateSyncDevice(itemId: string, device: StorageSyncDeviceInit): Promise<StorageSyncDevice> {
+	return await fetchAPI('PUT', 'storage/sync/:id/device', device, itemId);
+}
+
+export async function removeSyncDevice(itemId: string, host: string): Promise<StorageSyncDevice> {
+	return await fetchAPI('DELETE', 'storage/sync/:id/device', { host }, itemId);
 }
 
 export async function getUserStorageRoot(userId: string): Promise<StorageItemMetadata[]> {
