@@ -1,14 +1,14 @@
 import { configDir, session } from '@axium/client/cli/config';
 import { Option, program } from 'commander';
 import * as io from 'ioium/node';
-import { statSync, unlinkSync } from 'node:fs';
+import { rmSync, statSync } from 'node:fs';
 import { stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { styleText } from 'node:util';
 import { bytes as formatBytes } from 'utilium/format';
 import * as api from '../api.js';
 import { config, saveConfig } from '../config.js';
-import { resolveItem } from '../local.js';
+import { resolveItem, resolvePath } from '../local.js';
 import { computeDelta, doSync, fetchSyncItems } from '../sync.js';
 import * as commands from './commands.js';
 import filesShell from './shell.js';
@@ -92,6 +92,7 @@ cli.command('add')
 	.argument('<remote>', 'remote folder path')
 	.action(async (localPath: string, remoteName: string) => {
 		localPath = resolve(localPath);
+		remoteName = resolvePath(remoteName);
 
 		for (const sync of config.sync) {
 			if (sync.local_path == localPath || localPath.startsWith(sync.local_path + '/'))
@@ -132,7 +133,7 @@ cli.command('unsync')
 		const index = config.sync.findIndex(sync => sync.local_path == localPath);
 		if (index == -1) io.exit('This local path is not being synced.');
 
-		unlinkSync(join(configDir, 'sync', config.sync[index].item + '.json'));
+		rmSync(join(configDir, 'sync', config.sync[index].item + '.json'), { force: true });
 
 		config.sync.splice(index, 1);
 		saveConfig();
@@ -154,4 +155,6 @@ cli.command('sync')
 			if (!sync) io.exit('Can not find a Sync with that name.');
 			await doSync(sync, opt);
 		} else for (const sync of config.sync) await doSync(sync, opt);
+
+		if (!opt.dryRun) saveConfig();
 	});

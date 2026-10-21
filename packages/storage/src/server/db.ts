@@ -109,7 +109,7 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 
 	if (deleteSelf) toDelete.push(...itemId);
 
-	await database.deleteFrom('storage').where('id', '=', itemId).returningAll().execute().catch(withError('Could not delete item'));
+	await database.deleteFrom('storage').where('id', 'in', itemId).returningAll().execute().catch(withError('Could not delete item'));
 
 	for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
 }
