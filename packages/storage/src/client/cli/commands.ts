@@ -6,9 +6,9 @@ import * as fs from 'node:fs';
 import { basename, join, parse } from 'node:path';
 import { bytes as formatBytes } from 'utilium/format';
 import type { StorageItemMetadata } from '../../common.js';
-import { colorItem, formatItems, streamRead } from '../../node.js';
+import { colorItem, formatItems, streamRead, streamWrite } from '../../node.js';
 import * as api from '../api.js';
-import { getDirectory, resolveItem, resolvePath, resolvePathWithParent } from '../local.js';
+import { getDirectory, getItems, resolveItem, resolvePath, resolvePathWithParent } from '../local.js';
 
 export const ls = new Command('ls')
 	.alias('list')
@@ -140,30 +140,67 @@ export const upload = new Command('upload')
 		await pull();
 	});
 
+async function doDownload(item: StorageItemMetadata, local: string, text: string = local): Promise<void> {
+	using _ = io.start('Downloading ' + text);
+	const size = Number(item.size);
+	onProgress(0, size);
+	let downloaded = 0;
+	const progress = new TransformStream<Uint8Array, Uint8Array>({
+		transform(chunk, controller) {
+			downloaded += chunk.length;
+			onProgress(downloaded, size);
+			controller.enqueue(chunk);
+		},
+	});
+	await streamWrite(local, (await api.downloadItemStream(item.id)).pipeThrough(progress));
+}
+
 export const download = new Command('download')
-	.description('Download a file')
-	.argument('<remote>', 'remote file path to download')
-	.argument('[local]', 'local path to save the file to')
-	.action(async (remotePath: string, localPath) => {
+	.description('Download a file or folder')
+	.argument('<remote>', 'remote file or folder path to download')
+	.argument('[local]', 'local path to save to')
+	.option('-r, --recursive', 'operate recursively on remote folders')
+	.action(async (remotePath: string, localPath: string | undefined, opts) => {
 		const item = resolveItem(remotePath);
 		if (!item) throw 'Could not resolve path.';
-		if (item.type == 'inode/directory') throw "Can't download directories yet.";
 		localPath ||= item.name;
-		using _ = io.start('Downloading to ' + localPath);
-		const stream = await api.downloadItemStream(item.id);
-		const size = Number(item.size);
-		io.progress(0, size);
-		let downloaded = 0;
-		const fileStream = fs.createWriteStream(localPath);
-		for await (const chunk of stream) {
-			fileStream.write(chunk);
-			downloaded += chunk.length;
-			io.progress(
-				downloaded,
-				size,
-				Math.round((downloaded / size) * 100) + '%',
-				`${formatBytes(BigInt(downloaded))}/${formatBytes(item.size)}`
-			);
+
+		if (item.type != 'inode/directory') {
+			await doDownload(item, localPath, 'to ' + localPath);
+			return;
 		}
-		fileStream.end();
+
+		if (!opts.recursive) throw '--recursive/-r not specified but the remote path is a folder';
+
+		if (fs.existsSync(localPath)) throw 'File or folder exists at local path. Merging is not supported yet.';
+
+		const items = getItems().filter(({ trashedAt }) => !trashedAt);
+		const toDownload: { item: StorageItemMetadata; path: string }[] = [];
+		let files = 0,
+			sum = 0n;
+
+		function collect(parentId: string, dir: string) {
+			for (const child of items) {
+				if (child.parentId != parentId) continue;
+				const path = join(dir, child.name);
+				toDownload.push({ item: child, path });
+				if (child.type == 'inode/directory') collect(child.id, path);
+				else {
+					files++;
+					sum += child.size;
+				}
+			}
+		}
+
+		collect(item.id, '');
+
+		await io.assertYes(`Download ${files} files totaling ${formatBytes(sum)}?`);
+
+		fs.mkdirSync(localPath);
+
+		for (const { item: child, path } of toDownload) {
+			const full = join(localPath, path);
+			if (child.type == 'inode/directory') fs.mkdirSync(full);
+			else await doDownload(child, full, path);
+		}
 	});
