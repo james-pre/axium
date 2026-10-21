@@ -7,7 +7,7 @@ import { dirname, join, resolve } from 'node:path/posix';
 import * as z from 'zod';
 import type Cache from '../cache.js';
 import { CacheData } from '../cache.js';
-import { fetchAPI } from '../requests.js';
+import { fetchAPI, NetworkError } from '../requests.js';
 import { applyDiff, onSync } from '../sync.js';
 import { apiUserCache, getCurrentSession } from '../user.js';
 
@@ -158,8 +158,13 @@ export function load() {
 }
 
 export async function update(force: boolean = false) {
-	for (const handle of handles) {
-		if (force || !(await handle.isValid())) await handle.update();
+	try {
+		for (const handle of handles) {
+			if (force || !(await handle.isValid())) await handle.update();
+		}
+	} catch (e) {
+		if (!(e instanceof NetworkError)) throw e;
+		io.warn(e.message + ', using cached data');
 	}
 }
 

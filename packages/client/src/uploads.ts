@@ -1,10 +1,5 @@
 import { warnOnce } from 'ioium';
-import { token } from './requests.js';
-
-function handleFetchFailed(e: unknown): never {
-	if (!(e instanceof Error) || e.message != 'fetch failed') throw e;
-	throw 'fetch failed: ' + String(e.cause);
-}
+import { throwNetworkError, token } from './requests.js';
 
 async function handleError(response: Response): Promise<never> {
 	if (response.headers.get('Content-Type')?.trim() != 'application/json') throw await response.text();
@@ -144,7 +139,7 @@ export async function uploadChunked<T>(options: UploadChunkedOptions): Promise<T
 			body,
 			signal,
 			...init,
-		}).catch(handleFetchFailed);
+		}).catch(throwNetworkError);
 
 		if (!response.ok) await handleError(response);
 

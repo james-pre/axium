@@ -23,6 +23,14 @@ export function setPrefix(value: string): void {
 	origin = new URL(prefix, origin).origin;
 }
 
+/** Thrown when a request gets no response, e.g. because the server is unreachable. */
+export class NetworkError extends Error {}
+
+export function throwNetworkError(e: unknown): never {
+	if (!(e instanceof TypeError)) throw e;
+	throw new NetworkError(`Could not reach ${origin}: ${errorText(e.cause ?? e)}`, { cause: e });
+}
+
 export let userAgent: string | null = null;
 
 /**
@@ -82,7 +90,7 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 		url += '?' + search.toString();
 	}
 
-	const response = await fetch(url, options);
+	const response = await fetch(url, options).catch(throwNetworkError);
 
 	if (!response.headers.get('Content-Type')?.includes('application/json')) {
 		throw new Error(`Unexpected response type: ${response.headers.get('Content-Type')}`);
