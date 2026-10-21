@@ -268,6 +268,7 @@
 				<div class="ZodInput-element">
 					<ZodInput bind:rootValue {updateValue} {idPrefix} path="{path}.{i}" schema={schema.element} noLabel={noLabel || true} />
 					<button
+						type="button"
 						onclick={e => {
 							value.splice(i, 1);
 							onchange(e);
@@ -277,7 +278,7 @@
 					</button>
 				</div>
 			{/each}
-			<button class="icon-text" onclick={() => value.push('')}>
+			<button type="button" class="icon-text" onclick={() => value.push('')}>
 				<Icon i="plus" --size="16px" />
 				{#if noLabel == 'placeholder'}
 					<span>{labelText}</span>
