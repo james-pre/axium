@@ -106,11 +106,21 @@ option:hover {
 	background-color: var(--bg-alt);
 }
 
-code,
 pre {
 	background-color: var(--bg-menu);
 	padding: 1em;
 	border-radius: 0.5em;
+}
+
+code {
+	background-color: var(--bg-menu);
+	padding: 0.1em 0.35em;
+	border-radius: 0.3em;
+}
+
+pre code {
+	padding: 0;
+	background-color: transparent;
 }
 
 details {
