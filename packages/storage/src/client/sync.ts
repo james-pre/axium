@@ -33,6 +33,11 @@ function migrateSync(sync: unknown): unknown {
 	return { ...rest, rules: [...(include_dotfiles ? [] : ['-.*']), ...exclude.map(glob => '-/' + glob)] };
 }
 
+/** How soon the daemon syncs changes, or `manual` to only sync with `axc files sync` */
+export const SyncFrequency = z.literal(['asap', '1m', '5m', '15m', '1h', '1d', 'manual']);
+
+export type SyncFrequency = z.infer<typeof SyncFrequency>;
+
 /**
  * A Sync is a storage item that has been selected for synchronization by the user.
  * Importantly, it is *only* the "top-level" item.
@@ -49,6 +54,7 @@ export const Sync = z.preprocess(
 		rules: SyncRule.array().default([]),
 		/** Whether local deletions go to the trash, defaulting to whether a trash exists */
 		trash: z.boolean().optional(),
+		frequency: SyncFrequency.default('manual'),
 	})
 );
 
@@ -66,7 +72,7 @@ const SyncedItem = z.object({
 	deleted: z.boolean().optional(),
 });
 
-interface SyncedItem extends z.infer<typeof SyncedItem> {}
+export interface SyncedItem extends z.infer<typeof SyncedItem> {}
 
 const SyncedState = z.object({ items: z.record(z.string(), SyncedItem) });
 
@@ -120,7 +126,7 @@ export interface RemoteItem {
 	immutable: boolean;
 }
 
-const partialSuffix = '.axium-sync-partial';
+export const partialSuffix = '.axium-sync-partial';
 
 function scanLocal(sync: Sync, rules: SyncRules): Map<string, LocalItem> {
 	const items = new Map<string, LocalItem>();
@@ -230,16 +236,20 @@ function remoteUnchanged(remote?: RemoteItem, synced?: SyncedItem): boolean {
 }
 
 /** Finds what changed on each side since the last sync, treating a missing remote listing as unchanged. */
+/** The state of each item when the folder was last synced, by path. */
+export function readSyncedItems(sync: Sync): Map<string, SyncedItem> {
+	try {
+		return new Map(Object.entries(io.readJSON(syncedStatePath(sync), SyncedState).items));
+	} catch (e) {
+		io.debug(`No synced state for ${sync.name}: ${io.errorText(e)}`);
+		return new Map();
+	}
+}
+
 export async function computeDelta(sync: Sync, allRemoteItems: Map<string, RemoteItem> | null): Promise<Delta> {
 	const rules = new SyncRules(sync.rules);
 
-	let syncedItems: Map<string, SyncedItem>;
-	try {
-		syncedItems = new Map(Object.entries(io.readJSON(syncedStatePath(sync), SyncedState).items));
-	} catch (e) {
-		io.debug(`No synced state for ${sync.name}: ${io.errorText(e)}`);
-		syncedItems = new Map();
-	}
+	const syncedItems = readSyncedItems(sync);
 
 	for (const [path, item] of syncedItems) if (!rules.includes(path, item.hash === null)) syncedItems.delete(path);
 

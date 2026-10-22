@@ -1,6 +1,11 @@
 import * as io from 'ioium/node';
 import { config, saveConfig } from './config.js';
+import { startAutoSync } from './daemon.js';
 import { doSync } from './sync.js';
+
+export function daemon() {
+	startAutoSync();
+}
 
 export async function run() {
 	for (const sync of config.sync) {

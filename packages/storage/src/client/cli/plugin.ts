@@ -12,6 +12,7 @@ import * as api from '../api.js';
 import { config, findSync, saveConfig } from '../config.js';
 import { resolveItem, resolvePath } from '../local.js';
 import type { ConflictMode, SyncOptions } from '../sync.js';
+import { SyncFrequency } from '../sync.js';
 import { computeDelta, describeAction, doSync, fetchRemote, pullRules, removeSyncedState, summarizeActions } from '../sync.js';
 import { hasTrash } from '../trash.js';
 import * as commands from './commands.js';
@@ -83,6 +84,19 @@ cli.command('untrash')
 
 // sync commands //
 
+const frequencies: Record<SyncFrequency, string> = {
+	asap: 'as soon as possible',
+	'1m': 'within 1 minute',
+	'5m': 'within 5 minutes',
+	'15m': 'within 15 minutes',
+	'1h': 'within 1 hour',
+	'1d': 'within 1 day',
+	manual: 'only when `axc files sync` is run',
+};
+
+const frequencyOption = () =>
+	new Option('-f, --frequency <frequency>', 'how soon the daemon syncs changes').choices([...SyncFrequency.values]);
+
 cli.command('add')
 	.description('Add a folder to be synced')
 	.argument('<path>', 'local path to the folder to sync')
@@ -90,6 +104,7 @@ cli.command('add')
 	.option('-r, --rule <rule...>', 'rules for which paths to sync')
 	.option('--trash', 'move local files to the trash when they are deleted remotely')
 	.option('--no-trash', 'permanently delete local files when they are deleted remotely')
+	.addOption(frequencyOption().default('manual'))
 	.addHelpText('after', '\n' + syncRulesHelp)
 	.action(async (localPath: string, remoteName: string, options) => {
 		localPath = resolve(localPath);
@@ -131,6 +146,7 @@ cli.command('add')
 			remote_path: remoteName,
 			rules: synced.rules,
 			trash: options.trash,
+			frequency: options.frequency,
 		});
 
 		saveConfig();
@@ -146,11 +162,14 @@ cli.command('config')
 	.option('--auto-trash', 'use the trash if one exists')
 	.option('--hidden', 'leave the folder out of the root of Files')
 	.option('--no-hidden', 'show the folder in the root of Files')
-	.action(async (search: string, options: { trash?: boolean; autoTrash?: boolean; hidden?: boolean }) => {
+	.addOption(frequencyOption())
+	.action(async (search: string, options) => {
 		const sync = findSync(search);
 
 		if (options.autoTrash) delete sync.trash;
 		else if (options.trash !== undefined) sync.trash = options.trash;
+
+		if (options.frequency) sync.frequency = options.frequency;
 
 		const remote = await (
 			options.hidden === undefined
@@ -172,6 +191,7 @@ cli.command('config')
 		console.log('Remote path: ' + sync.remote_path);
 		console.log('Rules:       ' + (sync.rules.length || 'none') + styleText('dim', ' (see `axc files rules`)'));
 		console.log('Trash:       ' + trash);
+		console.log('Frequency:   ' + frequencies[sync.frequency]);
 		console.log('Last synced: ' + formatDate(sync.last_synced));
 
 		if (!remote) return;
