@@ -55,7 +55,9 @@
 	</button>
 {:else}
 	<AccessControlDialog bind:dialog={shareDialog} {item} itemType="storage" {user} />
-	<Path {item} onDropMove={moveTo} />
+	<div class="path-bar">
+		<Path {item} onDropMove={moveTo} />
+	</div>
 	{#snippet action(i: string, text: string, handler: (e: Event) => unknown, attachment?: Attachment<HTMLElement>)}
 		<button
 			class="icon-text"
@@ -128,7 +130,7 @@
 		margin-top: 1em;
 	}
 
-	:global(.Path) {
+	.path-bar {
 		padding: 1em 0;
 	}
 </style>
