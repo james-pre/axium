@@ -14,7 +14,7 @@ import { bytes as formatBytes } from 'utilium/format';
 import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { prefix, useUserAgent } from '../requests.js';
-import { connect as connectSocket } from '../socket.js';
+import { connect as connectSocket, onConnect } from '../socket.js';
 import { logout } from '../user.js';
 import { clientUA, login } from './auth.js';
 import * as cache from './cache.js';
@@ -96,16 +96,12 @@ program
 	.option('--no-socket', 'do not open a socket connection to the server')
 	.option('--insecure', 'allow connecting to a server with an untrusted (e.g. self-signed) TLS certificate', false)
 	.action(async opt => {
-		for (const plugin of plugins.values()) await plugin._client?.run?.();
+		if (opt.socket && config.token) {
+			onConnect(() => void cache.sync.update().catch(e => io.error('Failed to update sync cache:', io.errorText(e))));
+			connectSocket({ rejectUnauthorized: !opt.insecure }).catch(e => io.warn('Could not connect to the server:', io.errorText(e)));
+		}
 
-		if (!opt.socket || !config.token) return;
-
-		// Hold a socket connection to the server for the lifetime of the daemon.
-		const socket = await connectSocket({ rejectUnauthorized: !opt.insecure });
-
-		const catchUp = () => cache.sync.update().catch(e => io.error('Failed to update sync cache:', io.errorText(e)));
-		await catchUp();
-		socket.io.on('reconnect', catchUp);
+		for (const plugin of plugins.values()) await (plugin._client?.daemon ?? plugin._client?.run)?.();
 	});
 
 const axcPlugin = createPluginCommand('client', program, {

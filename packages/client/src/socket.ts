@@ -19,6 +19,17 @@ export function addListener<T extends keyof ServerToClient & string>(event: T, l
 	socket?.on(...entry);
 }
 
+const connectListeners = new Set<() => void>();
+
+/**
+ * Run a listener whenever the socket connects, including reconnections.
+ * @returns a function that removes the listener
+ */
+export function onConnect(listener: () => void): () => void {
+	connectListeners.add(listener);
+	return () => connectListeners.delete(listener);
+}
+
 export interface ConnectOptions extends Partial<ManagerOptions & SocketOptions> {}
 
 export let socket: Socket | null = null;
@@ -40,6 +51,13 @@ export function connect(opts?: ConnectOptions): Promise<Socket> {
 	socket.on('connect', () => {
 		io.debug('socket: Connected as ' + socket!.id);
 		resolve(socket!);
+		for (const listener of connectListeners) {
+			try {
+				listener();
+			} catch (e) {
+				io.error('Socket connect listener failed: ' + io.errorText(e));
+			}
+		}
 	});
 
 	socket.on('connect_error', err => {
