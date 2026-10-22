@@ -19,6 +19,7 @@ export async function load({ url, route, parent }) {
 		},
 		{ name: text('page.files.tab.trash'), href: '/files/trash', icon: 'trash', active: route.id.endsWith('/files/trash') },
 		{ name: text('page.files.tab.shared'), href: '/files/shared', icon: 'user-group', active: route.id.endsWith('/files/shared') },
+		{ name: text('page.files.tab.synced'), href: '/files/synced', icon: 'arrows-rotate', active: route.id.endsWith('/files/synced') },
 		{
 			name: text('page.files.tab.settings'),
 			href: '/files/settings',

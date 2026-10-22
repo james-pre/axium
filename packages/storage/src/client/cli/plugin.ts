@@ -152,9 +152,10 @@ cli.command('config')
 		if (options.autoTrash) delete sync.trash;
 		else if (options.trash !== undefined) sync.trash = options.trash;
 
-		const remote = await (options.hidden === undefined
-			? api.getSync(sync.item)
-			: io.track('Saving', api.updateSync(sync.item, { hidden: options.hidden }))
+		const remote = await (
+			options.hidden === undefined
+				? api.getSync(sync.item)
+				: io.track('Saving', api.updateSync(sync.item, { hidden: options.hidden }))
 		).catch(e => {
 			if (options.hidden !== undefined) io.exit('Could not save: ' + io.errorText(e));
 			io.warn('Could not fetch synced folder: ' + io.errorText(e));

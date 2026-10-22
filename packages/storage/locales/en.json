@@ -25,7 +25,8 @@
 				"files": "Files",
 				"trash": "Trash",
 				"shared": "Shared",
-				"settings": "Settings"
+				"settings": "Settings",
+				"synced": "Synced"
 			},
 			"trash_page": {
 				"title": "Files — Trash",
@@ -49,6 +50,44 @@
 			},
 			"settings": {
 				"title": "Files — Settings"
+			},
+			"synced": {
+				"title": "Files — Synced Folders",
+				"empty": "No folders are synced. Run `axc files add` on a device to start syncing a folder.",
+				"name": "Name",
+				"last_synced": "Last synced",
+				"size": "Size",
+				"never": "Never synced",
+				"hidden": "Hidden in Files",
+				"trashed": "This folder is in the trash",
+				"device_summary": "{host}, {time}",
+				"usage": "{size} in {count} item(s)",
+				"settings": "Settings",
+				"devices": "Devices",
+				"no_devices": "No devices are syncing this folder.",
+				"rules_help": "How rules work",
+				"save": "Save",
+				"saved": "Settings saved",
+				"excluded_confirm": "{count} item(s) on the server are now excluded: {paths}. Move them to the trash? Local copies are kept.",
+				"excluded_trash": "Move to trash",
+				"devices_description": "Devices that sync this folder with their own local copy.",
+				"last_synced_at": "Last synced {time}",
+				"rules": "Rules",
+				"rules_description": "Rules decide which files are synced on every device.",
+				"add_rule": "Add rule",
+				"visibility": "Visibility",
+				"hidden_description": "Only show this folder in Synced, not in the main list of Files.",
+				"rules_syntax": {
+					"order": "A rule further down the list overrides the ones above it, and anything no rule matches is synced.",
+					"contents": "A rule that matches a folder also applies to everything inside it.",
+					"name": "A pattern without a slash matches files and folders with that name in any folder:",
+					"path": "A pattern containing a slash is a path from the top of the synced folder:",
+					"folder": "Ending a pattern with a slash makes it only match folders:",
+					"wildcard": "matches any part of a name, including names that start with a dot:",
+					"folders": "matches any number of nested folders:",
+					"character": "matches any single character:",
+					"set": "matches one of the listed characters, or any other character if the list starts with !:"
+				}
 			}
 		}
 	},
