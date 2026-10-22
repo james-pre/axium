@@ -14,10 +14,11 @@ import { serviceCommand } from '@james-pre/systemd/cli';
 import { Argument, Option, program } from 'commander';
 import * as io from 'ioium/node';
 import { allLogLevels } from 'logzen';
+import { fork, type ChildProcess } from 'node:child_process';
 import { generateKeyPairSync } from 'node:crypto';
+import { once } from 'node:events';
 import { createWriteStream, existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { access, readdir, stat, watch } from 'node:fs/promises';
-import type { Http2Server } from 'node:http2';
 import { join, relative, resolve } from 'node:path/posix';
 import { styleText } from 'node:util';
 import type { Entries } from 'utilium';
@@ -41,7 +42,7 @@ import './db.js';
 import { safe } from './plugins.js';
 import './user.js';
 
-program
+const cli = program
 	.version($pkg.version)
 	.name('axium')
 	.description('Axium server CLI')
@@ -63,7 +64,7 @@ program
 	})
 	.on('option:debug', () => configManager.set('debug', true));
 
-const axiumApps = program.command('apps').description('Manage Axium apps').addOption(opts.global);
+const axiumApps = cli.command('apps').description('Manage Axium apps').addOption(opts.global);
 
 axiumApps
 	.command('list')
@@ -95,17 +96,16 @@ axiumApps
 	});
 
 persistFeaturesTo(join(localDir(), 'features.json'));
-createFeatureCommand(program);
-createLocalesCommand(program);
-configCommand(program, configManager, { defaultType: 'local' });
-serviceCommand(program, {
+createFeatureCommand(cli);
+createLocalesCommand(cli);
+configCommand(cli, configManager, { defaultType: 'local' });
+serviceCommand(cli, {
 	service: user => new Service('axium', { user }),
 	serviceUser: service => (service.options.user ? undefined : { name: 'axium' }),
 	source: () => ({ link: join(import.meta.dirname, '../../axium.service') }),
 });
 
-program
-	.command('status')
+cli.command('status')
 	.alias('stats')
 	.description('Get information about the server')
 	.option('-f, --features', 'Show feature information')
@@ -157,8 +157,7 @@ program
 		}
 	});
 
-program
-	.command('ports')
+cli.command('ports')
 	.description('Enable or disable use of restricted ports (e.g. 443)')
 	.addArgument(new Argument('<action>', 'The action to take').choices(_portActions))
 	.addOption(new Option('-m, --method <method>', 'the method to use').choices(_portMethods).default('node-cap'))
@@ -167,8 +166,7 @@ program
 		restrictedPorts({ ...opt, action });
 	});
 
-program
-	.command('init')
+cli.command('init')
 	.description('Install Axium server')
 	.addOption(opts.force)
 	.addOption(opts.check)
@@ -191,8 +189,7 @@ async function runLoadHooks() {
 	}
 }
 
-program
-	.command('serve')
+cli.command('serve')
 	.description('Start the Axium server')
 	.option('-p, --port <port>', 'the port to listen on', Number.parseInt)
 	.option('--ssl <prefix>', 'the prefix for the cert.pem and key.pem SSL files')
@@ -227,8 +224,7 @@ program
 		});
 	});
 
-program
-	.command('link')
+cli.command('link')
 	.description('Link routes provided by plugins and the server')
 	.addOption(new Option('-l, --list', 'list route links').conflicts('delete'))
 	.option('-d, --delete', 'delete route links')
@@ -279,8 +275,7 @@ program
 		io.track('Writing web client hooks for plugins', writePluginHooks);
 	});
 
-program
-	.command('audit')
+cli.command('audit')
 	.description('View audit logs')
 	.option('-x, --extra', 'Include the extra object when listing events')
 	.option('-t, --include-tags', 'Include tags when listing events')
@@ -352,8 +347,7 @@ program
 		}
 	});
 
-program
-	.command('build')
+cli.command('build')
 	.description('Create the Vite build for the server')
 	.option('-v, --verbose', 'Show all output from the build process')
 	.option('-s, --diagnostics', 'Show build time and bundle size')
@@ -371,44 +365,52 @@ program
 		}
 	});
 
-program
-	.command('develop')
+cli.command('develop')
 	.alias('dev')
 	.description('Develop with axium')
 	.argument('[dir]', 'The project directory', searchForWorkspaceRoot(process.cwd()))
 	.option('-g, --git', 'Use .gitignore to ignore files (can improve performance)', true)
 	.option('-w, --watch <path...>', 'Also watch a specific path for changes, bypassing ignore rules')
 	.option('-l, --follow-links', 'Follow symbolic links')
-	.action(async (dir, opts) => {
+	.action(async function axium_dev(dir, opts) {
+		const options = this.optsWithGlobals();
+		const serveArgs = ['serve'];
+		if (options.safe) serveArgs.push('--safe');
+		if (typeof options.debug == 'boolean') serveArgs.push(options.debug ? '--debug' : '--no-debug');
+		if (options.config) serveArgs.push('--config', resolve(options.config));
+
 		let buildId = 0,
-			server: Http2Server | undefined;
+			server: ChildProcess | undefined;
 
-		logger.attach(createWriteStream(join(localDir(), 'server.log')), { output: allLogLevels });
-		db.connect();
-		await db.clean({});
-		await runLoadHooks();
+		process.on('exit', () => server?.kill());
 
-		// eslint-disable-next-line @typescript-eslint/no-misused-promises
-		process.on('beforeExit', () => db.database.destroy());
+		async function stopServer() {
+			if (!server || server.exitCode !== null || server.signalCode !== null) return;
+			const exited = once(server, 'exit');
+			server.kill();
+			await exited;
+		}
+
+		function clearLine() {
+			if (!process.stdout.isTTY) return;
+			process.stdout.clearLine(0);
+			process.stdout.cursorTo(0);
+		}
 
 		let building = false;
 
+		/** Builds, then restarts the server in a new process so it loads the new build and plugin code. */
 		async function rebuild() {
 			if (building) return;
 			building = true;
-			server?.close();
-			process.stdout.clearLine(0);
-			process.stdout.cursorTo(0);
+			await stopServer();
+			clearLine();
 			process.stdout.write('Building...');
 			const { time } = await build({ minify: false });
 			buildId++;
-			process.stdout.clearLine(0);
-			process.stdout.cursorTo(0);
-			server = await serve(config.web);
-			createSocketServer(server);
-			await sync.watch().catch((e: unknown) => io.warn('Failed to watch for sync events: ' + io.errorText(e)));
-			server.listen(config.web.port);
-			process.stdout.write(`Build #${buildId} finished in ${format.ms(time)}`);
+			clearLine();
+			server = fork(process.argv[1], serveArgs, { stdio: 'inherit' });
+			process.stdout.write(`Build #${buildId} finished in ${format.ms(time)}${process.stdout.isTTY ? '' : '\n'}`);
 			building = false;
 		}
 
@@ -474,8 +476,7 @@ program
 		}
 	});
 
-program
-	.command('upgrade')
+cli.command('upgrade')
 	.alias('update')
 	.alias('up')
 	.description('Upgrade Axium and any plugins')
@@ -520,8 +521,7 @@ program
 		});
 	});
 
-program
-	.command('dkim-keygen')
+cli.command('dkim-keygen')
 	.description('Generate a DKIM signing key')
 	.option('-o, --out <path>', 'Where to write the private key (defaults to email.dkim.key_file)')
 	.option('-f, --force', 'Overwrite an existing key', false)
