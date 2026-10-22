@@ -156,7 +156,7 @@
 </script>
 
 {#snippet _in(rest: HTMLInputAttributes)}
-	<div class="ZodInput">
+	<div class={['ZodInput', noLabel && 'no-label']}>
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<input
@@ -183,7 +183,7 @@
 {:else if schema.type == 'bigint'}
 	{@render _in({ type: 'number', min: Number(schema.minValue), max: Number(schema.maxValue), step: 1 })}
 {:else if schema.type == 'boolean'}
-	<div class="ZodInput">
+	<div class={['ZodInput', noLabel && 'no-label']}>
 		{#if !noLabel}<label for="{id}:checkbox">{labelText}</label>{/if}
 		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} {placeholder} />
 		<label for="{id}:checkbox" {id} class="checkbox">
@@ -209,7 +209,7 @@
 	</div>
 {:else if schema.type == 'template_literal'}
 	{const parts = splitTemplate(schema.def.parts, value)}
-	<div class="ZodInput">
+	<div class={['ZodInput', noLabel && 'no-label']}>
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<div class={['ZodInput-template', error && 'error']}>
@@ -261,7 +261,7 @@
 {:else if schema.type == 'nonoptional'}
 	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.innerType} optional={false} />
 {:else if schema.type == 'array'}
-	<div class="ZodInput">
+	<div class={['ZodInput', noLabel && 'no-label']}>
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		<div class={['ZodInput-array', largeArrayTypes.includes(schema.element.type) && 'large']}>
 			{#each value, i}
@@ -308,7 +308,7 @@
 		{/each}
 	</div>
 {:else if schema.type == 'enum'}
-	<div class="ZodInput">
+	<div class={['ZodInput', noLabel && 'no-label']}>
 		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<select {id} {onchange} bind:value required={!optional}>
@@ -350,12 +350,17 @@
 		}
 	}
 
+	.ZodInput.no-label {
+		grid-template-columns: minmax(0, 1fr);
+	}
+
 	.ZodInput-template {
 		display: flex;
 		align-items: center;
 		border-radius: 0.5em;
-		padding: 0.5em;
+		padding: 0.15em;
 		border: var(--border-accent);
+		background-color: var(--bg-normal);
 		anchor-name: --zod-input;
 
 		&.error {
@@ -374,6 +379,7 @@
 
 		> input {
 			flex: 1;
+			min-width: 0;
 		}
 	}
 
@@ -391,6 +397,7 @@
 			display: flex;
 			flex-direction: column;
 			flex: 1;
+			min-width: 0;
 		}
 	}
 
@@ -401,6 +408,11 @@
 
 		&.large {
 			flex-direction: column;
+			align-items: stretch;
+
+			> button {
+				align-self: flex-start;
+			}
 		}
 	}
 
