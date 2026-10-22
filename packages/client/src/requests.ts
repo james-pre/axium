@@ -28,7 +28,9 @@ export class NetworkError extends Error {}
 
 export function throwNetworkError(e: unknown): never {
 	if (!(e instanceof TypeError)) throw e;
-	throw new NetworkError(`Could not reach ${origin}: ${errorText(e.cause ?? e)}`, { cause: e });
+	const cause = e.cause as (Error & { code?: string }) | undefined;
+	const reason = (cause && (errorText(cause) || cause.code)) || e.message;
+	throw new NetworkError(`Could not reach ${origin}: ${reason}`, { cause: e });
 }
 
 export let userAgent: string | null = null;
