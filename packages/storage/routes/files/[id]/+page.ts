@@ -8,7 +8,7 @@ export async function load({ params }: PageLoadEvent) {
 	let items: StorageItemMetadata[] | undefined;
 
 	if (item.type == 'inode/directory') {
-		items = await getDirectoryMetadata(item.id);
+		items = await getDirectoryMetadata(item.id, { sync: true });
 	}
 
 	return { item, items };

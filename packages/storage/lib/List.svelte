@@ -107,8 +107,8 @@
 				toastStatus(
 					moveItems(ids, folderId).then(async () => {
 						// Reload this folder so the pasted items appear.
-						if (folderId) items = await getDirectoryMetadata(folderId);
-						else if (user) items = await getUserStorageRoot(user.id);
+						if (folderId) items = await getDirectoryMetadata(folderId, { sync: true });
+						else if (user) items = await getUserStorageRoot(user.id, { sync: true });
 					}),
 					text('storage.generic.move_success')
 				);
@@ -141,17 +141,19 @@
 	}
 
 	const sortedItems = $derived(
-		items.toSorted((_a, _b) => {
-			if (!sort) {
-				const dirDiff = +(_b.type == 'inode/directory') - +(_a.type == 'inode/directory');
-				if (sort_folders_first && dirDiff) return dirDiff;
-				return _a.name.localeCompare(_b.name);
-			}
+		items
+			.filter(item => !item.sync?.hidden)
+			.toSorted((_a, _b) => {
+				if (!sort) {
+					const dirDiff = +(_b.type == 'inode/directory') - +(_a.type == 'inode/directory');
+					if (sort_folders_first && dirDiff) return dirDiff;
+					return _a.name.localeCompare(_b.name);
+				}
 
-			const [a, b] = sort.descending ? [_b, _a] : [_a, _b];
-			// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
-			return sort.by == 'name' ? a.name.localeCompare(b.name) : Number(a[sort.by] - b[sort.by]);
-		})
+				const [a, b] = sort.descending ? [_b, _a] : [_a, _b];
+				// @ts-expect-error 2362 — `Date`s have a `valueOf` and can be treated like numbers
+				return sort.by == 'name' ? a.name.localeCompare(b.name) : Number(a[sort.by] - b[sort.by]);
+			})
 	);
 
 	$effect(() => selection.setOrder(sortedItems.map(item => item.id)));
@@ -161,7 +163,7 @@
 			activeId = item.id;
 			dialogs.preview.showModal();
 		} else if (appMode) void goto('/files/' + item.id);
-		else getDirectoryMetadata(item.id).then(result => (items = result));
+		else getDirectoryMetadata(item.id, { sync: true }).then(result => (items = result));
 	}
 
 	function removeActiveItem() {

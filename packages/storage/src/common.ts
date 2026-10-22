@@ -5,6 +5,40 @@ import { UploadConfig, UploadInit, UploadName, UploadSize } from '@axium/core/up
 import * as z from 'zod';
 import { SyncRule } from './rules.js';
 
+export const StorageSyncSettings = z
+	.object({
+		rules: SyncRule.array(),
+		/** Whether the folder is left out of the root of Files */
+		hidden: z.boolean(),
+	})
+	.register(zKeys, { prefix: 'storage.sync_settings' });
+
+export interface StorageSyncSettings extends z.infer<typeof StorageSyncSettings> {}
+
+export const StorageSyncDeviceInit = z.object({
+	host: z.string().nonempty().max(255),
+	localPath: z.string().nonempty(),
+	lastSynced: z.coerce.date().nullable(),
+});
+
+export interface StorageSyncDeviceInit extends z.infer<typeof StorageSyncDeviceInit> {}
+
+export const StorageSyncDevice = StorageSyncDeviceInit.extend({
+	itemId: z.uuid(),
+	userId: z.uuid(),
+});
+
+export interface StorageSyncDevice extends z.infer<typeof StorageSyncDevice> {}
+
+/** A folder being synced with local folders on devices. */
+export const StorageSync = StorageSyncSettings.extend({
+	itemId: z.uuid(),
+	createdAt: z.coerce.date(),
+	devices: StorageSyncDevice.array(),
+});
+
+export interface StorageSync extends z.infer<typeof StorageSync> {}
+
 /**
  * An update to file metadata.
  */
@@ -26,6 +60,13 @@ export const GetItemOptions = z
 	.partial();
 export interface GetItemOptions extends z.infer<typeof GetItemOptions> {}
 
+export const GetDirectoryOptions = z
+	.object({
+		sync: z.boolean(),
+	})
+	.partial();
+export interface GetDirectoryOptions extends z.infer<typeof GetDirectoryOptions> {}
+
 export const StorageItemMetadata = z.object({
 	createdAt: z.coerce.date(),
 	dataURL: z.string(),
@@ -43,6 +84,8 @@ export const StorageItemMetadata = z.object({
 	metadata: z.record(z.string(), z.unknown()),
 	acl: AccessControl.array().optional(),
 	parents: z.object({ id: z.uuid(), name: z.string() }).array().optional(),
+	/** Present when requested and the item is a synced folder */
+	sync: StorageSync.omit({ itemId: true }).nullish(),
 });
 
 export interface StorageItemMetadata<T extends Record<string, unknown> = Record<string, unknown>> extends z.infer<
@@ -226,40 +269,6 @@ export const UploadInitResult = z.discriminatedUnion('status', [
 
 export type UploadInitResult = z.infer<typeof UploadInitResult>;
 
-export const StorageSyncSettings = z
-	.object({
-		rules: SyncRule.array(),
-		/** Whether the folder is left out of the root of Files */
-		hidden: z.boolean(),
-	})
-	.register(zKeys, { prefix: 'storage.sync_settings' });
-
-export interface StorageSyncSettings extends z.infer<typeof StorageSyncSettings> {}
-
-export const StorageSyncDeviceInit = z.object({
-	host: z.string().nonempty().max(255),
-	localPath: z.string().nonempty(),
-	lastSynced: z.coerce.date().nullable(),
-});
-
-export interface StorageSyncDeviceInit extends z.infer<typeof StorageSyncDeviceInit> {}
-
-export const StorageSyncDevice = StorageSyncDeviceInit.extend({
-	itemId: z.uuid(),
-	userId: z.uuid(),
-});
-
-export interface StorageSyncDevice extends z.infer<typeof StorageSyncDevice> {}
-
-/** A folder being synced with local folders on devices. */
-export const StorageSync = StorageSyncSettings.extend({
-	itemId: z.uuid(),
-	createdAt: z.coerce.date(),
-	devices: StorageSyncDevice.array(),
-});
-
-export interface StorageSync extends z.infer<typeof StorageSync> {}
-
 export const StorageSyncInfo = StorageSync.extend({
 	item: StorageItemMetadata,
 	usage: z.object({
@@ -280,7 +289,7 @@ const StorageAPI = {
 		GET: UserStorage,
 	},
 	'users/:id/storage/root': {
-		GET: StorageItemMetadata.array(),
+		GET: [GetDirectoryOptions, StorageItemMetadata.array()],
 	},
 	'users/:id/storage/trash': {
 		GET: StorageItemMetadata.array(),
@@ -309,7 +318,7 @@ const StorageAPI = {
 		POST: [StorageContentUpdate, UploadInitResult],
 	},
 	'storage/directory/:id': {
-		GET: StorageItemMetadata.array(),
+		GET: [GetDirectoryOptions, StorageItemMetadata.array()],
 	},
 	'storage/directory/:id/recursive': {
 		GET: StorageItemMetadata.extend({ path: z.string() }).array(),

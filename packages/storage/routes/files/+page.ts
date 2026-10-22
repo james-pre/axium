@@ -6,5 +6,5 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/files');
 
-	return { items: await getUserStorageRoot(session.userId) };
+	return { items: await getUserStorageRoot(session.userId, { sync: true }) };
 }

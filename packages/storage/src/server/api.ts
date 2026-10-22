@@ -10,6 +10,7 @@ import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
 import {
 	batchFormatVersion,
+	GetDirectoryOptions,
 	GetItemOptions,
 	StorageContentUpdate,
 	StorageItemInit,
@@ -19,7 +20,7 @@ import {
 } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { deleteRecursive, getParents, getRecursive, getUserStats, parentsCTE, parseItem, withParents } from './db.js';
+import { deleteRecursive, getParents, getRecursive, getUserStats, parentsCTE, parseItem, withParents, withSync } from './db.js';
 import { checkItemUpdate, checkNewItem, createNewItem, uploads } from './item.js';
 
 addRoute({
@@ -135,6 +136,8 @@ addRoute({
 	path: '/api/storage/directory/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id: itemId }): AsyncResult<'GET', 'storage/directory/:id'> {
+		const options = parseSearch(request, GetDirectoryOptions);
+
 		const { item } = await authRequestForItem(request, 'storage', itemId, { read: true }, true);
 
 		if (item.type != 'inode/directory') error(409, 'Item is not a directory');
@@ -142,6 +145,7 @@ addRoute({
 		const items = await database
 			.selectFrom('storage')
 			.select(acl.from('storage'))
+			.$if(!!options.sync, qb => qb.select(withSync))
 			.where('parentId', '=', itemId)
 			.where('trashedAt', 'is', null)
 			.selectAll()
@@ -228,26 +232,18 @@ addRoute({
 	path: '/api/users/:id/storage/root',
 	params: { id: z.uuid() },
 	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/storage/root'> {
+		const options = parseSearch(request, GetDirectoryOptions);
+
 		await checkAuthForUser(request, userId);
 
 		const items = await database
 			.selectFrom('storage')
 			.selectAll()
 			.select(acl.from('storage'))
+			.$if(!!options.sync, qb => qb.select(withSync))
 			.where('userId', '=', userId)
 			.where('trashedAt', 'is', null)
 			.where('parentId', 'is', null)
-			.where(eb =>
-				eb.not(
-					eb.exists(
-						eb
-							.selectFrom('storage_syncs')
-							.select('itemId')
-							.whereRef('storage_syncs.itemId', '=', 'storage.id')
-							.where('hidden', '=', true)
-					)
-				)
-			)
 			.execute()
 			.catch(withError('Could not get storage items'));
 

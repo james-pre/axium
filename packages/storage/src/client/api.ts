@@ -3,6 +3,7 @@ import { uploadChunked, type ProgressHandler } from '@axium/client/uploads';
 import { pick } from 'utilium';
 import { prettifyError } from 'zod';
 import type {
+	GetDirectoryOptions,
 	GetItemOptions,
 	StorageItemUpdate,
 	StorageSync,
@@ -100,8 +101,8 @@ export async function getItemMetadata(fileId: string, options: GetItemOptions = 
 }
 
 /** Gets the metadata for all items in a directory. */
-export async function getDirectoryMetadata(parentId: string): Promise<StorageItemMetadata[]> {
-	return await fetchAPI('GET', 'storage/directory/:id', undefined, parentId);
+export async function getDirectoryMetadata(parentId: string, options: GetDirectoryOptions = {}): Promise<StorageItemMetadata[]> {
+	return await fetchAPI('GET', 'storage/directory/:id', options, parentId);
 }
 
 /** Gets the metadata for every item in a directory and its subdirectories, along with their paths. */
@@ -185,6 +186,6 @@ export async function removeSyncDevice(itemId: string, host: string): Promise<St
 	return await fetchAPI('DELETE', 'storage/sync/:id/device', { host }, itemId);
 }
 
-export async function getUserStorageRoot(userId: string): Promise<StorageItemMetadata[]> {
-	return await fetchAPI('GET', 'users/:id/storage/root', undefined, userId);
+export async function getUserStorageRoot(userId: string, options: GetDirectoryOptions = {}): Promise<StorageItemMetadata[]> {
+	return await fetchAPI('GET', 'users/:id/storage/root', options, userId);
 }

@@ -31,7 +31,7 @@
 
 		await toastStatus(
 			moveItems(ids, parentId).then(async () => {
-				if (item.type == 'inode/directory') items = await getDirectoryMetadata(item.id);
+				if (item.type == 'inode/directory') items = await getDirectoryMetadata(item.id, { sync: true });
 			}),
 			text('storage.generic.move_success')
 		);

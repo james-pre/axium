@@ -12,7 +12,7 @@ import type {
 	SelectQueryBuilder,
 	SqlBool,
 } from 'kysely';
-import { jsonArrayFrom } from 'kysely/helpers/postgres';
+import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
 import { unlinkSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import type schema from '../../db.json';
@@ -160,6 +160,24 @@ export function withParents(
 			.orderBy('depth', 'desc')
 			.whereRef('parents._baseId', '=', 'storage.id')
 	).as('parents');
+}
+
+/** Selects the settings and devices of synced folders as `sync`, which is `null` for other items. */
+export function withSync(eb: ExpressionBuilder<Schema, 'storage'>) {
+	return jsonObjectFrom(
+		eb
+			.selectFrom('storage_syncs')
+			.select(['storage_syncs.rules', 'storage_syncs.hidden', 'storage_syncs.createdAt'])
+			.select(eb =>
+				jsonArrayFrom(
+					eb
+						.selectFrom('storage_sync_devices')
+						.selectAll('storage_sync_devices')
+						.whereRef('storage_sync_devices.itemId', '=', 'storage_syncs.itemId')
+				).as('devices')
+			)
+			.whereRef('storage_syncs.itemId', '=', 'storage.id')
+	).as('sync');
 }
 
 export async function getParents(itemId: string): Promise<{ id: string; name: string }[]> {
