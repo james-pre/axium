@@ -77,10 +77,7 @@ export async function upgradeActivePackages(filter: string[], opt: PackageUpgrad
 		return true;
 	});
 
-	if (!packages.length) {
-		console.log('Already up to date.');
-		return;
-	}
+	if (!packages.length) throw 'Already up to date.';
 
 	console.log('Upgrading:');
 	io.table(
