@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { contextMenu } from '@axium/client/attachments';
+	import { syncObjects } from '@axium/client/reactive';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import '@axium/client/styles/list';
 	import { toastStatus } from '@axium/client/toast';
@@ -13,6 +14,11 @@
 
 	const { data }: PageProps = $props();
 	let items = $state(data.items);
+
+	const onfocusout = syncObjects(() => items, {
+		type: 'storage',
+		filter: item => !!item.trashedAt && item.userId == data.session.userId,
+	});
 	let restoreDialog = $state<HTMLDialogElement>()!;
 	let deleteDialog = $state<HTMLDialogElement>()!;
 
@@ -30,6 +36,8 @@
 		};
 	}
 </script>
+
+<svelte:window {onfocusout} />
 
 <svelte:head>
 	<title>{text('page.files.trash_page.title')}</title>

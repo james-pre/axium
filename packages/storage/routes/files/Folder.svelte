@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { drag } from '@axium/client/attachments';
+	import { syncObjects } from '@axium/client/reactive';
 	import { toastUpload, uploadEntries } from '@axium/storage/client/frontend';
 	import { Add, List } from '@axium/storage/components';
 	import type { StorageItemMetadata } from '@axium/storage/common';
@@ -16,11 +17,18 @@
 		id: string | null;
 	} = $props();
 
+	const onfocusout = syncObjects(() => items, {
+		type: 'storage',
+		filter: item => item.parentId == id && !item.trashedAt && (!!id || item.userId == user?.id),
+	});
+
 	function onAdd(item: StorageItemMetadata, replaced?: string) {
 		if (replaced) items = items.filter(existing => existing.id != replaced);
-		items.push(item);
+		if (!items.some(existing => existing.id == item.id)) items.push(item);
 	}
 </script>
+
+<svelte:window {onfocusout} />
 
 <div
 	class="upload-zone"
