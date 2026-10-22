@@ -13,11 +13,19 @@ export function parseObject<T extends SyncDiffObject>(object: SyncDiffObject): T
 	return Object.assign(schema.parse(object), { $type: object.$type }) as T;
 }
 
+export interface ApplyDiffOptions<T> {
+	/** Only apply objects of this type */
+	type?: string;
+	/** Objects that don't match are removed instead of being added or updated */
+	filter?(this: void, object: T): boolean;
+}
+
 /**
  *  Apply a diff to some synced objects, updating them in place.
  * Existing objects are updated in place, so bound references stay valid.
  */
-export function applyDiff<T extends { id: string; $type?: string }>(objects: T[], diff: SyncDiff, type?: string): void {
+export function applyDiff<T extends { id: string; $type?: string }>(objects: T[], diff: SyncDiff, options: ApplyDiffOptions<T> = {}): void {
+	const { type, filter } = options;
 	const deleted = new Set(diff.deleted);
 
 	for (let i = objects.length - 1; i >= 0; i--) {
@@ -38,6 +46,12 @@ export function applyDiff<T extends { id: string; $type?: string }>(objects: T[]
 		}
 
 		const current = existing.get(incoming.id);
+
+		if (filter && !filter(object)) {
+			if (current) objects.splice(objects.indexOf(current), 1);
+			existing.delete(incoming.id);
+			continue;
+		}
 
 		if (!current) {
 			objects.push(object);

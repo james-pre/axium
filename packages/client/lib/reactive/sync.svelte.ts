@@ -1,8 +1,12 @@
 import type { SyncDiff, SyncDiffObject } from '@axium/core';
 import { hasActiveInput } from '@axium/client/web/utils';
-import { applyDiff, onSync } from '@axium/client/sync';
+import { applyDiff, onSync, type ApplyDiffOptions } from '@axium/client/sync';
 
-export function syncObjects<T extends { id: string }>(objects: T[], type?: string) {
+/**
+ * Keep a list of objects up to date with changes from the server.
+ * Pass a function to get the list if it can be replaced.
+ */
+export function syncObjects<T extends { id: string }>(objects: T[] | (() => T[]), options: ApplyDiffOptions<T> = {}) {
 	let deferred: SyncDiffObject[] = [];
 
 	function applySync(diff: SyncDiff): void {
@@ -11,7 +15,7 @@ export function syncObjects<T extends { id: string }>(objects: T[], type?: strin
 
 		deferred = typing ? updated : [];
 
-		applyDiff(objects, { ...diff, updated: typing ? [] : updated }, type);
+		applyDiff(typeof objects == 'function' ? objects() : objects, { ...diff, updated: typing ? [] : updated }, options);
 	}
 
 	$effect(() => onSync(applySync));
@@ -38,7 +42,7 @@ export function syncObject<T extends { id: string }>(object: T, onDelete?: () =>
 
 		deferred = typing ? updated : [];
 
-		applyDiff([object], { ...diff, created: [], updated: typing ? [] : updated }, type);
+		applyDiff([object], { ...diff, created: [], updated: typing ? [] : updated }, { type });
 	}
 
 	$effect(() => onSync(applySync));
