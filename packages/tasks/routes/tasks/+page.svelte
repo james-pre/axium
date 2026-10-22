@@ -10,7 +10,7 @@
 	let lists = $state(data.lists);
 	let dialog = $state<HTMLDialogElement>();
 
-	const onfocusout = syncObjects(lists, 'task_lists');
+	const onfocusout = syncObjects(lists, { type: 'task_lists' });
 </script>
 
 <svelte:window {onfocusout} />

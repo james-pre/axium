@@ -12,7 +12,7 @@
 		notes.sort((a, b) => +b.pinned - +a.pinned);
 	});
 
-	const onfocusout = syncObjects(notes, 'notes');
+	const onfocusout = syncObjects(notes, { type: 'notes' });
 </script>
 
 <svelte:window {onfocusout} />
