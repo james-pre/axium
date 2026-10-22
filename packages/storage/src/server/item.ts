@@ -3,6 +3,7 @@ import { authRequestForItem, authSessionForItem, type SessionAndUser, type Sessi
 import { database } from '@axium/server/database';
 import { error, withError } from '@axium/server/requests';
 import { UploadManager } from '@axium/server/uploads';
+import { createHash } from 'node:crypto';
 import { linkSync } from 'node:fs';
 import { join } from 'node:path';
 import * as z from 'zod';
@@ -15,6 +16,8 @@ export interface NewItemResult {
 	existing?: { id: string };
 	needsHashing?: boolean;
 }
+
+export const emptyHash = createHash('BLAKE2b512').digest();
 
 export function useCAS(type: string) {
 	const { cas } = getConfig('@axium/storage');

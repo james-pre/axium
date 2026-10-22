@@ -5,6 +5,7 @@ import { database, type Schema } from '@axium/server/database';
 import { error, json, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { expressionBuilder } from 'kysely';
+import { writeFileSync } from 'node:fs';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import type { StorageItemMetadata } from '../common.js';
@@ -21,7 +22,7 @@ import {
 import '../polyfills.js';
 import { getLimits } from './config.js';
 import { deleteRecursive, getParents, getRecursive, getUserStats, parentsCTE, parseItem, withParents, withSync } from './db.js';
-import { checkItemUpdate, checkNewItem, createNewItem, uploads } from './item.js';
+import { checkItemUpdate, checkNewItem, createNewItem, emptyHash, finishItemUpdate, uploads } from './item.js';
 
 addRoute({
 	path: '/api/storage',
@@ -38,10 +39,12 @@ addRoute({
 		const session = await requireSession(request);
 
 		const init = await parseBody(request, StorageItemInit);
+		if (!init.size && init.type != 'inode/directory') init.hash = emptyHash.toHex();
+
 		const { existing } = await checkNewItem(init, session);
 
-		if (existing || init.type == 'inode/directory') {
-			const item = await createNewItem(init, session.userId);
+		if (existing || !init.size) {
+			const item = await createNewItem(init, session.userId, path => writeFileSync(path, ''));
 			return json({ status: 'created', item } satisfies R, { status: 201 });
 		}
 
@@ -112,6 +115,11 @@ addRoute({
 		const { item, session } = await checkItemUpdate(request, itemId);
 
 		if (!session) error(401, 'You must be logged in to change file contents');
+
+		if (!size) {
+			const item = await finishItemUpdate(itemId, 0n, emptyHash, path => writeFileSync(path, ''), modifiedAt);
+			return json({ status: 'created', item } satisfies R, { status: 201 });
+		}
 
 		return json(
 			{

@@ -62,25 +62,23 @@ addRoute({
 
 		const { start, end, length } = parseRequestRange(item.size, range);
 
-		if (start >= item.size || end >= item.size || start > end || start < 0) {
+		if (range && (start >= item.size || end >= item.size || start > end || start < 0)) {
 			return new Response(null, {
 				status: 416,
 				headers: { 'Content-Range': `bytes */${item.size}` },
 			});
 		}
 
-		const content = streamRead(path, start, end);
+		const headers: HeadersInit = {
+			'Accept-Ranges': 'bytes',
+			'Content-Length': String(length),
+			'Content-Type': item.type,
+			'Content-Disposition': contentDispositionFor(item.name),
+		};
 
-		return new Response(content, {
-			status: range ? 206 : 200,
-			headers: {
-				'Content-Range': `bytes ${start}-${end}/${item.size}`,
-				'Accept-Ranges': 'bytes',
-				'Content-Length': String(length),
-				'Content-Type': item.type,
-				'Content-Disposition': contentDispositionFor(item.name),
-			},
-		});
+		if (range) headers['Content-Range'] = `bytes ${start}-${end}/${item.size}`;
+
+		return new Response(item.size ? streamRead(path, start, end) : null, { status: range ? 206 : 200, headers });
 	},
 	async POST(request, { id: itemId }) {
 		const { item, session } = await checkItemUpdate(request, itemId);
