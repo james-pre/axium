@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { type ReplacementOptions, text } from '@axium/client/locales';
-	import { zKeys } from '@axium/core/locales';
+	import * as locales from '@james-pre/locales';
 	import type { ZodObject } from 'zod';
 	import ZodInput from './ZodInput.svelte';
 
@@ -14,7 +14,7 @@
 
 	let { rootValue = $bindable(), schema, labels, updateValue, idPrefix }: Props = $props();
 
-	const localeInfo = zKeys.get(schema);
+	const localeInfo = locales.zod.get(schema);
 
 	function subText(name: string, replacements?: ReplacementOptions & Record<string, any>): string | undefined {
 		if (!localeInfo?.prefix) return replacements?.$default || labels?.[name] || name;

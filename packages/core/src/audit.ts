@@ -1,6 +1,6 @@
+import * as locales from '@james-pre/locales';
 import { capitalize, uncapitalize } from 'utilium/string';
 import * as z from 'zod';
-import { zKeys } from './locales.js';
 import { UserPublic } from './user.js';
 
 export enum Severity {
@@ -51,7 +51,7 @@ export const AuditFilter = z.object({
 		.transform(v => Severity[capitalize(v)])
 		.or(z.enum(Severity))
 		.optional()
-		.register(zKeys, { prefix: 'audit_severity' }),
+		.register(locales.zod, { prefix: 'audit_severity' }),
 	source: z.string().optional(),
 	tags: z.string().array().optional(),
 	event: z.string().optional(),

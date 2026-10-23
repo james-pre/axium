@@ -1,7 +1,7 @@
 import { $API, AccessControl, appPreferences, serverConfigs } from '@axium/core';
 import type {} from '@axium/core/apps';
-import { zKeys } from '@axium/core/locales';
 import { UploadConfig, UploadInit, UploadName, UploadSize } from '@axium/core/uploads';
+import * as locales from '@james-pre/locales';
 import * as z from 'zod';
 import { SyncRule } from './rules.js';
 
@@ -11,7 +11,7 @@ export const StorageSyncSettings = z
 		/** Whether the folder is left out of the root of Files */
 		hidden: z.boolean(),
 	})
-	.register(zKeys, { prefix: 'storage.sync_settings' });
+	.register(locales.zod, { prefix: 'storage.sync_settings' });
 
 export interface StorageSyncSettings extends z.infer<typeof StorageSyncSettings> {}
 
@@ -159,7 +159,7 @@ export const StoragePreferences = z
 		/** Whether to ask for confirmation before permanently deleting items */
 		confirm_delete: z.boolean().default(true),
 	})
-	.register(zKeys, { prefix: 'storage.preferences' });
+	.register(locales.zod, { prefix: 'storage.preferences' });
 
 appPreferences.set('files', StoragePreferences);
 

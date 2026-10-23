@@ -1,4 +1,5 @@
-import { countryName, currentLocale } from '@axium/client';
+import { countryName } from '@axium/client';
+import * as locales from '@james-pre/locales';
 import type { Address, Contact, InitNoExternal, Phone, SigDateLike } from '../common.js';
 
 /**
@@ -69,9 +70,10 @@ export function birthDate(contact: Contact): string {
 
 export function date(sig: SigDateLike): string {
 	const date = new Date(sig.year ?? 0, sig.month ? sig.month - 1 : 0, sig.day ?? undefined);
-	if (sig.year && sig.month && sig.day) return date.toLocaleDateString(currentLocale, { year: 'numeric', month: 'long', day: 'numeric' });
-	if (sig.year && sig.month) return date.toLocaleDateString(currentLocale, { year: 'numeric', month: 'long' });
-	if (sig.month && sig.day) return date.toLocaleDateString(currentLocale, { month: 'long', day: 'numeric' });
+	if (sig.year && sig.month && sig.day)
+		return date.toLocaleDateString(locales.current, { year: 'numeric', month: 'long', day: 'numeric' });
+	if (sig.year && sig.month) return date.toLocaleDateString(locales.current, { year: 'numeric', month: 'long' });
+	if (sig.month && sig.day) return date.toLocaleDateString(locales.current, { month: 'long', day: 'numeric' });
 	return '';
 }
 

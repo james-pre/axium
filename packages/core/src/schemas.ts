@@ -110,3 +110,7 @@ export interface SchemaMetadata {
 	/** If set this control is experimental */
 	experimental?: boolean;
 }
+
+declare module '@james-pre/locales' {
+	interface ZodInfo extends SchemaMetadata {}
+}

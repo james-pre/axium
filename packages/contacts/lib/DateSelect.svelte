@@ -1,5 +1,6 @@
 <script lang="ts">
-	import { currentMonthNames, dateField } from '@axium/client';
+	import { dateField } from '@axium/client';
+	import * as locales from '@james-pre/locales';
 
 	let { day = $bindable<number>(), month = $bindable<number>(), year = $bindable<number>() } = $props();
 </script>
@@ -7,7 +8,7 @@
 <div class="ContactDateSelect">
 	<select bind:value={month}>
 		<option value="" disabled selected>{dateField('month')}</option>
-		{#each currentMonthNames as month, i}
+		{#each locales.monthNames as month, i}
 			<option value={i + 1}>{month}</option>
 		{/each}
 	</select>

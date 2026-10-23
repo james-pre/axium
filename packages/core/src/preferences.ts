@@ -1,6 +1,6 @@
+import * as locales from '@james-pre/locales';
 import type { ZodSerializable } from './schemas.js';
 import * as z from 'zod';
-import { zKeys } from './locales.js';
 
 /** @internal Used so we can narrow using `type` and get access to type-specific properties (e.g. `ZodNumber.minValue`) */
 export type ZodPref = Exclude<ZodSerializable, z.ZodPrefault>;
@@ -15,9 +15,9 @@ export type Theme = (typeof themes)[number];
 export let Preferences = z
 	.object({
 		debug: z.boolean().default(false),
-		theme: z.literal(themes).default('default').register(zKeys, { prefix: 'themes', feature: 'themes' }),
+		theme: z.literal(themes).default('default').register(locales.zod, { prefix: 'themes', feature: 'themes' }),
 	})
-	.register(zKeys, { prefix: 'preference' });
+	.register(locales.zod, { prefix: 'preference' });
 
 /**
  * Interface for the user preferences schema shape.

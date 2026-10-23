@@ -1,13 +1,13 @@
 import { Location, serverConfigs } from '@axium/core';
 import { $API } from '@axium/core/api';
-import { zKeys } from '@axium/core/locales';
+import * as locales from '@james-pre/locales';
 import * as z from 'zod';
 
 const SmallText = z.string().nonempty().max(100);
 
-const LabelRequired = SmallText.clone().register(zKeys, { key: 'contact.label' });
-const Label = SmallText.nullish().register(zKeys, { key: 'contact.label' });
-const IsDefault = z.boolean().default(false).register(zKeys, { key: 'contact.default' });
+const LabelRequired = SmallText.clone().register(locales.zod, { key: 'contact.label' });
+const Label = SmallText.nullish().register(locales.zod, { key: 'contact.label' });
+const IsDefault = z.boolean().default(false).register(locales.zod, { key: 'contact.default' });
 const Day = z.coerce.number().int().min(1).max(31);
 const Month = z.coerce.number().int().min(1).max(12);
 const Year = z.coerce.number().int().min(1).max(9999).nullish();
@@ -21,7 +21,7 @@ const DatePartNull = z.coerce
 export const ContactURL = z.url().max(100);
 
 export const Email = z.object({
-	email: z.email().max(255).register(zKeys, { key: 'contact.email' }),
+	email: z.email().max(255).register(locales.zod, { key: 'contact.email' }),
 	label: Label,
 	isDefault: IsDefault,
 });
@@ -39,7 +39,7 @@ export const Phone = z.object({
 		.bigint()
 		// @todo check length based on country code
 		.refine(val => val > 0n && val.toString().length)
-		.register(zKeys, { key: 'contact.phone.number' }),
+		.register(locales.zod, { key: 'contact.phone.number' }),
 	label: Label,
 	isDefault: IsDefault,
 });
@@ -61,29 +61,29 @@ export interface SigDateLike {
 }
 
 export const Relationship = z.object({
-	to: z.uuid().register(zKeys, { key: 'contact.relationship.to' }),
+	to: z.uuid().register(locales.zod, { key: 'contact.relationship.to' }),
 	label: LabelRequired,
 });
 export interface Relationship extends z.infer<typeof Relationship> {}
 
 export const Custom = z.object({
 	label: Label,
-	value: z.string().max(255).register(zKeys, { key: 'contact.custom.value' }),
+	value: z.string().max(255).register(locales.zod, { key: 'contact.custom.value' }),
 });
 export interface Custom extends z.infer<typeof Custom> {}
 
 export const Init = z.object({
-	display: SmallText.nullish().register(zKeys, { key: 'contact.display' }),
-	prefix: SmallText.nullish().register(zKeys, { key: 'contact.prefix' }),
-	givenName: SmallText.nullish().register(zKeys, { key: 'contact.given_name' }),
-	givenName2: SmallText.nullish().register(zKeys, { key: 'contact.given_name_2' }),
-	surname: SmallText.nullish().register(zKeys, { key: 'contact.surname' }),
-	suffix: SmallText.nullish().register(zKeys, { key: 'contact.suffix' }),
-	nickname: SmallText.nullish().register(zKeys, { key: 'contact.nickname' }),
-	company: SmallText.nullish().register(zKeys, { key: 'contact.company' }),
-	jobTitle: SmallText.nullish().register(zKeys, { key: 'contact.job_title' }),
-	department: SmallText.nullish().register(zKeys, { key: 'contact.department' }),
-	notes: z.string().max(1000).nullish().register(zKeys, { key: 'contact.notes' }),
+	display: SmallText.nullish().register(locales.zod, { key: 'contact.display' }),
+	prefix: SmallText.nullish().register(locales.zod, { key: 'contact.prefix' }),
+	givenName: SmallText.nullish().register(locales.zod, { key: 'contact.given_name' }),
+	givenName2: SmallText.nullish().register(locales.zod, { key: 'contact.given_name_2' }),
+	surname: SmallText.nullish().register(locales.zod, { key: 'contact.surname' }),
+	suffix: SmallText.nullish().register(locales.zod, { key: 'contact.suffix' }),
+	nickname: SmallText.nullish().register(locales.zod, { key: 'contact.nickname' }),
+	company: SmallText.nullish().register(locales.zod, { key: 'contact.company' }),
+	jobTitle: SmallText.nullish().register(locales.zod, { key: 'contact.job_title' }),
+	department: SmallText.nullish().register(locales.zod, { key: 'contact.department' }),
+	notes: z.string().max(1000).nullish().register(locales.zod, { key: 'contact.notes' }),
 	birthDay: Day.or(DatePartNull).nullish(),
 	birthMonth: Month.or(DatePartNull).nullish(),
 	birthYear: Year.or(DatePartNull),

@@ -51,6 +51,7 @@
 	"peerDependencies": {
 		"@axium/client": ">=0.39.0",
 		"@axium/core": ">=0.41.3",
+		"@james-pre/locales": "^1.0.0",
 		"@simplewebauthn/browser": "^14.0.0",
 		"@sveltejs/adapter-node": "^6.0.0",
 		"@sveltejs/kit": "^3.0.0",

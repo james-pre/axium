@@ -50,7 +50,7 @@ add(
 	{
 		themes: { default: false },
 		'app-list-is-grid': { default: false },
-		// Indicator that an input is experimental, derived from `ZodLocaleInfo.experimental`
+		// Indicator that an input is experimental, derived from `ZodInfo.experimental`
 		'zod-experimental-input-indicator': { default: false, experimental: true },
 		'zod-default-handling': { default: false, experimental: true },
 		// Use a "switch" instead of a checkbox

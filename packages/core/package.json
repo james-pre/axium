@@ -38,6 +38,7 @@
 		"zod": "^4.0.5"
 	},
 	"dependencies": {
+		"@james-pre/locales": "^1.0.0",
 		"@types/semver": "^7.7.1",
 		"ioium": "^1.8.1",
 		"mime": "^4.0.7",

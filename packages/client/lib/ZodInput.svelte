@@ -2,7 +2,7 @@
 	import { text, type ReplacementOptions } from '@axium/client';
 	import type { ZodPref } from '@axium/core';
 	import feature from '@axium/core/features';
-	import { zKeys, type ZodLocaleInfo } from '@axium/core/locales';
+	import * as locales from '@james-pre/locales';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
 	import { prettifyError, type z } from 'zod';
@@ -11,7 +11,7 @@
 
 	interface Props {
 		idPrefix?: string;
-		localeInfo?: ZodLocaleInfo;
+		localeInfo?: locales.ZodInfo;
 		rootValue: any;
 		path: string;
 		label?: string;
@@ -37,7 +37,7 @@
 		idPrefix,
 		updateValue,
 		noLabel,
-		localeInfo = zKeys.get(schema),
+		localeInfo = locales.zod.get(schema),
 	} = props;
 
 	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
@@ -138,7 +138,7 @@
 	}
 
 	function partText(part: z.core.$ZodType, literal: string): string {
-		const prefix = zKeys.get(part)?.prefix;
+		const prefix = locales.zod.get(part)?.prefix;
 		return prefix ? text(`${prefix}.${literal}`, { $default: literal }) : literal;
 	}
 

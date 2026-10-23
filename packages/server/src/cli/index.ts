@@ -4,7 +4,6 @@ import { apps } from '@axium/core';
 import { AuditFilter, severityNames } from '@axium/core/audit';
 import * as features from '@axium/core/features';
 import { createFeatureCommand, formatFeatures, persistFeaturesTo } from '@axium/core/node/features';
-import { createCommand as createLocalesCommand } from '@axium/core/node/locales';
 import { getPackageJSON, upgradeActivePackages } from '@axium/core/node/packages';
 import { waitForPlugins } from '@axium/core/node/plugins';
 import { plugins } from '@axium/core/plugins';
@@ -97,7 +96,6 @@ axiumApps
 
 persistFeaturesTo(join(localDir(), 'features.json'));
 createFeatureCommand(cli);
-createLocalesCommand(cli);
 configCommand(cli, configManager, { defaultType: 'local' });
 serviceCommand(cli, {
 	service: user => new Service('axium', { user }),

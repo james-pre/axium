@@ -1,3 +1,4 @@
+import * as locales from '@james-pre/locales/node';
 import type { Command } from 'commander';
 import * as io from 'ioium/node';
 import { dirname, resolve } from 'node:path/posix';
@@ -6,7 +7,6 @@ import { _throw } from 'utilium';
 import { apps } from '../apps.js';
 import { add as addFeatures } from '../features.js';
 import { _findPlugin, Plugin, plugins, type PluginInternal } from '../plugins.js';
-import * as locales from './locales.js';
 import { getPackageJSON } from './packages.js';
 
 export function* pluginText(plugin: PluginInternal): Generator<string> {

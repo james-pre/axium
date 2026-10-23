@@ -1,7 +1,7 @@
+import * as locales from '@james-pre/locales';
 import * as z from 'zod';
-import { zKeys } from '@axium/core/locales';
 
-export const SyncRuleType = z.literal(['+', '-']).register(zKeys, { prefix: 'storage.sync_rule' });
+export const SyncRuleType = z.literal(['+', '-']).register(locales.zod, { prefix: 'storage.sync_rule' });
 
 /** `+pattern` includes and `-pattern` excludes matching paths. */
 export const SyncRule = z

@@ -1,5 +1,5 @@
 import { $API, AccessControl, appPreferences } from '@axium/core';
-import { zKeys } from '@axium/core/locales';
+import * as locales from '@james-pre/locales';
 import * as z from 'zod';
 
 export const TaskInit = z.object({
@@ -88,9 +88,9 @@ export const TasksPreferences = z
 		show_completed_subtasks: z
 			.literal(['inline', 'mirror'])
 			.default('inline')
-			.register(zKeys, { prefix: 'tasks.show_completed_subtasks' }),
+			.register(locales.zod, { prefix: 'tasks.show_completed_subtasks' }),
 	})
-	.register(zKeys, { prefix: 'tasks.preferences' });
+	.register(locales.zod, { prefix: 'tasks.preferences' });
 
 appPreferences.set('tasks', TasksPreferences);
 
