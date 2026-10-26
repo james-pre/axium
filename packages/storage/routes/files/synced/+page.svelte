@@ -30,7 +30,7 @@
 	</div>
 	{#each syncs as sync (sync.itemId)}
 		{const latest = lastSynced(sync)}
-		<div class={['list-item', sync.item.trashedAt && 'dimmed']} onclick={() => goto('/files/' + sync.itemId)}>
+		<div class={['list-item', sync.item.trashedAt && 'dimmed']} onclick={() => dialogs[sync.itemId].showModal()}>
 			<Icon i="folder" />
 			<span class="name">
 				{sync.item.name}
@@ -58,13 +58,13 @@
 			</span>
 			<span
 				class="icon-text action"
-				title={text('page.files.synced.settings')}
+				title={text('page.files.synced.open')}
 				onclick={e => {
 					e.stopPropagation();
-					dialogs[sync.itemId].showModal();
+					goto('/files/' + sync.itemId);
 				}}
 			>
-				<Icon i="gear" --size="14px" />
+				<Icon i="arrow-up-right-from-square" --size="14px" />
 			</span>
 		</div>
 	{:else}

@@ -63,6 +63,7 @@
 				"device_summary": "{host}, {time}",
 				"usage": "{size} in {count} item(s)",
 				"settings": "Settings",
+				"open": "Open folder",
 				"devices": "Devices",
 				"no_devices": "No devices are syncing this folder.",
 				"rules_help": "How rules work",
