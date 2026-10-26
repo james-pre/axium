@@ -20,7 +20,7 @@ const reservedNames = Object.keys(AccessControl.shape).map(key => key.toLowerCas
 export const PermissionName = z
 	.string()
 	.toLowerCase()
-	.regex(/^\w+$/)
+	.regex(/^\w+$/, { error: 'Permission names can only contain letters, numbers, and underscores' })
 	.max(50)
 	.refine(name => !reservedNames.includes(name), { error: issue => `"${String(issue.input)}" is reserved` });
 
