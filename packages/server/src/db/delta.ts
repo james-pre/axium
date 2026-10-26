@@ -210,8 +210,8 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 		const fromTable = from.tables[name],
 			toTable = to.tables[name];
 
-		const fromColumns = new Set(Object.keys(fromTable));
-		const toColumns = new Set(Object.keys(toTable));
+		const fromColumns = new Set(Object.keys(fromTable.columns));
+		const toColumns = new Set(Object.keys(toTable.columns));
 
 		const drop_columns = fromColumns.difference(toColumns);
 		const add_columns = Object.fromEntries(
@@ -231,13 +231,14 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 					const alter: WithRequired<Column, 'ops'> = { ops: [] };
 
 					if ('default' in fromCol && !('default' in toCol)) alter.ops.push('drop_default');
-					else if (fromCol.default !== toCol.default) alter.default = toCol.default;
+					else if ('default' in toCol && String(fromCol.default) !== String(toCol.default)) alter.default = String(toCol.default);
 					if (fromCol.type != toCol.type) alter.type = toCol.type;
 					if (fromCol.required != toCol.required) alter.ops.push(toCol.required ? 'set_required' : 'drop_required');
 					if (fromCol.unique != toCol.unique) alter.ops.push(toCol.unique ? 'set_unique' : 'drop_unique');
 
-					return [name, alter];
+					return [name, alter] as const;
 				})
+				.filter(([, alter]) => alter.ops.length || 'default' in alter || 'type' in alter)
 		);
 
 		const fromConstraints = new Set(Object.keys(fromTable.constraints || {}));
@@ -261,6 +262,11 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 				.map(name => [name, toTable.triggers[name]])
 		);
 
+		const drop_triggers = fromTriggers.difference(toTriggers);
+
+		const changes = [add_columns, alter_columns, add_constraints, add_triggers].flatMap(Object.keys);
+		if (!changes.length && !drop_columns.size && !drop_constraints.size && !drop_triggers.size) continue;
+
 		alter_tables[name] = {
 			add_columns,
 			drop_columns: Array.from(drop_columns),
@@ -269,7 +275,7 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 			add_constraints,
 			drop_constraints: Array.from(drop_constraints),
 			rename_constraints: {},
-			drop_triggers: Array.from(fromTriggers.difference(toTriggers)),
+			drop_triggers: Array.from(drop_triggers),
 			add_triggers,
 		};
 	}
