@@ -2,7 +2,7 @@ import { debug } from 'ioium';
 import { sql } from 'kysely';
 import sharp from 'sharp';
 import * as z from 'zod';
-import { checkAuthForUser } from '../auth.js';
+import { checkAuthForUser, requireSession } from '../auth.js';
 import { config, type ImageUploadConfig } from '../config.js';
 import { database as db } from '../db/index.js';
 import { error, withError } from '../requests.js';
@@ -51,23 +51,21 @@ export async function prepareImageUpload(request: Request, cfg: ImageUploadConfi
 	return { data, type };
 }
 
+async function getPFP(request: Request, userId: string) {
+	const pfp = await db.selectFrom('profile_pictures').selectAll().where('userId', '=', userId).executeTakeFirst();
+
+	if (!pfp) error(404, 'Profile picture not found');
+
+	if (!pfp.isPublic) await requireSession(request);
+
+	return pfp;
+}
+
 addRoute({
 	path: '/raw/pfp/:id',
 	params: { id: z.uuid() },
 	async HEAD(request, { id: userId }) {
-		const pfp = await db.selectFrom('profile_pictures').selectAll().where('userId', '=', userId).executeTakeFirst();
-
-		if (!pfp) error(404, 'Profile picture not found');
-
-		if (!pfp.isPublic) {
-			try {
-				await checkAuthForUser(request, userId);
-			} catch (e) {
-				if (!(e instanceof Error)) throw e;
-				if (e.message == 'User ID mismatch') error(403, "User's profile picture is not public");
-				throw e;
-			}
-		}
+		const pfp = await getPFP(request, userId);
 
 		return new Response(null, {
 			headers: {
@@ -77,19 +75,7 @@ addRoute({
 		});
 	},
 	async GET(request, { id: userId }) {
-		const pfp = await db.selectFrom('profile_pictures').selectAll().where('userId', '=', userId).executeTakeFirst();
-
-		if (!pfp) error(404, 'Profile picture not found');
-
-		if (!pfp.isPublic) {
-			try {
-				await checkAuthForUser(request, userId);
-			} catch (e) {
-				if (!(e instanceof Error)) throw e;
-				if (e.message == 'User ID mismatch') error(403, "User's profile picture is not public");
-				throw e;
-			}
-		}
+		const pfp = await getPFP(request, userId);
 
 		return new Response(pfp.data, {
 			headers: {
