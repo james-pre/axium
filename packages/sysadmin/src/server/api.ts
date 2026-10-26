@@ -8,6 +8,8 @@ import type { Selectable } from 'kysely';
 import * as z from 'zod';
 import { SystemInit, SystemUserInit, type System } from '../common.js';
 
+acl.addItemLink('systems', system => ({ name: system.name, url: '/sysadmin/systems/' + system.id }));
+
 function parseSystem<T extends Selectable<Schema['systems']> & { acl?: AccessControl[] }>(system: T, isShared: boolean): System {
 	return Object.assign({ acl: [] }, system, { isShared }) satisfies Omit<System, 'type'> & { type: string } as System;
 }

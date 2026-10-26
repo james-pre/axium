@@ -2,6 +2,7 @@ import { getConfig } from '@axium/core';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { withError } from '@axium/server/requests';
+import { addItemLink } from '@axium/server/acl';
 import { addObjectType as addSyncObjectType } from '@axium/server/sync';
 import type {
 	AliasedRawBuilder,
@@ -41,6 +42,7 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
 }
 
 addSyncObjectType('storage', { parse: parseItem });
+addItemLink('storage', item => ({ name: item.name, url: '/files/' + item.id }));
 
 /**
  * Returns the current usage of the storage for a user in bytes.
