@@ -64,10 +64,6 @@ with `systemctl link`:
     loginctl enable-linger "$USER"
     ```
 
-Both units locate their package's `node_modules` via the `%Y` specifier (the
-directory of the resolved unit fragment) and run the daemon from there, so the
-symlink installation is load-bearing — don't copy the unit elsewhere.
-
 ### Troubleshooting
 
 #### `Unit axium.service not found` on SELinux systems
@@ -94,15 +90,6 @@ You can confirm the denial with `sudo ausearch -m AVC -ts recent | grep axium`.
 
 The **client** unit (`axium-client.service`) runs under `systemctl --user`, whose
 manager is not `init_t`, so it is not subject to this denial.
-
-#### `npm error 404 ... axium-client` when the client daemon starts
-
-The client unit runs its bin (`axium-client`) out of the local `node_modules`.
-If that resolution fails, `npx` falls back to the npm registry and 404s, because
-there is no published package literally named `axium-client` (the bin comes from
-`@axium/client`). Make sure the client package is actually installed at the
-install root (`node_modules/@axium/client`) and that you linked the unit shipped
-with your installed version rather than an older copy.
 
 ## Architecture
 

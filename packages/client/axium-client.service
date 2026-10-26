@@ -10,7 +10,7 @@ FailureAction=none
 
 [Service]
 Type=simple
-ExecStart=/bin/sh -c 'cd "%Y/../../.." && exec npx --no-install axium-client daemon'
+ExecStart=%Y/dist/cli/index.js daemon
 ExecReload=kill -HUP $MAINPID
 SyslogIdentifier=axium-client
 Restart=on-failure
