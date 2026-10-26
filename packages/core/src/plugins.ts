@@ -3,6 +3,7 @@ import * as z from 'zod';
 import { App } from './apps.js';
 import * as features from './features.js';
 import { zAsyncFunction } from './schemas.js';
+import { AccessControlConfig } from './access.js';
 
 const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
 
@@ -60,6 +61,7 @@ export const Plugin = z.looseObject({
 	config: z.record(z.string(), z.any()).optional(),
 	/** What features this plugin has */
 	features: z.record(features.Id, features.Config).optional(),
+	access_controls: z.record(z.string(), AccessControlConfig).optional(),
 });
 
 export interface Plugin extends z.infer<typeof Plugin> {}
@@ -94,6 +96,13 @@ export function _findPlugin(search: string): PluginInternal {
 	const plugin = plugins.get(search) ?? plugins.values().find(p => p.specifier.toLowerCase() == search.toLowerCase());
 	if (!plugin) throw `Can't find a plugin matching "${search}"`;
 	return plugin;
+}
+
+export function getAccessControlConfig(itemType: string): AccessControlConfig | undefined {
+	for (const plugin of plugins.values()) {
+		const config = plugin.access_controls?.[itemType];
+		if (config) return config;
+	}
 }
 
 export async function runIntegrations() {

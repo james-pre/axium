@@ -82,5 +82,6 @@ axiumPlugin
 		await io.assertYes();
 		await db.delta.apply(delta);
 		Object.assign(info.current, schema.versions);
+		Object.assign(info.acl, schema.acl);
 		db.setUpgradeInfo(info);
 	});

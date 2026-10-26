@@ -262,6 +262,8 @@ export interface UpgradesInfoEntry extends z.infer<typeof UpgradesInfoEntry> {}
 
 export const UpgradesInfo = z.object({
 	current: VersionMap.default({}),
+	/** The access control tables last applied, by item type */
+	acl: z.record(z.string(), schema.Table).default({}),
 	upgrades: UpgradesInfoEntry.array().default([]),
 });
 
@@ -283,6 +285,48 @@ export interface Upgrade {
 	info: UpgradesInfo;
 }
 
+function upgradeVersions(file: schema.SchemaFile, currentVersion: number): delta.Version {
+	let versions = file.versions.slice(currentVersion + 1);
+
+	const v0 = file.versions[0];
+	if (v0.delta) throw 'Initial version can not be a delta';
+
+	for (const [i, v] of versions.toReversed().entries()) {
+		if (v.delta || v == v0) continue;
+		versions = [delta.compute(v0, v), ...versions.slice(-i)];
+		break;
+	}
+
+	return delta.collapse(versions as delta.Version[]);
+}
+
+/**
+ * Compute the changes to a plugin's access control tables since they were last applied.
+ * Tables not applied yet are compared against the plugin's own declaration of them, if it has one.
+ */
+function upgradeAccessControls(pluginName: string, file: schema.SchemaFile, info: UpgradesInfo): delta.Version {
+	const declared = schema.resolveFile(pluginName, file);
+	const from: schema.SchemaDecl = { tables: {}, indexes: {}, scripts: [] },
+		to: schema.SchemaDecl = { tables: {}, indexes: {}, scripts: [] };
+
+	for (const [itemType, config] of Object.entries(plugins.get(pluginName)?.access_controls ?? {})) {
+		const table = `acl.${itemType}`;
+
+		if (info.acl[itemType]) {
+			from.tables[table] = info.acl[itemType];
+			Object.assign(from.indexes, schema.accessControlIndexes(itemType));
+		} else if (declared.tables[table]) {
+			from.tables[table] = declared.tables[table];
+			Object.assign(from.indexes, schema.indexesOn(declared.indexes, table));
+		}
+
+		to.tables[table] = info.acl[itemType] = schema.accessControlTable(itemType, config);
+		Object.assign(to.indexes, schema.accessControlIndexes(itemType));
+	}
+
+	return delta.compute(from, to);
+}
+
 export function initUpgrade(filter?: string[]): Upgrade | null {
 	const deltas: delta.Version[] = [];
 
@@ -300,35 +344,32 @@ export function initUpgrade(filter?: string[]): Upgrade | null {
 		const currentVersion = info.current[name];
 		const target = vSchema.latest ?? vSchema.versions.length - 1;
 
-		if (currentVersion >= target) continue;
+		if (currentVersion < target) {
+			from[name] = currentVersion;
+			to[name] = target;
 
-		from[name] = currentVersion;
-		to[name] = target;
+			info.current[name] = target;
 
-		info.current[name] = target;
+			const vDelta = upgradeVersions(vSchema, currentVersion);
 
-		let versions = vSchema.versions.slice(currentVersion + 1);
+			deltas.push(vDelta);
 
-		const v0 = vSchema.versions[0];
-		if (v0.delta) throw 'Initial version can not be a delta';
-
-		for (const [i, v] of versions.toReversed().entries()) {
-			if (v.delta || v == v0) continue;
-			versions = [delta.compute(v0, v), ...versions.slice(-i)];
-			break;
+			console.log(
+				'Upgrading',
+				name,
+				styleText('dim', currentVersion.toString() + '->') + styleText('blueBright', target.toString()) + ':'
+			);
+			if (!delta.isEmpty(vDelta)) empty = false;
+			for (const text of delta.display(vDelta)) console.log(text);
 		}
 
-		const vDelta = delta.collapse(versions as delta.Version[]);
+		const aclDelta = upgradeAccessControls(name, vSchema, info);
+		if (delta.isEmpty(aclDelta)) continue;
 
-		deltas.push(vDelta);
-
-		console.log(
-			'Upgrading',
-			name,
-			styleText('dim', currentVersion.toString() + '->') + styleText('blueBright', target.toString()) + ':'
-		);
-		if (!delta.isEmpty(vDelta)) empty = false;
-		for (const text of delta.display(vDelta)) console.log(text);
+		deltas.push(aclDelta);
+		empty = false;
+		console.log('Upgrading access controls for', name + ':');
+		for (const text of delta.display(aclDelta)) console.log(text);
 	}
 
 	info.upgrades.push({ timestamp: new Date(), from, to });

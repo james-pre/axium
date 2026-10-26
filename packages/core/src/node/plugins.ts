@@ -135,6 +135,11 @@ export async function loadPlugin(
 			}
 		}
 
+		for (const itemType of Object.keys(plugin.access_controls ?? {})) {
+			const owner = plugins.values().find(other => other.access_controls?.[itemType]);
+			if (owner) throw new ReferenceError(`Access controls for "${itemType}" are already defined by ${owner.name}.`);
+		}
+
 		for (const app of plugin.apps ?? []) {
 			if (apps.has(app.id)) throw new ReferenceError(`App with ID "${app.id}" already exists.`);
 			apps.set(app.id, app);

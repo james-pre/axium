@@ -1,3 +1,4 @@
+import type { AccessControlConfig } from '@axium/core/access';
 import { plugins } from '@axium/core/plugins';
 import * as io from 'ioium/node';
 import { sql } from 'kysely';
@@ -25,8 +26,6 @@ export const SchemaFile = z.object({
 	wipe: z.string().array().optional().default([]),
 	/** Set the latest version, defaults to the last one */
 	latest: z.int32().nonnegative().optional(),
-	/** Maps tables to their ACL tables, e.g. `"storage": "acl.storage"` */
-	acl_tables: z.record(z.string(), z.string()).optional().default({}),
 });
 export interface SchemaFile extends z.infer<typeof SchemaFile> {}
 
@@ -183,6 +182,62 @@ export type DatabaseFromSchemaFile<S extends ReadonlyRecursive<z.input<typeof Sc
 /** @internal @hidden */
 export type Raw = FromFile<typeof raw>;
 
+/** Get the table used to store access controls for an item type */
+export function accessControlTable(itemType: string, config: AccessControlConfig): Table {
+	const permissions = Object.entries(config.permissions).map(([name, permission]) => [
+		name,
+		{ type: 'boolean', required: true, default: permission.default },
+	]);
+
+	return Table.parse({
+		columns: {
+			itemId: { type: 'uuid', required: true, references: `${itemType}.id`, onDelete: 'cascade' },
+			userId: { type: 'uuid', references: 'users.id', onDelete: 'cascade' },
+			createdAt: { type: 'timestamptz', required: true, default: 'now()' },
+			role: { type: 'text' },
+			tag: { type: 'text' },
+			...Object.fromEntries(permissions),
+		},
+		constraints: {
+			[`unique_${itemType}`]: { type: 'unique', on: ['itemId', 'userId', 'role', 'tag'], nulls_not_distinct: true },
+		},
+	});
+}
+
+export function accessControlIndexes(itemType: string): Record<string, Index> {
+	return {
+		[`acl_${itemType}_userId`]: { on: `acl.${itemType}`, columns: ['userId'] },
+		[`acl_${itemType}_itemId`]: { on: `acl.${itemType}`, columns: ['itemId'] },
+	};
+}
+
+/** Get the indexes on a table */
+export function indexesOn(indexes: Record<string, Index>, table: string): Record<string, Index> {
+	return Object.fromEntries(Object.entries(indexes).filter(([, index]) => index.on == table));
+}
+
+/**
+ * Resolve the schema a file declares at a version, defaulting to the latest.
+ */
+export function resolveFile(pluginName: string, file: SchemaFile, target: number = file.latest ?? file.versions.length - 1): SchemaDecl {
+	let current: SchemaDecl = { tables: {}, indexes: {}, scripts: [] };
+
+	for (const [version, schema] of file.versions.entries()) {
+		if (!schema.delta) current = structuredClone(schema);
+		else {
+			try {
+				delta.applyToSchema(current, structuredClone(schema));
+			} catch (e: unknown) {
+				throw `Failed to apply version ${version - 1}->${version} delta to ${pluginName}: ${io.errorText(e)}`;
+			}
+		}
+
+		if (version === target) break;
+	}
+
+	return current;
+}
+
 export interface GetFullOptions {
 	/** Exclude the given plugins */
 	exclude?: string[];
@@ -190,15 +245,23 @@ export interface GetFullOptions {
 	overrideVersions?: Record<string, number>;
 }
 
+export interface ActiveSchema extends SchemaDecl {
+	versions: Record<string, number>;
+	/** The access control tables, by item type */
+	acl: Record<string, Table>;
+}
+
 /**
- * Get the active schema
+ * Get the active schema.
+ * Access control tables are generated from plugins' configuration, replacing any the plugins' schemas declare.
  */
-export function getFull(opt: GetFullOptions = {}): SchemaDecl & { versions: Record<string, number> } {
-	const fullSchema: SchemaDecl & { versions: Record<string, number> } = {
+export function getFull(opt: GetFullOptions = {}): ActiveSchema {
+	const fullSchema: ActiveSchema = {
 		tables: {},
 		indexes: {},
 		scripts: [],
 		versions: {},
+		acl: {},
 	};
 
 	for (const [pluginName, file] of getFiles()) {
@@ -208,27 +271,22 @@ export function getFull(opt: GetFullOptions = {}): SchemaDecl & { versions: Reco
 
 		const target = opt.overrideVersions?.[pluginName] ?? file.latest;
 
-		let currentSchema: SchemaDecl = { tables: {}, indexes: {}, scripts: [] };
-
 		fullSchema.versions[pluginName] = file.latest;
-		for (const [version, schema] of file.versions.entries()) {
-			if (!schema.delta) currentSchema = schema;
-			else {
-				try {
-					delta.applyToSchema(currentSchema, schema);
-				} catch (e: unknown) {
-					throw `Failed to apply version ${version - 1}->${version} delta to ${pluginName}: ${io.errorText(e)}`;
-				}
-			}
 
-			// @todo make sure dependencies aren't messed up
-			for (const script of schema.scripts) {
-				const duplicate = fullSchema.scripts.findIndex(existing => existing.path == script.path);
-				if (duplicate != -1) fullSchema.scripts.splice(duplicate, 1);
-				fullSchema.scripts.push(script);
-			}
+		const currentSchema = resolveFile(pluginName, file, target);
 
-			if (version === target) break;
+		// @todo make sure dependencies aren't messed up
+		for (const script of file.versions.slice(0, target + 1).flatMap(version => version.scripts)) {
+			const duplicate = fullSchema.scripts.findIndex(existing => existing.path == script.path);
+			if (duplicate != -1) fullSchema.scripts.splice(duplicate, 1);
+			fullSchema.scripts.push(script);
+		}
+
+		for (const [itemType, config] of Object.entries(plugins.get(pluginName)?.access_controls ?? {})) {
+			const table = `acl.${itemType}`;
+			for (const index of Object.keys(indexesOn(currentSchema.indexes, table))) delete currentSchema.indexes[index];
+			currentSchema.tables[table] = fullSchema.acl[itemType] = accessControlTable(itemType, config);
+			Object.assign(currentSchema.indexes, accessControlIndexes(itemType));
 		}
 
 		for (const name of Object.keys(currentSchema.tables)) {

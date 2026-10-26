@@ -1,10 +1,10 @@
-import type { AccessControl, AccessControllable, AccessTarget, UserInternal } from '@axium/core';
-import { fromTarget } from '@axium/core/access';
+import type { AccessControl, AccessControlConfig, AccessControllable, AccessTarget, UserInternal } from '@axium/core';
+import { fromTarget, resolvePermissions } from '@axium/core/access';
+import { getAccessControlConfig } from '@axium/core/plugins';
 import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { WithRequired } from 'utilium';
 import * as db from './db/index.js';
-import { _unique } from './state.js';
 
 export interface DBAccessControllable extends Omit<AccessControllable, 'id'> {
 	id: string | kysely.Generated<string>;
@@ -76,7 +76,7 @@ export function from<
 	opt: ACLSelectionOptions<A> = {}
 ): (eb: kysely.ExpressionBuilder<DB, A>) => kysely.AliasedRawBuilder<Result<`acl.${TB}`>[], 'acl'> {
 	// Note this is valid to pass to `.select()` however including it as a return type is problematic
-	if (opt.optional && !listTables()[table]) return [] as any;
+	if (opt.optional && !getAccessControlConfig(table)) return [] as any;
 
 	return (eb: kysely.ExpressionBuilder<DB, A>) =>
 		jsonArrayFrom(
@@ -91,48 +91,79 @@ export function from<
 			.as('acl');
 }
 
-export async function get<const TB extends TableName>(table: TB, itemId: string): Promise<WithRequired<Result<TB>, 'user'>[]> {
+/**
+ * @throws if the item type does not support access controls
+ */
+export function getConfig(itemType: string): AccessControlConfig {
+	const config = getAccessControlConfig(itemType);
+	if (!config) throw new Error('Item type does not support access controls: ' + itemType);
+	return config;
+}
+
+export async function get<const TB extends TargetName>(itemType: TB, itemId: string): Promise<WithRequired<Result<`acl.${TB}`>, 'user'>[]> {
 	return await db.database
-		.selectFrom<TableName>(table)
+		.selectFrom(`acl.${itemType}` as TableName)
 		.where('itemId', '=', itemId)
 		.selectAll()
 		.select(db.userFromId)
-		.$castTo<WithRequired<AccessControl & kysely.Selectable<db.Schema[TB]>, 'user'>>()
+		.$castTo<WithRequired<AccessControl & kysely.Selectable<db.Schema[`acl.${TB}`]>, 'user'>>()
 		.execute();
 }
 
-export async function update<const TB extends TableName>(
-	table: TB,
+/**
+ * Change the permissions of an access control, including the permissions they imply.
+ * @throws if the permissions are unknown or conflict
+ */
+export async function update<const TB extends TargetName>(
+	itemType: TB,
 	itemId: string,
 	target: AccessTarget,
-	permissions: PermissionsFor<TB>
-): Promise<Result<TB>> {
+	permissions: Record<string, boolean>
+): Promise<Result<`acl.${TB}`>> {
+	const changes = resolvePermissions(getConfig(itemType), permissions);
+	if (!Object.keys(changes).length) throw new Error('No permissions to change');
+
 	return await db.database
-		.updateTable<TableName>(table)
-		.set(permissions)
+		.updateTable(`acl.${itemType}` as TableName)
+		.set(changes)
 		.where('itemId', '=', itemId)
 		.where(eb => eb.and(fromTarget(target)))
 		.returningAll()
-		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
+		.$castTo<AccessControl & kysely.Selectable<db.Schema[`acl.${TB}`]>>()
 		.executeTakeFirstOrThrow();
 }
 
-export async function remove<const TB extends TableName>(table: TB, itemId: string, target: AccessTarget): Promise<Result<TB>> {
+export async function remove<const TB extends TargetName>(
+	itemType: TB,
+	itemId: string,
+	target: AccessTarget
+): Promise<Result<`acl.${TB}`>> {
 	return await db.database
-		.deleteFrom<TableName>(table)
+		.deleteFrom(`acl.${itemType}` as TableName)
 		.where('itemId', '=', itemId)
 		.where(eb => eb.and(fromTarget(target)))
 		.returningAll()
-		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
+		.$castTo<AccessControl & kysely.Selectable<db.Schema[`acl.${TB}`]>>()
 		.executeTakeFirstOrThrow();
 }
 
-export async function add<const TB extends TableName>(table: TB, itemId: string, target: AccessTarget): Promise<Result<TB>> {
+/**
+ * Add an access control. Permissions not given use the defaults for the item type.
+ * @throws if the permissions are unknown or conflict
+ */
+export async function add<const TB extends TargetName>(
+	itemType: TB,
+	itemId: string,
+	target: AccessTarget,
+	permissions: Record<string, boolean> = {}
+): Promise<Result<`acl.${TB}`>> {
+	const changes = resolvePermissions(getConfig(itemType), permissions);
+
 	return await db.database
-		.insertInto<TableName>(table)
-		.values({ itemId, ...fromTarget(target) })
+		.insertInto(`acl.${itemType}` as TableName)
+		.values({ itemId, ...fromTarget(target), ...changes })
 		.returningAll()
-		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
+		.$castTo<AccessControl & kysely.Selectable<db.Schema[`acl.${TB}`]>>()
 		.executeTakeFirstOrThrow();
 }
 
@@ -141,28 +172,24 @@ export interface ItemLink {
 	url: string;
 }
 
-export const itemLinks = _unique('itemLinks', new Map<string, (item: any) => ItemLink>());
+function fill(template: string, item: Record<string, unknown>, encode: (value: string) => string = value => value): string {
+	return template.replaceAll(/\{(\w+)\}/g, (placeholder, key: string) => {
+		const value = item[key];
+		return typeof value == 'string' || typeof value == 'number' ? encode(String(value)) : '';
+	});
+}
 
 /**
- * Set how to link to items of a type, e.g. for notifying users when an item is shared with them.
- * @category Plugin API
+ * Get the name and URL used when notifying users about an item, if notifications are enabled for the item type.
  */
-export function addItemLink<const TB extends TargetName>(itemType: TB, link: (item: kysely.Selectable<db.Schema[TB]>) => ItemLink): void {
-	itemLinks.set(itemType, link);
-}
-
 export function linkTo<const TB extends TargetName>(itemType: TB, item: kysely.Selectable<db.Schema[TB]>): ItemLink | undefined {
-	return itemLinks.get(itemType)?.(item);
-}
+	const { notifications } = getConfig(itemType);
+	if (!notifications?.enabled) return;
 
-export function listTables(): Record<string, TableName> {
-	const tables: Record<string, TableName> = {};
-
-	for (const [, file] of db.schema.getFiles()) {
-		Object.assign(tables, file.acl_tables || {});
-	}
-
-	return tables;
+	return {
+		name: fill(notifications.name, item),
+		url: fill(notifications.url, item, encodeURIComponent),
+	};
 }
 
 export interface OptionsForWhere<TB extends TargetName> {
@@ -194,7 +221,7 @@ export function existsIn<const TB extends TargetName, const O extends OptionsFor
 	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
 	options: O = {} as any
 ): FilterCallback<TB, O> {
-	if (options.optional && !listTables()[table]) return eb => eb.val(false);
+	if (options.optional && !getAccessControlConfig(table)) return eb => eb.val(false);
 
 	return eb =>
 		eb.exists(

@@ -20,6 +20,7 @@ export async function dbInitTables(assumeYes: boolean = false) {
 	db.connect();
 	await db.delta.apply(delta);
 	Object.assign(info.current, schema.versions);
+	Object.assign(info.acl, schema.acl);
 	db.setUpgradeInfo(info);
 }
 
@@ -85,7 +86,8 @@ axiumDB
 		const tables = new Map<keyof db.Schema, string>();
 
 		for (const [plugin, schema] of db.schema.getFiles()) {
-			for (const table of schema.wipe as (keyof db.Schema)[]) {
+			const accessControls = Object.keys(plugins.get(plugin)?.access_controls ?? {}).map(itemType => `acl.${itemType}` as const);
+			for (const table of new Set([...schema.wipe, ...accessControls]) as Set<keyof db.Schema>) {
 				const maybePlugin = tables.get(table);
 				tables.set(table, maybePlugin ? `${maybePlugin}, ${plugin}` : plugin);
 			}
@@ -303,7 +305,8 @@ axiumDB
 	.description('Export the DB schema')
 	.addOption(new Option('-f, --format <format>', 'Output format').choices(['sql', 'graph']).default('sql'))
 	.option('-o, --output <file>', 'Output file path')
-	.action(opt => {
+	.action(async opt => {
+		await using _ = db.connect();
 		const schema = db.schema.getFull();
 
 		const it = opt.format == 'sql' ? db.schema.toSQL(schema) : db.schema.toGraph(schema);

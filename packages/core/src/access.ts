@@ -15,6 +15,15 @@ export const AccessControl = z
 
 export interface AccessControl extends z.infer<typeof AccessControl> {}
 
+const reservedNames = Object.keys(AccessControl.shape).map(key => key.toLowerCase());
+
+export const PermissionName = z
+	.string()
+	.toLowerCase()
+	.regex(/^\w+$/)
+	.max(50)
+	.refine(name => !reservedNames.includes(name), { error: issue => `"${String(issue.input)}" is reserved` });
+
 export function getTarget(ac: AccessControl): AccessTarget {
 	if (ac.userId) return ac.userId;
 	if (ac.role) return '@' + ac.role;
@@ -104,7 +113,111 @@ export type AccessTarget = z.infer<typeof AccessTarget>;
 
 export const AccessControlUpdate = z.object({
 	target: AccessTarget,
-	permissions: z.record(z.string(), z.any()),
+	permissions: z.record(PermissionName, z.boolean()),
 });
 
 export interface AccessControlUpdate extends z.infer<typeof AccessControlUpdate> {}
+
+// configuration, used by plugins
+
+export const PermissionConfig = z.object({
+	default: z.boolean().default(false),
+	implies: PermissionName.array().default([]),
+});
+export interface PermissionConfig extends z.infer<typeof PermissionConfig> {}
+
+export const AccessControlConfig = z
+	.object({
+		permissions: z.record(PermissionName, PermissionConfig),
+		/** Notify users when their permissions change (e.g. shared) */
+		notifications: z
+			.object({
+				enabled: z.boolean(),
+				name: z.string(),
+				url: z.string(),
+			})
+			.optional(),
+		/** If true, presets must be used */
+		force_presets: z.boolean().default(false),
+		presets: z.record(z.string(), PermissionName.array()).default({}),
+	})
+	.superRefine((config, context) => {
+		let valid = true;
+		const issue = (path: PropertyKey[], message: string) => {
+			valid = false;
+			context.addIssue({ code: 'custom', path, message });
+		};
+
+		for (const [name, { implies }] of Object.entries(config.permissions)) {
+			for (const implied of implies) {
+				if (!(implied in config.permissions)) issue(['permissions', name, 'implies'], `Unknown permission "${implied}"`);
+				if (implied == name) issue(['permissions', name, 'implies'], 'A permission can not imply itself');
+			}
+		}
+
+		for (const [preset, permissions] of Object.entries(config.presets)) {
+			for (const name of permissions) {
+				if (!(name in config.permissions)) issue(['presets', preset], `Unknown permission "${name}"`);
+			}
+		}
+
+		if (config.force_presets && !Object.keys(config.presets).length) issue(['force_presets'], 'Presets are forced but none exist');
+
+		if (!valid) return;
+
+		for (const [name, permission] of Object.entries(config.permissions)) {
+			if (!permission.default) continue;
+			for (const implied of impliedPermissions(config, name)) {
+				if (!config.permissions[implied].default) issue(['permissions', implied, 'default'], `Must be true since "${name}" is`);
+			}
+		}
+
+		for (const [preset, permissions] of Object.entries(config.presets)) {
+			for (const name of permissions) {
+				for (const implied of impliedPermissions(config, name)) {
+					if (!permissions.includes(implied)) issue(['presets', preset], `Missing "${implied}", which "${name}" implies`);
+				}
+			}
+		}
+	});
+export interface AccessControlConfig extends z.infer<typeof AccessControlConfig> {}
+
+/** Get a permission and every permission it implies, directly or indirectly. */
+export function impliedPermissions(config: Pick<AccessControlConfig, 'permissions'>, name: string): Set<string> {
+	const result = new Set<string>();
+	const pending = [name];
+
+	while (pending.length) {
+		const current = pending.pop()!;
+		if (result.has(current)) continue;
+		result.add(current);
+		pending.push(...(config.permissions[current]?.implies ?? []));
+	}
+
+	return result;
+}
+
+/** Get a permission and every permission that implies it, directly or indirectly. */
+export function implyingPermissions(config: Pick<AccessControlConfig, 'permissions'>, name: string): Set<string> {
+	return new Set(Object.keys(config.permissions).filter(other => impliedPermissions(config, other).has(name)));
+}
+
+/**
+ * Expand permission changes to include implied permissions.
+ * Granting a permission grants what it implies, and revoking one revokes what implies it.
+ * @throws if a permission is unknown or the changes conflict
+ */
+export function resolvePermissions(config: AccessControlConfig, changes: Record<string, boolean>): Record<string, boolean> {
+	const resolved: Record<string, boolean> = {};
+
+	for (const [name, value] of Object.entries(changes)) {
+		if (!(name in config.permissions)) throw new Error('Unknown permission: ' + name);
+
+		for (const affected of value ? impliedPermissions(config, name) : implyingPermissions(config, name)) {
+			if (affected in resolved && resolved[affected] !== value) throw new Error('Conflicting changes for permission: ' + affected);
+			resolved[affected] = value;
+		}
+	}
+
+	return resolved;
+}
