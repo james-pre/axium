@@ -147,8 +147,5 @@
 			}
 		}
 	],
-	"wipe": ["storage", "acl.storage", "storage_syncs", "storage_sync_devices"],
-	"acl_tables": {
-		"storage": "acl.storage"
-	}
+	"wipe": ["storage", "storage_syncs", "storage_sync_devices"]
 }

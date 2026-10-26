@@ -1,5 +1,5 @@
 import type { AsyncResult } from '@axium/core/api';
-import { addItemLink, from as aclFrom, userHasAccess } from '@axium/server/acl';
+import { from as aclFrom, userHasAccess } from '@axium/server/acl';
 import { authRequestForItem, checkAuthForUser, requireSession } from '@axium/server/auth';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
@@ -29,8 +29,6 @@ function withEncoded<T>(value: Omit<T, 'color'> & { color?: number | null }): T 
 function withDecoded<T>(value: T & { color?: string | null }): Omit<T, 'color'> & { color?: number | null } {
 	return (value.color === undefined || value.color === null ? value : Object.assign(value, { color: parseInt(value.color, 16) })) as any;
 }
-
-addItemLink('calendars', calendar => ({ name: calendar.name, url: '/calendar' }));
 
 addSyncObjectType('calendars', {
 	parse: withEncoded,

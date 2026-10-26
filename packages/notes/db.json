@@ -86,8 +86,5 @@
 			}
 		}
 	],
-	"wipe": ["notes", "acl.notes"],
-	"acl_tables": {
-		"notes": "acl.notes"
-	}
+	"wipe": ["notes"]
 }

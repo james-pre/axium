@@ -99,6 +99,67 @@
 				"temp_dir": "/srv/axium/tmp",
 				"timeout": 15
 			}
+		},
+		"access_controls": {
+			"storage": {
+				"permissions": {
+					"read": {
+						"default": true
+					},
+					"download": {
+						"implies": [
+							"read"
+						]
+					},
+					"comment": {
+						"implies": [
+							"read"
+						]
+					},
+					"write": {
+						"implies": [
+							"read"
+						]
+					},
+					"manage": {
+						"implies": [
+							"read",
+							"download",
+							"comment",
+							"write"
+						]
+					}
+				},
+				"notifications": {
+					"enabled": true,
+					"name": "{name}",
+					"url": "/files/{id}"
+				},
+				"presets": {
+					"reader": [
+						"read",
+						"download"
+					],
+					"commenter": [
+						"read",
+						"download",
+						"comment"
+					],
+					"editor": [
+						"read",
+						"download",
+						"comment",
+						"write"
+					],
+					"manager": [
+						"read",
+						"download",
+						"comment",
+						"write",
+						"manage"
+					]
+				}
+			}
 		}
 	}
 }

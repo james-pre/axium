@@ -26,8 +26,6 @@ function listExtraFields(user: Pick<UserInternal, 'id' | 'roles' | 'tags'>) {
 	];
 }
 
-acl.addItemLink('task_lists', list => ({ name: list.name, url: '/tasks/' + list.id }));
-
 addSyncObjectType('task_lists', {
 	queryAdditions: (qb, user) => qb.select(listExtraFields(user)),
 });

@@ -104,8 +104,5 @@
 			"scripts": [{ "when": "before", "path": "db-scripts/add_task_list_sync_event.sql" }]
 		}
 	],
-	"wipe": ["task_lists", "tasks", "acl.task_lists"],
-	"acl_tables": {
-		"task_lists": "acl.task_lists"
-	}
+	"wipe": ["task_lists", "tasks"]
 }

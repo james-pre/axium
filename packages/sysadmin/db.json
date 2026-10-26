@@ -83,8 +83,5 @@
 			}
 		}
 	],
-	"wipe": ["systems", "system_users", "acl.systems"],
-	"acl_tables": {
-		"systems": "acl.systems"
-	}
+	"wipe": ["systems", "system_users"]
 }

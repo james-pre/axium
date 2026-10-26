@@ -119,8 +119,5 @@
 			}
 		}
 	],
-	"wipe": ["calendars", "events", "acl.calendars"],
-	"acl_tables": {
-		"calendars": "acl.calendars"
-	}
+	"wipe": ["calendars", "events"]
 }

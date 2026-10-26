@@ -63,6 +63,45 @@
 				"icon": "list-check"
 			}
 		],
-		"update_checks": true
+		"update_checks": true,
+		"access_controls": {
+			"task_lists": {
+				"permissions": {
+					"read": {
+						"default": true
+					},
+					"edit": {
+						"implies": [
+							"read"
+						]
+					},
+					"manage": {
+						"implies": [
+							"read",
+							"edit"
+						]
+					}
+				},
+				"notifications": {
+					"enabled": true,
+					"name": "{name}",
+					"url": "/tasks/{id}"
+				},
+				"presets": {
+					"reader": [
+						"read"
+					],
+					"editor": [
+						"read",
+						"edit"
+					],
+					"manager": [
+						"read",
+						"edit",
+						"manage"
+					]
+				}
+			}
+		}
 	}
 }

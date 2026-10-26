@@ -61,6 +61,45 @@
 				"icon": "notes"
 			}
 		],
-		"update_checks": true
+		"update_checks": true,
+		"access_controls": {
+			"notes": {
+				"permissions": {
+					"read": {
+						"default": true
+					},
+					"edit": {
+						"implies": [
+							"read"
+						]
+					},
+					"manage": {
+						"implies": [
+							"read",
+							"edit"
+						]
+					}
+				},
+				"notifications": {
+					"enabled": true,
+					"name": "{title}",
+					"url": "/notes/{id}"
+				},
+				"presets": {
+					"reader": [
+						"read"
+					],
+					"editor": [
+						"read",
+						"edit"
+					],
+					"manager": [
+						"read",
+						"edit",
+						"manage"
+					]
+				}
+			}
+		}
 	}
 }

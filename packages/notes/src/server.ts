@@ -15,7 +15,6 @@ declare module '@axium/server/database' {
 }
 
 addSyncObjectType('notes');
-acl.addItemLink('notes', note => ({ name: note.title || 'a note', url: '/notes/' + note.id }));
 
 addRoute({
 	path: '/api/users/:id/notes',

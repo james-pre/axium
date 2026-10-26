@@ -68,6 +68,45 @@
 				"icon": "screwdriver-wrench"
 			}
 		],
-		"update_checks": true
+		"update_checks": true,
+		"access_controls": {
+			"systems": {
+				"permissions": {
+					"read": {
+						"default": true
+					},
+					"edit": {
+						"implies": [
+							"read"
+						]
+					},
+					"manage": {
+						"implies": [
+							"read",
+							"edit"
+						]
+					}
+				},
+				"notifications": {
+					"enabled": true,
+					"name": "{name}",
+					"url": "/sysadmin/systems/{id}"
+				},
+				"presets": {
+					"reader": [
+						"read"
+					],
+					"editor": [
+						"read",
+						"edit"
+					],
+					"manager": [
+						"read",
+						"edit",
+						"manage"
+					]
+				}
+			}
+		}
 	}
 }
