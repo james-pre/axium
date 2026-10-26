@@ -545,17 +545,7 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 
 		for (const [tableName, table] of Object.entries(delta.add_tables)) {
 			using _ = io.start('Adding table ' + tableName);
-			let query = tx.schema.createTable(tableName);
-			const columns = Object.entries(table.columns);
-			const pkColumns = columns.filter(([, column]) => column.primary).map(([name, column]) => ({ name, ...column }));
-			const needsSpecialConstraint = pkColumns.length > 1 || pkColumns.some(col => !col.required);
-			for (const [colName, column] of columns) {
-				query = query.addColumn(colName, sql.raw(column.type), data.buildColumn(column, !needsSpecialConstraint));
-			}
-			if (needsSpecialConstraint) {
-				query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns.map(col => col.name) as any);
-			}
-			await query.execute();
+			await data.createTable(tx.schema, tableName, table).execute();
 			io.done();
 		}
 
@@ -613,21 +603,8 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 				}
 			}
 
-			for (const [name, con] of Object.entries(tableDelta.add_constraints)) {
-				switch (con.type) {
-					case 'unique':
-						await query.addUniqueConstraint(name, con.on, b => (con.nulls_not_distinct ? b.nullsNotDistinct() : b)).execute();
-						break;
-					case 'check':
-						await query.addCheckConstraint(name, sql.raw(con.check)).execute();
-						break;
-					case 'foreign_key':
-						await query.addForeignKeyConstraint(name, con.on, con.target, con.references, b => b).execute();
-						break;
-					case 'primary_key':
-						await query.addPrimaryKeyConstraint(name, con.on).execute();
-						break;
-				}
+			for (const [name, constraint] of Object.entries(tableDelta.add_constraints)) {
+				await data.addConstraint<{ execute(): Promise<void> }>(query, name, constraint).execute();
 			}
 
 			io.done();

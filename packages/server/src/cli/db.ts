@@ -118,6 +118,16 @@ axiumDB
 		await db.database.deleteFrom(tables.keys().toArray()).execute();
 	});
 
+/** Get the schema of the versions applied to the database, excluding plugins that are not initialized */
+function getCurrentSchema(): db.schema.ActiveSchema {
+	const { current } = db.getUpgradeInfo();
+	const exclude = plugins
+		.keys()
+		.filter(name => !(name in current))
+		.toArray();
+	return db.schema.getFull({ overrideVersions: current, exclude });
+}
+
 axiumDB
 	.command('check')
 	.description('Check the structure of the database')
@@ -152,15 +162,7 @@ axiumDB
 
 		const tables = Object.fromEntries(tableMetadata.map(t => [t.schema == 'public' ? t.name : `${t.schema}.${t.name}`, t]));
 
-		const schema = io.track('Resolving database schemas', () => {
-			const { current } = db.getUpgradeInfo();
-			const currentKeys = Object.keys(current);
-			const exclude = plugins
-				.keys()
-				.filter(k => !currentKeys.includes(k))
-				.toArray();
-			return db.schema.getFull(opt.useCurrent ? { overrideVersions: current, exclude } : {});
-		});
+		const schema = io.track('Resolving database schemas', () => (opt.useCurrent ? getCurrentSchema() : db.schema.getFull()));
 
 		for (const [name, table] of Object.entries(schema.tables)) {
 			await db.checkTableTypes(name as keyof db.Schema, table, opt, tableMetadata);
@@ -175,6 +177,43 @@ axiumDB
 			io.done(true);
 			io.warn(unchecked);
 		}
+
+		io.start('Checking for missing constraints');
+		const missing = await db.missingConstraints(schema.tables);
+		const missingNames = Object.entries(missing)
+			.flatMap(([table, constraints]) => Object.keys(constraints).map(name => `${table}.${name}`))
+			.join(', ');
+		if (!missingNames.length) io.done();
+		else if (opt.strict) io.exit(missingNames);
+		else {
+			io.done(true);
+			io.warn(missingNames + ' (run `axium db fix` to add them)');
+		}
+	});
+
+axiumDB
+	.command('fix')
+	.description('Change the database to match the schema currently in use, such as by adding missing constraints')
+	.option('--dry-run', 'Rollback changes instead of committing them')
+	.action(async opt => {
+		await using _ = db.connect();
+
+		const missing = await db.missingConstraints(getCurrentSchema().tables);
+
+		const repair = db.delta.Version.parse({
+			delta: true,
+			alter_tables: Object.fromEntries(Object.entries(missing).map(([table, add_constraints]) => [table, { add_constraints }])),
+		});
+
+		if (db.delta.isEmpty(repair)) {
+			console.log('Nothing to fix.');
+			return;
+		}
+
+		for (const text of db.delta.display(repair)) console.log(text);
+		await io.assertYes();
+		await db.delta.apply(repair, opt.dryRun);
+		if (opt.dryRun) io.warn('--dry-run: No changes were applied.');
 	});
 
 axiumDB

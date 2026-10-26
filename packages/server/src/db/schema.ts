@@ -1,13 +1,12 @@
 import type { AccessControlConfig } from '@axium/core/access';
 import { plugins } from '@axium/core/plugins';
 import * as io from 'ioium/node';
-import { sql } from 'kysely';
 import { statSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import type { Expand, MutableRecursive, ReadonlyRecursive } from 'utilium';
 import * as z from 'zod';
 import { database } from './connection.js';
-import { buildColumn, Index, Script, Table, type Column, type TableValue } from './data.js';
+import { createTable, Index, Script, Table, type Column, type TableValue } from './data.js';
 import * as delta from './delta.js';
 import raw from './schema.json' with { type: 'json' };
 export * from './data.js';
@@ -305,17 +304,7 @@ export function getFull(opt: GetFullOptions = {}): ActiveSchema {
 
 export function* toSQL(schema: SchemaDecl): Generator<string> {
 	for (const [tableName, table] of Object.entries(schema.tables)) {
-		let query = database.schema.createTable(tableName);
-
-		const columns = Object.entries(table.columns);
-		const pkColumns = columns.filter(([, column]) => column.primary).map(([name, column]) => ({ name, ...column }));
-		const needsSpecialConstraint = pkColumns.length > 1 || pkColumns.some(col => !col.required);
-		for (const [colName, column] of columns) {
-			query = query.addColumn(colName, sql.raw(column.type), buildColumn(column, !needsSpecialConstraint));
-		}
-		if (needsSpecialConstraint) {
-			query = query.addPrimaryKeyConstraint('PK_' + tableName.replaceAll('.', '_'), pkColumns.map(col => col.name) as any);
-		}
+		const query = createTable(database.schema, tableName, table);
 
 		yield query.compile().sql.replace('(', '(\n\t').replaceAll(', ', ',\n\t').replace(/\)$/, '\n);\n');
 

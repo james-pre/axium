@@ -2,7 +2,7 @@
  * - Zod schemas for the DB schema config
  * - DB config const type -> value type used by Kysely
  */
-import { sql, type ColumnDefinitionBuilder, type Generated } from 'kysely';
+import { sql, type ColumnDefinitionBuilder, type CreateTableBuilder, type Expression, type Generated, type SchemaModule } from 'kysely';
 import type { Tuple } from 'utilium';
 import * as z from 'zod';
 
@@ -185,4 +185,61 @@ export function buildColumn(column: Column, allowPK: boolean) {
 		if (column.check) col = col.check(sql.raw(column.check));
 		return col;
 	};
+}
+
+interface ConstraintBuilder<T> {
+	addPrimaryKeyConstraint(name: string, columns: string[]): T;
+	addUniqueConstraint(
+		name: string,
+		columns: string[],
+		build: NonNullable<Parameters<CreateTableBuilder<string, string>['addUniqueConstraint']>[2]>
+	): T;
+	addCheckConstraint(name: string, check: Expression<any>): T;
+	addForeignKeyConstraint(name: string, columns: string[], targetTable: string, targetColumns: string[]): T;
+}
+
+/** Add a constraint with a create or alter table builder */
+export function addConstraint<T>(builder: ConstraintBuilder<T>, name: string, constraint: Constraint): T {
+	switch (constraint.type) {
+		case 'primary_key':
+			return builder.addPrimaryKeyConstraint(name, constraint.on);
+		case 'unique':
+			return builder.addUniqueConstraint(name, constraint.on, unique =>
+				constraint.nulls_not_distinct ? unique.nullsNotDistinct() : unique
+			);
+		case 'check':
+			return builder.addCheckConstraint(name, sql.raw(constraint.check));
+		case 'foreign_key':
+			return builder.addForeignKeyConstraint(name, constraint.on, constraint.target, constraint.references);
+	}
+}
+
+/**
+ * Build the query that creates a table, including its constraints.
+ * Columns marked as primary form the primary key, unless the table has a primary key constraint.
+ */
+export function createTable(schema: SchemaModule, name: string, table: Table): CreateTableBuilder<string, string> {
+	let query: CreateTableBuilder<string, string> = schema.createTable(name);
+
+	const columns = Object.entries(table.columns);
+	const constraints = Object.entries(table.constraints);
+	const primaryColumns = columns.filter(([, column]) => column.primary);
+	const hasPrimaryConstraint = constraints.some(([, constraint]) => constraint.type == 'primary_key');
+	const needsSpecialConstraint =
+		!hasPrimaryConstraint && (primaryColumns.length > 1 || primaryColumns.some(([, column]) => !column.required));
+
+	for (const [columnName, column] of columns) {
+		query = query.addColumn(columnName, sql.raw(column.type), buildColumn(column, !hasPrimaryConstraint && !needsSpecialConstraint));
+	}
+
+	if (needsSpecialConstraint) {
+		query = query.addPrimaryKeyConstraint(
+			'PK_' + name.replaceAll('.', '_'),
+			primaryColumns.map(([columnName]) => columnName)
+		);
+	}
+
+	for (const [constraintName, constraint] of constraints) query = addConstraint(query, constraintName, constraint);
+
+	return query;
 }

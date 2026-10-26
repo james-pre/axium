@@ -452,6 +452,39 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 	else io.warn(unchecked);
 }
 
+/**
+ * Get the constraints declared by tables that are missing from the database, by table.
+ * Tables that do not exist are skipped.
+ */
+export async function missingConstraints(tables: Record<string, schema.Table>): Promise<Record<string, Record<string, schema.Constraint>>> {
+	const { rows } = await sql<{ schemaName: string; tableName: string; name: string | null }>`
+		SELECT n.nspname AS "schemaName", c.relname AS "tableName", con.conname AS name
+		FROM pg_class c
+		JOIN pg_namespace n ON n.oid = c.relnamespace
+		LEFT JOIN pg_constraint con ON con.conrelid = c.oid
+		WHERE c.relkind = 'r'
+	`.execute(database);
+
+	const existing = new Map<string, Set<string>>();
+	for (const { schemaName, tableName, name } of rows) {
+		const table = schemaName == 'public' ? tableName : `${schemaName}.${tableName}`;
+		const names = existing.get(table) ?? new Set();
+		if (name) names.add(name);
+		existing.set(table, names);
+	}
+
+	const missing: Record<string, Record<string, schema.Constraint>> = {};
+	for (const [tableName, table] of Object.entries(tables)) {
+		const names = existing.get(tableName);
+		if (!names) continue;
+		for (const [name, constraint] of Object.entries(table.constraints)) {
+			if (!names.has(name)) (missing[tableName] ??= {})[name] = constraint;
+		}
+	}
+
+	return missing;
+}
+
 export async function clean(opt: Partial<OpOptions>): Promise<void> {
 	const db = connect();
 
