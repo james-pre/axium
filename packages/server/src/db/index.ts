@@ -393,12 +393,18 @@ export interface CheckOptions extends OpOptions {
 	extra?: boolean;
 }
 
+/** Postgres' internal names for type aliases, and whether the type implies a default */
 const toIntrospected: Record<string, [string, hasDefault?: boolean]> = {
 	boolean: ['bool'],
+	smallint: ['int2'],
 	integer: ['int4'],
 	serial: ['int4', true],
 	bigint: ['int8'],
 	bigserial: ['int8', true],
+	real: ['float4'],
+	'double precision': ['float8'],
+	decimal: ['numeric'],
+	char: ['bpchar'],
 };
 
 /**
@@ -420,14 +426,15 @@ export async function checkTableTypes<TB extends keyof Schema & string>(
 
 	for (const [i, [key, { type: rawType, required = false, default: _default }]] of _types.entries()) {
 		const col = columns[key];
-		let type: string = rawType;
-		if (type.endsWith('[]')) type = '_' + type.slice(0, -2);
+		const isArray = /\[\d*\]$/.test(rawType);
+		let type = rawType.replace(/\[\d*\]$/, '').replace(/\(.*\)$/, '');
 		let hasDefault = _default !== undefined;
 		if (type in toIntrospected) {
 			const [newType, _hasDefault] = toIntrospected[type];
 			type = newType;
 			if (typeof _hasDefault === 'boolean') hasDefault = _hasDefault;
 		}
+		if (isArray) type = '_' + type;
 		try {
 			if (!col) throw 'missing.';
 			if (col.dataType != type) throw `incorrect type "${col.dataType}", expected ${type} (${rawType})`;
