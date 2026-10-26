@@ -21,6 +21,9 @@
 	import { contextMenu } from '@axium/client/attachments';
 	import { upload } from 'utilium/dom';
 	import { refreshAll } from '$app/navigation';
+	import { push } from '@axium/client/web';
+	import feature from '@axium/core/features';
+	import Notifications from './Notifications.svelte';
 	import Passkeys from './Passkeys.svelte';
 
 	const { data }: PageProps = $props();
@@ -173,6 +176,15 @@
 			<Passkeys passkeys={await data.passkeys} userId={user.id} />
 		</Boundary>
 	</div>
+
+	{#if push.supported && feature('pwa')}
+		<div id="notifications" class="section">
+			<h3>{text('page.account.notifications.title')}</h3>
+			<Boundary error="page.account.load_failed.notifications" pending="generic.loading" inline>
+				<Notifications />
+			</Boundary>
+		</div>
+	{/if}
 
 	{const { recovery } = await data.auth}
 	{#if recovery.enabled && (recovery.email || user.email)}

@@ -4,6 +4,7 @@ import { themeStyles } from '../themes.js';
 import { extendCurrentSession, getCurrentSession } from '../user.js';
 import { loadFeatures } from './features.js';
 import { loadLocale } from './locales.js';
+import * as push from './push.js';
 import * as pwa from './pwa.js';
 
 const day = 86400_000;
@@ -14,6 +15,8 @@ export async function init() {
 
 	if (feature('pwa')) void pwa.register().catch(e => console.debug('Failed to register service worker:', errorText(e)));
 	else void pwa.unregister().catch(() => {});
+
+	if (session && feature('pwa')) void push.sync().catch(e => console.debug('Failed to sync push subscription:', errorText(e)));
 
 	await loadLocale().catch(() => {});
 

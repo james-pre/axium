@@ -5,6 +5,7 @@ import { capitalize, omit } from 'utilium';
 import * as z from 'zod';
 import config from './config.js';
 import { database, type Schema } from './db/index.js';
+import { notify } from './notifications.js';
 import * as io from 'ioium/node';
 
 const severityFormat = {
@@ -90,6 +91,20 @@ export function addEvent(init: AuditEventConfigInit) {
 	events.set(init.name, config);
 }
 
+async function notifyAdmins(event: AuditEvent): Promise<void> {
+	const admins = await database.selectFrom('users').select('id').where('isAdmin', '=', true).execute();
+
+	await notify(
+		admins.map(admin => admin.id),
+		{
+			title: `${Severity[event.severity]}: ${event.name}`,
+			body: `${event.source} ${event.tags ? event.tags.map(tag => '#' + tag).join(' ') : ''}`,
+			url: `/admin/audit/${event.id}`,
+			tag: 'audit:' + event.id,
+		}
+	);
+}
+
 export async function audit<T extends EventName>(eventName: T, userId?: string, extra?: EventExtra<T>) {
 	const cfg = events.get(eventName);
 
@@ -113,6 +128,9 @@ export async function audit<T extends EventName>(eventName: T, userId?: string, 
 		.returningAll()
 		.executeTakeFirstOrThrow();
 	output(event);
+
+	if (event.severity <= Severity[capitalize(config.audit.notify)])
+		void notifyAdmins(event).catch(e => io.warn('Could not notify admins of audit event:', io.errorText(e)));
 
 	if (userId && !cfg.noAutoSuspend && event.severity < Severity[capitalize(config.audit.auto_suspend)]) {
 		await database

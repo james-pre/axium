@@ -3,6 +3,7 @@ import './admin.js';
 import './features.js';
 import './metadata.js';
 import './passkeys.js';
+import './push.js';
 import './images.js';
 import './locales.js';
 import './register.js';

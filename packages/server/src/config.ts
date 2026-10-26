@@ -46,6 +46,8 @@ const schema = z.looseObject({
 		/** Minimum severity level. Less severe events will be ignored. */
 		min_severity: z.literal(audit_severity_levels).default('notice'),
 		auto_suspend: z.literal(audit_severity_levels).default('critical'),
+		/** Events at least this severe send a push notification to admins */
+		notify: z.literal(audit_severity_levels).default('error'),
 	}),
 	auth: z.looseObject({
 		/** In minutes */
@@ -96,6 +98,12 @@ const schema = z.looseObject({
 		console: cfg.bool.default(true),
 	}),
 	origin: z.string().default('https://localhost'),
+	push: z.looseObject({
+		/** Path to the VAPID private key. Generate one with `axium push-keygen`. */
+		key_file: z.string().default(resolve(systemDir, 'push_key.pem')),
+		/** Contact for push services, as a `mailto:` or `https:` URL. Defaults to the origin. */
+		subject: z.string().optional(),
+	}),
 	request_size_limit: z.coerce.number().min(0).optional().default(0),
 	show_duplicate_state: cfg.bool.default(false),
 	/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */

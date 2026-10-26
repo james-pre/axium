@@ -113,7 +113,16 @@
 			"load_failed": {
 				"passkeys": "Couldn't load your passkeys",
 				"recovery": "Couldn't load your recovery options",
-				"sessions": "Couldn't load your sessions"
+				"sessions": "Couldn't load your sessions",
+				"notifications": "Couldn't load your notification settings"
+			},
+			"notifications": {
+				"blocked": "Notifications are blocked in your browser's site settings",
+				"disabled": "Off",
+				"enabled": "On",
+				"not_configured": "This server isn't set up to send push notifications",
+				"this_device": "This device",
+				"title": "Notifications"
 			},
 			"passkeys": {
 				"backed_up": "This passkey is backed up",

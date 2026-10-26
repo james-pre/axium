@@ -31,6 +31,7 @@ import { config, configManager } from '../config.js';
 import * as db from '../db/index.js';
 import { _portActions, _portMethods, localDir, logger, restrictedPorts, type PortOptions } from '../io.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
+import { generateKey as generatePushKey } from '../notifications.js';
 import { serve } from '../serve.js';
 import createSocketServer from '../socket.js';
 import * as sync from '../sync.js';
@@ -174,6 +175,7 @@ cli.command('init')
 		await db.init(opt);
 		await dbInitTables(opt.assumeYes);
 		restrictedPorts({ method: 'node-cap', action: 'enable' });
+		if (!existsSync(config.push.key_file)) io.track('Generating push notification key', () => generatePushKey(config.push.key_file));
 	});
 
 /** Run the `load` hook of loaded plugins, e.g. so they can start background services */
@@ -529,5 +531,16 @@ cli.command('dkim-keygen')
 		const { privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
 		const pem = privateKey.export({ type: 'pkcs8', format: 'pem' }).toString();
 		writeFileSync(out, pem, { mode: 0o600 });
+		io.log('Wrote private key to ' + out);
+	});
+
+cli.command('push-keygen')
+	.description('Generate a VAPID key for push notifications')
+	.option('-o, --out <path>', 'Where to write the private key (defaults to push.key_file)')
+	.option('-f, --force', 'Overwrite an existing key', false)
+	.action(({ out = config.push.key_file, force }) => {
+		if (existsSync(out) && !force) io.exit(`${out} already exists. Use --force to overwrite it.`);
+
+		generatePushKey(out);
 		io.log('Wrote private key to ' + out);
 	});

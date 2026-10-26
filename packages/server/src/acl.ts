@@ -4,6 +4,7 @@ import type * as kysely from 'kysely';
 import { jsonArrayFrom } from 'kysely/helpers/postgres';
 import type { WithRequired } from 'utilium';
 import * as db from './db/index.js';
+import { _unique } from './state.js';
 
 export interface DBAccessControllable extends Omit<AccessControllable, 'id'> {
 	id: string | kysely.Generated<string>;
@@ -133,6 +134,25 @@ export async function add<const TB extends TableName>(table: TB, itemId: string,
 		.returningAll()
 		.$castTo<AccessControl & kysely.Selectable<db.Schema[TB]>>()
 		.executeTakeFirstOrThrow();
+}
+
+export interface ItemLink {
+	name: string;
+	url: string;
+}
+
+export const itemLinks = _unique('itemLinks', new Map<string, (item: any) => ItemLink>());
+
+/**
+ * Set how to link to items of a type, e.g. for notifying users when an item is shared with them.
+ * @category Plugin API
+ */
+export function addItemLink<const TB extends TargetName>(itemType: TB, link: (item: kysely.Selectable<db.Schema[TB]>) => ItemLink): void {
+	itemLinks.set(itemType, link);
+}
+
+export function linkTo<const TB extends TargetName>(itemType: TB, item: kysely.Selectable<db.Schema[TB]>): ItemLink | undefined {
+	return itemLinks.get(itemType)?.(item);
 }
 
 export function listTables(): Record<string, TableName> {

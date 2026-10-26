@@ -3,6 +3,7 @@ import { hostname } from '@axium/server/config';
 import { database } from '@axium/server/database';
 import { sendMail } from '@axium/server/email';
 import { error, withError } from '@axium/server/requests';
+import { notify } from '@axium/server/notifications';
 import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium/node';
 import { pick } from 'utilium';
@@ -179,6 +180,15 @@ export async function send(sender: User, init: EmailInit): Promise<Email> {
 /** Push a message to its mailbox owner over the socket */
 export function notifyReceived(email: Email): void {
 	socketServer?.to(`user:${email.userId}`).emit('email.received', email);
+
+	if (email.folder != 'inbox') return;
+
+	void notify(email.userId, {
+		title: email.from.name || email.from.address,
+		body: email.subject || email.snippet || undefined,
+		url: `/email/inbox/${email.id}`,
+		tag: 'email:' + email.id,
+	});
 }
 
 const maxAttempts = 8;

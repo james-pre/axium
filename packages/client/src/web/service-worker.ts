@@ -1,6 +1,7 @@
 import { version } from '$app/env';
 import { assets, immutable } from '$app/manifest';
 import { asset, resolve } from '$app/paths';
+import type { PushNotification } from '@axium/core/notifications';
 import type { PageMessage } from './pwa.js';
 
 /// <reference no-default-lib="true"/>
@@ -79,6 +80,41 @@ globalThis.addEventListener('fetch', event => {
 
 	event.respondWith(maybeCached(request));
 });
+
+globalThis.addEventListener('push', event => {
+	const notification = event.data?.json() as PushNotification | undefined;
+	if (!notification?.title) return;
+
+	const { title, url, ...options } = notification;
+	event.waitUntil(globalThis.registration.showNotification(title, { ...options, data: { url } }));
+});
+
+async function open(url: string): Promise<void> {
+	const windows = await globalThis.clients.matchAll({ type: 'window', includeUncontrolled: true });
+	const existing = windows.find(client => client.url == url);
+	if (existing) await existing.focus();
+	else await globalThis.clients.openWindow(url);
+}
+
+globalThis.addEventListener('notificationclick', event => {
+	event.notification.close();
+	const url = new URL(event.notification.data?.url ?? '/', location.origin).href;
+	event.waitUntil(open(url));
+});
+
+async function resubscribe(event: PushSubscriptionChangeEvent): Promise<void> {
+	const subscription =
+		event.newSubscription ?? (event.oldSubscription && (await globalThis.registration.pushManager.subscribe(event.oldSubscription.options)));
+	if (!subscription) return;
+
+	await fetch(resolve('api/session/push'), {
+		method: 'PUT',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify(subscription),
+	});
+}
+
+globalThis.addEventListener('pushsubscriptionchange', event => event.waitUntil(resubscribe(event)));
 
 globalThis.addEventListener('message', (event: ExtendableMessageEvent & { data: PageMessage }) => {
 	if (!event.data) console.warn('Ignoring invalid message (no data)');

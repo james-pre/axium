@@ -5,6 +5,7 @@ import { App } from './apps.js';
 import { AuditEvent, AuditFilter, Severity } from './audit.js';
 import { AuthInfo, NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
 import { Feature, Values as FeatureValues } from './features.js';
+import { PushSubscriptionInit } from './notifications.js';
 import { PackageVersionInfo } from './packages.js';
 import {
 	Passkey,
@@ -101,6 +102,13 @@ const _API = {
 	session: {
 		GET: z.object({ ...Session.shape, user: User }),
 		DELETE: Session,
+	},
+	'session/push': {
+		PUT: [PushSubscriptionInit, z.object({})],
+		DELETE: [PushSubscriptionInit.pick({ endpoint: true }), z.object({})],
+	},
+	push: {
+		GET: z.object({ publicKey: z.base64url().nullable() }),
 	},
 	register: {
 		PUT: [UserRegistrationInit, z.object({ userId: z.uuid(), options: PasskeyCreationOptions })],

@@ -179,7 +179,25 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"add_tables": {
+				"push_subscriptions": {
+					"columns": {
+						"endpoint": { "type": "text", "required": true, "primary": true },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"sessionId": { "type": "uuid", "required": true, "references": "sessions.id", "onDelete": "cascade" },
+						"p256dh": { "type": "text", "required": true },
+						"auth": { "type": "text", "required": true },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" }
+					}
+				}
+			},
+			"add_indexes": {
+				"push_subscriptions_userId": { "on": "push_subscriptions", "columns": ["userId"] }
+			}
 		}
 	],
-	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log"]
+	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log", "push_subscriptions"]
 }
