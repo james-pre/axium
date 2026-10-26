@@ -105,6 +105,7 @@
 		"account": {
 			"delete_account": "Delete Account",
 			"delete_account_confirm": "Are you sure you want to delete your account?",
+			"device_preferences": "On this device",
 			"edit_email": "Email Address",
 			"edit_name": "What do you want to be called?",
 			"edit_username": "Pick a unique username",
@@ -114,15 +115,11 @@
 				"passkeys": "Couldn't load your passkeys",
 				"recovery": "Couldn't load your recovery options",
 				"sessions": "Couldn't load your sessions",
-				"notifications": "Couldn't load your notification settings"
+				"device_preferences": "Couldn't load this device's preferences"
 			},
 			"notifications": {
 				"blocked": "Notifications are blocked in your browser's site settings",
-				"disabled": "Off",
-				"enabled": "On",
-				"not_configured": "This server isn't set up to send push notifications",
-				"this_device": "This device",
-				"title": "Notifications"
+				"label": "Notifications"
 			},
 			"passkeys": {
 				"backed_up": "This passkey is backed up",

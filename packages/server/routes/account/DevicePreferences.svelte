@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { fetchAPI, text } from '@axium/client';
+	import { Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import { push } from '@axium/client/web';
 
@@ -20,15 +21,30 @@
 	}
 </script>
 
-{#if !publicKey}
-	<p class="subtle">{text('page.account.notifications.not_configured')}</p>
-{:else}
-	<div class="item info">
-		<p class="subtle">{text('page.account.notifications.this_device')}</p>
-		<p>{subscribed ? text('page.account.notifications.enabled') : text('page.account.notifications.disabled')}</p>
-		<input type="checkbox" checked={subscribed} disabled={Notification.permission == 'denied'} onchange={toggle} />
+{#if publicKey}
+	<h4>{text('page.account.device_preferences')}</h4>
+	<div class="preference">
+		<label for="notifications:checkbox">{text('page.account.notifications.label')}</label>
+		<input
+			id="notifications:checkbox"
+			type="checkbox"
+			checked={subscribed}
+			disabled={Notification.permission == 'denied'}
+			onchange={toggle}
+		/>
+		<label for="notifications:checkbox" class="checkbox">
+			{#if subscribed}<Icon i="check" --size="1.3em" />{/if}
+		</label>
 	</div>
 	{#if Notification.permission == 'denied'}
 		<p class="subtle">{text('page.account.notifications.blocked')}</p>
 	{/if}
 {/if}
+
+<style>
+	.preference {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 1em;
+	}
+</style>
