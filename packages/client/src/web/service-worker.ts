@@ -104,7 +104,8 @@ globalThis.addEventListener('notificationclick', event => {
 
 async function resubscribe(event: PushSubscriptionChangeEvent): Promise<void> {
 	const subscription =
-		event.newSubscription ?? (event.oldSubscription && (await globalThis.registration.pushManager.subscribe(event.oldSubscription.options)));
+		event.newSubscription ??
+		(event.oldSubscription && (await globalThis.registration.pushManager.subscribe(event.oldSubscription.options)));
 	if (!subscription) return;
 
 	await fetch(resolve('api/session/push'), {
