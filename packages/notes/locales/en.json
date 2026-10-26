@@ -16,5 +16,19 @@
 		"toast_deleted": "Note deleted",
 		"pin": "Pin note",
 		"unpin": "Unpin note"
+	},
+	"permission": {
+		"notes": {
+			"read": "Read",
+			"edit": "Edit",
+			"manage": "Manage"
+		}
+	},
+	"preset": {
+		"notes": {
+			"reader": "Reader",
+			"editor": "Editor",
+			"manager": "Manager"
+		}
 	}
 }

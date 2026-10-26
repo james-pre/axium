@@ -1,5 +1,4 @@
-import type { App, AsyncResult, Result } from '@axium/core';
-import { apps } from '@axium/core';
+import type { AsyncResult } from '@axium/core';
 import { requestMethods } from '@axium/core/requests';
 import type { ZodType } from 'zod';
 import { requireSession } from '../auth.js';
@@ -31,19 +30,5 @@ addRoute({
 					])
 			),
 		};
-	},
-});
-
-addRoute({
-	path: '/api/apps',
-	GET(): Result<'GET', 'apps'> {
-		const result: App[] = [];
-
-		for (const app of apps.values()) {
-			if (config.apps.disabled.includes(app.id)) continue;
-			result.push(app);
-		}
-
-		return result;
 	},
 });

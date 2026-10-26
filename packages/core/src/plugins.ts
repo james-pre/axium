@@ -1,6 +1,6 @@
 import { debug, warn } from 'ioium';
 import * as z from 'zod';
-import { App } from './apps.js';
+import { App, apps } from './apps.js';
 import * as features from './features.js';
 import { zAsyncFunction } from './schemas.js';
 import { AccessControlConfig } from './access.js';
@@ -98,11 +98,28 @@ export function _findPlugin(search: string): PluginInternal {
 	return plugin;
 }
 
+const accessControlConfigs = new Map<string, AccessControlConfig>();
+
 export function getAccessControlConfig(itemType: string): AccessControlConfig | undefined {
-	for (const plugin of plugins.values()) {
-		const config = plugin.access_controls?.[itemType];
-		if (config) return config;
+	return accessControlConfigs.get(itemType);
+}
+
+/**
+ * Register what a plugin's metadata defines: apps, features, and access controls.
+ * @throws if an app or access controls for an item type are already defined
+ */
+export function register(plugin: Plugin): void {
+	for (const app of plugin.apps ?? []) {
+		if (apps.has(app.id)) throw new ReferenceError(`App with ID "${app.id}" already exists.`);
 	}
+
+	for (const itemType of Object.keys(plugin.access_controls ?? {})) {
+		if (accessControlConfigs.has(itemType)) throw new ReferenceError(`Access controls for "${itemType}" are already defined.`);
+	}
+
+	for (const app of plugin.apps ?? []) apps.set(app.id, app);
+	for (const [itemType, config] of Object.entries(plugin.access_controls ?? {})) accessControlConfigs.set(itemType, config);
+	features.add(plugin.features ?? {}, plugin.name);
 }
 
 export async function runIntegrations() {

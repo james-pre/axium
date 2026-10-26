@@ -7,11 +7,15 @@
 		"toast_removed": "Removed access",
 		"public_target": "Everyone",
 		"add_public": "Add Public Access",
-		"placeholder": "Add users and roles"
+		"placeholder": "Add users and roles",
+		"no_access": "No access",
+		"remove_self_confirm": "Remove your own access? You won't be able to open this or change who it's shared with.",
+		"customize": "Custom…",
+		"custom_title": "Custom permissions",
+		"save": "Save"
 	},
 	"AppMenu": {
 		"label": "Apps",
-		"failed": "Couldn't load apps.",
 		"none": "No apps available."
 	},
 	"AppPreferences": {

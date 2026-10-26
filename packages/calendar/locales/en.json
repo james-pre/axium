@@ -65,5 +65,19 @@
 		"discovery_placeholder": "Add attendees",
 		"discovery_invalid": "Can't determine attendee \"{target}\"",
 		"discovery_unsupported": "Specifying attendees without an email is not supported yet"
+	},
+	"permission": {
+		"calendars": {
+			"read": "Read",
+			"edit": "Edit",
+			"manage": "Manage"
+		}
+	},
+	"preset": {
+		"calendars": {
+			"reader": "Reader",
+			"editor": "Editor",
+			"manager": "Manager"
+		}
 	}
 }

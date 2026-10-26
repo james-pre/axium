@@ -1,5 +1,5 @@
 import type { SyncDiff } from '@axium/core';
-import { App, Session, SyncState, User } from '@axium/core';
+import { Session, SyncState, User } from '@axium/core';
 import * as io from 'ioium/node';
 import { existsSync, mkdirSync, statSync, unlinkSync } from 'node:fs';
 import { homedir } from 'node:os';
@@ -98,11 +98,10 @@ export const meta = useAt({
 	schema: z.looseObject({
 		fetched: z.int(),
 		session: Session.extend({ user: User }),
-		apps: App.array(),
 	}),
 	async update() {
-		const [session, apps] = await io.track('Fetching metadata', Promise.all([getCurrentSession(), fetchAPI('GET', 'apps')]));
-		return { fetched: Date.now(), session, apps };
+		const session = await io.track('Fetching metadata', getCurrentSession());
+		return { fetched: Date.now(), session };
 	},
 	isValid: meta => meta.fetched + _dayMs > Date.now(),
 });

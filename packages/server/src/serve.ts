@@ -1,4 +1,4 @@
-import { apps, type RequestMethod } from '@axium/core';
+import type { RequestMethod } from '@axium/core';
 import { _debugOutput, debug, warn } from 'ioium/node';
 import { plugins } from '@axium/core/plugins';
 import '@axium/server/api/index';
@@ -9,31 +9,8 @@ import { join } from 'node:path/posix';
 import { styleText } from 'node:util';
 import config from './config.js';
 import { convertFromResponse, convertToRequest } from './internal_requests.js';
-import { error, handleAPIRequest, handleResponseError, json, noCacheHeaders } from './requests.js';
+import { error, handleAPIRequest, handleResponseError, json } from './requests.js';
 import { resolveRoute, type MaybePromise } from './routes.js';
-
-const template = readFileSync(join(import.meta.dirname, '../template.html'), 'utf-8');
-
-function fillSvelteKitTemplate(
-	{ head, body }: Record<'head' | 'body', string>,
-	env: Record<string, string> = {},
-	nonce: string = ''
-): string {
-	return (
-		template
-			.replaceAll('%sveltekit.head%', head)
-			.replaceAll('%sveltekit.body%', body)
-			.replaceAll('%sveltekit.assets%', '')
-			// Unused for now.
-			.replaceAll('%sveltekit.nonce%', nonce)
-			.replace(/%sveltekit\.env\.([^%]+)%/g, (_match: string, key: string) => env[key] ?? '')
-	);
-}
-
-export const appDisabledContent = {
-	head: '<title>App Disabled</title>',
-	body: '<h1>App Disabled</h1><p>This app is currently disabled.</p>',
-};
 
 async function handleRequestDefault(req: Request): Promise<Response> {
 	const url = new URL(req.url);
@@ -44,16 +21,7 @@ async function handleRequestDefault(req: Request): Promise<Response> {
 
 	if (config.debug) console.log(styleText('blueBright', req.method.padEnd(7)), route ? route.path : url.pathname);
 
-	if (!route) {
-		// Check to see if this is for an app that is disabled.
-		const maybeApp = url.pathname.split('/')[1];
-		if (apps.has(maybeApp) && config.apps.disabled.includes(maybeApp)) {
-			const body = fillSvelteKitTemplate(appDisabledContent);
-			return new Response(body, { headers: noCacheHeaders, status: 503 });
-		}
-
-		return new Response('Not Found', { status: 404 });
-	}
+	if (!route) return new Response('Not Found', { status: 404 });
 
 	if (route.server == true) {
 		if (route.api) return await handleAPIRequest(req, params!, route).catch(handleResponseError);
@@ -70,15 +38,6 @@ async function handleRequestDefault(req: Request): Promise<Response> {
 			return handleResponseError(e);
 		}
 	}
-
-	/* const data = await route.load?.(req);
-
-	const body = fillSvelteKitTemplate(render(route.page, { props: { data } }));
-
-	return new Response(body, {
-		headers: config.web.disable_cache ? noCacheHeaders : {},
-		status: 200,
-	}); */
 
 	return json({ message: 'Not Implemented' }, { status: 501 });
 }
@@ -195,14 +154,6 @@ async function _getLinkedBuildHandler(
 				return;
 			}
 			void _runRoute(run, request, params).then(response => convertFromResponse(res, response));
-			return;
-		}
-
-		// Check to see if this is for an app that is disabled.
-		const maybeApp = url.pathname.split('/')[1];
-		if (apps.has(maybeApp) && config.apps.disabled.includes(maybeApp)) {
-			const body = fillSvelteKitTemplate(appDisabledContent);
-			res.writeHead(503, noCacheHeaders).end(body);
 			return;
 		}
 

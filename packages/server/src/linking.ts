@@ -53,11 +53,14 @@ export function linkRoutes(options: LinkOptions = {}) {
 
 export function writePluginHooks() {
 	const hooksPath = join(import.meta.dirname, '../.hooks.js');
-	let hooks = `// auto-generated plugin hooks //\n`;
+	const root = resolve(import.meta.dirname, '..');
+	let hooks = `// auto-generated plugin hooks //\nimport { Plugin, register } from '@axium/core/plugins';\n`;
 	for (const plugin of plugins.values()) {
+		const importName = plugin.name.replaceAll(/\W/g, '_');
+		hooks += `import ${importName} from '${relative(root, plugin.path)}' with { type: 'json' };\n`;
+		hooks += `register(Plugin.parse({ ...${importName}, ...${importName}.axium }));\n`;
 		if (!plugin.server?.web_client_hooks) continue;
-		const specifier = relative(resolve(import.meta.dirname, '..'), resolve(plugin.dirname, plugin.server.web_client_hooks));
-		hooks += `import '${specifier}';\n`;
+		hooks += `import '${relative(root, resolve(plugin.dirname, plugin.server.web_client_hooks))}';\n`;
 	}
 	hooks += `export * from '@axium/client/web/hooks';\n`;
 	writeFileSync(hooksPath, hooks, 'utf8');

@@ -1,7 +1,6 @@
 import type { Add, Tuple } from 'utilium';
 import * as z from 'zod';
 import { AccessControl, AccessControlUpdate, AccessTarget } from './access.js';
-import { App } from './apps.js';
 import { AuditEvent, AuditFilter, Severity } from './audit.js';
 import { AuthInfo, NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
 import { Feature, Values as FeatureValues } from './features.js';
@@ -82,9 +81,6 @@ export interface InstanceMetadata extends z.infer<typeof InstanceMetadata> {}
 const _API = {
 	metadata: {
 		GET: InstanceMetadata,
-	},
-	apps: {
-		GET: App.array(),
 	},
 	features: {
 		GET: Feature.array(),

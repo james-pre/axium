@@ -10,7 +10,7 @@ export async function updateACL(
 	itemType: string,
 	itemId: string,
 	target: AccessTarget,
-	permissions: Partial<Record<string, any>>
+	permissions: Record<string, boolean>
 ): Promise<AccessControl> {
 	const result = await fetchAPI('PATCH', 'acl/:itemType/:itemId', { target, permissions }, itemType, itemId);
 	cache.invalidate(itemType, itemId);

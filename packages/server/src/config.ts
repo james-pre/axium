@@ -36,9 +36,6 @@ const schema = z.looseObject({
 	/** Whether /api/admin is enabled */
 	admin_api: cfg.bool.default(true),
 	allow_new_users: cfg.bool.default(true),
-	apps: z.looseObject({
-		disabled: z.array(z.string()).default([]),
-	}),
 	audit: z.looseObject({
 		allow_raw: cfg.bool.default(false),
 		/** How many days to keep events in the audit log */

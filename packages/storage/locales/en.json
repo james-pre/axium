@@ -186,5 +186,13 @@
 			"rules": "Rules",
 			"hidden": "Hide in Files"
 		}
+	},
+	"preset": {
+		"storage": {
+			"reader": "Reader",
+			"commenter": "Commenter",
+			"editor": "Editor",
+			"manager": "Manager"
+		}
 	}
 }

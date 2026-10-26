@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { text } from '@axium/client/locales';
-	import { fetchAPI } from '@axium/client/requests';
+	import { apps } from '@axium/core/apps';
 	import feature from '@axium/core/features';
-	import Boundary from './Boundary.svelte';
 	import Icon from './Icon.svelte';
 	import Popover from './Popover.svelte';
 </script>
@@ -14,24 +13,22 @@
 		</button>
 	{/snippet}
 
-	<Boundary pending="generic.loading" error="AppMenu.failed" inline>
-		<div class={['AppList', feature('app-list-is-grid') && 'grid']}>
-			{#each await fetchAPI('GET', 'apps') as app}
-				<a class="menu-item" href="/{app.id}">
-					{#if app.image}
-						<img src={app.image} alt={app.name} />
-					{:else if app.icon}
-						<Icon i={app.icon} --size="1.5em" />
-					{:else}
-						<Icon i="image-circle-xmark" --size="1.5em" />
-					{/if}
-					<span>{text('app_name.' + app.id, { $default: app.name || '(unknown)' })}</span>
-				</a>
-			{:else}
-				<i>{text('AppMenu.none')}</i>
-			{/each}
-		</div>
-	</Boundary>
+	<div class={['AppList', feature('app-list-is-grid') && 'grid']}>
+		{#each apps.values() as app}
+			<a class="menu-item" href="/{app.id}">
+				{#if app.image}
+					<img src={app.image} alt={app.name} />
+				{:else if app.icon}
+					<Icon i={app.icon} --size="1.5em" />
+				{:else}
+					<Icon i="image-circle-xmark" --size="1.5em" />
+				{/if}
+				<span>{text('app_name.' + app.id, { $default: app.name || '(unknown)' })}</span>
+			</a>
+		{:else}
+			<i>{text('AppMenu.none')}</i>
+		{/each}
+	</div>
 </Popover>
 
 <style>

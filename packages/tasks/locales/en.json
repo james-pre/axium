@@ -33,5 +33,19 @@
 			"inline": "Inline with pending",
 			"mirror": "In completed section"
 		}
+	},
+	"permission": {
+		"task_lists": {
+			"read": "Read",
+			"edit": "Edit",
+			"manage": "Manage"
+		}
+	},
+	"preset": {
+		"task_lists": {
+			"reader": "Reader",
+			"editor": "Editor",
+			"manager": "Manager"
+		}
 	}
 }

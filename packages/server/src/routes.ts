@@ -1,4 +1,3 @@
-import { apps } from '@axium/core';
 import { debug } from 'ioium/node';
 import type { RequestMethod } from '@axium/core/requests';
 import type { Component } from 'svelte';
@@ -113,9 +112,6 @@ export function resolveRoute<P extends RouteParams = RouteParams>(url: URL): [Ro
 
 		// Split the path and route into parts, zipped together
 		const pathParts = pathname.split('/').filter(v => v);
-
-		// Skips routes in disabled apps
-		if (apps.has(pathParts[0]) && config.apps.disabled.includes(pathParts[0])) continue;
 
 		for (const routePart of route.path.split('/').filter(v => v)) {
 			const pathPart = pathParts.shift();

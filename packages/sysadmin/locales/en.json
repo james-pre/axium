@@ -93,5 +93,19 @@
 				"username_mismatch": "The connected user “{connected}” no longer matches the live username “{live}”."
 			}
 		}
+	},
+	"permission": {
+		"systems": {
+			"read": "Read",
+			"edit": "Edit",
+			"manage": "Manage"
+		}
+	},
+	"preset": {
+		"systems": {
+			"reader": "Reader",
+			"editor": "Editor",
+			"manager": "Manager"
+		}
 	}
 }
