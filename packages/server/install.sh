@@ -34,6 +34,7 @@ email|Email sending and receiving
 notes|Notes
 tasks|Task and to-do lists
 sysadmin|System administration
+kino|Movies and TV
 "
 
 DEFAULT_INSTALL_DIR="/var/lib/axium"
