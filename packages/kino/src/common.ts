@@ -342,7 +342,19 @@ export interface KinoDownload extends z.infer<typeof KinoDownload> {}
 export const KinoDownloadSelect = z.object({ index: z.int().nonnegative() });
 export interface KinoDownloadSelect extends z.infer<typeof KinoDownloadSelect> {}
 
+/** How the requesting user can add to the library */
+export const KinoAddOptions = z.object({
+	upload: z.boolean(),
+	/** Whether torrents are downloaded at all, even if this user can't start one */
+	downloads: z.boolean(),
+	magnet: z.boolean(),
+});
+export interface KinoAddOptions extends z.infer<typeof KinoAddOptions> {}
+
 const KinoAPI = {
+	kino: {
+		OPTIONS: KinoAddOptions,
+	},
 	'kino/downloads': {
 		GET: KinoDownload.array(),
 		PUT: [KinoDownloadInit, KinoDownload],

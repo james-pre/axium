@@ -5,6 +5,7 @@ import { prettifyError } from 'zod';
 import type {
 	ImageSize,
 	ImageType,
+	KinoAddOptions,
 	KinoDownload,
 	KinoDownloadInit,
 	KinoEpisode,
@@ -217,6 +218,11 @@ export async function uploadEpisode(
 	);
 
 	return await _upload(raw(`tv/${id}/upload`), token, max_transfer_size, file, options);
+}
+
+/** How the current user can add to the library */
+export async function getAddOptions(): Promise<KinoAddOptions> {
+	return await fetchAPI('OPTIONS', 'kino');
 }
 
 /** Downloads in progress, being seeded, or that failed */

@@ -36,6 +36,22 @@ async function requireDownload(request: Request, hash: string) {
 }
 
 addRoute({
+	path: '/api/kino',
+	async OPTIONS(request): AsyncResult<'OPTIONS', 'kino'> {
+		const { user } = await requireSession(request);
+		const { allow_user_uploads, torrent } = getConfig('@axium/kino');
+
+		const upload = allow_user_uploads || user.isAdmin;
+
+		return {
+			upload,
+			downloads: downloads.enabled(),
+			magnet: upload && downloads.enabled() && (torrent.allow_user_magnets || user.isAdmin),
+		};
+	},
+});
+
+addRoute({
 	path: '/api/kino/downloads',
 	async GET(request): AsyncResult<'GET', 'kino/downloads'> {
 		await requireSession(request);
