@@ -87,6 +87,9 @@ export async function getSeason(id: number, season_number: number): Promise<kt.S
 	 */
 	if (result?.episodes.length) return result;
 
+	// Episodes reference the show, so it has to be cached first
+	await getTv(id);
+
 	const season = await tmdb()
 		.tvSeasons.details({ tvShowID: id, seasonNumber: season_number })
 		.then(d => kt.Season.parse(d));
@@ -118,6 +121,8 @@ export async function getEpisode(id: number, season_number: number, episode_numb
 		.selectAll()
 		.executeTakeFirst();
 	if (result) return result;
+
+	await getTv(id);
 
 	const episode = await tmdb()
 		.tvEpisode.details({ tvShowID: id, seasonNumber: season_number, episodeNumber: episode_number })
