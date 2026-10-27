@@ -10,8 +10,10 @@ import type {
 	KinoDownloadInit,
 	KinoEpisode,
 	KinoMovie,
+	KinoSearchPick,
 	KinoSearchResults,
 	KinoSeason,
+	KinoStats,
 	KinoView,
 	KinoViewFilter,
 	KinoViewInit,
@@ -58,6 +60,21 @@ export function episodeDataURL(id: number, season: number, episode: number, down
 
 export async function searchMedia(query: string, type?: 'movie' | 'tv'): Promise<KinoSearchResults> {
 	return await fetchAPI('POST', 'kino/search', { query, type });
+}
+
+/** What the current user recently opened from search, most recent first */
+export async function getRecentSearches(): Promise<KinoSearchResults> {
+	return await fetchAPI('GET', 'kino/search/recent');
+}
+
+/** Remember that the current user opened a movie or show from search */
+export async function recordSearchPick(pick: KinoSearchPick): Promise<void> {
+	await fetchAPI('PUT', 'kino/search/recent', pick);
+}
+
+/** How big the library is and how much space it takes up */
+export async function getStats(): Promise<KinoStats> {
+	return await fetchAPI('GET', 'kino/stats');
 }
 
 /** All movies that have been uploaded */

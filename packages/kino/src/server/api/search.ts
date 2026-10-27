@@ -5,7 +5,7 @@ import { parseBody } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as io from 'ioium/node';
 import * as kt from 'kinotool';
-import { KinoSearchQuery, type KinoSearchResults } from '../../common.js';
+import { KinoSearchPick, KinoSearchQuery, type KinoSearchResults } from '../../common.js';
 import { tmdb } from '../tmdb.js';
 
 /**
@@ -117,5 +117,63 @@ addRoute({
 		}
 
 		return results;
+	},
+});
+
+/** How many recently searched items the home page shows */
+const recentLimit = 12;
+
+addRoute({
+	path: '/api/kino/search/recent',
+	async GET(req): AsyncResult<'GET', 'kino/search/recent'> {
+		const { userId } = await requireSession(req);
+
+		// Only cached metadata is joined in, so the list never fans out into TMDB requests
+		const [movies, shows] = await Promise.all([
+			database
+				.selectFrom('kino_searches')
+				.innerJoin('kino_movies', 'kino_movies.id', 'kino_searches.id')
+				.selectAll('kino_movies')
+				.select('kino_searches.searchedAt')
+				.where('kino_searches.userId', '=', userId)
+				.where('kino_searches.type', '=', 'movie')
+				.orderBy('kino_searches.searchedAt', 'desc')
+				.limit(recentLimit)
+				.execute(),
+			database
+				.selectFrom('kino_searches')
+				.innerJoin('kino_tv', 'kino_tv.id', 'kino_searches.id')
+				.selectAll('kino_tv')
+				.select('kino_searches.searchedAt')
+				.where('kino_searches.userId', '=', userId)
+				.where('kino_searches.type', '=', 'tv')
+				.orderBy('kino_searches.searchedAt', 'desc')
+				.limit(recentLimit)
+				.execute(),
+		]);
+
+		return [
+			...movies.map(({ searchedAt, ...movie }) => ({ searchedAt, item: { ...movie, type: 'movie' as const } })),
+			...shows.map(({ searchedAt, ...show }) => ({ searchedAt, item: { ...show, type: 'tv' as const } })),
+		]
+			.sort((a, b) => b.searchedAt.getTime() - a.searchedAt.getTime())
+			.slice(0, recentLimit)
+			.map(({ item }) => item);
+	},
+
+	async PUT(req): AsyncResult<'PUT', 'kino/search/recent'> {
+		const { userId } = await requireSession(req);
+
+		const { type, id } = await parseBody(req, KinoSearchPick);
+
+		const searchedAt = new Date();
+
+		await database
+			.insertInto('kino_searches')
+			.values({ userId, type, id, searchedAt })
+			.onConflict(oc => oc.columns(['userId', 'type', 'id']).doUpdateSet({ searchedAt }))
+			.execute();
+
+		return {};
 	},
 });

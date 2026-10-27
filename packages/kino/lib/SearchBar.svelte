@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
-	import { searchMedia } from '@axium/kino/client';
+	import { recordSearchPick, searchMedia } from '@axium/kino/client';
 	import type { KinoSearchResults } from '@axium/kino/common';
+	import * as io from 'ioium';
 	import Poster from './Poster.svelte';
 
 	let query = $state(''),
@@ -53,6 +54,13 @@
 	function close() {
 		open = false;
 	}
+
+	function pick(item: KinoSearchResults[number]) {
+		close();
+		recordSearchPick({ type: item.type, id: item.id }).catch(error =>
+			io.debug('Kino: could not record a search result:', io.errorText(error))
+		);
+	}
 </script>
 
 <div
@@ -84,7 +92,7 @@
 				{#each results as item (item.type + item.id)}
 					{const title = item.type == 'movie' ? item.title : item.name}
 					{const date = item.type == 'movie' ? item.release_date : item.first_air_date}
-					<a class="result" href={item.type == 'movie' ? `/movies/${item.id}` : `/tv/${item.id}`} onclick={close}>
+					<a class="result" href={item.type == 'movie' ? `/movies/${item.id}` : `/tv/${item.id}`} onclick={() => pick(item)}>
 						<Poster path={item.poster_path} type="poster" size="w92" alt={title} />
 						<span class="name">{title}</span>
 						<span class="subtle meta">

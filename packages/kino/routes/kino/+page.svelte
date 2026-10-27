@@ -2,6 +2,7 @@
 	import { text } from '@axium/client';
 	import { Boundary } from '@axium/client/components';
 	import { MediaGrid, RecentGrid } from '@axium/kino/components';
+	import RecentSearches from './RecentSearches.svelte';
 
 	const { data } = $props();
 
@@ -23,6 +24,10 @@
 			<RecentGrid {views} empty={text('page.kino.no_recent')} />
 		</section>
 	{/if}
+</Boundary>
+
+<Boundary error="page.kino.searches_failed" inline>
+	<RecentSearches items={await data.searches} />
 </Boundary>
 
 {#if !movies.length && !shows.length}

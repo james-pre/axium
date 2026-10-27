@@ -1,4 +1,4 @@
-import { getUploadedMovies, getUploadedShows, getViews } from '@axium/kino/client';
+import { getRecentSearches, getUploadedMovies, getUploadedShows, getViews } from '@axium/kino/client';
 import { redirect } from '@sveltejs/kit';
 
 export async function load({ parent }) {
@@ -6,9 +6,10 @@ export async function load({ parent }) {
 
 	if (!session) redirect(307, '/login?after=/kino');
 
-	const views = getViews();
+	const views = getViews(),
+		searches = getRecentSearches();
 
 	const [movies, shows] = await Promise.all([getUploadedMovies(), getUploadedShows()]);
 
-	return { movies, shows, views };
+	return { movies, shows, views, searches };
 }

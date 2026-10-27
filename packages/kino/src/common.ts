@@ -165,6 +165,13 @@ export interface KinoSearchQuery extends z.infer<typeof KinoSearchQuery> {}
 export const KinoSearchResults = z.union([kt.Movie.extend({ type: z.literal('movie') }), kt.Tv.extend({ type: z.literal('tv') })]).array();
 export type KinoSearchResults = z.infer<typeof KinoSearchResults>;
 
+/** A movie or show the user opened from the search results */
+export const KinoSearchPick = z.object({
+	type: z.literal(['movie', 'tv']),
+	id: z.int().positive(),
+});
+export interface KinoSearchPick extends z.infer<typeof KinoSearchPick> {}
+
 /** How far through a movie or episode a user is, in seconds */
 export const KinoProgress = z.object({
 	position: z.number().nonnegative().default(0),
@@ -351,6 +358,39 @@ export const KinoAddOptions = z.object({
 });
 export interface KinoAddOptions extends z.infer<typeof KinoAddOptions> {}
 
+/** A movie or show, and how much space its files take up */
+export const KinoStatsItem = z.object({
+	type: z.literal(['movie', 'tv']),
+	id: z.int().positive(),
+	name: z.string(),
+	poster_path: z.string().nullish(),
+	/** In bytes */
+	size: z.number(),
+});
+export interface KinoStatsItem extends z.infer<typeof KinoStatsItem> {}
+
+export const KinoStats = z.object({
+	counts: z.object({
+		movies: z.int().nonnegative(),
+		/** TV shows with at least one uploaded episode */
+		shows: z.int().nonnegative(),
+		episodes: z.int().nonnegative(),
+	}),
+	/** Space taken by the library's files in bytes, including remuxed copies */
+	size: z.object({ movies: z.number(), tv: z.number() }),
+	/** The image cache's size and limit in bytes. The limit is null when the cache is unlimited. */
+	images: z.object({ size: z.number(), limit: z.number().nullable() }),
+	/** The filesystem holding the library, in bytes, or null when it can't be read */
+	disk: z.object({ size: z.number(), free: z.number() }).nullable(),
+	/** Null when downloads are disabled */
+	downloads: z.object({ active: z.int().nonnegative(), seeding: z.int().nonnegative() }).nullable(),
+	/** How many movies and episodes the requesting user has watched */
+	watched: z.object({ movies: z.int().nonnegative(), episodes: z.int().nonnegative() }),
+	/** The titles taking up the most space, largest first */
+	largest: KinoStatsItem.array(),
+});
+export interface KinoStats extends z.infer<typeof KinoStats> {}
+
 const KinoAPI = {
 	kino: {
 		OPTIONS: KinoAddOptions,
@@ -400,6 +440,14 @@ const KinoAPI = {
 	},
 	'kino/search': {
 		POST: [KinoSearchQuery, KinoSearchResults],
+	},
+	'kino/search/recent': {
+		/** What the user recently opened from search, most recent first */
+		GET: KinoSearchResults,
+		PUT: [KinoSearchPick, z.object({})],
+	},
+	'kino/stats': {
+		GET: KinoStats,
 	},
 } as const;
 

@@ -1,0 +1,10 @@
+import { getStats } from '@axium/kino/client';
+import { redirect } from '@sveltejs/kit';
+
+export async function load({ parent }) {
+	const { session } = await parent();
+
+	if (!session) redirect(307, '/login?after=/kino/stats');
+
+	return { stats: getStats() };
+}

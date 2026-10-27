@@ -41,7 +41,8 @@
 		"tab": {
 			"home": "Home",
 			"movies": "Movies",
-			"tv": "TV Shows"
+			"tv": "TV Shows",
+			"stats": "Stats"
 		},
 		"search": {
 			"label": "Search",
@@ -132,6 +133,8 @@
 			"recently_watched": "Recently watched",
 			"recent_failed": "Couldn't load your recently watched list",
 			"no_recent": "You haven't watched anything yet.",
+			"recently_searched": "Recently searched",
+			"searches_failed": "Couldn't load your recent searches",
 			"recent_movies": "Movies",
 			"recent_tv": "TV Shows",
 			"movies": {
@@ -142,7 +145,26 @@
 				"title": "TV Shows",
 				"empty": "No TV shows have been uploaded yet."
 			},
-			"watch_title": "Watching {name}"
+			"watch_title": "Watching {name}",
+			"stats": {
+				"title": "Movies and TV stats",
+				"heading": "Stats",
+				"failed": "Couldn't load stats",
+				"movies": "Movies",
+				"shows": "TV shows",
+				"episodes": "Episodes",
+				"storage": "Storage",
+				"disk": "{used} used · {free} free of {size}",
+				"library": "Library",
+				"image_cache": "Image cache",
+				"of_limit": "{size} of {limit}",
+				"downloads": "Downloads",
+				"downloading": "Downloading",
+				"seeding": "Seeding",
+				"watched": "Watched by you",
+				"largest": "Largest titles",
+				"empty": "Nothing has been uploaded yet."
+			}
 		}
 	}
 }

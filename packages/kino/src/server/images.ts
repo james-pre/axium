@@ -57,6 +57,12 @@ export function computeCacheSize(files: Iterable<CacheEntry> = getCacheFiles()):
 	return sum;
 }
 
+/** The cache's current size in bytes */
+export function getCacheSize(): bigint {
+	cacheSize ??= computeCacheSize();
+	return cacheSize;
+}
+
 /** The maximum cache size in bytes, or false when the cache is unlimited */
 export function maxCacheBytes(): bigint | false {
 	const { max_size } = getConfig('@axium/kino').images.cache;

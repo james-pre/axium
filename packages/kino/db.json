@@ -120,6 +120,22 @@
 					}
 				}
 			}
+		},
+		{
+			"delta": true,
+			"add_tables": {
+				"kino_searches": {
+					"columns": {
+						"userId": { "type": "uuid", "primary": true, "required": true, "references": "users.id", "onDelete": "cascade" },
+						"type": { "type": "text", "primary": true, "required": true },
+						"id": { "type": "integer", "primary": true, "required": true },
+						"searchedAt": { "type": "timestamptz", "required": true, "default": "now()" }
+					}
+				}
+			},
+			"add_indexes": {
+				"kino_searches_userId": { "on": "kino_searches", "columns": ["userId"] }
+			}
 		}
 	],
 	"wipe": []

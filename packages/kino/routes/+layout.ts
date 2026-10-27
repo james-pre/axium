@@ -15,6 +15,7 @@ export async function load({ route, parent }) {
 		{ name: text('kino.tab.home'), href: '/kino', icon: 'house', active: id.endsWith('/kino') },
 		{ name: text('kino.tab.movies'), href: '/movies', icon: 'film', active: id.includes('/movies') },
 		{ name: text('kino.tab.tv'), href: '/tv', icon: 'tv', active: id.includes('/tv') },
+		{ name: text('kino.tab.stats'), href: '/kino/stats', icon: 'chart-simple', active: id.endsWith('/kino/stats') },
 	];
 
 	return { session, tabs };

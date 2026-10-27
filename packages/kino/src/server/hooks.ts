@@ -6,6 +6,7 @@ import './api/downloads.js';
 import './api/metadata.js';
 import './api/raw.js';
 import './api/search.js';
+import './api/stats.js';
 import './api/upload.js';
 import './api/views.js';
 import * as downloads from './downloads.js';
