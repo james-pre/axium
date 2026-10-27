@@ -1,10 +1,18 @@
 <script lang="ts">
-	/** How far through the item the viewer is, from 0 to 1 */
-	const { value }: { value: number } = $props();
+	/** From 0 to 1. Without a finite number, the bar shows activity instead. */
+	const { value }: { value?: number | null } = $props();
+
+	const measured = $derived(typeof value == 'number' && Number.isFinite(value));
 </script>
 
-<div class="ProgressBar" role="progressbar" aria-valuenow={Math.round(value * 100)} aria-valuemin={0} aria-valuemax={100}>
-	<div class="fill" style:width="{value * 100}%"></div>
+<div
+	class={['ProgressBar', !measured && 'indeterminate']}
+	role="progressbar"
+	aria-valuenow={measured ? Math.round(value! * 100) : undefined}
+	aria-valuemin={0}
+	aria-valuemax={100}
+>
+	<div class="fill" style:width={measured ? `${value! * 100}%` : undefined}></div>
 </div>
 
 <style>
@@ -17,6 +25,22 @@
 		.fill {
 			height: 100%;
 			background-color: var(--fg-accent);
+			transition: width 0.5s;
+		}
+	}
+
+	.indeterminate .fill {
+		width: 30%;
+		animation: slide 1.5s ease-in-out infinite;
+	}
+
+	@keyframes slide {
+		from {
+			translate: -100%;
+		}
+
+		to {
+			translate: 340%;
 		}
 	}
 </style>
