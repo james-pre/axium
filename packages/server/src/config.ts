@@ -136,13 +136,18 @@ async function loadPlugins(path: string, file: { plugins?: string[] }, options: 
 		const serverConfig = serverConfigs.get(plugin.name);
 		if (serverConfig) {
 			plugin.config ||= {};
+
+			// Checks on the whole config, like refinements, can only run once a file is merged in
+			const partialConfig = z.object(serverConfig.shape).partial();
+
 			let configPath;
 			for (const dir of [systemDir, ...dirs]) {
 				configPath = join(dir, 'plugins', toBaseName(plugin.name) + '.json');
 				if (!existsSync(configPath)) continue;
 
 				try {
-					const data = io.readJSON(configPath, serverConfig.partial());
+					const data = io.readJSON(configPath, partialConfig);
+					serverConfig.parse(deepAssign(structuredClone(plugin.config), data, { replaceArrays: true }));
 					deepAssign(plugin.config, data, { replaceArrays: true });
 					io.debug(`Loaded config for plugin ${plugin.name} from ${configPath}`);
 				} catch (e: any) {
