@@ -15,7 +15,11 @@ export async function load() {
 	const { data_dir, images } = getConfig('@axium/kino');
 	mkdirSync(data_dir, { recursive: true });
 	mkdirSync(images.cache.directory, { recursive: true });
-	await downloads.load();
+	await downloads.update();
+}
+
+export async function configChanged() {
+	await downloads.update();
 }
 
 export async function statusText(): Promise<string> {

@@ -333,6 +333,18 @@ class LibraryDownload {
 		socketServer?.to('web').emit('kino.download.remove', this.row.hash);
 	}
 
+	/** Save where the download is up to, so it can continue later */
+	async suspend(): Promise<void> {
+		if (!this.download?.isSelected || this.row.seeding) return;
+
+		try {
+			const resume = await this.download.saveResumeData();
+			await database.updateTable('kino_downloads').set({ resume }).where('hash', '=', this.row.hash).execute();
+		} catch (error) {
+			io.warn(`Kino: could not save resume data for ${this.row.hash}:`, io.errorText(error));
+		}
+	}
+
 	/** Cancel the download, stop seeding it, or dismiss its failure */
 	async cancel(): Promise<void> {
 		await this.stop();
@@ -340,20 +352,21 @@ class LibraryDownload {
 	}
 }
 
-/** Pick up downloads from before the server started */
-export async function load(): Promise<void> {
-	if (!getConfig('@axium/kino').torrent.enabled) return;
-
+/** Start the torrent process, picking up downloads from before */
+async function startClient(): Promise<void> {
 	const torrents = new kt.torrent.Client();
 	client = torrents;
 
 	torrents.on('warning', message => io.debug('Kino: torrent:', message));
 
 	torrents.on('exit', (code, signal) => {
+		// Closed on purpose
+		if (client != torrents) return;
+
 		io.warn(`Kino: the torrent process exited (${signal ?? code}), restarting it`);
 		client = undefined;
 		active.clear();
-		setTimeout(() => void load().catch(error => io.error('Kino: could not restart downloads:', io.errorText(error))), 5000).unref();
+		setTimeout(() => void update().catch(error => io.error('Kino: could not restart downloads:', io.errorText(error))), 5000).unref();
 	});
 
 	for (const row of await database.selectFrom('kino_downloads').selectAll().execute()) {
@@ -361,6 +374,44 @@ export async function load(): Promise<void> {
 		active.set(row.hash, job);
 		if (!row.error) await job.start(torrents).catch(error => job.fail(error));
 	}
+
+	io.info(`Kino: started downloading (${active.size} existing)`);
+}
+
+async function stopClient(): Promise<void> {
+	const torrents = client;
+	if (!torrents) return;
+	client = undefined;
+
+	await Promise.all(active.values().map(job => job.suspend()));
+	await torrents.close();
+
+	for (const hash of active.keys()) socketServer?.to('web').emit('kino.download.remove', hash);
+	active.clear();
+
+	io.info('Kino: stopped downloading');
+}
+
+async function apply(): Promise<void> {
+	const { enabled, seed } = getConfig('@axium/kino').torrent;
+
+	if (!enabled) return await stopClient();
+
+	if (!client) await startClient();
+
+	if (seed) return;
+
+	for (const job of active.values()) {
+		if (job.row.seeding) await job.cancel();
+	}
+}
+
+let updating: Promise<void> = Promise.resolve();
+
+/** Start or stop downloading and seeding to match the config */
+export function update(): Promise<void> {
+	updating = updating.catch(() => {}).then(apply);
+	return updating;
 }
 
 /** Saved periodically, so a crash only loses recent progress */
