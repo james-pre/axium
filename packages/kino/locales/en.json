@@ -154,7 +154,7 @@
 				"shows": "TV shows",
 				"episodes": "Episodes",
 				"storage": "Storage",
-				"disk": "{used} used · {free} free of {size}",
+				"disk": "{used} of {size} ({free} free)",
 				"library": "Library",
 				"image_cache": "Image cache",
 				"of_limit": "{size} of {limit}",
