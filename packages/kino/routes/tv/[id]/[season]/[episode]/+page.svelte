@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { deleteEpisodeUpload, episodeDataURL } from '@axium/kino/client';
+	import { deleteEpisodeUpload, episodeDataURL, getEpisode } from '@axium/kino/client';
 	import { uploadEpisodeDrop, uploadEpisodeFile } from '@axium/kino/client/frontend';
 	import { DropZone, MediaActions, MediaDetail } from '@axium/kino/components';
 
@@ -45,9 +45,11 @@
 				bind:upload
 				watchHref="/tv/{show.id}/{season}/{episode.episode_number}/watch"
 				dataURL={episodeDataURL(show.id, season, episode.episode_number, true)}
-				uploadText={text('kino.upload_episode')}
+				target={{ type: 'episode', id: show.id, season, episode: episode.episode_number }}
+				user={data.session?.user}
 				canDelete={data.session?.user.isAdmin}
 				uploadFile={file => uploadEpisodeFile(file, show.id, season, episode.episode_number)}
+				refresh={async () => (await getEpisode(show.id, season, episode.episode_number)).upload}
 				deleteUpload={() => deleteEpisodeUpload(show.id, season, episode.episode_number)}
 			/>
 		{/snippet}

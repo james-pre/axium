@@ -59,8 +59,6 @@
 		"delete": "Delete upload",
 		"delete_confirm": "Delete this upload and its files? This cannot be undone.",
 		"delete_success": "Upload deleted",
-		"upload_movie": "Upload movie",
-		"upload_episode": "Upload episode",
 		"uploading": "Uploading {name}",
 		"uploading_many": "Uploading {count} files",
 		"upload_success": "Upload complete",
@@ -77,6 +75,36 @@
 		"invalid_show_files": "No season and episode in the name (e.g. S01E01 or S1Ep1), and not in a season folder: {names}",
 		"wrong_season_files": "Named for a different season than this one: {names}",
 		"not_uploaded": "This has not been uploaded yet.",
+		"add_to_library": "Add to Library",
+		"add": {
+			"upload": "Upload a file",
+			"magnet": "Download from a magnet link"
+		},
+		"magnet": {
+			"title": "Download from a magnet link",
+			"label": "Magnet link",
+			"submit": "Download"
+		},
+		"torrent": {
+			"state": {
+				"metadata": "Finding files",
+				"selecting": "Waiting for a file to be picked",
+				"checking": "Checking files",
+				"downloading": "Downloading",
+				"importing": "Adding to library",
+				"seeding": "Seeding",
+				"failed": "Download failed"
+			},
+			"detail": "{downloaded} of {size} · {remaining} left · {rate}/s",
+			"detail_without_estimate": "{downloaded} of {size} · {rate}/s",
+			"cancel": "Cancel download",
+			"cancel_confirm": "Cancel this download? Anything downloaded so far is deleted.",
+			"dismiss": "Dismiss",
+			"pick": "Pick a file",
+			"pick_title": "Pick a file to download",
+			"pick_hint": "This torrent has more than one video file. Pick the one to add to the library.",
+			"pick_submit": "Download"
+		},
 		"uploaded_detail": "Uploaded {date} · {size}",
 		"overview": "Overview",
 		"no_overview": "No overview available.",

@@ -2,8 +2,10 @@
 	import { text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
+	import type { User } from '@axium/core';
+	import type { KinoDownloadTarget, KinoUpload } from '@axium/kino/common';
 	import { bytes as formatBytes } from 'utilium/format';
-	import { mediaAccept, type KinoUpload } from '@axium/kino/common';
+	import AddToLibrary from './AddToLibrary.svelte';
 
 	interface Props {
 		/** The upload backing this movie/episode, or nullish when nothing has been uploaded */
@@ -12,34 +14,22 @@
 		watchHref: string;
 		/** The `/raw` URL the file is downloaded from */
 		dataURL: string;
-		/** Label for the upload button */
-		uploadText: string;
+		/** The movie or episode, for downloading it */
+		target: KinoDownloadTarget;
+		user?: Pick<User, 'id' | 'isAdmin'>;
 		/** Whether the current user may delete the upload */
 		canDelete?: boolean;
 		/** Performs the upload, resolving with the new upload once it finishes */
 		uploadFile(file: File): Promise<KinoUpload | undefined>;
+		/** Fetches the upload again, e.g. once a download finishes */
+		refresh(): Promise<KinoUpload | null | undefined>;
 		/** Deletes the upload and its files */
 		deleteUpload?(): Promise<unknown>;
 	}
 
-	let { upload = $bindable(), watchHref, dataURL, uploadText, canDelete, uploadFile, deleteUpload }: Props = $props();
+	let { upload = $bindable(), watchHref, dataURL, target, user, canDelete, uploadFile, refresh, deleteUpload }: Props = $props();
 
-	let input = $state<HTMLInputElement>();
 	let deleteDialog = $state<HTMLDialogElement>();
-
-	function onPicked(event: Event & { currentTarget: HTMLInputElement }) {
-		const file = event.currentTarget.files?.[0];
-
-		// Clear it so picking the same file again still fires a change event
-		event.currentTarget.value = '';
-
-		if (!file) return;
-
-		// Progress is reported by a toast, so there is nothing to wait on here
-		void uploadFile(file).then(result => {
-			if (result) upload = result;
-		});
-	}
 
 	async function confirmDelete() {
 		try {
@@ -72,14 +62,15 @@
 			{text('kino.uploaded_detail', { date: upload.uploadedAt.toLocaleDateString(), size: formatBytes(upload.size) })}
 		</span>
 	{:else}
-		<button class="icon-text" onclick={() => input?.click()}>
-			<Icon i="upload" />
-			{uploadText}
-		</button>
-		<span class="subtle">{text('kino.not_uploaded')}</span>
+		<AddToLibrary
+			{target}
+			{user}
+			emptyText={text('kino.not_uploaded')}
+			{uploadFile}
+			onUpload={result => (upload = result)}
+			onDownloadEnd={async () => (upload = await refresh())}
+		/>
 	{/if}
-
-	<input bind:this={input} type="file" accept={mediaAccept} onchange={onPicked} hidden />
 </div>
 
 <FormDialog bind:dialog={deleteDialog} submitText={text('kino.delete')} submitDanger submit={confirmDelete}>

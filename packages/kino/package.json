@@ -39,9 +39,9 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.39.0",
-		"@axium/core": ">=0.41.0",
-		"@axium/server": ">=0.54.0",
+		"@axium/client": ">=0.42.0",
+		"@axium/core": ">=0.44.0",
+		"@axium/server": ">=0.59.0",
 		"@james-pre/locales": "^1.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"kysely": "^0.29.0",
@@ -50,7 +50,7 @@
 	"dependencies": {
 		"commander": "^15.0.0",
 		"ioium": "^1.6.0",
-		"kinotool": "^0.3.1",
+		"kinotool": "^0.3.2",
 		"mime": "^4.1.0",
 		"tmdb-ts": "^2.3.0",
 		"zod": "^4.0.5"

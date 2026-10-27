@@ -2,7 +2,7 @@
 	import { refreshAll } from '$app/navigation';
 	import { text } from '@axium/client';
 	import { uploadSeasonDrop } from '@axium/kino/client/frontend';
-	import { DropZone, EpisodeList, MediaDetail, TvWatchButton } from '@axium/kino/components';
+	import { AddToLibrary, DropZone, EpisodeList, MediaDetail, TvWatchButton } from '@axium/kino/components';
 
 	const { data } = $props();
 
@@ -33,6 +33,13 @@
 
 		{#snippet actions()}
 			<TvWatchButton id={show.id} view={data.view} {season} />
+			{#if !season.episodes?.some(episode => episode.upload)}
+				<AddToLibrary
+					target={{ type: 'season', id: show.id, season: season.season_number }}
+					user={data.session?.user}
+					onDownloadEnd={() => refreshAll()}
+				/>
+			{/if}
 		{/snippet}
 
 		<section>

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { deleteMovieUpload, movieDataURL } from '@axium/kino/client';
+	import { deleteMovieUpload, getMovie, movieDataURL } from '@axium/kino/client';
 	import { uploadMovieDrop, uploadMovieFile } from '@axium/kino/client/frontend';
 	import { DropZone, MediaActions, MediaDetail } from '@axium/kino/components';
 
@@ -35,9 +35,11 @@
 				bind:upload
 				watchHref="/movies/{movie.id}/watch"
 				dataURL={movieDataURL(movie.id, true)}
-				uploadText={text('kino.upload_movie')}
+				target={{ type: 'movie', id: movie.id }}
+				user={data.session?.user}
 				canDelete={data.session?.user.isAdmin}
 				uploadFile={file => uploadMovieFile(file, movie.id)}
+				refresh={async () => (await getMovie(movie.id)).upload}
 				deleteUpload={() => deleteMovieUpload(movie.id)}
 			/>
 		{/snippet}

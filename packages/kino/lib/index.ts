@@ -1,3 +1,5 @@
+export { default as AddToLibrary } from './AddToLibrary.svelte';
+export { default as DownloadStatus } from './DownloadStatus.svelte';
 export { default as DropZone } from './DropZone.svelte';
 export { default as EpisodeList } from './EpisodeList.svelte';
 export { default as MediaActions } from './MediaActions.svelte';
