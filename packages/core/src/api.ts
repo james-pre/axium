@@ -106,6 +106,10 @@ const _API = {
 	push: {
 		GET: z.object({ publicKey: z.base64url().nullable() }),
 	},
+	login: {
+		OPTIONS: PasskeyAuthOptions,
+		POST: [PasskeyAuthResponse, NewSessionResponse],
+	},
 	register: {
 		PUT: [UserRegistrationInit, z.object({ userId: z.uuid(), options: PasskeyCreationOptions })],
 		POST: [UserRegistration, NewSessionResponse],

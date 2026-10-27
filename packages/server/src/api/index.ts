@@ -6,6 +6,7 @@ import './passkeys.js';
 import './push.js';
 import './images.js';
 import './locales.js';
+import './login.js';
 import './register.js';
 import './session.js';
 import './sync.js';

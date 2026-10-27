@@ -37,6 +37,13 @@ export async function loginByUsername(username: string): Promise<NewSessionRespo
 	return await login(userId);
 }
 
+/** Resolves once the user picks a passkey from the browser's autofill on an `autocomplete="webauthn"` input. */
+export async function loginWithAutofill(): Promise<NewSessionResponse> {
+	const optionsJSON = await fetchAPI('OPTIONS', 'login');
+	const response = await startAuthentication({ optionsJSON, useBrowserAutofill: true });
+	return await fetchAPI('POST', 'login', response);
+}
+
 let _currentSession: (Session & { user: User }) | null = null;
 
 export async function getCurrentSession(): Promise<Session & { user: User }> {
