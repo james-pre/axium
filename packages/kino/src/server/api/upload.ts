@@ -80,7 +80,7 @@ movieUploads.addEndpoint('/raw/kino/movies/upload', async upload => {
 		await tx.commit().execute();
 
 		// Runs in the background; until it finishes the original is served
-		remuxUpload(base);
+		void remuxUpload(base);
 
 		return item;
 	} catch (error: any) {
@@ -150,7 +150,7 @@ tvUploads.addEndpoint('/raw/kino/tv/:id/upload', async upload => {
 
 		await tx.commit().execute();
 
-		remuxUpload(base);
+		void remuxUpload(base);
 
 		return item;
 	} catch (error: any) {

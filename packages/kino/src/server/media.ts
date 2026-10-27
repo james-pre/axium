@@ -1,8 +1,7 @@
 import { getConfig } from '@axium/core';
 import * as io from 'ioium/node';
 import * as kt from 'kinotool';
-import { spawn } from 'node:child_process';
-import { existsSync, renameSync, rmSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { mediaExtensions, mediaTypes, type MediaExt } from '../common.js';
 
@@ -55,17 +54,11 @@ export function removeMedia(base: string): string[] {
 	return files;
 }
 
-/** Bases with a remux already running, so a retry can't start a second ffmpeg on the same file */
-const remuxing = new Set<string>();
-
 /**
- * Start remuxing a freshly uploaded MKV to MP4, if the config asks for it.
- *
- * Remuxing multi-GB files takes minutes, so ffmpeg is spawned rather than run through
- * `kt.mkv.remuxToMp4`, whose synchronous `trackCommand` would block the event loop for the duration.
+ * Remux a freshly uploaded MKV to MP4, if the config asks for it.
  * Until it finishes, `resolveMedia` keeps serving the MKV.
  */
-export function remuxUpload(base: string): void {
+export async function remuxUpload(base: string): Promise<void> {
 	const { remux } = getConfig('@axium/kino');
 	if (remux == 'original') return;
 
@@ -75,56 +68,23 @@ export function remuxUpload(base: string): void {
 	// Nothing to do for files that were uploaded as MP4 or have already been remuxed
 	if (!existsSync(input) || existsSync(output)) return;
 
-	if (remuxing.has(base)) return;
+	io.info('Kino: remuxing', input);
 
-	let plan;
 	try {
-		plan = kt.mkv.planRemuxToMp4(input, output);
+		await kt.remux.run(input, output);
 	} catch (e: any) {
 		// e.g. HEVC video, which would need a real transcode
-		io.warn(`Kino: cannot remux ${input}: ` + io.errorText(e));
+		io.warn(`Kino: could not remux ${input}:`, io.errorText(e));
 		return;
 	}
 
-	remuxing.add(base);
-	io.info(`Kino: remuxing ${input}`);
+	io.info('Kino: remuxed', input);
 
-	const child = spawn('ffmpeg', plan.args, { stdio: 'ignore' });
-
-	child.on('error', e => {
-		remuxing.delete(base);
-		rmSync(plan.temp, { force: true });
-		io.warn(`Kino: could not run ffmpeg: ` + io.errorText(e));
-	});
-
-	child.on('exit', code => {
-		remuxing.delete(base);
-
-		if (code !== 0) {
-			rmSync(plan.temp, { force: true });
-			io.warn(`Kino: remux of ${input} failed with code ${code}`);
-			return;
-		}
-
-		try {
-			renameSync(plan.temp, output);
-		} catch (e: any) {
-			rmSync(plan.temp, { force: true });
-			io.warn(`Kino: could not finish remux of ${input}: ` + io.errorText(e));
-			return;
-		}
-
-		io.info(`Kino: remuxed ${input}`);
-
-		/**
-		 * Deleting the original is safe while it is being read: the inode survives until every
-		 * open handle is closed, and new requests resolve to the MP4.
-		 */
-		if (getConfig('@axium/kino').remux == 'replace') rmSync(input, { force: true });
-	});
-
-	// Don't hold the process open for a remux
-	child.unref();
+	/**
+	 * Deleting the original is safe while it is being read: the inode survives until every
+	 * open handle is closed, and new requests resolve to the MP4.
+	 */
+	if (getConfig('@axium/kino').remux == 'replace') rmSync(input, { force: true });
 }
 
 /**
@@ -136,12 +96,12 @@ export function remuxUpload(base: string): void {
  *
  * A remuxed MP4 still picks up the title through the remux's `-map_metadata`.
  *
- * @todo Tag directly-uploaded MP4s once kinotool can plan the rewrite the way `planRemuxToMp4` does,
+ * @todo Tag directly-uploaded MP4s once kinotool can plan the rewrite the way `kt.remux.plan` does,
  * so ffmpeg can be spawned instead of run inline.
  */
 export async function applyMetadata(path: string, ext: MediaExt, data: kt.Movie | kt.Episode): Promise<void> {
 	if (ext != '.mkv') {
-		io.debug('Kino: skipping metadata for ' + path + ' (only Matroska can be tagged in place)');
+		io.debug('Kino: skipping metadata for', path, '(only Matroska can be tagged in place)');
 		return;
 	}
 
@@ -153,6 +113,6 @@ export async function applyMetadata(path: string, ext: MediaExt, data: kt.Movie 
 		kt.mkv.setAacDefaultAudio(path, kt.mkv.getInfo(path));
 	} catch (e: any) {
 		// A file we can't tag is still playable, so don't fail the upload over it
-		io.warn('Kino: could not write metadata to ' + path + ': ' + io.errorText(e));
+		io.warn('Kino: could not write metadata to', path + ':', io.errorText(e));
 	}
 }
