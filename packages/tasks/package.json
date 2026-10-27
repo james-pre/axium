@@ -37,9 +37,9 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/client": ">=0.40.0",
-		"@axium/core": ">=0.41.0",
-		"@axium/server": ">=0.55.0",
+		"@axium/client": ">=0.41.0",
+		"@axium/core": ">=0.43.0",
+		"@axium/server": ">=0.58.0",
 		"@james-pre/locales": "^1.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"kysely": "^0.29.0",
