@@ -83,6 +83,12 @@
 				"temp_dir": "/srv/axium/tmp",
 				"timeout": 15
 			},
+			"torrent": {
+				"enabled": false,
+				"sources": [],
+				"allow_user_magnets": false,
+				"seed": false
+			},
 			"images": {
 				"cache": {
 					"mode": "quality",

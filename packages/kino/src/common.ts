@@ -66,42 +66,56 @@ export const ImageCacheMode = z
 	.register(locales.zod, { key: 'kino.config.cache_mode', prefix: 'kino.cache_mode' });
 export type ImageCacheMode = z.infer<typeof ImageCacheMode>;
 
-export const KinoConfig = z.object({
-	allow_user_uploads: z.boolean(),
-	data_dir: z.string().nonempty(),
-	tmdb_api_key: z.string(),
-	remux: RemuxMode,
-	images: z.object({
-		cache: z.object({
-			/**
-			 * disabled: images will not be cached
-			 * fallback: only use cached images if TMDB is unavailable. `largest_only` should be used with this option.
-			 * exact-size: use cached images when their size is the same as the requested sized
-			 * quality: use cached images when their size is at least the requested sized
-			 * prefer: always used cached images
-			 */
-			mode: ImageCacheMode,
-			/** Max cache size in MiB, 0=unlimited */
-			max_size: z.number().nonnegative(),
-			/** The directory to store cached images */
-			directory: z.string().nonempty(),
-			/**
-			 * If set, only the largest size of an image will be cached.
-			 * This will decrease cache size but increase network bandwidth
-			 */
-			largest_only: z.boolean(),
-			max_image_sizes: z.object({
-				poster: PosterImageSize,
-				backdrop: BackdropImageSize,
-				logo: LogoImageSize,
-				profile: ProfileImageSize,
-				still: StillImageSize,
+export const KinoConfig = z
+	.object({
+		allow_user_uploads: z.boolean(),
+		data_dir: z.string().nonempty(),
+		tmdb_api_key: z.string(),
+		remux: RemuxMode,
+		images: z.object({
+			cache: z.object({
+				/**
+				 * disabled: images will not be cached
+				 * fallback: only use cached images if TMDB is unavailable. `largest_only` should be used with this option.
+				 * exact-size: use cached images when their size is the same as the requested sized
+				 * quality: use cached images when their size is at least the requested sized
+				 * prefer: always used cached images
+				 */
+				mode: ImageCacheMode,
+				/** Max cache size in MiB, 0=unlimited */
+				max_size: z.number().nonnegative(),
+				/** The directory to store cached images */
+				directory: z.string().nonempty(),
+				/**
+				 * If set, only the largest size of an image will be cached.
+				 * This will decrease cache size but increase network bandwidth
+				 */
+				largest_only: z.boolean(),
+				max_image_sizes: z.object({
+					poster: PosterImageSize,
+					backdrop: BackdropImageSize,
+					logo: LogoImageSize,
+					profile: ProfileImageSize,
+					still: StillImageSize,
+				}),
 			}),
+			base_url: z.url(),
 		}),
-		base_url: z.url(),
-	}),
-	upload: UploadConfig,
-});
+		upload: UploadConfig,
+		torrent: z.object({
+			enabled: z.boolean(),
+			/** URLs to search for torrents. Not used yet. */
+			sources: z.url().array(),
+			/** Whether users who aren't administrators can have the server download any magnet link */
+			allow_user_magnets: z.boolean(),
+			/** Keep uploading downloaded torrents */
+			seed: z.boolean(),
+		}),
+	})
+	.refine(config => !config.torrent.seed || config.remux != 'replace', {
+		error: 'Seeding needs the original file, which remux "replace" discards',
+		path: ['torrent', 'seed'],
+	});
 export interface KinoConfig extends z.infer<typeof KinoConfig> {}
 
 declare module '@axium/core/plugins' {
