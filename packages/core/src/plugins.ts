@@ -12,6 +12,7 @@ export const PluginServerHooks = z.object({
 	remove: fn.optional(),
 	clean: fn.optional(),
 	load: fn.optional(),
+	configChanged: fn.optional(),
 });
 
 interface _InitOptions {
@@ -25,6 +26,8 @@ export interface ServerHooks {
 	remove?: (opt: { force?: boolean }) => void | Promise<void>;
 	clean?: (opt: Partial<_InitOptions>) => void | Promise<void>;
 	load?(): void | Promise<void>;
+	/** Called after the plugin's config changes while the server is running */
+	configChanged?(): void | Promise<void>;
 }
 
 export interface ClientHooks {

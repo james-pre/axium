@@ -156,6 +156,14 @@ async function loadPlugins(path: string, file: { plugins?: string[] }, options: 
 			}
 			plugin._configPath = configPath;
 		}
+
+		if (!options.plugins?.reload) continue;
+
+		try {
+			await plugin._hooks?.configChanged?.();
+		} catch (e) {
+			io.warn(`Failed to apply new config for plugin ${plugin.name}: ${io.errorText(e)}`);
+		}
 	}
 }
 

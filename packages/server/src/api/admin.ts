@@ -1,7 +1,7 @@
 import client from '@axium/client/package.json' with { type: 'json' };
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity, UserAdminChange, UserRegistrationInit } from '@axium/core';
-import { debug, errorText, writeJSON } from 'ioium/node';
+import { debug, errorText, warn, writeJSON } from 'ioium/node';
 import core from '@axium/core/package.json' with { type: 'json' };
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
@@ -91,6 +91,10 @@ addRoute({
 			deepAssign(plugin.config, parsed, { replaceArrays: true });
 			mkdirSync(dirname(plugin._configPath), { recursive: true });
 			writeJSON(plugin._configPath, plugin.config);
+
+			await Promise.resolve(plugin._hooks?.configChanged?.()).catch(e =>
+				warn(`Failed to apply new config for plugin ${name}: ${errorText(e)}`)
+			);
 		}
 
 		return {};
