@@ -50,7 +50,7 @@
 		"build": "tsc"
 	},
 	"peerDependencies": {
-		"@axium/core": ">=0.41.3",
+		"@axium/core": ">=0.43.0",
 		"@james-pre/locales": "^1.0.0",
 		"ioium": "^1.7.0",
 		"semver": "^7.7.4",
