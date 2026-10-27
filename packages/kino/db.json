@@ -100,6 +100,26 @@
 				"kino_movie_views_userId": { "on": "kino_movie_views", "columns": ["userId"] },
 				"kino_tv_views_userId": { "on": "kino_tv_views", "columns": ["userId"] }
 			}
+		},
+		{
+			"delta": true,
+			"add_tables": {
+				"kino_downloads": {
+					"columns": {
+						"hash": { "type": "text", "primary": true, "required": true },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"type": { "type": "text", "required": true },
+						"id": { "type": "integer", "required": true },
+						"season_number": { "type": "integer" },
+						"episode_number": { "type": "integer" },
+						"magnet": { "type": "text", "required": true },
+						"resume": { "type": "bytea" },
+						"seeding": { "type": "boolean", "required": true, "default": false },
+						"error": { "type": "text" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" }
+					}
+				}
+			}
 		}
 	],
 	"wipe": []

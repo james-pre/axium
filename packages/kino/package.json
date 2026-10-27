@@ -25,7 +25,8 @@
 		"./*": "./dist/*.js",
 		"./components": "./lib/index.js",
 		"./components/*": "./lib/*.svelte",
-		"./watch": "./lib/watch.svelte.js"
+		"./watch": "./lib/watch.svelte.js",
+		"./downloads": "./lib/downloads.svelte.js"
 	},
 	"files": [
 		"dist",
@@ -49,7 +50,7 @@
 	"dependencies": {
 		"commander": "^15.0.0",
 		"ioium": "^1.6.0",
-		"kinotool": "^0.3.0",
+		"kinotool": "^0.3.1",
 		"mime": "^4.1.0",
 		"tmdb-ts": "^2.3.0",
 		"zod": "^4.0.5"

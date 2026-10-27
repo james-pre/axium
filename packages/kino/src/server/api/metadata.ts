@@ -7,6 +7,7 @@ import * as io from 'ioium/node';
 import * as z from 'zod';
 import type { KinoUpload } from '../../common.js';
 import { getEpisode, getMovie, getSeason, getTv } from '../db.js';
+import * as downloads from '../downloads.js';
 import { episodePath, moviePath, removeMedia } from '../media.js';
 
 /**
@@ -65,6 +66,8 @@ addRoute({
 		const upload = await database.deleteFrom('kino_movie_uploads').where('id', '=', id).returning(uploadColumns).executeTakeFirst();
 
 		if (!upload) error(404, 'This movie has not been uploaded');
+
+		await downloads.stop({ type: 'movie', id });
 
 		// The row is gone either way; a file we can't remove would only waste space
 		const removed = removeMedia(moviePath(id));
@@ -174,6 +177,8 @@ addRoute({
 			.executeTakeFirst();
 
 		if (!upload) error(404, 'This episode has not been uploaded');
+
+		await downloads.stop({ type: 'episode', id, season, episode });
 
 		const removed = removeMedia(episodePath(id, season, episode));
 		io.info(`Kino: deleted episode ${id} S${season}E${episode} (${removed.length} file(s))`);

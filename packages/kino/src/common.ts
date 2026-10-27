@@ -1,5 +1,6 @@
 import { serverConfigs } from '@axium/core';
 import { $API } from '@axium/core/api';
+import { addServerToClient, type ParseFunctions } from '@axium/core/socket';
 import type {} from '@axium/core/plugins';
 import { UploadConfig, UploadInit, UploadName, UploadSize } from '@axium/core/uploads';
 import * as locales from '@james-pre/locales';
@@ -270,7 +271,89 @@ export const KinoView = z.discriminatedUnion('type', [
 ]);
 export type KinoView = z.infer<typeof KinoView>;
 
+/** What a download adds to the library */
+export const KinoDownloadTarget = z.discriminatedUnion('type', [
+	z.object({ type: z.literal('movie'), id: z.int().positive() }),
+	/** Every episode of a season, from a torrent with a media file for each */
+	z.object({ type: z.literal('season'), id: z.int().positive(), season: z.int().nonnegative() }),
+	z.object({ type: z.literal('episode'), id: z.int().positive(), season: z.int().nonnegative(), episode: z.int().positive() }),
+]);
+export type KinoDownloadTarget = z.infer<typeof KinoDownloadTarget>;
+
+/** Whether two targets include any of the same movie or episodes */
+export function targetsOverlap(a: KinoDownloadTarget, b: KinoDownloadTarget): boolean {
+	if (a.id != b.id || (a.type == 'movie') != (b.type == 'movie')) return false;
+	if (a.type == 'movie' || b.type == 'movie') return true;
+	if (a.season != b.season) return false;
+	return a.type == 'season' || b.type == 'season' || a.episode == b.episode;
+}
+
+export const KinoDownloadInit = z.object({
+	target: KinoDownloadTarget,
+	magnet: z.string().startsWith('magnet:?'),
+});
+export interface KinoDownloadInit extends z.infer<typeof KinoDownloadInit> {}
+
+/**
+ * metadata: fetching the torrent's file list from peers
+ * selecting: waiting for the user to pick which media file to download
+ * checking: verifying data already on disk
+ * importing: moving the downloaded files into the library
+ */
+export const KinoDownloadState = z.literal(['metadata', 'selecting', 'checking', 'downloading', 'importing', 'seeding', 'failed']);
+export type KinoDownloadState = z.infer<typeof KinoDownloadState>;
+
+/** A media file in a torrent that the user can pick */
+export const KinoDownloadChoice = z.object({
+	index: z.int().nonnegative(),
+	path: z.string(),
+	/** In bytes */
+	size: z.number().nonnegative(),
+});
+export interface KinoDownloadChoice extends z.infer<typeof KinoDownloadChoice> {}
+
+export const KinoDownload = z.object({
+	hash: z.string(),
+	userId: z.uuid(),
+	target: KinoDownloadTarget,
+	/** The torrent's name, once its metadata is available */
+	name: z.string().nullable(),
+	state: KinoDownloadState,
+	/** From 0 to 1 */
+	progress: z.number(),
+	/** Size of the files being downloaded, in bytes */
+	size: z.number(),
+	/** In bytes */
+	downloaded: z.number(),
+	/** In bytes per second */
+	downloadRate: z.number(),
+	/** In bytes per second */
+	uploadRate: z.number(),
+	/** Estimated time until the download is complete, in seconds */
+	remaining: z.number().nullable(),
+	peers: z.int(),
+	error: z.string().nullable(),
+	/** The files to pick from while `selecting` */
+	choices: KinoDownloadChoice.array().nullable(),
+	createdAt: z.coerce.date(),
+});
+export interface KinoDownload extends z.infer<typeof KinoDownload> {}
+
+export const KinoDownloadSelect = z.object({ index: z.int().nonnegative() });
+export interface KinoDownloadSelect extends z.infer<typeof KinoDownloadSelect> {}
+
 const KinoAPI = {
+	'kino/downloads': {
+		GET: KinoDownload.array(),
+		PUT: [KinoDownloadInit, KinoDownload],
+	},
+	'kino/downloads/:hash': {
+		/** Cancels the download, or stops seeding it */
+		DELETE: KinoDownload,
+	},
+	'kino/downloads/:hash/select': {
+		POST: [KinoDownloadSelect, KinoDownload],
+	},
 	'kino/movies': {
 		GET: KinoMovie.array(),
 	},
@@ -315,3 +398,14 @@ declare module '@axium/core/api' {
 }
 
 Object.assign($API, KinoAPI);
+
+const KinoServerToClient = {
+	'kino.download.update': [KinoDownload],
+	'kino.download.remove': [z.string()],
+} as const;
+
+declare module '@axium/core/socket' {
+	export interface ServerToClient extends ParseFunctions<typeof KinoServerToClient> {}
+}
+
+addServerToClient(KinoServerToClient);

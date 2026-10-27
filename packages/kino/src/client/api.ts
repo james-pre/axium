@@ -5,6 +5,8 @@ import { prettifyError } from 'zod';
 import type {
 	ImageSize,
 	ImageType,
+	KinoDownload,
+	KinoDownloadInit,
 	KinoEpisode,
 	KinoMovie,
 	KinoSearchResults,
@@ -215,4 +217,24 @@ export async function uploadEpisode(
 	);
 
 	return await _upload(raw(`tv/${id}/upload`), token, max_transfer_size, file, options);
+}
+
+/** Downloads in progress, being seeded, or that failed */
+export async function getDownloads(): Promise<KinoDownload[]> {
+	return await fetchAPI('GET', 'kino/downloads');
+}
+
+/** Have the server download a magnet link into the library */
+export async function startDownload(init: KinoDownloadInit): Promise<KinoDownload> {
+	return await fetchAPI('PUT', 'kino/downloads', init);
+}
+
+/** Cancel a download, stop seeding it, or dismiss its failure */
+export async function cancelDownload(hash: string): Promise<KinoDownload> {
+	return await fetchAPI('DELETE', 'kino/downloads/:hash', undefined, hash);
+}
+
+/** Pick which media file to download, when a torrent has more than one */
+export async function selectDownloadFile(hash: string, index: number): Promise<KinoDownload> {
+	return await fetchAPI('POST', 'kino/downloads/:hash/select', { index }, hash);
 }
