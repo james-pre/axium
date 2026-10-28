@@ -35,6 +35,7 @@ async function POST(request: Request) {
 		expectedChallenge: challenge => challenges.delete(challenge),
 		expectedOrigin: config.origin,
 		expectedRPID: config.auth.rp_id,
+		requireUserVerification: false,
 	}).catch(withError('Verification failed', 400));
 
 	if (!verified) error(401, 'Verification failed');

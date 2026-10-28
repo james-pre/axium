@@ -200,6 +200,7 @@ addRoute({
 				expectedChallenge,
 				expectedOrigin: config.origin,
 				expectedRPID: config.auth.rp_id,
+				requireUserVerification: userVerificationNeeded[type] == 'required',
 			})
 			.catch(withError('Verification failed', 400));
 
@@ -307,6 +308,7 @@ addRoute({
 				response,
 				expectedChallenge,
 				expectedOrigin: config.origin,
+				requireUserVerification: false,
 			})
 			.catch(withError('Verification failed', 400));
 

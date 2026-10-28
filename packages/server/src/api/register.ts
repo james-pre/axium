@@ -58,6 +58,7 @@ async function POST(request: Request) {
 		response,
 		expectedChallenge,
 		expectedOrigin: config.origin,
+		requireUserVerification: false,
 	}).catch(() => error(400, 'Verification failed'));
 
 	if (!verified || !registrationInfo) error(401, 'Verification failed');
