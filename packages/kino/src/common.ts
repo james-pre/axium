@@ -380,8 +380,6 @@ export const KinoStats = z.object({
 	size: z.object({ movies: z.number(), tv: z.number() }),
 	/** The image cache's size and limit in bytes. The limit is null when the cache is unlimited. */
 	images: z.object({ size: z.number(), limit: z.number().nullable() }),
-	/** The filesystem holding the library, in bytes, or null when it can't be read */
-	disk: z.object({ size: z.number(), free: z.number() }).nullable(),
 	/** Null when downloads are disabled */
 	downloads: z.object({ active: z.int().nonnegative(), seeding: z.int().nonnegative() }).nullable(),
 	/** How many movies and episodes the requesting user has watched */

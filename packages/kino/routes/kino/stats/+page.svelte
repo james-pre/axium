@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { Boundary, NumberBar } from '@axium/client/components';
+	import { Boundary } from '@axium/client/components';
 	import { Poster } from '@axium/kino/components';
 	import { bytes } from 'utilium/format';
 
@@ -14,7 +14,7 @@
 <h1>{text('page.kino.stats.heading')}</h1>
 
 <Boundary error="page.kino.stats.failed" inline>
-	{const { counts, size, images, disk, downloads, watched, largest } = await data.stats}
+	{const { counts, size, images, downloads, watched, largest } = await data.stats}
 	{const librarySize = size.movies + size.tv}
 
 	<div class="counts">
@@ -34,14 +34,6 @@
 
 	<section>
 		<h2>{text('page.kino.stats.storage')}</h2>
-
-		{#if disk}
-			<NumberBar
-				max={disk.size}
-				value={disk.size - disk.free}
-				text={text('page.kino.stats.disk', { used: bytes(disk.size - disk.free), free: bytes(disk.free), size: bytes(disk.size) })}
-			/>
-		{/if}
 
 		<dl>
 			<dt>{text('page.kino.stats.library')}</dt>

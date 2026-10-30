@@ -2,9 +2,9 @@ import { getConfig, type AsyncResult } from '@axium/core';
 import { requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { addRoute } from '@axium/server/routes';
-import { readdir, stat, statfs } from 'node:fs/promises';
+import { readdir, stat } from 'node:fs/promises';
 import { join, sep } from 'node:path';
-import type { KinoStats, KinoStatsItem } from '../../common.js';
+import type { KinoStatsItem } from '../../common.js';
 import * as downloads from '../downloads.js';
 import { getCacheSize, maxCacheBytes } from '../images.js';
 
@@ -35,15 +35,6 @@ async function sizesById(directory: string): Promise<Map<number, number>> {
 	);
 
 	return sizes;
-}
-
-async function getDisk(path: string): Promise<KinoStats['disk']> {
-	try {
-		const { bsize, blocks, bavail } = await statfs(path);
-		return { size: blocks * bsize, free: bavail * bsize };
-	} catch {
-		return null;
-	}
 }
 
 function sum(sizes: Map<number, number>): number {
@@ -87,10 +78,9 @@ addRoute({
 
 		const { data_dir } = getConfig('@axium/kino');
 
-		const [movieSizes, tvSizes, disk, uploads, watched] = await Promise.all([
+		const [movieSizes, tvSizes, uploads, watched] = await Promise.all([
 			sizesById(join(data_dir, 'movie')),
 			sizesById(join(data_dir, 'tv')),
-			getDisk(data_dir),
 			database
 				.selectNoFrom(eb => [
 					eb.selectFrom('kino_movie_uploads').select(eb.fn.countAll().as('count')).as('movies'),
@@ -117,7 +107,6 @@ addRoute({
 			counts: { movies: Number(uploads.movies), shows: Number(uploads.shows), episodes: Number(uploads.episodes) },
 			size: { movies: sum(movieSizes), tv: sum(tvSizes) },
 			images: { size: Number(getCacheSize()), limit: limit === false ? null : Number(limit) },
-			disk,
 			downloads: active && {
 				active: active.filter(download => download.state != 'seeding' && download.state != 'failed').length,
 				seeding: active.filter(download => download.state == 'seeding').length,
