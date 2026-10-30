@@ -73,7 +73,6 @@ export async function remuxUpload(base: string): Promise<void> {
 	try {
 		await kt.remux.run(input, output);
 	} catch (e: any) {
-		// e.g. HEVC video, which would need a real transcode
 		io.warn(`Kino: could not remux ${input}:`, io.errorText(e));
 		return;
 	}
