@@ -47,5 +47,5 @@ jobs:
               run: cd packages/server && npm run build:schemas
 
             - name: Publish
-              run: npm publish --access=public --provenance
+              run: npm publish --access=public --provenance ${{ github.event.release.prerelease && '--tag next' || '' }}
               working-directory: ${{ steps.resolve.outputs.path }}
