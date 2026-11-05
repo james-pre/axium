@@ -223,6 +223,8 @@ export interface Delta {
 	remoteItems: Map<string, RemoteItem>;
 	/** Remote folder IDs by path, including excluded folders */
 	remoteFolders: Map<string, string>;
+	/** Paths of conflict copies created while applying this delta */
+	conflictCopies: Set<string>;
 }
 
 function toSyncedItem(local: LocalItem, remote: RemoteItem): SyncedItem {
@@ -353,7 +355,16 @@ export async function computeDelta(sync: Sync, allRemoteItems: Map<string, Remot
 		}
 	}
 
-	return { sync, rules, actions: actions.values().toArray(), syncedItems, localItems, remoteItems, remoteFolders };
+	return {
+		sync,
+		rules,
+		actions: actions.values().toArray(),
+		syncedItems,
+		localItems,
+		remoteItems,
+		remoteFolders,
+		conflictCopies: new Set(),
+	};
 }
 
 const symbols: Record<SyncActionType, string> = {
@@ -406,14 +417,18 @@ function describeItem(item: LocalItem | RemoteItem): string {
 	return `${formatBytes(item.size)}, modified ${io.prettyDate(new Date(item.modifiedAt))}`;
 }
 
-async function showDiff(delta: Delta, action: SyncAction): Promise<void> {
+/** Shows the changes from `before` to `after`, with relative paths resolved from `cwd`. */
+function showDiff(before: string, after: string, labels: [before: string, after: string], cwd?: string): void {
+	// @todo don't rely on system-wide git being installed
+	const git = spawnSync('git', ['diff', '--no-index', '--', before, after], { stdio: 'inherit', cwd });
+	if (git.error) spawnSync('diff', ['-u', '--label', labels[0], '--label', labels[1], before, after], { stdio: 'inherit', cwd });
+}
+
+async function showRemoteDiff(delta: Delta, action: SyncAction): Promise<void> {
 	using tmp = fs.mkdtempDisposableSync(join(tmpdir(), 'axium-sync-'));
 	const remoteCopy = join(tmp.path, basename(action.path));
 	await streamWrite(remoteCopy, await downloadItemStream(action.remote!.id));
-	const local = join(delta.sync.local_path, action.path);
-	// @todo don't rely on system-wide git being installed
-	const git = spawnSync('git', ['diff', '--no-index', '--', remoteCopy, local], { stdio: 'inherit' });
-	if (git.error) spawnSync('diff', ['-u', '--label', 'remote', '--label', 'local', remoteCopy, local], { stdio: 'inherit' });
+	showDiff(remoteCopy, join(delta.sync.local_path, action.path), ['remote', 'local']);
 }
 
 async function askConflict(delta: Delta, action: SyncAction): Promise<ConflictResolution> {
@@ -430,15 +445,91 @@ async function askConflict(delta: Delta, action: SyncAction): Promise<ConflictRe
 
 	while (true) {
 		const choice = await io.select<ConflictResolution | 'diff'>('How should this conflict be resolved?', [
-			{ name: `Keep both (rename local to ${basename(action.path)}.conflict`, value: 'both' },
+			{ name: `Keep both (rename local to ${basename(action.path)}.conflict)`, value: 'both' },
 			{ name: 'Keep local (overwrite remote)', value: 'local' },
 			{ name: 'Keep remote (overwrite local)', value: 'remote' },
 			{ name: 'Show differences', value: 'diff' },
 			{ name: 'Skip', value: 'skip' },
 		]);
 		if (choice != 'diff') return choice;
-		await showDiff(delta, action);
+		await showRemoteDiff(delta, action);
 	}
+}
+
+/** Finds synced files that still have a conflict copy from an earlier sync. */
+function findExistingConflicts(delta: Delta, stats: SyncStats): string[] {
+	const unsettled = new Set([...stats.skipped, ...stats.failed].map(action => action.path));
+
+	return delta.syncedItems
+		.entries()
+		.filter(([path, item]) => {
+			const copy = path + '.conflict';
+			if (item.hash === null || item.deleted || unsettled.has(path) || unsettled.has(copy) || delta.conflictCopies.has(copy))
+				return false;
+			return !!fs.statSync(join(delta.sync.local_path, copy), { throwIfNoEntry: false })?.isFile();
+		})
+		.map(([path]) => path)
+		.toArray()
+		.sort();
+}
+
+type ExistingConflictResolution = 'current' | 'copy' | 'skip';
+
+async function askExistingConflict(delta: Delta, path: string): Promise<ExistingConflictResolution> {
+	const absolute = join(delta.sync.local_path, path),
+		copy = absolute + '.conflict';
+
+	const describeFile = (file: string) => {
+		const { size, mtimeMs } = fs.statSync(file);
+		return describeItem({ directory: false, size, modifiedAt: mtimeMs });
+	};
+
+	console.log(styleText(['yellow', 'bold'], 'Unresolved conflict: ') + path);
+	console.log('  Current: ' + describeFile(absolute));
+	console.log('  Copy:    ' + describeFile(copy));
+
+	while (true) {
+		const choice = await io.select<ExistingConflictResolution | 'diff'>('How should this conflict be resolved?', [
+			{ name: 'Keep current (remove the conflict copy)', value: 'current' },
+			{ name: 'Keep conflict copy (replace current)', value: 'copy' },
+			{ name: 'Show differences', value: 'diff' },
+			{ name: 'Skip', value: 'skip' },
+		]);
+		if (choice != 'diff') return choice;
+		showDiff(path, path + '.conflict', ['current', 'conflict copy'], delta.sync.local_path);
+	}
+}
+
+/**
+ * Asks how to resolve conflict copies left by earlier syncs, applying the choices locally.
+ * @returns whether anything changed locally
+ */
+async function resolveExistingConflicts(delta: Delta, options: SyncOptions, stats: SyncStats): Promise<boolean> {
+	let changed = false;
+
+	for (const path of findExistingConflicts(delta, stats)) {
+		const absolute = join(delta.sync.local_path, path),
+			copy = absolute + '.conflict';
+
+		try {
+			switch (await askExistingConflict(delta, path)) {
+				case 'skip':
+					continue;
+				case 'current':
+					removeLocal(copy, options);
+					break;
+				case 'copy':
+					if (options.trash) moveToTrash(absolute, true);
+					fs.renameSync(copy, absolute);
+					break;
+			}
+			changed = true;
+		} catch (e) {
+			io.error(`${path}: ${io.errorText(e)}`);
+		}
+	}
+
+	return changed;
 }
 
 /** Throws if a local item changed after it was scanned. */
@@ -524,13 +615,17 @@ async function download(delta: Delta, action: SyncAction, options: SyncOptions):
 	delta.syncedItems.set(path, { id: remote.id, hash: remote.hash, size, modifiedAt: mtimeMs });
 }
 
+function removeLocal(absolute: string, options: SyncOptions): void {
+	if (options.trash) moveToTrash(absolute);
+	else fs.unlinkSync(absolute);
+}
+
 function delete_local(delta: Delta, action: SyncAction, options: SyncOptions): void {
 	const absolute = join(delta.sync.local_path, action.path);
 	assertUnchanged(absolute, action.local);
 
 	if (!action.local?.directory) {
-		if (options.trash) moveToTrash(absolute);
-		else fs.unlinkSync(absolute);
+		removeLocal(absolute, options);
 		delta.syncedItems.delete(action.path);
 		return;
 	}
@@ -570,6 +665,7 @@ function resolveConflict(delta: Delta, action: SyncAction, resolution: ConflictR
 				if (e.code == 'EEXIST') throw new Error(`An unresolved conflict copy already exists: ${copy}`, { cause: e });
 				throw e;
 			}
+			delta.conflictCopies.add(copy);
 			const resolved: SyncAction[] = [{ ...action, type: 'download' }];
 			if (delta.rules.includes(copy, false)) resolved.push({ type: 'upload', path: copy, local: action.local });
 			return resolved;
@@ -618,18 +714,13 @@ async function resolveConflicts(delta: Delta, options: SyncOptions, stats: SyncS
 	return [...actions.filter(isTransfer).sort(byPath), ...actions.filter(action => !isTransfer(action)).sort((a, b) => byPath(b, a))];
 }
 
-export async function doSync(sync: Sync, options: SyncOptions): Promise<SyncStats> {
-	using _ = lock(sync);
-
-	options = { ...options, trash: options.trash ?? sync.trash ?? hasTrash() };
-
+async function syncOnce(sync: Sync, options: SyncOptions, stats: SyncStats): Promise<Delta> {
 	const [remote] = await io.track('Fetching ' + sync.name, Promise.all([fetchRemote(sync), pullRules(sync)]));
 	const delta = await io.track('Comparing ' + sync.name, computeDelta(sync, remote));
-	const stats: SyncStats = { completed: [], skipped: [], failed: [] };
 
 	if (options.dryRun) {
 		for (const action of delta.actions) console.log(describeAction(action));
-		return stats;
+		return delta;
 	}
 
 	try {
@@ -656,6 +747,21 @@ export async function doSync(sync: Sync, options: SyncOptions): Promise<SyncStat
 		fs.mkdirSync(dirname(syncedStatePath(sync)), { recursive: true });
 		io.writeJSON(syncedStatePath(sync), { items: Object.fromEntries(delta.syncedItems) });
 	}
+
+	return delta;
+}
+
+export async function doSync(sync: Sync, options: SyncOptions): Promise<SyncStats> {
+	using _ = lock(sync);
+
+	options = { ...options, trash: options.trash ?? sync.trash ?? hasTrash() };
+
+	const stats: SyncStats = { completed: [], skipped: [], failed: [] };
+	const delta = await syncOnce(sync, options, stats);
+
+	if (options.dryRun) return stats;
+
+	if (options.conflicts == 'ask' && (await resolveExistingConflicts(delta, options, stats))) await syncOnce(sync, options, stats);
 
 	if (!stats.failed.length) sync.last_synced = new Date();
 
