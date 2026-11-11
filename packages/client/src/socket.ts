@@ -14,7 +14,8 @@ export function addListener<T extends keyof ServerToClient & string>(event: T, l
 	const schema = ServerToClient[event] as z.ZodFunction<any, z.ZodVoid>;
 
 	if (!schema) io.warn(`Attaching a listener to the '${event as string}' socket event without schema`);
-	const entry: Parameters<Socket['on']> = [event, schema ? schema.implement(listener) : listener];
+	const run = (...args: unknown[]) => void (listener as (...args: unknown[]) => unknown)(...args);
+	const entry: Parameters<Socket['on']> = [event, schema ? schema.implement(run) : listener];
 	listeners.add(entry);
 	socket?.on(...entry);
 }
