@@ -45,7 +45,7 @@ addRoute({
 
 		return await database
 			.insertInto('ai_conversations')
-			.values({ title: init.title, model, reasoning: init.reasoning, userId })
+			.values({ title: init.title, titleSource: init.title ? 'user' : 'none', model, reasoning: init.reasoning, userId })
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not create conversation'));
@@ -75,7 +75,7 @@ addRoute({
 
 		return await database
 			.updateTable('ai_conversations')
-			.set(init)
+			.set({ ...init, ...(init.title !== undefined && { titleSource: 'user' as const }) })
 			.where('id', '=', id)
 			.returningAll()
 			.executeTakeFirstOrThrow()

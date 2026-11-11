@@ -1,4 +1,4 @@
-import type { AIDelta, AIMessage, AIModel } from '@axium/ai/common';
+import type { AIConversation, AIDelta, AIMessage, AIModel } from '@axium/ai/common';
 import { addListener, connect, onConnect } from '@axium/client/socket';
 import { SvelteMap } from 'svelte/reactivity';
 
@@ -10,6 +10,8 @@ export interface ConversationWatcher {
 }
 
 const watchers = new Map<string, Set<ConversationWatcher>>();
+
+const conversationListeners = new Set<(conversation: AIConversation) => void>();
 
 /** Models that changed since the page loaded, by ID; `null` for removed models */
 export const modelUpdates = new SvelteMap<string, AIModel | null>();
@@ -29,6 +31,10 @@ export function listen(): void {
 		for (const watcher of watchers.get(delta.conversationId) ?? []) watcher.delta(delta);
 	});
 
+	addListener('ai.conversation', conversation => {
+		for (const listener of conversationListeners) listener(conversation);
+	});
+
 	addListener('ai.model', model => modelUpdates.set(model.id, model));
 	addListener('ai.model.remove', id => modelUpdates.set(id, null));
 
@@ -37,6 +43,16 @@ export function listen(): void {
 	});
 
 	void connect().catch(() => null);
+}
+
+/**
+ * Receive changes to the current user's conversations, such as generated titles.
+ * @returns a function that stops listening
+ */
+export function onConversationChange(listener: (conversation: AIConversation) => void): () => void {
+	listen();
+	conversationListeners.add(listener);
+	return () => conversationListeners.delete(listener);
 }
 
 /** `models` with the live updates received since they were fetched */

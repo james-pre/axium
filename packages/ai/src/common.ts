@@ -403,6 +403,7 @@ const AIServerToClient = {
 	'ai.message': [AIMessage],
 	'ai.model': [AIModel],
 	'ai.model.remove': [AIModelId],
+	'ai.conversation': [AIConversation],
 } as const;
 
 declare module '@axium/core/socket' {

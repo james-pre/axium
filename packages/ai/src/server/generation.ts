@@ -152,6 +152,8 @@ export async function generate(conversation: ConversationRow, message: MessageRo
 			{ content: result.content, reasoning: result.reasoning || null, status: 'done', usage: result.usage },
 			conversation.userId
 		);
+
+		void nameConversation(conversation, model, result.content);
 	} catch (error) {
 		const cancelled = controller.signal.aborted;
 		if (!cancelled) io.warn(`AI: response in ${conversation.id} failed: ${io.errorText(error)}`);
@@ -167,6 +169,55 @@ export async function generate(conversation: ConversationRow, message: MessageRo
 		).catch(error => io.error(`AI: could not save response ${message.id}: ${io.errorText(error)}`));
 	} finally {
 		active.delete(conversation.id);
+	}
+}
+
+const titlePrompt = 'Write a title of 2 to 6 words for the conversation below. Reply with only the title.';
+
+/** Titles a conversation from its first exchange, unless it already has a title from a model or the user */
+async function nameConversation(conversation: ConversationRow, model: string, reply: string): Promise<void> {
+	if (conversation.titleSource != 'none') return;
+
+	try {
+		const first = await database
+			.selectFrom('ai_messages')
+			.select('content')
+			.where('conversationId', '=', conversation.id)
+			.where('role', '=', 'user')
+			.orderBy('created')
+			.limit(1)
+			.executeTakeFirst();
+		if (!first) return;
+
+		const result = await chat({
+			model,
+			reasoning: 'none',
+			maxTokens: 24,
+			signal: AbortSignal.timeout(30_000),
+			messages: [
+				{ role: 'system', content: titlePrompt },
+				{ role: 'user', content: `User: ${first.content.slice(0, 2000)}\n\nAssistant: ${reply.slice(0, 2000)}` },
+			],
+		});
+
+		const title = result.content
+			.split('\n')
+			.find(line => line.trim())
+			?.replace(/^[\s"'*#]+|[\s"'*.]+$/g, '')
+			.slice(0, 100);
+		if (!title) return;
+
+		const updated = await database
+			.updateTable('ai_conversations')
+			.set({ title, titleSource: 'auto' })
+			.where('id', '=', conversation.id)
+			.where('titleSource', '=', 'none')
+			.returningAll()
+			.executeTakeFirst();
+
+		if (updated) socketServer?.to('user:' + conversation.userId).emit('ai.conversation', updated);
+	} catch (error) {
+		io.debug(`AI: could not title ${conversation.id}: ${io.errorText(error)}`);
 	}
 }
 

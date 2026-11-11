@@ -16,6 +16,7 @@ export interface ChatRequest {
 	messages: ChatMessage[];
 	/** Sent as `reasoning_effort`, except for `default` */
 	reasoning: string;
+	maxTokens?: number;
 	signal?: AbortSignal;
 	onContent?(text: string): void;
 	onReasoning?(text: string): void;
@@ -37,6 +38,7 @@ export async function chat(request: ChatRequest): Promise<ChatResult> {
 			model: request.model,
 			messages: request.messages,
 			reasoning_effort: request.reasoning == 'default' ? undefined : request.reasoning,
+			max_tokens: request.maxTokens,
 			stream: true,
 			stream_options: { include_usage: true },
 		}),

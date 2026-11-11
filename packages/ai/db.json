@@ -26,6 +26,7 @@
 						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
 						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
 						"title": { "type": "text", "required": true, "default": "''" },
+						"titleSource": { "type": "text", "required": true, "default": "'none'", "check": "\"titleSource\" IN ('none', 'auto', 'user')" },
 						"model": { "type": "text", "references": "ai_models.id", "onDelete": "set null" },
 						"reasoning": { "type": "text", "required": true, "default": "'default'" },
 						"created": { "type": "timestamptz", "required": true, "default": "now()" },

@@ -4,7 +4,7 @@
 	import { AIConversationInit } from '@axium/ai/common';
 	import { renameConversation } from '@axium/ai/actions';
 	import { ConversationMenu } from '@axium/ai/components';
-	import { isUsable, withUpdates } from '@axium/ai/live';
+	import { isUsable, onConversationChange, withUpdates } from '@axium/ai/live';
 	import { preferencesSchema } from '@axium/ai/preferences';
 	import { text } from '@axium/client';
 	import { AppPreferencesDialog, Icon, InlineEdit, TopBarContent } from '@axium/client/components';
@@ -14,6 +14,8 @@
 	let renaming = $state<string>();
 
 	const schema = $derived(preferencesSchema(withUpdates(data.models.models).filter(isUsable)));
+
+	$effect(() => onConversationChange(() => invalidate('ai:conversations')));
 </script>
 
 <TopBarContent name={text('app_name.ai')} icon="sparkles" href="/ai" />
