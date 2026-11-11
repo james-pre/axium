@@ -43,13 +43,7 @@
 
 <div class="start">
 	<h2>{text('ai.empty')}</h2>
-	<Composer
-		models={data.models.models}
-		bind:model
-		bind:reasoning
-		onsend={start}
-		ctrlEnter={data.preferences.ctrl_enter}
-	/>
+	<Composer models={data.models.models} bind:model bind:reasoning onsend={start} ctrlEnter={data.preferences.ctrl_enter} />
 </div>
 
 <style>

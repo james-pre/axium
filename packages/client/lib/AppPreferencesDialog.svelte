@@ -4,12 +4,8 @@
 	import Icon from './Icon.svelte';
 	import { text } from '@axium/client';
 
-	const {
-		userId,
-		appId,
-		schema,
-		onsave,
-	}: { userId: string; appId: string; schema: ZodObject; onsave?(preferences: object): void } = $props();
+	const { userId, appId, schema, onsave }: { userId: string; appId: string; schema: ZodObject; onsave?(preferences: object): void } =
+		$props();
 
 	const id = 'AppPreferencesDialog:' + appId;
 

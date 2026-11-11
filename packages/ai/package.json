@@ -76,7 +76,11 @@
 				"port": 6687,
 				"models_max": 1,
 				"memory_margin": 1024,
-				"defaults": { "jinja": true, "fit": "on", "load-mode": "none" }
+				"defaults": {
+					"jinja": true,
+					"fit": "on",
+					"load-mode": "none"
+				}
 			},
 			"system_prompt": "You are a direct, candid assistant. Give your honest assessment first; if the user is wrong, say so plainly instead of hedging to spare feelings. Answer factually, as an independent journalist or historian would, without deferring to any government's official positions.",
 			"timeout": 600
