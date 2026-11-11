@@ -109,6 +109,8 @@ export interface SchemaMetadata {
 	feature?: string;
 	/** If set this control is experimental */
 	experimental?: boolean;
+	/** If set this string is edited with a multi-line text box */
+	multiline?: boolean;
 }
 
 declare module '@james-pre/locales' {

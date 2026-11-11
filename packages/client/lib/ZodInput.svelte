@@ -4,6 +4,7 @@
 	import feature from '@axium/core/features';
 	import * as locales from '@james-pre/locales';
 	import type { HTMLInputAttributes } from 'svelte/elements';
+	import { dynamicRows } from './attachments/index.js';
 	import { getByString, pick, setByString } from 'utilium';
 	import { prettifyError, type z } from 'zod';
 	import Icon from './Icon.svelte';
@@ -176,6 +177,24 @@
 
 {#if localeInfo?.feature && !feature(localeInfo.feature)}
 	<meta data-feature={localeInfo.feature} />
+{:else if schema.type == 'string' && localeInfo?.multiline}
+	<div class={['ZodInput', 'multiline', noLabel && 'no-label']}>
+		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
+		{#if error}<span class="ZodInput-error">{error}</span>{/if}
+		<textarea
+			{id}
+			bind:value
+			{onchange}
+			{oninput}
+			required={!optional}
+			minlength={schema.minLength}
+			maxlength={schema.maxLength}
+			{placeholder}
+			{readonly}
+			class={[error && 'error']}
+			{@attach dynamicRows(20, 4)}
+		></textarea>
+	</div>
 {:else if schema.type == 'string'}
 	{@render _in({ type: schema.format == 'email' ? 'email' : 'text', ...pick(schema, 'minLength', 'maxLength') })}
 {:else if schema.type == 'number'}
@@ -345,9 +364,15 @@
 		gap: 1em;
 		anchor-scope: --zod-input;
 
-		input {
+		input,
+		textarea {
 			anchor-name: --zod-input;
 		}
+	}
+
+	.ZodInput.multiline {
+		grid-template-columns: minmax(0, 1fr);
+		gap: 0.5em;
 	}
 
 	.ZodInput.no-label {
