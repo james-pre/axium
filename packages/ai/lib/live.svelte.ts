@@ -1,20 +1,20 @@
-import type { AIConversation, AIDelta, AIMessage, AIModel } from '@axium/ai/common';
+import type * as ai from '@axium/ai/common';
 import { addListener, connect, onConnect } from '@axium/client/socket';
 import { SvelteMap } from 'svelte/reactivity';
 
 export interface ConversationWatcher {
-	message(message: AIMessage): void;
-	delta(delta: AIDelta): void;
+	message(message: ai.Message): void;
+	delta(delta: ai.Delta): void;
 	/** Updates sent while disconnected were missed */
 	reconnect(): void;
 }
 
 const watchers = new Map<string, Set<ConversationWatcher>>();
 
-const conversationListeners = new Set<(conversation: AIConversation) => void>();
+const conversationListeners = new Set<(conversation: ai.Conversation) => void>();
 
 /** Models that changed since the page loaded, by ID; `null` for removed models */
-export const modelUpdates = new SvelteMap<string, AIModel | null>();
+export const modelUpdates = new SvelteMap<string, ai.Model | null>();
 
 let listening = false;
 
@@ -49,17 +49,17 @@ export function listen(): void {
  * Receive changes to the current user's conversations.
  * @returns a function that stops listening
  */
-export function onConversationChange(listener: (conversation: AIConversation) => void): () => void {
+export function onConversationChange(listener: (conversation: ai.Conversation) => void): () => void {
 	listen();
 	conversationListeners.add(listener);
 	return () => conversationListeners.delete(listener);
 }
 
 /** `models` with the live updates received since they were fetched */
-export function withUpdates(models: AIModel[]): AIModel[] {
+export function withUpdates(models: ai.Model[]): ai.Model[] {
 	listen();
 
-	const updated: AIModel[] = [];
+	const updated: ai.Model[] = [];
 	for (const model of models) {
 		const update = modelUpdates.get(model.id);
 		if (update !== null) updated.push(update ?? model);

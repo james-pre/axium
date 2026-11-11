@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { invalidate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { AIConversationInit, isUsable } from '@axium/ai/common';
+	import * as ai from '@axium/ai/common';
 	import { renameConversation } from '@axium/ai/actions';
 	import { ConversationMenu } from '@axium/ai/components';
 	import { onConversationChange, withUpdates } from '@axium/ai/live';
@@ -14,7 +14,7 @@
 
 	let renaming = $state<string>();
 
-	const schema = $derived(preferencesSchema(withUpdates(data.models.models).filter(isUsable)));
+	const schema = $derived(preferencesSchema(withUpdates(data.models.models).filter(ai.isUsable)));
 
 	$effect(() => onConversationChange(() => invalidate('ai:conversations')));
 
@@ -45,7 +45,7 @@
 				{#if renaming == conversation.id}
 					<InlineEdit
 						value={conversation.title}
-						schema={AIConversationInit.shape.title}
+						schema={ai.ConversationInit.shape.title}
 						commit={title => renameConversation(conversation.id, title)}
 						close={() => (renaming = undefined)}
 					/>

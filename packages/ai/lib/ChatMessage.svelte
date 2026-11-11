@@ -6,12 +6,12 @@
 </script>
 
 <script lang="ts">
-	import type { AIMessage } from '@axium/ai/common';
+	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
 	import { ClipboardCopy, Icon } from '@axium/client/components';
 	import { markdown } from './markdown.js';
 
-	const { message, onretry }: { message: AIMessage; onretry?(): void } = $props();
+	const { message, onretry }: { message: ai.Message; onretry?(): void } = $props();
 
 	const retryable = $derived(!!onretry && message.role == 'assistant' && message.status != 'pending');
 

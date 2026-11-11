@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { AIModel } from '@axium/ai/common';
+	import type * as ai from '@axium/ai/common';
 	import { fetchAPI, text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 
-	const { model, onremove }: { model: AIModel; onremove?(): void } = $props();
+	const { model, onremove }: { model: ai.Model; onremove?(): void } = $props();
 
 	let confirmDelete = $state<HTMLDialogElement>();
 	let busy = $state(false);

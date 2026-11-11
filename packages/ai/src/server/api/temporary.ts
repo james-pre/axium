@@ -5,14 +5,14 @@ import { error, parseBody } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
-import { AITemporaryInit, type AIMessage } from '../../common.js';
+import * as ai from '../../common.js';
 import { cancel, emitMessage, generateTemporary, isGenerating } from '../generation.js';
 
 addRoute({
 	path: '/api/ai/temporary/:id',
 	params: { id: z.uuid() },
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/temporary/:id'> {
-		const init = await parseBody(request, AITemporaryInit);
+		const init = await parseBody(request, ai.TemporaryInit);
 		const { userId } = await requireSession(request);
 
 		if (isGenerating(id)) error(409, 'A response is already being generated');
@@ -20,7 +20,7 @@ addRoute({
 		const saved = await database.selectFrom('ai_conversations').select('id').where('id', '=', id).executeTakeFirst();
 		if (saved) error(409, 'A saved conversation has this ID');
 
-		const pending: AIMessage = {
+		const pending: ai.Message = {
 			id: randomUUID(),
 			conversationId: id,
 			created: new Date(),

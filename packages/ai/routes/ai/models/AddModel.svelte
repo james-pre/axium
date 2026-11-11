@@ -1,18 +1,18 @@
 <script lang="ts">
-	import { AIModelId, modelIdFrom, type AIHubDetails, type AIHubRepo, type AIModel } from '@axium/ai/common';
+	import * as ai from '@axium/ai/common';
 	import { fetchAPI, text } from '@axium/client';
 	import { FormDialog, Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import { bytes } from 'utilium/format';
 
-	let { dialog = $bindable(), models }: { dialog?: HTMLDialogElement; models: AIModel[] } = $props();
+	let { dialog = $bindable(), models }: { dialog?: HTMLDialogElement; models: ai.Model[] } = $props();
 
 	const id = $props.id();
 
 	let query = $state(''),
-		results = $state<AIHubRepo[]>(),
+		results = $state<ai.HubRepo[]>(),
 		searching = $state(false),
-		details = $state<AIHubDetails>(),
+		details = $state<ai.HubDetails>(),
 		loadingDetails = $state<string>(),
 		quant = $state<string>(),
 		modelId = $state(''),
@@ -20,7 +20,7 @@
 
 	const idError = $derived.by(() => {
 		if (!modelId) return;
-		const result = AIModelId.safeParse(modelId);
+		const result = ai.ModelId.safeParse(modelId);
 		if (!result.success) return result.error.issues[0].message;
 		if (models.some(model => model.id == modelId)) return text('ai.add.id_taken');
 	});
@@ -61,8 +61,8 @@
 		quant = (fitting.at(-1) ?? details.quants.find(option => option.fit == 'host') ?? details.quants[0])?.tag;
 
 		name = nameFrom(details.base ?? details.repo);
-		modelId = modelIdFrom(name);
-		if (models.some(model => model.id == modelId) && quant) modelId = modelIdFrom(`${name} ${quant}`);
+		modelId = ai.modelIdFrom(name);
+		if (models.some(model => model.id == modelId) && quant) modelId = ai.modelIdFrom(`${name} ${quant}`);
 	}
 
 	function reset() {

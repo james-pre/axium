@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { AIModel } from '@axium/ai/common';
+	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
 	import { ProgressBar } from '@axium/client/components';
 	import { bytes } from 'utilium/format';
 
-	const { model }: { model: AIModel } = $props();
+	const { model }: { model: ai.Model } = $props();
 
 	const fraction = $derived(model.progress?.total ? model.progress.done / model.progress.total : null);
 </script>

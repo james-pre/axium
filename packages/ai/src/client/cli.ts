@@ -5,7 +5,7 @@ import * as io from 'ioium/node';
 import { spawn } from 'node:child_process';
 import { styleText } from 'node:util';
 import * as format from 'utilium/format';
-import { isUsable } from '../common.js';
+import * as ai from '../common.js';
 
 const cli = program.command('ai').helpGroup('Plugins:').description('CLI integration for @axium/ai');
 
@@ -17,7 +17,7 @@ function gateway(): { url: string; token: string } {
 
 async function resolveModel(requested?: string): Promise<string> {
 	const { models, default: fallback } = await fetchAPI('GET', 'ai/models');
-	const usable = models.filter(isUsable);
+	const usable = models.filter(ai.isUsable);
 
 	if (requested) {
 		if (!usable.some(model => model.id == requested)) {
@@ -58,7 +58,7 @@ cli.command('models')
 		const { models, default: fallback } = await fetchAPI('GET', 'ai/models');
 
 		for (const model of models) {
-			const status = isUsable(model) ? styleText('green', model.status) : styleText('yellow', model.status);
+			const status = ai.isUsable(model) ? styleText('green', model.status) : styleText('yellow', model.status);
 			console.log(
 				styleText('bold', model.name),
 				styleText('dim', model.id),

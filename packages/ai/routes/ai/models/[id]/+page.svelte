@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
-	import { reasoningLevels, type AIModelUpdate } from '@axium/ai/common';
+	import * as ai from '@axium/ai/common';
 	import { ModelActions, ModelStatus } from '@axium/ai/components';
 	import { modelUpdates, withUpdates } from '@axium/ai/live';
 	import { fetchAPI, text } from '@axium/client';
@@ -19,7 +19,7 @@
 	const repo = $derived(model.source.split(':')[0]);
 
 	function levelName(level: string): string {
-		return ['none', ...reasoningLevels].includes(level) ? text(`ai.reasoning_level.${level as 'none'}`) : level;
+		return ['none', ...ai.reasoningLevels].includes(level) ? text(`ai.reasoning_level.${level as 'none'}`) : level;
 	}
 
 	const reasoningOptions = $derived.by(() => {
@@ -41,7 +41,7 @@
 		parallel = $state(data.model.options.parallel),
 		saving = $state(false);
 
-	async function save(update: AIModelUpdate) {
+	async function save(update: ai.ModelUpdate) {
 		saving = true;
 		try {
 			await fetchAPI('PATCH', 'ai/models/:id', update, model.id);

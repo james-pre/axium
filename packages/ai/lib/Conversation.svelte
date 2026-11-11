@@ -1,13 +1,6 @@
 <script lang="ts">
 	import { beforeNavigate, goto, invalidate } from '$app/navigation';
-	import {
-		AIConversationInit,
-		type AIConversation,
-		type AIDelta,
-		type AIMessage,
-		type AIModels,
-		type AITemporaryMessage,
-	} from '@axium/ai/common';
+	import * as ai from '@axium/ai/common';
 	import { watchConversation } from '@axium/ai/live';
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon, InlineEdit } from '@axium/client/components';
@@ -28,8 +21,8 @@
 		temporary = false,
 		actions,
 	}: {
-		conversation: Pick<AIConversation, 'id' | 'model' | 'reasoning'> & { messages: AIMessage[] };
-		models: AIModels;
+		conversation: Pick<ai.Conversation, 'id' | 'model' | 'reasoning'> & { messages: ai.Message[] };
+		models: ai.Models;
 		title: string;
 		ctrlEnter?: boolean;
 		/** Nothing is saved: the messages only exist here, and the server forgets each response once it is sent */
@@ -62,7 +55,7 @@
 		if (stick) void tick().then(scrollToBottom);
 	}
 
-	function upsert(message: AIMessage): void {
+	function upsert(message: ai.Message): void {
 		update(() => {
 			const index = messages.findIndex(existing => existing.id == message.id);
 			if (index == -1) messages.push(message);
@@ -71,12 +64,12 @@
 	}
 
 	/** Adds `message` unless a live update already did, which would carry newer text */
-	function add(message: AIMessage): void {
+	function add(message: ai.Message): void {
 		if (!messages.some(existing => existing.id == message.id)) upsert(message);
 	}
 
 	/** Deltas received during a reload, applied once it finishes */
-	let buffered: AIDelta[] | null = null;
+	let buffered: ai.Delta[] | null = null;
 
 	async function reload(): Promise<void> {
 		if (buffered || temporary) return;
@@ -93,7 +86,7 @@
 	}
 
 	/** Reloads when text is missing, e.g. after opening a conversation mid-response. Temporary conversations wait for the finished message instead. */
-	function applyDelta(delta: AIDelta): void {
+	function applyDelta(delta: ai.Delta): void {
 		if (buffered) {
 			buffered.push(delta);
 			return;
@@ -111,10 +104,10 @@
 	$effect(() => void tick().then(scrollToBottom));
 
 	/** The history a temporary conversation sends with each message, as the server would build it for a saved one */
-	function temporaryHistory(): AITemporaryMessage[] {
+	function temporaryHistory(): ai.TemporaryMessage[] {
 		return messages
 			.filter(message => message.role != 'tool' && message.status != 'error' && message.content)
-			.map(({ role, content }) => ({ role: role as AITemporaryMessage['role'], content }));
+			.map(({ role, content }) => ({ role: role as ai.TemporaryMessage['role'], content }));
 	}
 
 	async function respondTemporary(): Promise<void> {
@@ -128,7 +121,7 @@
 	}
 
 	async function sendTemporary(content: string): Promise<void> {
-		const message: AIMessage = {
+		const message: ai.Message = {
 			id: crypto.randomUUID(),
 			conversationId: conversation.id,
 			created: new Date(),
@@ -221,7 +214,7 @@
 				{#if renaming}
 					<InlineEdit
 						value={title}
-						schema={AIConversationInit.shape.title}
+						schema={ai.ConversationInit.shape.title}
 						commit={value => renameConversation(conversation.id, value)}
 						close={() => (renaming = false)}
 					/>
@@ -258,7 +251,10 @@
 			onstop={stop}
 			onoptions={temporary
 				? undefined
-				: () => fetchAPI('PATCH', 'ai/conversations/:id', { model, reasoning }, conversation.id).catch(error => toast('error', error))}
+				: () =>
+						fetchAPI('PATCH', 'ai/conversations/:id', { model, reasoning }, conversation.id).catch(error =>
+							toast('error', error)
+						)}
 		/>
 	</div>
 </div>

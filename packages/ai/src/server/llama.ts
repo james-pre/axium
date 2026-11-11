@@ -6,7 +6,7 @@ import { EventEmitter } from 'node:events';
 import { closeSync, existsSync, mkdirSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { AIModelOptions } from '../common.js';
+import type * as ai from '../common.js';
 
 /** A model as llama-server's router lists it */
 export interface RouterModel {
@@ -60,7 +60,7 @@ export interface RouterEvent {
 export interface PresetModel {
 	id: string;
 	source: string;
-	options: AIModelOptions;
+	options: ai.ModelOptions;
 }
 
 /** Emits `event` with each {@link RouterEvent}, `ready` once llama-server answers, and `down` when it stops answering */

@@ -5,7 +5,7 @@ import { error, parseBody, parseSearch, withError } from '@axium/server/requests
 import { addRoute } from '@axium/server/routes';
 import * as io from 'ioium';
 import * as z from 'zod';
-import { AIHubRepoId, AIHubSearch, AIModelAction, AIModelId, AIModelInit, AIModelUpdate } from '../../common.js';
+import * as ai from '../../common.js';
 import * as hub from '../hub.js';
 import * as llama from '../llama.js';
 import { emitModel, emitRemoved, getModel, getModels, getRow, getRows, syncPreset } from '../models.js';
@@ -32,7 +32,7 @@ addRoute({
 		return await getModels();
 	},
 	async PUT(request): AsyncResult<'PUT', 'ai/models'> {
-		const init = await parseBody(request, AIModelInit);
+		const init = await parseBody(request, ai.ModelInit);
 		await requireAdmin(request);
 		requireRunning();
 
@@ -67,13 +67,13 @@ addRoute({
 
 addRoute({
 	path: '/api/ai/models/:id',
-	params: { id: AIModelId },
+	params: { id: ai.ModelId },
 	async GET(request, { id }): AsyncResult<'GET', 'ai/models/:id'> {
 		await requireSession(request);
 		return await existingModel(id);
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'ai/models/:id'> {
-		const { default: makeDefault, options, ...update } = await parseBody(request, AIModelUpdate);
+		const { default: makeDefault, options, ...update } = await parseBody(request, ai.ModelUpdate);
 		await requireAdmin(request);
 		await existingModel(id);
 
@@ -103,7 +103,7 @@ addRoute({
 		return model;
 	},
 	async POST(request, { id }): AsyncResult<'POST', 'ai/models/:id'> {
-		const { action } = await parseBody(request, AIModelAction);
+		const { action } = await parseBody(request, ai.ModelAction);
 		await requireAdmin(request);
 		const { source } = await existingModel(id);
 		requireRunning();
@@ -148,7 +148,7 @@ addRoute({
 addRoute({
 	path: '/api/ai/hub',
 	async GET(request): AsyncResult<'GET', 'ai/hub'> {
-		const { search } = parseSearch(request, AIHubSearch);
+		const { search } = parseSearch(request, ai.HubSearch);
 		await requireAdmin(request);
 		return await hub.search(search).catch(withError('Could not search Hugging Face', 502));
 	},
@@ -157,7 +157,7 @@ addRoute({
 addRoute({
 	path: '/api/ai/hub/details',
 	async GET(request): AsyncResult<'GET', 'ai/hub/details'> {
-		const { repo } = parseSearch(request, z.object({ repo: AIHubRepoId }));
+		const { repo } = parseSearch(request, z.object({ repo: ai.HubRepoId }));
 		await requireAdmin(request);
 		return await hub.details(repo).catch(withError('Could not get the repository from Hugging Face', 502));
 	},

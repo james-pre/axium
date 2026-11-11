@@ -5,7 +5,7 @@ import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium';
 import type { Selectable } from 'kysely';
 import type schema from '../../db.json';
-import { AIPreferences, type AIMessage, type AITemporaryInit, type AIToolCall, type AIUsage } from '../common.js';
+import * as ai from '../common.js';
 import { chat, type ChatMessage } from './chat.js';
 import { getDefaultModel, getRow, learnCapabilities } from './models.js';
 
@@ -16,15 +16,15 @@ declare module '@axium/server/database' {
 type MessageRow = Selectable<Schema['ai_messages']>;
 type ConversationRow = Selectable<Schema['ai_conversations']>;
 
-export function toMessage(row: MessageRow): AIMessage {
+export function toMessage(row: MessageRow): ai.Message {
 	return {
 		...row,
-		toolCalls: row.toolCalls as AIToolCall[] | null,
-		usage: row.usage as AIUsage | null,
-	} as AIMessage;
+		toolCalls: row.toolCalls as ai.ToolCall[] | null,
+		usage: row.usage as ai.Usage | null,
+	} as ai.Message;
 }
 
-export function emitMessage(userId: string, message: AIMessage): void {
+export function emitMessage(userId: string, message: ai.Message): void {
 	socketServer?.to('user:' + userId).emit('ai.message', message);
 }
 
@@ -52,7 +52,7 @@ export function cancel(conversationId: string, userId: string): boolean {
 }
 
 /** Fills in the text streamed so far, which is only saved once the response ends */
-export function withProgress(message: AIMessage): AIMessage {
+export function withProgress(message: ai.Message): ai.Message {
 	const generation = active.get(message.conversationId);
 	if (message.status != 'pending' || generation?.messageId != message.id) return message;
 	return { ...message, content: generation.content, reasoning: generation.reasoning || null };
@@ -66,7 +66,7 @@ async function userInstructions(userId: string): Promise<string | undefined> {
 		.where('appId', '=', 'ai')
 		.executeTakeFirst();
 
-	return AIPreferences.safeParse(row?.data).data?.instructions?.trim() || undefined;
+	return ai.Preferences.safeParse(row?.data).data?.instructions?.trim() || undefined;
 }
 
 function systemPrompt(prompt: string | null | undefined, instructions: string | undefined): string {
@@ -87,7 +87,7 @@ function toChatMessage(row: MessageRow): ChatMessage {
 		case 'tool':
 			return { role: 'tool', tool_call_id: row.toolCallId!, content: row.content };
 		default: {
-			const toolCalls = row.toolCalls as AIToolCall[] | null;
+			const toolCalls = row.toolCalls as ai.ToolCall[] | null;
 			return {
 				role: 'assistant',
 				content: row.content || null,
@@ -114,9 +114,9 @@ async function history(conversationId: string, exclude: string): Promise<ChatMes
 	return rows.filter(row => row.content || row.toolCalls).map(toChatMessage);
 }
 
-interface Outcome extends Pick<AIMessage, 'content' | 'reasoning' | 'status'> {
+interface Outcome extends Pick<ai.Message, 'content' | 'reasoning' | 'status'> {
 	error: string | null;
-	usage: AIUsage | null;
+	usage: ai.Usage | null;
 }
 
 interface ResponseInit {
@@ -218,7 +218,7 @@ export async function generate(conversation: ConversationRow, message: MessageRo
 }
 
 /** Streams a response for a temporary conversation, which is never saved. Never throws. */
-export async function generateTemporary(userId: string, init: AITemporaryInit, pending: AIMessage): Promise<void> {
+export async function generateTemporary(userId: string, init: ai.TemporaryInit, pending: ai.Message): Promise<void> {
 	await respond({
 		userId,
 		conversationId: pending.conversationId,

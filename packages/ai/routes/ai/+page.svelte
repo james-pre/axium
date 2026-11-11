@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { preferredReasoning, isUsable } from '@axium/ai/common';
+	import * as ai from '@axium/ai/common';
 	import { Composer, Conversation } from '@axium/ai/components';
 	import { withUpdates } from '@axium/ai/live';
 	import { fetchAPI, text } from '@axium/client';
@@ -10,12 +10,12 @@
 
 	const { data } = $props();
 
-	const usable = withUpdates(data.models.models).filter(isUsable);
+	const usable = withUpdates(data.models.models).filter(ai.isUsable);
 	const preferred = usable.find(model => model.id == data.preferences.model);
 
 	let model = $state(preferred?.id ?? data.models.default ?? usable[0]?.id ?? '');
 	let reasoning = $state(
-		preferredReasoning(
+		ai.preferredReasoning(
 			data.preferences.reasoning,
 			usable.find(option => option.id == model)
 		)

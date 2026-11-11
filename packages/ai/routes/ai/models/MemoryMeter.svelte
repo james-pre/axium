@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { AIDevice, AIMemory, AIModel } from '@axium/ai/common';
+	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
 	import { bytes } from 'utilium/format';
 
-	const { memory, models }: { memory: AIMemory; models: AIModel[] } = $props();
+	const { memory, models }: { memory: ai.Memory; models: ai.Model[] } = $props();
 
 	const loaded = $derived(models.filter(model => model.memory?.current));
 
@@ -15,7 +15,7 @@
 	}
 
 	/** Splits used memory into loaded models, when `showModels`, and everything else */
-	function segments(device: AIDevice, kind: 'device' | 'host', showModels: boolean): Segment[] {
+	function segments(device: ai.Device, kind: 'device' | 'host', showModels: boolean): Segment[] {
 		const used: Segment[] = !showModels
 			? []
 			: loaded.map((model, index) => ({ label: model.name, size: model.memory!.current![kind], kind: 'model', index }));
@@ -27,7 +27,7 @@
 		return used.filter(segment => segment.size > 0);
 	}
 
-	function bar(device: AIDevice, kind: 'device' | 'host', showModels: boolean) {
+	function bar(device: ai.Device, kind: 'device' | 'host', showModels: boolean) {
 		const parts = segments(device, kind, showModels);
 		return { device, segments: parts, used: parts.reduce((sum, segment) => sum + segment.size, 0) };
 	}

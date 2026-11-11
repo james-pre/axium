@@ -1,4 +1,4 @@
-import type { AIToolCall, AIUsage } from '../common.js';
+import type * as ai from '../common.js';
 import { request as llamaRequest, serverSentEvents } from './llama.js';
 
 /** A message in the OpenAI chat completions format */
@@ -25,9 +25,9 @@ export interface ChatRequest {
 export interface ChatResult {
 	content: string;
 	reasoning: string;
-	toolCalls: AIToolCall[];
+	toolCalls: ai.ToolCall[];
 	finishReason: string | null;
-	usage: AIUsage | null;
+	usage: ai.Usage | null;
 }
 
 export async function chat(request: ChatRequest): Promise<ChatResult> {

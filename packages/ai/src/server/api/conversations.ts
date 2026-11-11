@@ -4,7 +4,7 @@ import { database } from '@axium/server/database';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
-import { AIConversationAction, AIConversationInit, AIMessageInit } from '../../common.js';
+import * as ai from '../../common.js';
 import { cancel, emitMessage, generate, isGenerating, toMessage, withProgress } from '../generation.js';
 import { getDefaultModel } from '../models.js';
 
@@ -36,7 +36,7 @@ addRoute({
 			.catch(withError('Could not get conversations'));
 	},
 	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/ai/conversations'> {
-		const init = await parseBody(request, AIConversationInit);
+		const init = await parseBody(request, ai.ConversationInit);
 
 		await checkAuthForUser(request, userId);
 
@@ -69,7 +69,7 @@ addRoute({
 		return { ...conversation, messages: messages.map(row => withProgress(toMessage(row))) };
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'ai/conversations/:id'> {
-		const init = await parseBody(request, AIConversationInit);
+		const init = await parseBody(request, ai.ConversationInit);
 
 		await authConversation(request, id);
 
@@ -82,7 +82,7 @@ addRoute({
 			.catch(withError('Could not update conversation'));
 	},
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/conversations/:id'> {
-		const { content } = await parseBody(request, AIMessageInit);
+		const { content } = await parseBody(request, ai.MessageInit);
 
 		let conversation = await authConversation(request, id);
 
@@ -118,7 +118,7 @@ addRoute({
 		return messages;
 	},
 	async POST(request, { id }): AsyncResult<'POST', 'ai/conversations/:id'> {
-		const { action } = await parseBody(request, AIConversationAction);
+		const { action } = await parseBody(request, ai.ConversationAction);
 
 		const conversation = await authConversation(request, id);
 

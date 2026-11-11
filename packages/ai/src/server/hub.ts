@@ -1,5 +1,5 @@
 import { getConfig } from '@axium/core';
-import type { AIFit, AIHubDetails, AIHubQuant, AIHubRepo } from '../common.js';
+import type * as ai from '../common.js';
 import { getCapacity } from './models.js';
 
 const hubURL = 'https://huggingface.co/';
@@ -14,7 +14,7 @@ async function hubFetch<T>(path: string): Promise<T> {
 	return (await response.json()) as T;
 }
 
-export async function search(query: string): Promise<AIHubRepo[]> {
+export async function search(query: string): Promise<ai.HubRepo[]> {
 	const params = new URLSearchParams({ search: query, filter: 'gguf', sort: 'downloads', direction: '-1', limit: '30' });
 	for (const field of ['downloads', 'likes', 'lastModified']) params.append('expand[]', field);
 
@@ -44,7 +44,7 @@ function isModelFile(path: string): boolean {
 	return !name.includes('imatrix') && !sidecarNames.some(sidecar => name.includes(sidecar));
 }
 
-function fitOf(size: bigint): AIFit {
+function fitOf(size: bigint): ai.Fit {
 	const capacity = getCapacity();
 	const needed = Number(size) * 1.15;
 	if (needed <= capacity.device) return 'device';
@@ -52,7 +52,7 @@ function fitOf(size: bigint): AIFit {
 	return 'none';
 }
 
-export async function details(repo: string): Promise<AIHubDetails> {
+export async function details(repo: string): Promise<ai.HubDetails> {
 	const [info, tree] = await Promise.all([
 		hubFetch<{ id: string; baseModels?: { relation?: string; models?: { id: string }[] } }>(`api/models/${repo}?expand[]=baseModels`),
 		hubFetch<{ type: string; path: string; size: number; lfs?: { size: number } }[]>(`api/models/${repo}/tree/main?recursive=true`),
@@ -63,7 +63,7 @@ export async function details(repo: string): Promise<AIHubDetails> {
 	const projectors = files.filter(file => file.path.toLowerCase().includes('mmproj'));
 	const projectorSize = projectors.length ? Math.min(...projectors.map(file => file.lfs?.size ?? file.size)) : 0;
 
-	const quants = new Map<string, AIHubQuant & { prefix: string }>();
+	const quants = new Map<string, ai.HubQuant & { prefix: string }>();
 
 	for (const file of files) {
 		if (!isModelFile(file.path)) continue;
@@ -73,7 +73,7 @@ export async function details(repo: string): Promise<AIHubDetails> {
 		const existing = quants.get(parsed.tag);
 		if (existing && existing.prefix != parsed.prefix) continue;
 
-		const quant = existing ?? { tag: parsed.tag, prefix: parsed.prefix, files: [], size: BigInt(projectorSize), fit: 'none' as AIFit };
+		const quant = existing ?? { tag: parsed.tag, prefix: parsed.prefix, files: [], size: BigInt(projectorSize), fit: 'none' as ai.Fit };
 		quant.files.push(file.path);
 		quant.size += BigInt(file.lfs?.size ?? file.size);
 		quants.set(parsed.tag, quant);

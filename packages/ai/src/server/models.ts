@@ -5,7 +5,7 @@ import type { Selectable } from 'kysely';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { freemem, totalmem } from 'node:os';
 import { join } from 'node:path';
-import type { AIDevice, AIDownloadProgress, AIMemory, AIMemoryUse, AIModel, AIModelOptions, AIModels, AIModelStatus } from '../common.js';
+import type * as ai from '../common.js';
 import * as llama from './llama.js';
 
 type ModelRow = Selectable<Schema['ai_models']>;
@@ -14,7 +14,7 @@ type ModelRow = Selectable<Schema['ai_models']>;
 let listed = new Map<string, llama.RouterModel>();
 
 /** Downloads in progress, by source */
-const downloads = new Map<string, AIDownloadProgress>();
+const downloads = new Map<string, ai.DownloadProgress>();
 
 async function refresh(): Promise<Map<string, llama.RouterModel>> {
 	if (!llama.isRunning()) return (listed = new Map());
@@ -26,9 +26,9 @@ async function refresh(): Promise<Map<string, llama.RouterModel>> {
 	return listed;
 }
 
-function sumUse(measurement?: llama.RouterMeasurement | null): AIMemoryUse | undefined {
+function sumUse(measurement?: llama.RouterMeasurement | null): ai.MemoryUse | undefined {
 	if (!measurement) return;
-	const use: AIMemoryUse = { device: 0, host: 0 };
+	const use: ai.MemoryUse = { device: 0, host: 0 };
 	for (const device of measurement.devices) use[device.kind] += device.model + device.context + device.compute;
 	return use;
 }
@@ -37,12 +37,12 @@ function measuredMemory(...models: (llama.RouterModel | undefined)[]): llama.Rou
 	return models.find(model => model?.memory?.status == 'measured')?.memory ?? models.find(model => model?.memory)?.memory;
 }
 
-function toModel(row: ModelRow): AIModel {
+function toModel(row: ModelRow): ai.Model {
 	const preset = listed.get(row.id);
 	const cached = listed.get(row.source);
 	const memory = measuredMemory(preset, cached);
 
-	let status: AIModelStatus;
+	let status: ai.ModelStatus;
 	let progress = downloads.get(row.source);
 
 	const cachedStatus = cached?.status.value;
@@ -58,7 +58,7 @@ function toModel(row: ModelRow): AIModel {
 	} else if (!preset?.context_length) {
 		status = 'unavailable';
 	} else {
-		status = preset.status.value as AIModelStatus;
+		status = preset.status.value as ai.ModelStatus;
 	}
 
 	return {
@@ -81,7 +81,7 @@ function toModel(row: ModelRow): AIModel {
 		templateReasoning: row.templateReasoning ?? undefined,
 		reasoning: row.reasoning,
 		systemPrompt: row.systemPrompt,
-		options: row.options as AIModelOptions,
+		options: row.options as ai.ModelOptions,
 	};
 }
 
@@ -96,7 +96,7 @@ export async function getRow(id: string): Promise<ModelRow | undefined> {
 /** Writes the presets file from the database and makes llama-server read it */
 export async function syncPreset(): Promise<void> {
 	const rows = await getRows();
-	llama.writePreset(rows.map(row => ({ id: row.id, source: row.source, options: row.options as AIModelOptions })));
+	llama.writePreset(rows.map(row => ({ id: row.id, source: row.source, options: row.options as ai.ModelOptions })));
 	await llama.reload();
 }
 
@@ -119,7 +119,7 @@ function gpuUse(): { total: number; used: number }[] {
 	return gpus.sort((a, b) => a.index - b.index);
 }
 
-function getMemory(): AIMemory {
+function getMemory(): ai.Memory {
 	const byIndex = new Map<number, { names: Set<string>; total: number; free?: number }>();
 
 	for (const model of listed.values()) {
@@ -137,7 +137,7 @@ function getMemory(): AIMemory {
 	}
 
 	const gpus = gpuUse();
-	const devices: AIDevice[] = [...byIndex.entries()]
+	const devices: ai.Device[] = [...byIndex.entries()]
 		.sort(([a], [b]) => a - b)
 		.map(([index, { names, total, free }]) => ({
 			name: [...names].sort().join(' / '),
@@ -170,7 +170,7 @@ export async function getDefaultModel(): Promise<string | undefined> {
 	return defaultOf(await getRows());
 }
 
-export async function getModels(): Promise<AIModels> {
+export async function getModels(): Promise<ai.Models> {
 	const [rows] = await Promise.all([getRows(), refresh()]);
 	return {
 		models: rows.map(toModel),
@@ -180,12 +180,12 @@ export async function getModels(): Promise<AIModels> {
 	};
 }
 
-export async function getModel(id: string): Promise<AIModel | undefined> {
+export async function getModel(id: string): Promise<ai.Model | undefined> {
 	const [row] = await Promise.all([getRow(id), refresh()]);
 	return row && toModel(row);
 }
 
-export function emitModel(model: AIModel): void {
+export function emitModel(model: ai.Model): void {
 	socketServer?.to('web').emit('ai.model', model);
 }
 
@@ -246,8 +246,8 @@ function throttled(name: string): boolean {
 async function handleEvent({ model: name, event, data }: llama.RouterEvent): Promise<void> {
 	switch (event) {
 		case 'download_progress': {
-			const progress: AIDownloadProgress = { done: 0, total: 0 };
-			for (const file of Object.values(data as Record<string, AIDownloadProgress>)) {
+			const progress: ai.DownloadProgress = { done: 0, total: 0 };
+			for (const file of Object.values(data as Record<string, ai.DownloadProgress>)) {
 				progress.done += file.done;
 				progress.total += file.total;
 			}

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { AIModel } from '@axium/ai/common';
+	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
 	import { dynamicRows } from '@axium/client/attachments';
 	import { Icon } from '@axium/client/components';
@@ -18,7 +18,7 @@
 		generating?: boolean;
 		/** Whether sending needs Ctrl+Enter, leaving Enter for new lines */
 		ctrlEnter?: boolean;
-		models: AIModel[];
+		models: ai.Model[];
 		model: string;
 		reasoning: string;
 		onsend(content: string): Promise<unknown>;

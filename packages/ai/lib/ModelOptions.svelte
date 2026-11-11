@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { defaultReasoning, isUsable, type AIModel } from '@axium/ai/common';
+	import * as ai from '@axium/ai/common';
 	import { withUpdates } from '@axium/ai/live';
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
@@ -9,7 +9,7 @@
 		model = $bindable(),
 		reasoning = $bindable(),
 		onchange,
-	}: { models: AIModel[]; model: string; reasoning: string; onchange?(): void } = $props();
+	}: { models: ai.Model[]; model: string; reasoning: string; onchange?(): void } = $props();
 
 	const id = $props.id();
 
@@ -21,10 +21,10 @@
 			: level;
 	}
 
-	const available = $derived(withUpdates(models).filter(isUsable));
+	const available = $derived(withUpdates(models).filter(ai.isUsable));
 	const selected = $derived(available.find(option => option.id == model));
 	const levels = $derived(selected?.reasoningLevels ?? []);
-	const defaultLevel = $derived(selected && defaultReasoning(selected));
+	const defaultLevel = $derived(selected && ai.defaultReasoning(selected));
 
 	/** The model's default level is selected as `default` */
 	const value = $derived(reasoning == defaultLevel ? 'default' : reasoning);

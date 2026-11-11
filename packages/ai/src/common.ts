@@ -4,7 +4,7 @@ import { addServerToClient, type ParseFunctions } from '@axium/core/socket';
 import * as locales from '@james-pre/locales';
 import * as z from 'zod';
 
-export const AIModelId = z
+export const ModelId = z
 	.string()
 	.max(64)
 	.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Model IDs may only contain lowercase letters, numbers, and single dashes between them');
@@ -20,18 +20,18 @@ export function modelIdFrom(name: string): string {
 }
 
 /** A Hugging Face repository */
-export const AIHubRepoId = z
+export const HubRepoId = z
 	.string()
 	.max(200)
 	.regex(/^[\w.-]+\/[\w.-]+$/, 'Repositories have the form <owner>/<name>');
 
 /** A quantization tag, as llama.cpp matches it against file names */
-export const AIQuantTag = z
+export const QuantTag = z
 	.string()
 	.max(32)
 	.regex(/^[A-Z0-9_]+$/);
 
-export const AILlamaConfig = z.object({
+export const LlamaConfig = z.object({
 	/** The `llama-server` executable, either a path or a name looked up in `PATH` */
 	command: z.string().min(1),
 	host: z.string().min(1),
@@ -45,29 +45,29 @@ export const AILlamaConfig = z.object({
 	/** Used for Hugging Face downloads */
 	hf_token: z.string().optional(),
 });
-export interface AILlamaConfig extends z.infer<typeof AILlamaConfig> {}
+export interface LlamaConfig extends z.infer<typeof LlamaConfig> {}
 
-export const AIConfig = z.object({
+export const Config = z.object({
 	/** Where downloaded models and llama-server's state are kept */
 	data_dir: z.string().min(1),
-	llama: AILlamaConfig,
+	llama: LlamaConfig,
 	/** Used for models without their own system prompt; the current date is appended */
 	system_prompt: z.string(),
 	/** Seconds a single response may take before it is stopped */
 	timeout: z.number().positive(),
 });
-export interface AIConfig extends z.infer<typeof AIConfig> {}
+export interface Config extends z.infer<typeof Config> {}
 
 declare module '@axium/core/plugins' {
 	export interface $PluginConfigs {
-		'@axium/ai': AIConfig;
+		'@axium/ai': Config;
 	}
 }
 
-serverConfigs.set('@axium/ai', AIConfig);
+serverConfigs.set('@axium/ai', Config);
 
 /** `default` uses the model's default, `none` disables reasoning, anything else is a level */
-export const AIReasoning = z
+export const Reasoning = z
 	.string()
 	.regex(/^[a-z]+$/)
 	.max(16);
@@ -75,28 +75,28 @@ export const AIReasoning = z
 /** Reasoning levels with names, lowest to highest */
 export const reasoningLevels = ['minimal', 'low', 'medium', 'high', 'xhigh', 'max'] as const;
 
-export const AIModelStatus = z.literal(['unavailable', 'downloading', 'incomplete', 'unloaded', 'loading', 'loaded', 'sleeping']);
-export type AIModelStatus = z.infer<typeof AIModelStatus>;
+export const ModelStatus = z.literal(['unavailable', 'downloading', 'incomplete', 'unloaded', 'loading', 'loaded', 'sleeping']);
+export type ModelStatus = z.infer<typeof ModelStatus>;
 
 /** Sizes in bytes */
-export const AIMemoryUse = z.object({
+export const MemoryUse = z.object({
 	device: z.number().nonnegative(),
 	host: z.number().nonnegative(),
 });
-export interface AIMemoryUse extends z.infer<typeof AIMemoryUse> {}
+export interface MemoryUse extends z.infer<typeof MemoryUse> {}
 
-export const AIModelMemory = z.object({
+export const ModelMemory = z.object({
 	/** At the smallest context the model may be loaded with */
-	minimum: AIMemoryUse.optional(),
+	minimum: MemoryUse.optional(),
 	/** While loaded */
-	current: AIMemoryUse.optional(),
+	current: MemoryUse.optional(),
 	/** The context size while loaded, in tokens */
 	context: z.int().optional(),
 });
-export interface AIModelMemory extends z.infer<typeof AIModelMemory> {}
+export interface ModelMemory extends z.infer<typeof ModelMemory> {}
 
 /** How llama-server loads a model */
-export const AIModelOptions = z.object({
+export const ModelOptions = z.object({
 	/** Comma-separated llama.cpp device names */
 	device: z
 		.string()
@@ -110,171 +110,171 @@ export const AIModelOptions = z.object({
 	/** Number of requests the model serves at once */
 	parallel: z.int().positive().max(64).optional(),
 });
-export interface AIModelOptions extends z.infer<typeof AIModelOptions> {}
+export interface ModelOptions extends z.infer<typeof ModelOptions> {}
 
-export const AIDownloadProgress = z.object({
+export const DownloadProgress = z.object({
 	/** Bytes */
 	done: z.number().nonnegative(),
 	/** Bytes */
 	total: z.number().nonnegative(),
 });
-export interface AIDownloadProgress extends z.infer<typeof AIDownloadProgress> {}
+export interface DownloadProgress extends z.infer<typeof DownloadProgress> {}
 
-export const AIModel = z.object({
-	id: AIModelId,
+export const Model = z.object({
+	id: ModelId,
 	name: z.string().min(1).max(100),
 	/** `<repository>:<quantization>` */
 	source: z.string(),
 	/** Bytes on disk once downloaded */
 	size: z.coerce.bigint().nonnegative(),
 	created: z.coerce.date(),
-	status: AIModelStatus,
+	status: ModelStatus,
 	/** The last attempt to load the model failed */
 	failed: z.boolean().optional(),
-	progress: AIDownloadProgress.optional(),
+	progress: DownloadProgress.optional(),
 	/** The context size the model was trained with, in tokens */
 	contextLength: z.int().optional(),
 	/** Input modalities */
 	inputs: z.string().array().optional(),
-	memory: AIModelMemory.optional(),
+	memory: ModelMemory.optional(),
 	/** Reasoning levels the model distinguishes, lowest to highest. Empty when it only has on and off; missing when not known yet. */
-	reasoningLevels: AIReasoning.array().optional(),
+	reasoningLevels: Reasoning.array().optional(),
 	/** What the chat template does without a reasoning level: `none` or one of the levels. Missing when not known. */
-	templateReasoning: AIReasoning.optional(),
+	templateReasoning: Reasoning.optional(),
 	/** What `default` amounts to, set by an administrator */
-	reasoning: AIReasoning.nullable(),
+	reasoning: Reasoning.nullable(),
 	systemPrompt: z.string().max(20_000).nullable(),
-	options: AIModelOptions,
+	options: ModelOptions,
 });
-export interface AIModel extends z.infer<typeof AIModel> {}
+export interface Model extends z.infer<typeof Model> {}
 
 /** Whether a model can be chatted with */
-export function isUsable(model: Pick<AIModel, 'status'>): boolean {
+export function isUsable(model: Pick<Model, 'status'>): boolean {
 	return model.status != 'unavailable' && model.status != 'downloading' && model.status != 'incomplete';
 }
 
 /** What `default` amounts to for a model, when known */
-export function defaultReasoning(model: Pick<AIModel, 'reasoning' | 'templateReasoning'>): string | undefined {
+export function defaultReasoning(model: Pick<Model, 'reasoning' | 'templateReasoning'>): string | undefined {
 	return model.reasoning ?? model.templateReasoning;
 }
 
-export const AIDevice = z.object({
+export const Device = z.object({
 	name: z.string(),
 	/** Bytes */
 	total: z.number().nonnegative(),
 	/** Bytes in use by anything, when known */
 	used: z.number().nonnegative().optional(),
 });
-export interface AIDevice extends z.infer<typeof AIDevice> {}
+export interface Device extends z.infer<typeof Device> {}
 
-export const AIMemory = z.object({
-	devices: AIDevice.array(),
-	host: AIDevice,
+export const Memory = z.object({
+	devices: Device.array(),
+	host: Device,
 });
-export interface AIMemory extends z.infer<typeof AIMemory> {}
+export interface Memory extends z.infer<typeof Memory> {}
 
-export const AIModels = z.object({
-	models: AIModel.array(),
-	default: AIModelId.optional(),
-	memory: AIMemory,
+export const Models = z.object({
+	models: Model.array(),
+	default: ModelId.optional(),
+	memory: Memory,
 	/** Whether llama-server is reachable */
 	running: z.boolean(),
 });
-export interface AIModels extends z.infer<typeof AIModels> {}
+export interface Models extends z.infer<typeof Models> {}
 
-export const AIModelInit = z.object({
-	id: AIModelId,
-	name: AIModel.shape.name,
-	repo: AIHubRepoId,
-	quant: AIQuantTag,
-	options: AIModelOptions.optional(),
+export const ModelInit = z.object({
+	id: ModelId,
+	name: Model.shape.name,
+	repo: HubRepoId,
+	quant: QuantTag,
+	options: ModelOptions.optional(),
 });
-export interface AIModelInit extends z.infer<typeof AIModelInit> {}
+export interface ModelInit extends z.infer<typeof ModelInit> {}
 
-export const AIModelUpdate = z.object({
-	name: AIModel.shape.name.optional(),
-	reasoning: AIReasoning.nullable().optional(),
-	systemPrompt: AIModel.shape.systemPrompt.optional(),
-	options: AIModelOptions.optional(),
+export const ModelUpdate = z.object({
+	name: Model.shape.name.optional(),
+	reasoning: Reasoning.nullable().optional(),
+	systemPrompt: Model.shape.systemPrompt.optional(),
+	options: ModelOptions.optional(),
 	/** Makes this the default model for everyone */
 	default: z.literal(true).optional(),
 });
-export interface AIModelUpdate extends z.infer<typeof AIModelUpdate> {}
+export interface ModelUpdate extends z.infer<typeof ModelUpdate> {}
 
 /** `pause` and `resume` apply to downloads */
-export const AIModelAction = z.object({
+export const ModelAction = z.object({
 	action: z.literal(['load', 'unload', 'pause', 'resume']),
 });
-export interface AIModelAction extends z.infer<typeof AIModelAction> {}
+export interface ModelAction extends z.infer<typeof ModelAction> {}
 
-export const AIHubSearch = z.object({
+export const HubSearch = z.object({
 	search: z.string().trim().min(1).max(200),
 });
 
-export const AIHubRepo = z.object({
-	id: AIHubRepoId,
+export const HubRepo = z.object({
+	id: HubRepoId,
 	downloads: z.int().nonnegative(),
 	likes: z.int().nonnegative(),
 	modified: z.coerce.date().optional(),
 });
-export interface AIHubRepo extends z.infer<typeof AIHubRepo> {}
+export interface HubRepo extends z.infer<typeof HubRepo> {}
 
 /** Where a model's weights would go: all on a device, partly in host memory, or nowhere */
-export const AIFit = z.literal(['device', 'host', 'none']);
-export type AIFit = z.infer<typeof AIFit>;
+export const Fit = z.literal(['device', 'host', 'none']);
+export type Fit = z.infer<typeof Fit>;
 
-export const AIHubQuant = z.object({
-	tag: AIQuantTag,
+export const HubQuant = z.object({
+	tag: QuantTag,
 	files: z.string().array(),
 	/** Bytes, including sidecar files */
 	size: z.coerce.bigint().nonnegative(),
-	fit: AIFit,
+	fit: Fit,
 });
-export interface AIHubQuant extends z.infer<typeof AIHubQuant> {}
+export interface HubQuant extends z.infer<typeof HubQuant> {}
 
-export const AIHubDetails = z.object({
-	repo: AIHubRepoId,
+export const HubDetails = z.object({
+	repo: HubRepoId,
 	/** The repository the weights were converted from */
-	base: AIHubRepoId.optional(),
-	quants: AIHubQuant.array(),
+	base: HubRepoId.optional(),
+	quants: HubQuant.array(),
 });
-export interface AIHubDetails extends z.infer<typeof AIHubDetails> {}
+export interface HubDetails extends z.infer<typeof HubDetails> {}
 
-export const AIConversationInit = z.object({
+export const ConversationInit = z.object({
 	title: z.string().max(200).optional(),
 	/** `null` uses the default model */
-	model: AIModelId.nullish(),
-	reasoning: AIReasoning.optional(),
+	model: ModelId.nullish(),
+	reasoning: Reasoning.optional(),
 });
-export type AIConversationInit = z.infer<typeof AIConversationInit>;
+export type ConversationInit = z.infer<typeof ConversationInit>;
 
-export const AIConversation = z.object({
+export const Conversation = z.object({
 	id: z.uuid(),
 	userId: z.uuid(),
 	title: z.string(),
 	/** `null` when the model was removed or the default model is used */
-	model: AIModelId.nullable(),
-	reasoning: AIReasoning,
+	model: ModelId.nullable(),
+	reasoning: Reasoning,
 	created: z.coerce.date(),
 	modified: z.coerce.date(),
 });
-export interface AIConversation extends z.infer<typeof AIConversation> {}
+export interface Conversation extends z.infer<typeof Conversation> {}
 
-export const AIMessageRole = z.literal(['user', 'assistant', 'tool']);
-export type AIMessageRole = z.infer<typeof AIMessageRole>;
+export const MessageRole = z.literal(['user', 'assistant', 'tool']);
+export type MessageRole = z.infer<typeof MessageRole>;
 
-export const AIMessageStatus = z.literal(['pending', 'done', 'error', 'cancelled']);
-export type AIMessageStatus = z.infer<typeof AIMessageStatus>;
+export const MessageStatus = z.literal(['pending', 'done', 'error', 'cancelled']);
+export type MessageStatus = z.infer<typeof MessageStatus>;
 
-export const AIToolCall = z.object({
+export const ToolCall = z.object({
 	id: z.string(),
 	name: z.string(),
 	/** JSON, as produced by the model */
 	arguments: z.string(),
 });
-export interface AIToolCall extends z.infer<typeof AIToolCall> {}
+export interface ToolCall extends z.infer<typeof ToolCall> {}
 
-export const AIUsage = z.object({
+export const Usage = z.object({
 	promptTokens: z.int().nonnegative(),
 	completionTokens: z.int().nonnegative(),
 	/** Tokens per second */
@@ -282,57 +282,57 @@ export const AIUsage = z.object({
 	/** Tokens per second */
 	generationSpeed: z.number().optional(),
 });
-export interface AIUsage extends z.infer<typeof AIUsage> {}
+export interface Usage extends z.infer<typeof Usage> {}
 
-export const AIMessage = z.object({
+export const Message = z.object({
 	id: z.uuid(),
 	conversationId: z.uuid(),
 	created: z.coerce.date(),
-	role: AIMessageRole,
+	role: MessageRole,
 	content: z.string(),
 	reasoning: z.string().nullable(),
-	toolCalls: AIToolCall.array().nullable(),
+	toolCalls: ToolCall.array().nullable(),
 	toolCallId: z.string().nullable(),
-	status: AIMessageStatus,
+	status: MessageStatus,
 	error: z.string().nullable(),
-	usage: AIUsage.nullable(),
+	usage: Usage.nullable(),
 });
-export interface AIMessage extends z.infer<typeof AIMessage> {}
+export interface Message extends z.infer<typeof Message> {}
 
-export const AIMessageInit = z.object({
+export const MessageInit = z.object({
 	content: z.string().trim().min(1).max(100_000),
 });
-export type AIMessageInit = z.infer<typeof AIMessageInit>;
+export type MessageInit = z.infer<typeof MessageInit>;
 
 /** `retry` runs the last response again */
-export const AIConversationAction = z.object({
+export const ConversationAction = z.object({
 	action: z.literal(['cancel', 'retry']),
 });
-export type AIConversationAction = z.infer<typeof AIConversationAction>;
+export type ConversationAction = z.infer<typeof ConversationAction>;
 
 /** A message in a temporary conversation, which only the client keeps */
-export const AITemporaryMessage = z.object({
+export const TemporaryMessage = z.object({
 	role: z.literal(['user', 'assistant']),
 	content: z.string().max(100_000),
 });
-export interface AITemporaryMessage extends z.infer<typeof AITemporaryMessage> {}
+export interface TemporaryMessage extends z.infer<typeof TemporaryMessage> {}
 
-export const AITemporaryInit = z.object({
+export const TemporaryInit = z.object({
 	/** `null` uses the default model */
-	model: AIModelId.nullish(),
-	reasoning: AIReasoning,
+	model: ModelId.nullish(),
+	reasoning: Reasoning,
 	/** The conversation so far, ending with the message to respond to */
-	messages: AITemporaryMessage.array()
+	messages: TemporaryMessage.array()
 		.min(1)
 		.max(1000)
 		.refine(messages => messages.at(-1)?.role == 'user' && !!messages.at(-1)?.content.trim(), 'The last message must be from the user'),
 });
-export interface AITemporaryInit extends z.infer<typeof AITemporaryInit> {}
+export interface TemporaryInit extends z.infer<typeof TemporaryInit> {}
 
-export const AIPreferences = z
+export const Preferences = z
 	.object({
 		/** Used for new conversations instead of the default model */
-		model: AIModelId.optional(),
+		model: ModelId.optional(),
 		reasoning: z
 			.literal(['default', 'none', 'low', 'medium', 'high', 'max'])
 			.default('default')
@@ -342,21 +342,21 @@ export const AIPreferences = z
 		instructions: z.string().max(10_000).optional().register(locales.zod, { multiline: true }),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
-export interface AIPreferences extends z.infer<typeof AIPreferences> {}
+export interface Preferences extends z.infer<typeof Preferences> {}
 
-appPreferences.set('ai', AIPreferences);
+appPreferences.set('ai', Preferences);
 
 import type {} from '@axium/core/apps';
 declare module '@axium/core/apps' {
 	interface $AppPreferences {
-		ai: typeof AIPreferences;
+		ai: typeof Preferences;
 	}
 }
 
 /** The closest reasoning setting a model supports to a general preference */
 export function preferredReasoning(
 	preference: string,
-	model?: Pick<AIModel, 'reasoningLevels' | 'reasoning' | 'templateReasoning'>
+	model?: Pick<Model, 'reasoningLevels' | 'reasoning' | 'templateReasoning'>
 ): string {
 	if (preference == 'default' || preference == 'none' || !model?.reasoningLevels) return preference;
 
@@ -374,38 +374,38 @@ export function preferredReasoning(
 
 const AIAPI = {
 	'ai/models': {
-		GET: AIModels,
+		GET: Models,
 		/** Starts downloading a model */
-		PUT: [AIModelInit, AIModel],
+		PUT: [ModelInit, Model],
 	},
 	'ai/models/:id': {
-		GET: AIModel,
-		PATCH: [AIModelUpdate, AIModel],
-		POST: [AIModelAction, AIModel],
-		DELETE: AIModel,
+		GET: Model,
+		PATCH: [ModelUpdate, Model],
+		POST: [ModelAction, Model],
+		DELETE: Model,
 	},
 	'ai/hub': {
-		GET: [AIHubSearch, AIHubRepo.array()],
+		GET: [HubSearch, HubRepo.array()],
 	},
 	'ai/hub/details': {
-		GET: [z.object({ repo: AIHubRepoId }), AIHubDetails],
+		GET: [z.object({ repo: HubRepoId }), HubDetails],
 	},
 	'users/:id/ai/conversations': {
-		GET: AIConversation.array(),
-		PUT: [AIConversationInit, AIConversation],
+		GET: Conversation.array(),
+		PUT: [ConversationInit, Conversation],
 	},
 	'ai/conversations/:id': {
-		GET: AIConversation.extend({ messages: AIMessage.array() }),
-		PATCH: [AIConversationInit, AIConversation],
+		GET: Conversation.extend({ messages: Message.array() }),
+		PATCH: [ConversationInit, Conversation],
 		/** Sends a message and starts the response; returns the user's message and the pending response */
-		PUT: [AIMessageInit, AIMessage.array()],
+		PUT: [MessageInit, Message.array()],
 		/** `message` is the response being retried */
-		POST: [AIConversationAction, z.object({ message: AIMessage.optional() })],
-		DELETE: AIConversation,
+		POST: [ConversationAction, z.object({ message: Message.optional() })],
+		DELETE: Conversation,
 	},
 	'ai/temporary/:id': {
 		/** Starts a response without saving anything; returns the pending response */
-		PUT: [AITemporaryInit, AIMessage],
+		PUT: [TemporaryInit, Message],
 		POST: [z.object({ action: z.literal('cancel') }), z.object({})],
 	},
 } as const;
@@ -419,7 +419,7 @@ declare module '@axium/core/api' {
 Object.assign($API, AIAPI);
 
 /** Text appended to a field of a pending message */
-export const AIDelta = z.object({
+export const Delta = z.object({
 	conversationId: z.uuid(),
 	messageId: z.uuid(),
 	field: z.literal(['content', 'reasoning']),
@@ -427,14 +427,14 @@ export const AIDelta = z.object({
 	/** The length of the field before `text`, in UTF-16 code units */
 	position: z.int().nonnegative(),
 });
-export interface AIDelta extends z.infer<typeof AIDelta> {}
+export interface Delta extends z.infer<typeof Delta> {}
 
 const AIServerToClient = {
-	'ai.delta': [AIDelta],
-	'ai.message': [AIMessage],
-	'ai.model': [AIModel],
-	'ai.model.remove': [AIModelId],
-	'ai.conversation': [AIConversation],
+	'ai.delta': [Delta],
+	'ai.message': [Message],
+	'ai.model': [Model],
+	'ai.model.remove': [ModelId],
+	'ai.conversation': [Conversation],
 } as const;
 
 declare module '@axium/core/socket' {
