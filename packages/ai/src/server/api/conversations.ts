@@ -42,7 +42,7 @@ async function restart(conversation: ConversationRow, from: MessageRow, content?
 			removed: await tx
 				.deleteFrom('ai_messages')
 				.where('conversationId', '=', conversation.id)
-				.where('created', '>', from.created)
+				.where('created', '>', eb => eb.selectFrom('ai_messages').select('created').where('id', '=', from.id))
 				.returning('id')
 				.execute(),
 			pending: await tx
