@@ -1,0 +1,55 @@
+{
+	"$schema": "../server/schemas/db.json",
+	"format": 1,
+	"versions": [
+		{
+			"delta": false,
+			"tables": {
+				"ai_models": {
+					"columns": {
+						"id": { "type": "text", "required": true, "primary": true },
+						"reasoningLevels": { "type": "text[]", "required": true, "default": "'{}'::text[]" },
+						"defaultReasoning": { "type": "text" },
+						"learned": { "type": "timestamptz", "required": true, "default": "now()" }
+					}
+				},
+				"ai_conversations": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade" },
+						"title": { "type": "text", "required": true, "default": "''" },
+						"model": { "type": "text", "required": true },
+						"reasoning": { "type": "text", "required": true, "default": "'default'" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"modified": { "type": "timestamptz", "required": true, "default": "now()" }
+					}
+				},
+				"ai_messages": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"conversationId": { "type": "uuid", "required": true, "references": "ai_conversations.id", "onDelete": "cascade" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"role": { "type": "text", "required": true, "check": "role IN ('user', 'assistant', 'tool')" },
+						"content": { "type": "text", "required": true, "default": "''" },
+						"reasoning": { "type": "text" },
+						"toolCalls": { "type": "jsonb" },
+						"toolCallId": { "type": "text" },
+						"status": {
+							"type": "text",
+							"required": true,
+							"default": "'done'",
+							"check": "status IN ('pending', 'done', 'error', 'cancelled')"
+						},
+						"error": { "type": "text" },
+						"usage": { "type": "jsonb" }
+					}
+				}
+			},
+			"indexes": {
+				"ai_conversations_userId": { "on": "ai_conversations", "columns": ["userId"] },
+				"ai_messages_conversationId": { "on": "ai_messages", "columns": ["conversationId"] }
+			}
+		}
+	],
+	"wipe": ["ai_models", "ai_conversations", "ai_messages"]
+}

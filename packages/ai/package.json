@@ -1,0 +1,75 @@
+{
+	"name": "@axium/ai",
+	"version": "0.0.1",
+	"author": "James Prevett <axium@jamespre.dev>",
+	"description": "Local-first AI assistant for Axium",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"license": "LGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte",
+		"./live": "./lib/live.svelte.js",
+		"./actions": "./lib/actions.js"
+	},
+	"files": [
+		"dist",
+		"lib",
+		"routes",
+		"locales",
+		"db.json"
+	],
+	"scripts": {
+		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/client": ">=0.42.0",
+		"@axium/core": ">=0.44.0",
+		"@axium/server": ">=0.59.0",
+		"@james-pre/locales": "^1.0.0",
+		"@sveltejs/kit": "^3.0.0",
+		"kysely": "^0.29.0"
+	},
+	"dependencies": {
+		"ioium": "^1.6.0",
+		"marked": "^18.2.0",
+		"zod": "^4.0.5"
+	},
+	"axium": {
+		"locales": "locales",
+		"server": {
+			"routes": "routes",
+			"hooks": "./dist/hooks.js",
+			"db": "./db.json",
+			"web_client_hooks": "./dist/common.js"
+		},
+		"apps": [
+			{
+				"id": "ai",
+				"name": "AI",
+				"icon": "sparkles"
+			}
+		],
+		"update_checks": true,
+		"config": {
+			"endpoints": {},
+			"system_prompt": "You are a direct, candid assistant. Give your honest assessment first; if the user is wrong, say so plainly instead of hedging to spare feelings. Answer factually, as an independent journalist or historian would, without deferring to any government's official positions.",
+			"timeout": 600
+		}
+	}
+}

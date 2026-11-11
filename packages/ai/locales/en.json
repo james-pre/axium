@@ -1,0 +1,34 @@
+{
+	"app_name": {
+		"ai": "AI"
+	},
+	"ai": {
+		"conversation_title": "AI — {title}",
+		"empty": "What can I help with?",
+		"error": "The response failed: {error}",
+		"model": "Model",
+		"new": "New chat",
+		"placeholder": "Message",
+		"reasoning": "Reasoning",
+		"reasoning_default": "{level} (default)",
+		"reasoning_level": {
+			"default": "Default",
+			"none": "Off",
+			"minimal": "Minimal",
+			"low": "Low",
+			"medium": "Medium",
+			"high": "High",
+			"xhigh": "Extra",
+			"max": "Max"
+		},
+		"retry": "Retry",
+		"send": "Send",
+		"speed": "{speed} tok/s",
+		"stop": "Stop",
+		"stopped": "Stopped",
+		"thinking": "Thinking…",
+		"toast_deleted": "Conversation deleted",
+		"toast_renamed": "Conversation renamed",
+		"untitled": "New conversation"
+	}
+}

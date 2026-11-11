@@ -39,6 +39,7 @@
 		"npm": ">=12"
 	},
 	"devDependencies": {
+		"@axium/ai": "workspace:*",
 		"@axium/calendar": "workspace:*",
 		"@axium/client": "workspace:*",
 		"@axium/contacts": "workspace:*",
