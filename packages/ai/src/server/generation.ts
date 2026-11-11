@@ -79,7 +79,9 @@ async function getPreferences(userId: string): Promise<ai.Preferences> {
 
 const toolGuidance =
 	'You can call tools. Only call one when it helps with what the user asked. ' +
-	'If a call fails, read the error and correct the input instead of repeating the same call.';
+	'If a call fails, read the error and correct the input instead of repeating the same call. ' +
+	"Never create, change or delete anything the user didn't ask for, even as a workaround. " +
+	'Only say an action was done when a tool result confirms it; if you could not do something, say so.';
 
 function systemPrompt(prompt: string | null | undefined, instructions: string | undefined, offered: tools.Tool[]): string {
 	const now = new Date();
