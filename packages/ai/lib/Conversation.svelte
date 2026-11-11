@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
-	import { AIConversationInit, type AIConversation, type AIDelta, type AIMessage, type AIModel } from '@axium/ai/common';
+	import { AIConversationInit, type AIConversation, type AIDelta, type AIMessage, type AIModels } from '@axium/ai/common';
 	import { watchConversation } from '@axium/ai/live';
 	import { fetchAPI, text } from '@axium/client';
 	import { InlineEdit } from '@axium/client/components';
@@ -11,11 +11,15 @@
 	import Composer from './Composer.svelte';
 	import ConversationMenu from './ConversationMenu.svelte';
 
-	const { conversation, models, title }: { conversation: AIConversation & { messages: AIMessage[] }; models: AIModel[]; title: string } =
-		$props();
+	const {
+		conversation,
+		models,
+		title,
+		ctrlEnter,
+	}: { conversation: AIConversation & { messages: AIMessage[] }; models: AIModels; title: string; ctrlEnter?: boolean } = $props();
 
 	let messages = $state(conversation.messages);
-	let model = $state(conversation.model);
+	let model = $state(conversation.model ?? models.default ?? '');
 	let reasoning = $state(conversation.reasoning);
 	let renaming = $state(false);
 	let container = $state<HTMLDivElement>();
@@ -129,7 +133,8 @@
 	<div class="footer">
 		<Composer
 			{generating}
-			{models}
+			models={models.models}
+			{ctrlEnter}
 			bind:model
 			bind:reasoning
 			onsend={send}

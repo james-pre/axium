@@ -1,85 +1,289 @@
-import { getConfig } from '@axium/core';
-import { database } from '@axium/server/database';
+import { database, type Schema } from '@axium/server/database';
 import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium';
-import type { AIModel, AIModelCapabilities, AIModels } from '../common.js';
-import { parseModelId } from '../common.js';
-import { getDefaultReasoning, getReasoningLevels, listModels } from './chat.js';
+import type { Selectable } from 'kysely';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { freemem, totalmem } from 'node:os';
+import { join } from 'node:path';
+import type { AIDevice, AIDownloadProgress, AIMemory, AIMemoryUse, AIModel, AIModelOptions, AIModels, AIModelStatus } from '../common.js';
+import * as llama from './llama.js';
 
-let known: Promise<Map<string, AIModelCapabilities>> | undefined;
+type ModelRow = Selectable<Schema['ai_models']>;
 
-/** Capabilities of every model learned so far, by model ID */
-function getKnown(): Promise<Map<string, AIModelCapabilities>> {
-	known ??= database
-		.selectFrom('ai_models')
-		.selectAll()
-		.execute()
-		.then(
-			rows =>
-				new Map(
-					rows.map(row => [
-						row.id,
-						{ id: row.id, reasoningLevels: row.reasoningLevels, defaultReasoning: row.defaultReasoning ?? undefined },
-					])
-				)
-		)
-		.catch(error => {
-			known = undefined;
-			throw error;
-		});
-	return known;
+/** The router's models from its last listing, by router name */
+let listed = new Map<string, llama.RouterModel>();
+
+/** Downloads in progress, by source */
+const downloads = new Map<string, AIDownloadProgress>();
+
+async function refresh(): Promise<Map<string, llama.RouterModel>> {
+	if (!llama.isRunning()) return (listed = new Map());
+	try {
+		listed = new Map((await llama.listModels()).map(model => [model.id, model]));
+	} catch (error) {
+		io.debug(`AI: could not list models: ${io.errorText(error)}`);
+	}
+	return listed;
 }
 
-/** Records what a model supports, unless already known. The model must be loaded for its endpoint to report anything. */
-export async function learnCapabilities(id: string): Promise<void> {
-	const { endpoint: endpointName, model } = parseModelId(id);
-	const endpoint = getConfig('@axium/ai').endpoints[endpointName];
-	if (!endpoint) return;
+function sumUse(measurement?: llama.RouterMeasurement | null): AIMemoryUse | undefined {
+	if (!measurement) return;
+	const use: AIMemoryUse = { device: 0, host: 0 };
+	for (const device of measurement.devices) use[device.kind] += device.model + device.context + device.compute;
+	return use;
+}
 
-	try {
-		const capabilities = await getKnown();
-		if (capabilities.has(id)) return;
+function measuredMemory(...models: (llama.RouterModel | undefined)[]): llama.RouterMemory | undefined {
+	return models.find(model => model?.memory?.status == 'measured')?.memory ?? models.find(model => model?.memory)?.memory;
+}
 
-		const signal = AbortSignal.timeout(10_000);
-		const reasoningLevels = await getReasoningLevels(endpoint, model, signal);
-		if (!reasoningLevels) return;
+function toModel(row: ModelRow): AIModel {
+	const preset = listed.get(row.id);
+	const cached = listed.get(row.source);
+	const memory = measuredMemory(preset, cached);
 
-		const defaultReasoning = await getDefaultReasoning(endpoint, model, ['none', ...reasoningLevels], signal);
+	let status: AIModelStatus;
+	let progress = downloads.get(row.source);
 
-		await database
-			.insertInto('ai_models')
-			.values({ id, reasoningLevels, defaultReasoning, learned: new Date() })
-			.onConflict(conflict => conflict.column('id').doUpdateSet({ reasoningLevels, defaultReasoning, learned: new Date() }))
-			.execute();
-
-		const learned = { id, reasoningLevels, defaultReasoning };
-		capabilities.set(id, learned);
-		socketServer?.to('web').emit('ai.model', learned);
-	} catch (error) {
-		io.debug(`AI: could not get capabilities of ${id}: ${io.errorText(error)}`);
+	const cachedStatus = cached?.status.value;
+	if (progress || cachedStatus == 'downloading' || cachedStatus == 'incomplete') {
+		status = cachedStatus == 'incomplete' ? 'incomplete' : 'downloading';
+		if (!progress && cached?.status.progress) {
+			progress = { done: 0, total: 0 };
+			for (const file of Object.values(cached.status.progress)) {
+				progress.done += file.done;
+				progress.total += file.total;
+			}
+		}
+	} else if (!preset?.context_length) {
+		status = 'unavailable';
+	} else {
+		status = preset.status.value as AIModelStatus;
 	}
+
+	return {
+		id: row.id,
+		name: row.name,
+		source: row.source,
+		size: row.size,
+		created: row.created,
+		status,
+		failed: preset?.status.failed || undefined,
+		progress,
+		contextLength: preset?.context_length ?? undefined,
+		inputs: preset?.architecture?.input_modalities,
+		memory: memory && {
+			minimum: sumUse(memory.min),
+			current: status == 'loaded' ? sumUse(memory.effective) : undefined,
+			context: status == 'loaded' ? memory.effective?.n_ctx : undefined,
+		},
+		reasoningLevels: row.reasoningLevels ?? undefined,
+		templateReasoning: row.templateReasoning ?? undefined,
+		reasoning: row.reasoning,
+		systemPrompt: row.systemPrompt,
+		options: row.options as AIModelOptions,
+	};
+}
+
+export async function getRows(): Promise<ModelRow[]> {
+	return await database.selectFrom('ai_models').selectAll().orderBy('name').execute();
+}
+
+export async function getRow(id: string): Promise<ModelRow | undefined> {
+	return await database.selectFrom('ai_models').selectAll().where('id', '=', id).executeTakeFirst();
+}
+
+/** Writes the presets file from the database and makes llama-server read it */
+export async function syncPreset(): Promise<void> {
+	const rows = await getRows();
+	llama.writePreset(rows.map(row => ({ id: row.id, source: row.source, options: row.options as AIModelOptions })));
+	await llama.reload();
+}
+
+/** AMD GPUs report memory use through sysfs, in card order */
+function gpuUse(): { total: number; used: number }[] {
+	const gpus = [];
+	try {
+		for (const card of readdirSync('/sys/class/drm').filter(name => /^card\d+$/.test(name))) {
+			const device = join('/sys/class/drm', card, 'device');
+			if (!existsSync(join(device, 'mem_info_vram_total'))) continue;
+			gpus.push({
+				index: Number(card.slice(4)),
+				total: Number(readFileSync(join(device, 'mem_info_vram_total'), 'utf8')),
+				used: Number(readFileSync(join(device, 'mem_info_vram_used'), 'utf8')),
+			});
+		}
+	} catch {
+		return [];
+	}
+	return gpus.sort((a, b) => a.index - b.index);
+}
+
+function getMemory(): AIMemory {
+	const byIndex = new Map<number, { names: Set<string>; total: number; free?: number }>();
+
+	for (const model of listed.values()) {
+		for (const measurement of [model.memory?.min, model.memory?.effective]) {
+			for (const device of measurement?.devices ?? []) {
+				if (device.kind != 'device' || !device.total) continue;
+				const index = Number(/\d+$/.exec(device.name)?.[0] ?? 0);
+				const entry = byIndex.get(index) ?? { names: new Set(), total: device.total };
+				entry.names.add(device.name);
+				entry.total = Math.max(entry.total, device.total);
+				entry.free = device.free ?? entry.free;
+				byIndex.set(index, entry);
+			}
+		}
+	}
+
+	const gpus = gpuUse();
+	const devices: AIDevice[] = [...byIndex.entries()]
+		.sort(([a], [b]) => a - b)
+		.map(([index, { names, total, free }]) => ({
+			name: [...names].sort().join(' / '),
+			total: gpus[index]?.total ?? total,
+			used: gpus[index]?.used ?? (free === undefined ? undefined : total - free),
+		}));
+
+	if (!devices.length) {
+		for (const [index, gpu] of gpus.entries()) devices.push({ name: 'GPU ' + index, total: gpu.total, used: gpu.used });
+	}
+
+	return { devices, host: { name: 'RAM', total: totalmem(), used: totalmem() - freemem() } };
+}
+
+/** Memory model weights could use, in bytes */
+export function getCapacity(): { device: number; host: number } {
+	const memory = getMemory();
+	return {
+		device: memory.devices.reduce((sum, device) => sum + device.total, 0),
+		host: memory.host.total - (memory.host.used ?? 0),
+	};
+}
+
+function defaultOf(rows: ModelRow[]): string | undefined {
+	return (rows.find(row => row.isDefault) ?? rows[0])?.id;
+}
+
+/** The default model, or the first one when no default is set */
+export async function getDefaultModel(): Promise<string | undefined> {
+	return defaultOf(await getRows());
 }
 
 export async function getModels(): Promise<AIModels> {
-	const config = getConfig('@axium/ai');
-
-	const results = await Promise.allSettled(
-		Object.entries(config.endpoints).map(async ([endpoint, settings]) => {
-			const models = await listModels(settings, AbortSignal.timeout(5000));
-			return models.map(
-				model => ({ id: `${endpoint}/${model.id}`, endpoint, name: model.id, loaded: model.loaded }) satisfies AIModel
-			);
-		})
-	);
-
-	const models = results.flatMap(result => (result.status == 'fulfilled' ? result.value : []));
-
-	await Promise.all(models.filter(model => model.loaded).map(model => learnCapabilities(model.id)));
-
-	const capabilities = await getKnown();
-
+	const [rows] = await Promise.all([getRows(), refresh()]);
 	return {
-		models: models.map(model => ({ ...model, ...capabilities.get(model.id) })),
-		default: config.default_model,
+		models: rows.map(toModel),
+		default: defaultOf(rows),
+		memory: getMemory(),
+		running: llama.isRunning(),
 	};
 }
+
+export async function getModel(id: string): Promise<AIModel | undefined> {
+	const [row] = await Promise.all([getRow(id), refresh()]);
+	return row && toModel(row);
+}
+
+export function emitModel(model: AIModel): void {
+	socketServer?.to('web').emit('ai.model', model);
+}
+
+export function emitRemoved(id: string): void {
+	socketServer?.to('web').emit('ai.model.remove', id);
+}
+
+/** Sends the current state of the models a router name refers to, or of every model */
+async function emitFor(name?: string): Promise<void> {
+	const rows = await getRows();
+	for (const row of rows) {
+		if (!name || row.id == name || row.source == name) emitModel(toModel(row));
+	}
+}
+
+const learning = new Set<string>();
+
+/** Records what a model supports, unless already known. The model must be loaded for llama-server to report anything. */
+export async function learnCapabilities(id: string): Promise<void> {
+	if (learning.has(id)) return;
+	learning.add(id);
+
+	try {
+		const row = await getRow(id);
+		if (!row || row.learned) return;
+
+		const signal = AbortSignal.timeout(10_000);
+		const reasoningLevels = await llama.getReasoningLevels(id, signal);
+		if (!reasoningLevels) return;
+
+		const templateReasoning = await llama.getTemplateReasoning(id, ['none', ...reasoningLevels], signal);
+
+		const updated = await database
+			.updateTable('ai_models')
+			.set({ reasoningLevels, templateReasoning, learned: new Date() })
+			.where('id', '=', id)
+			.returningAll()
+			.executeTakeFirstOrThrow();
+
+		emitModel(toModel(updated));
+	} catch (error) {
+		io.debug(`AI: could not get capabilities of ${id}: ${io.errorText(error)}`);
+	} finally {
+		learning.delete(id);
+	}
+}
+
+const lastProgress = new Map<string, number>();
+
+async function handleEvent({ model: name, event, data }: llama.RouterEvent): Promise<void> {
+	switch (event) {
+		case 'download_progress': {
+			const progress: AIDownloadProgress = { done: 0, total: 0 };
+			for (const file of Object.values(data as Record<string, AIDownloadProgress>)) {
+				progress.done += file.done;
+				progress.total += file.total;
+			}
+			downloads.set(name, progress);
+
+			const now = Date.now();
+			if (now - (lastProgress.get(name) ?? 0) < 500) return;
+			lastProgress.set(name, now);
+			break;
+		}
+		case 'download_finished':
+		case 'download_failed':
+			downloads.delete(name);
+			lastProgress.delete(name);
+			if (event == 'download_failed') io.warn(`AI: download of ${name} failed: ${JSON.stringify(data ?? {})}`);
+			await llama.reload().catch(() => {});
+			break;
+		case 'model_status':
+			if (data?.status == 'loaded') void learnCapabilities(name);
+			break;
+	}
+
+	await refresh();
+	await emitFor(name == '*' ? undefined : name);
+}
+
+llama.events.on('event', event => {
+	void handleEvent(event).catch(error => io.debug(`AI: could not handle ${event.event}: ${io.errorText(error)}`));
+});
+
+async function handleReady(): Promise<void> {
+	await refresh();
+	for (const row of await getRows()) {
+		const model = toModel(row);
+		if (model.status == 'loaded') void learnCapabilities(row.id);
+		emitModel(model);
+	}
+}
+
+llama.events.on('ready', () => {
+	void handleReady().catch(error => io.debug(`AI: could not refresh models: ${io.errorText(error)}`));
+});
+
+llama.events.on('down', () => {
+	listed = new Map();
+	void emitFor().catch(() => {});
+});

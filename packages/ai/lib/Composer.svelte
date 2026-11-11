@@ -13,8 +13,11 @@
 		onsend,
 		onstop,
 		onoptions,
+		ctrlEnter = false,
 	}: {
 		generating?: boolean;
+		/** Whether sending needs Ctrl+Enter, leaving Enter for new lines */
+		ctrlEnter?: boolean;
 		models: AIModel[];
 		model: string;
 		reasoning: string;
@@ -50,8 +53,8 @@
 		bind:value={content}
 		placeholder={text('ai.placeholder')}
 		onkeydown={e => {
-			// @todo make this a user preference (needing Ctrl+Enter to submit)
 			if (e.key != 'Enter' || e.shiftKey || e.isComposing) return;
+			if (ctrlEnter && !e.ctrlKey && !e.metaKey) return;
 			e.preventDefault();
 			void send();
 		}}

@@ -6,9 +6,8 @@ import * as io from 'ioium';
 import type { Selectable } from 'kysely';
 import type schema from '../../db.json';
 import type { AIMessage, AIToolCall, AIUsage } from '../common.js';
-import { parseModelId } from '../common.js';
 import { chat, type ChatMessage } from './chat.js';
-import { learnCapabilities } from './models.js';
+import { getDefaultModel, getRow, learnCapabilities } from './models.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -56,10 +55,10 @@ export function withProgress(message: AIMessage): AIMessage {
 	return { ...message, content: generation.content, reasoning: generation.reasoning || null };
 }
 
-function systemPrompt(): string {
+function systemPrompt(prompt: string | null | undefined): string {
 	const now = new Date();
 	const date = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-	return `${getConfig('@axium/ai').system_prompt}\n\nToday is ${date}.`;
+	return `${prompt ?? getConfig('@axium/ai').system_prompt}\n\nToday is ${date}.`;
 }
 
 function toChatMessage(row: MessageRow): ChatMessage {
@@ -83,7 +82,7 @@ function toChatMessage(row: MessageRow): ChatMessage {
 	}
 }
 
-async function history(conversationId: string, exclude: string): Promise<ChatMessage[]> {
+async function history(conversationId: string, exclude: string, prompt: string | null | undefined): Promise<ChatMessage[]> {
 	const rows = await database
 		.selectFrom('ai_messages')
 		.selectAll()
@@ -93,7 +92,7 @@ async function history(conversationId: string, exclude: string): Promise<ChatMes
 		.orderBy('created')
 		.execute();
 
-	return [{ role: 'system', content: systemPrompt() }, ...rows.filter(row => row.content || row.toolCalls).map(toChatMessage)];
+	return [{ role: 'system', content: systemPrompt(prompt) }, ...rows.filter(row => row.content || row.toolCalls).map(toChatMessage)];
 }
 
 interface Outcome extends Pick<AIMessage, 'content' | 'reasoning' | 'status'> {
@@ -115,12 +114,12 @@ async function finish(row: MessageRow, { usage, ...outcome }: Outcome, userId: s
 /** Streams a response into the pending `message`. Never throws. */
 export async function generate(conversation: ConversationRow, message: MessageRow): Promise<void> {
 	const config = getConfig('@axium/ai');
-	const { endpoint: endpointName, model } = parseModelId(conversation.model);
 	const controller = new AbortController();
 	const generation: Generation = { controller, messageId: message.id, content: '', reasoning: '' };
 	active.set(conversation.id, generation);
 
 	let streaming = false;
+	let model: string | undefined;
 
 	function append(field: 'content' | 'reasoning', text: string): void {
 		const position = generation[field].length;
@@ -129,19 +128,20 @@ export async function generate(conversation: ConversationRow, message: MessageRo
 			?.to('user:' + conversation.userId)
 			.emit('ai.delta', { conversationId: conversation.id, messageId: message.id, field, text, position });
 
-		if (streaming) return;
+		if (streaming || !model) return;
 		streaming = true;
-		void learnCapabilities(conversation.model);
+		void learnCapabilities(model);
 	}
 
 	try {
-		const endpoint = config.endpoints[endpointName];
-		if (!endpoint) throw new Error(`The endpoint "${endpointName}" is not configured`);
+		model = conversation.model ?? (await getDefaultModel());
+		const settings = model && (await getRow(model));
+		if (!model || !settings) throw new Error('No model is available');
 
-		const result = await chat(endpoint, {
+		const result = await chat({
 			model,
-			messages: await history(conversation.id, message.id),
-			reasoning: conversation.reasoning,
+			messages: await history(conversation.id, message.id, settings.systemPrompt),
+			reasoning: conversation.reasoning == 'default' ? (settings.reasoning ?? 'default') : conversation.reasoning,
 			signal: AbortSignal.any([controller.signal, AbortSignal.timeout(config.timeout * 1000)]),
 			onContent: text => append('content', text),
 			onReasoning: text => append('reasoning', text),

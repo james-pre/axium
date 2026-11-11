@@ -1,4 +1,4 @@
-import type { AIDelta, AIMessage, AIModelCapabilities } from '@axium/ai/common';
+import type { AIDelta, AIMessage, AIModel } from '@axium/ai/common';
 import { addListener, connect, onConnect } from '@axium/client/socket';
 import { SvelteMap } from 'svelte/reactivity';
 
@@ -11,8 +11,8 @@ export interface ConversationWatcher {
 
 const watchers = new Map<string, Set<ConversationWatcher>>();
 
-/** Model capabilities learned by the server since the page loaded, by model ID */
-export const learnedModels = new SvelteMap<string, AIModelCapabilities>();
+/** Models that changed since the page loaded, by ID; `null` for removed models */
+export const modelUpdates = new SvelteMap<string, AIModel | null>();
 
 let listening = false;
 
@@ -29,13 +29,36 @@ export function listen(): void {
 		for (const watcher of watchers.get(delta.conversationId) ?? []) watcher.delta(delta);
 	});
 
-	addListener('ai.model', model => learnedModels.set(model.id, model));
+	addListener('ai.model', model => modelUpdates.set(model.id, model));
+	addListener('ai.model.remove', id => modelUpdates.set(id, null));
 
 	onConnect(() => {
 		for (const set of watchers.values()) for (const watcher of set) watcher.reconnect();
 	});
 
 	void connect().catch(() => null);
+}
+
+/** `models` with the live updates received since they were fetched */
+export function withUpdates(models: AIModel[]): AIModel[] {
+	listen();
+
+	const updated: AIModel[] = [];
+	for (const model of models) {
+		const update = modelUpdates.get(model.id);
+		if (update !== null) updated.push(update ?? model);
+	}
+
+	for (const [id, update] of modelUpdates) {
+		if (update && !models.some(model => model.id == id)) updated.push(update);
+	}
+
+	return updated;
+}
+
+/** Whether a model can be chatted with */
+export function isUsable(model: AIModel): boolean {
+	return model.status != 'unavailable' && model.status != 'downloading' && model.status != 'incomplete';
 }
 
 /**

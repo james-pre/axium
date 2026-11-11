@@ -1,13 +1,12 @@
-import { getConfig } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
-import { checkAuthForUser, requireSession } from '@axium/server/auth';
+import { checkAuthForUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
-import { AIConversationAction, AIConversationInit, AIMessageInit } from '../common.js';
-import { cancel, emitMessage, generate, isGenerating, toMessage, withProgress } from './generation.js';
-import { getModels } from './models.js';
+import { AIConversationAction, AIConversationInit, AIMessageInit } from '../../common.js';
+import { cancel, emitMessage, generate, isGenerating, toMessage, withProgress } from '../generation.js';
+import { getDefaultModel } from '../models.js';
 
 async function authConversation(request: Request, id: string) {
 	const conversation = await database
@@ -21,21 +20,6 @@ async function authConversation(request: Request, id: string) {
 
 	return conversation;
 }
-
-function defaultModel(): string {
-	const model = getConfig('@axium/ai').default_model;
-	if (!model) error(503, 'No default model is configured');
-	return model;
-}
-
-addRoute({
-	path: '/api/ai/models',
-	async GET(request): AsyncResult<'GET', 'ai/models'> {
-		await requireSession(request);
-
-		return await getModels();
-	},
-});
 
 addRoute({
 	path: '/api/users/:id/ai/conversations',
@@ -56,9 +40,12 @@ addRoute({
 
 		await checkAuthForUser(request, userId);
 
+		const model = init.model ?? (await getDefaultModel());
+		if (!model) error(503, 'No model is available');
+
 		return await database
 			.insertInto('ai_conversations')
-			.values({ title: init.title, model: init.model ?? defaultModel(), reasoning: init.reasoning, userId })
+			.values({ title: init.title, model, reasoning: init.reasoning, userId })
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not create conversation'));
@@ -151,8 +138,7 @@ addRoute({
 					.executeTakeFirst()
 					.catch(withError('Could not get messages'));
 
-				if (last?.role != 'assistant' || last.status == 'pending')
-					error(409, 'Only the last finished response can be retried');
+				if (last?.role != 'assistant' || last.status == 'pending') error(409, 'Only the last finished response can be retried');
 
 				const pending = await database
 					.updateTable('ai_messages')

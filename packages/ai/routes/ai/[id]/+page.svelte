@@ -14,5 +14,5 @@
 </svelte:head>
 
 {#key data.conversation.id}
-	<Conversation conversation={data.conversation} models={data.models.models} {title} />
+	<Conversation conversation={data.conversation} models={data.models} {title} ctrlEnter={data.preferences.ctrl_enter} />
 {/key}

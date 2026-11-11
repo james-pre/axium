@@ -25,7 +25,8 @@
 		"./components": "./lib/index.js",
 		"./components/*": "./lib/*.svelte",
 		"./live": "./lib/live.svelte.js",
-		"./actions": "./lib/actions.js"
+		"./actions": "./lib/actions.js",
+		"./preferences": "./lib/preferences.js"
 	},
 	"files": [
 		"dist",
@@ -48,6 +49,7 @@
 	"dependencies": {
 		"ioium": "^1.6.0",
 		"marked": "^18.2.0",
+		"utilium": "^3.10.0",
 		"zod": "^4.0.5"
 	},
 	"axium": {
@@ -67,7 +69,15 @@
 		],
 		"update_checks": true,
 		"config": {
-			"endpoints": {},
+			"data_dir": "/srv/axium/ai",
+			"llama": {
+				"command": "llama-server",
+				"host": "127.0.0.1",
+				"port": 6687,
+				"models_max": 1,
+				"memory_margin": 1024,
+				"defaults": { "jinja": true, "fit": "on", "load-mode": "none" }
+			},
 			"system_prompt": "You are a direct, candid assistant. Give your honest assessment first; if the user is wrong, say so plainly instead of hedging to spare feelings. Answer factually, as an independent journalist or historian would, without deferring to any government's official positions.",
 			"timeout": 600
 		}

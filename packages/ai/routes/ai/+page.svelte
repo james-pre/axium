@@ -1,13 +1,23 @@
 <script lang="ts">
 	import { goto, invalidate } from '$app/navigation';
+	import { preferredReasoning } from '@axium/ai/common';
 	import { Composer } from '@axium/ai/components';
+	import { isUsable, withUpdates } from '@axium/ai/live';
 	import { fetchAPI, text } from '@axium/client';
 	import { toast } from '@axium/client/toast';
 
 	const { data } = $props();
 
-	let model = $state(data.models.default ?? data.models.models[0]?.id ?? '');
-	let reasoning = $state('default');
+	const usable = withUpdates(data.models.models).filter(isUsable);
+	const preferred = usable.find(model => model.id == data.preferences.model);
+
+	let model = $state(preferred?.id ?? data.models.default ?? usable[0]?.id ?? '');
+	let reasoning = $state(
+		preferredReasoning(
+			data.preferences.reasoning,
+			usable.find(option => option.id == model)
+		)
+	);
 
 	async function start(content: string) {
 		try {
@@ -33,7 +43,13 @@
 
 <div class="start">
 	<h2>{text('ai.empty')}</h2>
-	<Composer models={data.models.models} bind:model bind:reasoning onsend={start} />
+	<Composer
+		models={data.models.models}
+		bind:model
+		bind:reasoning
+		onsend={start}
+		ctrlEnter={data.preferences.ctrl_enter}
+	/>
 </div>
 
 <style>

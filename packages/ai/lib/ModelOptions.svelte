@@ -1,6 +1,6 @@
 <script lang="ts">
-	import type { AIModel } from '@axium/ai/common';
-	import { learnedModels, listen } from '@axium/ai/live';
+	import { defaultReasoning, type AIModel } from '@axium/ai/common';
+	import { isUsable, withUpdates } from '@axium/ai/live';
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 
@@ -21,12 +21,10 @@
 			: level;
 	}
 
-	listen();
-
-	const selected = $derived(models.find(available => available.id == model));
-	const capabilities = $derived(learnedModels.get(model) ?? selected);
-	const levels = $derived(capabilities?.reasoningLevels ?? []);
-	const defaultLevel = $derived(capabilities?.defaultReasoning);
+	const available = $derived(withUpdates(models).filter(isUsable));
+	const selected = $derived(available.find(option => option.id == model));
+	const levels = $derived(selected?.reasoningLevels ?? []);
+	const defaultLevel = $derived(selected && defaultReasoning(selected));
 
 	/** The model's default level is selected as `default` */
 	const value = $derived(reasoning == defaultLevel ? 'default' : reasoning);
@@ -61,8 +59,8 @@
 	{#if !selected}
 		<option value={model}>{model}</option>
 	{/if}
-	{#each models as available}
-		<option value={available.id}>{available.id}</option>
+	{#each available as option (option.id)}
+		<option value={option.id}>{option.name}</option>
 	{/each}
 </select>
 
