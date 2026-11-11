@@ -3,12 +3,91 @@
 		"ai": "AI"
 	},
 	"ai": {
+		"action": {
+			"load": "Load",
+			"unload": "Unload",
+			"pause": "Pause",
+			"resume": "Resume"
+		},
+		"add": {
+			"download": "Download",
+			"id": "ID",
+			"id_taken": "Another model already uses this ID",
+			"name": "Name",
+			"no_quants": "This repository has no GGUF files llama.cpp can load",
+			"no_results": "No models found",
+			"pick_quant": "Pick a quantization",
+			"search": "Search Hugging Face",
+			"search_button": "Search",
+			"started": "Downloading {name}",
+			"title": "Add model"
+		},
 		"conversation_title": "AI — {title}",
+		"default": "Default",
+		"delete_body": "The model's files are deleted. Conversations using it switch to the default model.",
+		"delete_title": "Delete {name}?",
+		"detail": {
+			"added": "Added",
+			"context": "Context",
+			"context_loaded": "({count} while loaded)",
+			"default_reasoning": "Default reasoning",
+			"inputs": "Inputs",
+			"loading": "Loading",
+			"loading_note": "Changing these reloads the model the next time it is used.",
+			"memory_current": "Memory in use",
+			"memory_minimum": "Memory needed",
+			"size": "Size",
+			"source": "Source",
+			"system_prompt": "System prompt",
+			"system_prompt_default": "Uses the default system prompt",
+			"template_default": "(model default: {level})"
+		},
 		"empty": "What can I help with?",
 		"error": "The response failed: {error}",
+		"fit": {
+			"device": "Fits in VRAM",
+			"host": "Needs RAM",
+			"none": "Too large"
+		},
+		"input": {
+			"text": "Text",
+			"image": "Images",
+			"audio": "Audio",
+			"video": "Video"
+		},
+		"load_failed": "Failed to load",
+		"make_default": "Make default",
+		"memory": {
+			"host": "RAM",
+			"other": "Other",
+			"split": "{device} VRAM, {host} RAM",
+			"title": "Memory",
+			"usage": "{used} of {total}"
+		},
 		"model": "Model",
+		"model_deleted": "Deleted {name}",
+		"model_removed": "This model was deleted.",
+		"model_saved": "Model saved",
+		"model_title": "AI — {name}",
+		"models": "Models",
+		"models_title": "AI — Models",
 		"new": "New chat",
+		"no_models": "No models are available yet.",
+		"no_models_admin": "No models yet. Add one from Hugging Face to get started.",
+		"not_running": "llama-server is not running. Check the server log.",
+		"option": {
+			"automatic": "Automatic",
+			"context": "Context size (tokens)",
+			"device": "Devices",
+			"parallel": "Parallel requests",
+			"reserve": "VRAM to leave free (MiB)"
+		},
 		"placeholder": "Message",
+		"preferences": {
+			"model": "Default model",
+			"reasoning": "Default reasoning",
+			"ctrl_enter": "Send with Ctrl+Enter"
+		},
 		"reasoning": "Reasoning",
 		"reasoning_default": "{level} (default)",
 		"reasoning_level": {
@@ -21,14 +100,31 @@
 			"xhigh": "Extra",
 			"max": "Max"
 		},
+		"reasoning_on": "On",
+		"reasoning_template": "Model default ({level})",
+		"reasoning_toggle": "On or off",
+		"reasoning_unknown": "Learned the first time the model is loaded",
 		"retry": "Retry",
+		"save": "Save",
 		"send": "Send",
+		"settings": "Settings",
 		"speed": "{speed} tok/s",
+		"status": {
+			"unavailable": "Unavailable",
+			"downloading": "Downloading",
+			"incomplete": "Paused",
+			"unloaded": "Not loaded",
+			"loading": "Loading",
+			"loaded": "Loaded",
+			"sleeping": "Sleeping"
+		},
 		"stop": "Stop",
 		"stopped": "Stopped",
 		"thinking": "Thinking…",
 		"toast_deleted": "Conversation deleted",
 		"toast_renamed": "Conversation renamed",
+		"tokens": "{count} tokens",
+		"unknown": "Unknown",
 		"untitled": "New conversation"
 	}
 }

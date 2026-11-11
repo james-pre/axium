@@ -235,6 +235,14 @@ export async function learnCapabilities(id: string): Promise<void> {
 
 const lastProgress = new Map<string, number>();
 
+/** Whether a progress update for `name` arrived too soon after the last one to be worth sending */
+function throttled(name: string): boolean {
+	const now = Date.now();
+	if (now - (lastProgress.get(name) ?? 0) < 500) return true;
+	lastProgress.set(name, now);
+	return false;
+}
+
 async function handleEvent({ model: name, event, data }: llama.RouterEvent): Promise<void> {
 	switch (event) {
 		case 'download_progress': {
@@ -244,10 +252,7 @@ async function handleEvent({ model: name, event, data }: llama.RouterEvent): Pro
 				progress.total += file.total;
 			}
 			downloads.set(name, progress);
-
-			const now = Date.now();
-			if (now - (lastProgress.get(name) ?? 0) < 500) return;
-			lastProgress.set(name, now);
+			if (throttled(name)) return;
 			break;
 		}
 		case 'download_finished':
@@ -258,7 +263,17 @@ async function handleEvent({ model: name, event, data }: llama.RouterEvent): Pro
 			await llama.reload().catch(() => {});
 			break;
 		case 'model_status':
-			if (data?.status == 'loaded') void learnCapabilities(name);
+		case 'status_change':
+			if (data?.status == 'loading') {
+				if (data.progress && throttled(name)) return;
+				break;
+			}
+			lastProgress.delete(name);
+			if (data?.status == 'loaded') {
+				for (const row of await getRows()) {
+					if (row.id == name || row.source == name) void learnCapabilities(row.id);
+				}
+			}
 			break;
 	}
 

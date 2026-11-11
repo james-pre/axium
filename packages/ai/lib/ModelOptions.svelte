@@ -65,13 +65,13 @@
 </select>
 
 {#if levels.length}
-	<select class="reasoning" {value} title={text('ai.reasoning')} onchange={e => change(() => (reasoning = e.currentTarget.value))}>
+	<select class="reasoning subtle" {value} title={text('ai.reasoning')} onchange={e => change(() => (reasoning = e.currentTarget.value))}>
 		{#each options as option}
 			<option value={option}>{optionLabel(option)}</option>
 		{/each}
 	</select>
 {:else}
-	<span class="reasoning toggle">
+	<span class="reasoning toggle subtle">
 		<input id="{id}:reasoning" type="checkbox" checked={enabled} onchange={e => setEnabled(e.currentTarget.checked)} />
 		<label for="{id}:reasoning" class="checkbox">
 			{#if enabled}<Icon i="check" --size="1.3em" />{/if}
@@ -87,10 +87,6 @@
 		color: inherit;
 		cursor: pointer;
 		min-width: 0;
-	}
-
-	.reasoning {
-		color: var(--fg-light);
 	}
 
 	.toggle {
