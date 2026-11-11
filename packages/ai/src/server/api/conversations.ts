@@ -1,6 +1,7 @@
 import type { AsyncResult } from '@axium/core/api';
 import { checkAuthForUser } from '@axium/server/auth';
-import { database } from '@axium/server/database';
+import { database, type Schema } from '@axium/server/database';
+import type { Selectable } from 'kysely';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
@@ -19,6 +20,54 @@ async function authConversation(request: Request, id: string) {
 	await checkAuthForUser(request, conversation.userId);
 
 	return conversation;
+}
+
+type ConversationRow = Selectable<Schema['ai_conversations']>;
+type MessageRow = Selectable<Schema['ai_messages']>;
+
+/** Removes the messages after `from`, one of the user's, and responds to it again, with new content if given */
+async function restart(conversation: ConversationRow, from: MessageRow, content?: string): Promise<ai.Message> {
+	const { edited, removed, pending } = await database
+		.transaction()
+		.execute(async tx => ({
+			edited:
+				content === undefined
+					? from
+					: await tx
+							.updateTable('ai_messages')
+							.set({ content })
+							.where('id', '=', from.id)
+							.returningAll()
+							.executeTakeFirstOrThrow(),
+			removed: await tx
+				.deleteFrom('ai_messages')
+				.where('conversationId', '=', conversation.id)
+				.where('created', '>', from.created)
+				.returning('id')
+				.execute(),
+			pending: await tx
+				.insertInto('ai_messages')
+				.values({ conversationId: conversation.id, role: 'assistant', status: 'pending' })
+				.returningAll()
+				.executeTakeFirstOrThrow(),
+		}))
+		.catch(withError('Could not restart the response'));
+
+	await database
+		.updateTable('ai_conversations')
+		.set({ modified: new Date() })
+		.where('id', '=', conversation.id)
+		.execute()
+		.catch(withError('Could not update conversation'));
+
+	const message = toMessage(pending);
+	if (content !== undefined) emitMessage(conversation.userId, toMessage(edited));
+	emitRemoved(conversation.userId, { conversationId: conversation.id, ids: removed.map(row => row.id) });
+	emitMessage(conversation.userId, message);
+
+	void generate(conversation, pending);
+
+	return message;
 }
 
 addRoute({
@@ -133,27 +182,15 @@ addRoute({
 					.selectFrom('ai_messages')
 					.selectAll()
 					.where('conversationId', '=', id)
+					.where('role', '=', 'user')
 					.orderBy('created', 'desc')
 					.limit(1)
 					.executeTakeFirst()
 					.catch(withError('Could not get messages'));
 
-				if (last?.role != 'assistant' || last.status == 'pending') error(409, 'Only the last finished response can be retried');
+				if (!last) error(409, 'There is nothing to retry');
 
-				const pending = await database
-					.updateTable('ai_messages')
-					.set({ content: '', reasoning: null, status: 'pending', error: null, usage: null })
-					.where('id', '=', last.id)
-					.returningAll()
-					.executeTakeFirstOrThrow()
-					.catch(withError('Could not update message'));
-
-				const message = toMessage(pending);
-				emitMessage(conversation.userId, message);
-
-				void generate(conversation, pending);
-
-				return { message };
+				return { message: await restart(conversation, last) };
 			}
 			case 'edit': {
 				if (isGenerating(id)) error(409, 'A response is already being generated');
@@ -169,42 +206,32 @@ addRoute({
 				if (!target) error(404, 'Message not found');
 				if (target.role != 'user') error(409, 'Only your own messages can be edited');
 
-				const { edited, removed, pending } = await database
-					.transaction()
-					.execute(async tx => ({
-						edited: await tx
-							.updateTable('ai_messages')
-							.set({ content: body.content })
-							.where('id', '=', target.id)
-							.returningAll()
-							.executeTakeFirstOrThrow(),
-						removed: await tx
-							.deleteFrom('ai_messages')
-							.where('conversationId', '=', id)
-							.where('created', '>', target.created)
-							.returning('id')
-							.execute(),
-						pending: await tx
-							.insertInto('ai_messages')
-							.values({ conversationId: id, role: 'assistant', status: 'pending' })
-							.returningAll()
-							.executeTakeFirstOrThrow(),
-					}))
-					.catch(withError('Could not edit message'));
+				return { message: await restart(conversation, target, body.content) };
+			}
+			case 'decide': {
+				if (isGenerating(id)) error(409, 'A response is already being generated');
 
-				await database
-					.updateTable('ai_conversations')
-					.set({ modified: new Date() })
-					.where('id', '=', id)
+				const awaiting = await database
+					.selectFrom('ai_messages')
+					.select('id')
+					.where('conversationId', '=', id)
+					.where('status', '=', 'awaiting')
 					.execute()
-					.catch(withError('Could not update conversation'));
+					.catch(withError('Could not get messages'));
+
+				if (!awaiting.length) error(409, 'No tool calls are awaiting approval');
+
+				const pending = await database
+					.insertInto('ai_messages')
+					.values({ conversationId: id, role: 'assistant', status: 'pending' })
+					.returningAll()
+					.executeTakeFirstOrThrow()
+					.catch(withError('Could not save message'));
 
 				const message = toMessage(pending);
-				emitMessage(conversation.userId, toMessage(edited));
-				emitRemoved(conversation.userId, { conversationId: id, ids: removed.map(row => row.id) });
 				emitMessage(conversation.userId, message);
 
-				void generate(conversation, pending);
+				void generate(conversation, pending, body.decisions);
 
 				return { message };
 			}

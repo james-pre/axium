@@ -58,7 +58,7 @@ function toModel(row: ModelRow): ai.Model {
 	} else if (!preset?.context_length) {
 		status = 'unavailable';
 	} else {
-		status = preset.status.value as ai.ModelStatus;
+		status = preset.status.value;
 	}
 
 	return {
@@ -79,9 +79,10 @@ function toModel(row: ModelRow): ai.Model {
 		},
 		reasoningLevels: row.reasoningLevels ?? undefined,
 		templateReasoning: row.templateReasoning ?? undefined,
+		tools: row.tools ?? undefined,
 		reasoning: row.reasoning,
 		systemPrompt: row.systemPrompt,
-		options: row.options as ai.ModelOptions,
+		options: row.options,
 	};
 }
 
@@ -96,7 +97,7 @@ export async function getRow(id: string): Promise<ModelRow | undefined> {
 /** Writes the presets file from the database and makes llama-server read it */
 export async function syncPreset(): Promise<void> {
 	const rows = await getRows();
-	llama.writePreset(rows.map(row => ({ id: row.id, source: row.source, options: row.options as ai.ModelOptions })));
+	llama.writePreset(rows.map(row => ({ id: row.id, source: row.source, options: row.options })));
 	await llama.reload();
 }
 
@@ -213,14 +214,15 @@ export async function learnCapabilities(id: string): Promise<void> {
 		if (!row || row.learned) return;
 
 		const signal = AbortSignal.timeout(10_000);
-		const reasoningLevels = await llama.getReasoningLevels(id, signal);
-		if (!reasoningLevels) return;
+		const caps = await llama.getTemplateCaps(id, signal);
+		const reasoningLevels = caps?.reasoning_effort_levels;
+		if (!caps || !reasoningLevels) return;
 
 		const templateReasoning = await llama.getTemplateReasoning(id, ['none', ...reasoningLevels], signal);
 
 		const updated = await database
 			.updateTable('ai_models')
-			.set({ reasoningLevels, templateReasoning, learned: new Date() })
+			.set({ reasoningLevels, templateReasoning, tools: caps.supports_tool_calls ?? null, learned: new Date() })
 			.where('id', '=', id)
 			.returningAll()
 			.executeTakeFirstOrThrow();

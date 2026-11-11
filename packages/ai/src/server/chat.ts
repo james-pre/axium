@@ -17,6 +17,8 @@ export interface ChatRequest {
 	/** Sent as `reasoning_effort`, except for `default` */
 	reasoning: string;
 	maxTokens?: number;
+	/** In the OpenAI chat completions format */
+	tools?: object[];
 	signal?: AbortSignal;
 	onContent?(text: string): void;
 	onReasoning?(text: string): void;
@@ -39,6 +41,7 @@ export async function chat(request: ChatRequest): Promise<ChatResult> {
 			messages: request.messages,
 			reasoning_effort: request.reasoning == 'default' ? undefined : request.reasoning,
 			max_tokens: request.maxTokens,
+			tools: request.tools?.length ? request.tools : undefined,
 			stream: true,
 			stream_options: { include_usage: true },
 		}),

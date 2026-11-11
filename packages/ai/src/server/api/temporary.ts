@@ -17,6 +17,12 @@ addRoute({
 
 		if (isGenerating(id)) error(409, 'A response is already being generated');
 
+		const last = init.messages.at(-1)!;
+		const deciding = !!init.decisions && init.messages.some(message => message.status == 'awaiting');
+		if (!deciding && (last.role != 'user' || !last.content.trim())) {
+			error(400, 'The last message must be from the user, unless deciding on tool calls');
+		}
+
 		const saved = await database.selectFrom('ai_conversations').select('id').where('id', '=', id).executeTakeFirst();
 		if (saved) error(409, 'A saved conversation has this ID');
 

@@ -1,13 +1,16 @@
 import { getConfig } from '@axium/core';
+import { getUser } from '@axium/server/auth';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium';
-import type { Selectable } from 'kysely';
+import type { Selectable, Updateable } from 'kysely';
+import { randomUUID } from 'node:crypto';
 import type schema from '../../db.json';
 import * as ai from '../common.js';
 import { chat, type ChatMessage } from './chat.js';
 import { getDefaultModel, getRow, learnCapabilities } from './models.js';
+import * as tools from './tools.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -62,7 +65,7 @@ export function withProgress(message: ai.Message): ai.Message {
 	return { ...message, content: generation.content, reasoning: generation.reasoning || null };
 }
 
-async function userInstructions(userId: string): Promise<string | undefined> {
+async function getPreferences(userId: string): Promise<ai.Preferences> {
 	const row = await database
 		.selectFrom('app_preferences')
 		.select('data')
@@ -70,89 +73,239 @@ async function userInstructions(userId: string): Promise<string | undefined> {
 		.where('appId', '=', 'ai')
 		.executeTakeFirst();
 
-	return ai.Preferences.safeParse(row?.data).data?.instructions?.trim() || undefined;
+	return ai.Preferences.safeParse(row?.data ?? {}).data ?? ai.Preferences.parse({});
 }
 
-function systemPrompt(prompt: string | null | undefined, instructions: string | undefined): string {
+const toolGuidance =
+	'You can call tools. Only call one when it helps with what the user asked. ' +
+	'If a call fails, read the error and correct the input instead of repeating the same call.';
+
+function systemPrompt(prompt: string | null | undefined, instructions: string | undefined, offered: tools.Tool[]): string {
 	const now = new Date();
 	const date = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
 	const sections = [prompt ?? getConfig('@axium/ai').system_prompt];
 	sections.push(`Today is ${date}.`);
+	if (offered.length) sections.push(toolGuidance);
 	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
 
 	return sections.join('\n\n');
 }
 
-function toChatMessage(row: MessageRow): ChatMessage {
-	switch (row.role) {
+/** A message as the model sees it, or nothing for messages it shouldn't see */
+function toChatMessage(message: ai.Message): ChatMessage | undefined {
+	switch (message.role) {
 		case 'user':
-			return { role: 'user', content: row.content };
+			return { role: 'user', content: message.content };
 		case 'tool':
-			return { role: 'tool', tool_call_id: row.toolCallId!, content: row.content };
-		default: {
-			const toolCalls = row.toolCalls as ai.ToolCall[] | null;
+			return {
+				role: 'tool',
+				tool_call_id: message.toolCallId!,
+				content: message.status == 'cancelled' ? 'Cancelled by the user.' : message.content,
+			};
+		case 'assistant':
+			if (message.status == 'error' || (!message.content && !message.toolCalls?.length)) return;
 			return {
 				role: 'assistant',
-				content: row.content || null,
-				tool_calls: toolCalls?.map(call => ({
+				content: message.content || null,
+				tool_calls: message.toolCalls?.map(call => ({
 					id: call.id,
 					type: 'function',
 					function: { name: call.name, arguments: call.arguments },
 				})),
 			};
-		}
 	}
 }
 
-async function history(conversationId: string, exclude: string): Promise<ChatMessage[]> {
-	const rows = await database
-		.selectFrom('ai_messages')
-		.selectAll()
-		.where('conversationId', '=', conversationId)
-		.where('id', '!=', exclude)
-		.where('status', '!=', 'error')
-		.orderBy('created')
-		.execute();
+type MessageChanges = Partial<Omit<ai.Message, 'id' | 'conversationId' | 'created'>>;
 
-	return rows.filter(row => row.content || row.toolCalls).map(toChatMessage);
-}
-
-interface Outcome extends Pick<ai.Message, 'content' | 'reasoning' | 'status'> {
-	error: string | null;
-	usage: ai.Usage | null;
-}
-
-interface ResponseInit {
+/** Where a conversation's messages are kept. Changes are sent to the user. */
+interface Store {
 	userId: string;
 	conversationId: string;
-	messageId: string;
+	add(message: MessageChanges & Pick<ai.Message, 'role'>): Promise<ai.Message>;
+	update(id: string, changes: MessageChanges): Promise<ai.Message>;
+}
+
+function toRow({ toolCalls, usage, ...changes }: MessageChanges): Updateable<Schema['ai_messages']> {
+	return {
+		...changes,
+		...(toolCalls !== undefined && { toolCalls: toolCalls && JSON.stringify(toolCalls) }),
+		...(usage !== undefined && { usage: usage && JSON.stringify(usage) }),
+	};
+}
+
+function savedStore(conversation: ConversationRow): Store {
+	return {
+		userId: conversation.userId,
+		conversationId: conversation.id,
+		async add(message) {
+			const row = await database
+				.insertInto('ai_messages')
+				.values({ ...toRow(message), role: message.role, conversationId: conversation.id })
+				.returningAll()
+				.executeTakeFirstOrThrow();
+			const added = toMessage(row);
+			emitMessage(conversation.userId, added);
+			return added;
+		},
+		async update(id, changes) {
+			const row = await database
+				.updateTable('ai_messages')
+				.set(toRow(changes))
+				.where('id', '=', id)
+				.returningAll()
+				.executeTakeFirstOrThrow();
+			const updated = toMessage(row);
+			emitMessage(conversation.userId, updated);
+			return updated;
+		},
+	};
+}
+
+/** Keeps messages only long enough to send them; the client holds temporary conversations */
+function temporaryStore(userId: string, conversationId: string, messages: ai.Message[]): Store {
+	const known = new Map(messages.map(message => [message.id, message]));
+
+	return {
+		userId,
+		conversationId,
+		add(message) {
+			const added: ai.Message = {
+				id: randomUUID(),
+				conversationId,
+				created: new Date(),
+				content: '',
+				reasoning: null,
+				toolCalls: null,
+				toolCallId: null,
+				status: 'done',
+				error: null,
+				usage: null,
+				...message,
+			};
+			known.set(added.id, added);
+			emitMessage(userId, added);
+			return Promise.resolve(added);
+		},
+		update(id, changes) {
+			const existing = known.get(id);
+			if (!existing) return Promise.reject(new ReferenceError(`Unknown message ${id}`));
+			const updated = { ...existing, ...changes };
+			known.set(id, updated);
+			emitMessage(userId, updated);
+			return Promise.resolve(updated);
+		},
+	};
+}
+
+interface TurnInit {
+	store: Store;
 	/** `null` uses the default model */
 	model: string | null;
 	reasoning: string;
-	/** The conversation so far, without the system prompt */
-	history(): Promise<ChatMessage[]>;
-	/** Saves or sends the finished response; `model` is missing when none was available */
-	finish(outcome: Outcome, model?: string): Promise<void> | void;
+	/** The pending assistant message to respond with */
+	pending: ai.Message;
+	/** The conversation before `pending`, oldest first */
+	history(): Promise<ai.Message[]>;
+	/** For tool calls awaiting the user; calls without a decision are denied */
+	decisions?: ai.Decisions;
+	/** Names of tools the user allowed for the rest of the conversation */
+	allowedTools: string[];
+	/** Saves tools the user just allowed for the rest of the conversation */
+	allowForChat?(names: string[]): Promise<void>;
+	/** Leaves out tools that use the user's data */
+	anonymous?: boolean;
+	/** Called after the turn's final response */
+	onDone?(model: string, content: string): void;
 }
 
-/** Streams a response, sending its text to the user as it arrives. Never throws. */
-async function respond(init: ResponseInit): Promise<void> {
+const repeatedFailure: tools.CallResult = {
+	status: 'error',
+	content: 'Error: this exact call already failed. Change the input or answer without it.',
+	error: 'Repeated a failed call',
+};
+
+/** Saves tools the user allowed in every conversation */
+async function allowAlways(userId: string, preferences: ai.Preferences, names: string[]): Promise<void> {
+	for (const name of names) preferences.tools.approvals[name] = 'allow';
+
+	await database
+		.insertInto('app_preferences')
+		.values({ userId, appId: 'ai', data: preferences })
+		.onConflict(conflict => conflict.columns(['userId', 'appId']).doUpdateSet({ data: preferences }))
+		.execute();
+}
+
+/**
+ * Runs or denies the tool calls in `history` that await the user, replacing them with the results.
+ * Tools the user allowed beyond this call are added to `allowed` and saved.
+ */
+async function resolveAwaiting(
+	history: ai.Message[],
+	init: TurnInit,
+	context: tools.Context,
+	preferences: ai.Preferences,
+	allowed: Set<string>
+): Promise<void> {
+	const calls = new Map(history.flatMap(message => message.toolCalls ?? []).map(call => [call.id, call]));
+	const forChat = new Set<string>();
+	const always = new Set<string>();
+
+	for (const [index, message] of history.entries()) {
+		if (message.role != 'tool' || message.status != 'awaiting') continue;
+
+		const call = calls.get(message.toolCallId!);
+		const decision = call && init.decisions?.[call.id];
+
+		if (!call || !decision || decision == 'deny') {
+			history[index] = await init.store.update(message.id, {
+				status: 'error',
+				content: 'The user denied this action.',
+				error: 'Denied',
+			});
+			continue;
+		}
+
+		if (decision == 'chat') forChat.add(call.name);
+		if (decision == 'always') always.add(call.name);
+
+		history[index] = await init.store.update(message.id, await tools.run(tools.get(call.name), call, context));
+	}
+
+	for (const name of forChat) allowed.add(name);
+	if (forChat.size) await init.allowForChat?.([...allowed]);
+	if (always.size) await allowAlways(init.store.userId, preferences, [...always]);
+}
+
+/** Anything more than this is probably a bug. */
+const stepUpperBound = 1000;
+
+/**
+ * Responds to a conversation, calling tools until the model gives a final answer or a call needs the user's approval.
+ * Text is sent to the user as it streams. Never throws.
+ */
+async function respond(init: TurnInit): Promise<void> {
+	const { store } = init;
 	const config = getConfig('@axium/ai');
 	const controller = new AbortController();
-	const generation: Generation = { controller, userId: init.userId, messageId: init.messageId, content: '', reasoning: '' };
-	active.set(init.conversationId, generation);
+	const signal = AbortSignal.any([controller.signal, AbortSignal.timeout(config.timeout * 1000)]);
+	const generation: Generation = { controller, userId: store.userId, messageId: init.pending.id, content: '', reasoning: '' };
+	active.set(store.conversationId, generation);
 
-	let streaming = false;
+	/** The assistant message being streamed into, until it finishes */
+	let pending: ai.Message | null = init.pending;
+	/** Tool messages whose calls are running */
+	const running = new Set<string>();
 	let model: string | undefined;
-	let outcome: Outcome;
+	let streaming = false;
 
 	function append(field: 'content' | 'reasoning', text: string): void {
 		const position = generation[field].length;
 		generation[field] += text;
 		socketServer
-			?.to('user:' + init.userId)
-			.emit('ai.delta', { conversationId: init.conversationId, messageId: init.messageId, field, text, position });
+			?.to('user:' + store.userId)
+			.emit('ai.delta', { conversationId: store.conversationId, messageId: generation.messageId, field, text, position });
 
 		if (streaming || !model) return;
 		streaming = true;
@@ -164,73 +317,166 @@ async function respond(init: ResponseInit): Promise<void> {
 		const settings = model && (await getRow(model));
 		if (!model || !settings) throw new Error('No model is available');
 
-		const system = systemPrompt(settings.systemPrompt, await userInstructions(init.userId));
+		const [preferences, user] = await Promise.all([getPreferences(store.userId), getUser(store.userId)]);
+		const context: tools.Context = { user, signal };
+		const offered = settings.tools === false ? [] : tools.allowed(preferences.tools, init.anonymous);
+		const definitions = tools.definitions(offered);
 
-		const result = await chat({
-			model,
-			messages: [{ role: 'system', content: system }, ...(await init.history())],
-			reasoning: init.reasoning == 'default' ? (settings.reasoning ?? 'default') : init.reasoning,
-			signal: AbortSignal.any([controller.signal, AbortSignal.timeout(config.timeout * 1000)]),
-			onContent: text => append('content', text),
-			onReasoning: text => append('reasoning', text),
-		});
+		const allowed = new Set(init.allowedTools);
+		const history = await init.history();
+		await resolveAwaiting(history, init, context, preferences, allowed);
 
-		outcome = { content: result.content, reasoning: result.reasoning || null, status: 'done', error: null, usage: result.usage };
+		const messages: ChatMessage[] = [
+			{ role: 'system', content: systemPrompt(settings.systemPrompt, preferences.instructions?.trim(), offered) },
+			...history.map(toChatMessage).filter(message => !!message),
+		];
+
+		/** Calls that failed, by name and arguments */
+		const failed = new Set<string>();
+
+		for (let step = 1; step < stepUpperBound; step++) {
+			const result = await chat({
+				model,
+				messages,
+				reasoning: init.reasoning == 'default' ? (settings.reasoning ?? 'default') : init.reasoning,
+				tools: step < config.max_steps ? definitions : undefined,
+				signal,
+				onContent: text => append('content', text),
+				onReasoning: text => append('reasoning', text),
+			});
+
+			const calls = result.toolCalls.filter(call => call.name).map(call => ({ ...call, id: call.id || 'call_' + randomUUID() }));
+
+			const finished: ai.Message = await store.update(pending.id, {
+				content: result.content,
+				reasoning: result.reasoning || null,
+				toolCalls: calls.length ? calls : null,
+				status: 'done',
+				usage: result.usage,
+			});
+			pending = null;
+
+			if (!calls.length) {
+				init.onDone?.(model, result.content);
+				return;
+			}
+
+			messages.push(toChatMessage(finished)!);
+
+			let awaiting = false;
+			const queue: { call: ai.ToolCall; tool?: tools.Tool; message: ai.Message }[] = [];
+
+			for (const call of calls) {
+				const tool = tools.get(call.name);
+				const approval = tools.needsApproval(tool, preferences.tools, allowed);
+				const message = await store.add({ role: 'tool', toolCallId: call.id, status: approval ? 'awaiting' : 'pending' });
+
+				if (approval) awaiting = true;
+				else {
+					running.add(message.id);
+					queue.push({ call, tool, message });
+				}
+			}
+
+			for (const { call, tool, message } of queue) {
+				signal.throwIfAborted();
+
+				const key = call.name + '\n' + call.arguments;
+				const outcome = failed.has(key) ? repeatedFailure : await tools.run(tool, call, context);
+				if (outcome.status == 'error') failed.add(key);
+
+				const done = await store.update(message.id, signal.aborted ? { status: 'cancelled' } : outcome);
+				running.delete(message.id);
+				messages.push(toChatMessage(done)!);
+			}
+
+			signal.throwIfAborted();
+			if (awaiting) return;
+
+			pending = await store.add({ role: 'assistant', status: 'pending' });
+			Object.assign(generation, { messageId: pending.id, content: '', reasoning: '' });
+		}
 	} catch (error) {
 		const cancelled = controller.signal.aborted;
-		if (!cancelled) io.warn(`AI: response in ${init.conversationId} failed: ${io.errorText(error)}`);
-		outcome = {
-			content: generation.content,
-			reasoning: generation.reasoning || null,
-			status: cancelled ? 'cancelled' : 'error',
-			error: cancelled ? null : error instanceof Error && error.name == 'TimeoutError' ? 'Timed out' : io.errorText(error),
-			usage: null,
-		};
-	}
+		if (!cancelled) io.warn(`AI: response in ${store.conversationId} failed: ${io.errorText(error)}`);
+		const reason = cancelled ? null : error instanceof Error && error.name == 'TimeoutError' ? 'Timed out' : io.errorText(error);
 
-	try {
-		await init.finish(outcome, model);
-	} catch (error) {
-		io.error(`AI: could not finish response ${init.messageId}: ${io.errorText(error)}`);
+		try {
+			for (const id of running) await store.update(id, { status: cancelled ? 'cancelled' : 'error', error: reason });
+			if (pending) {
+				await store.update(pending.id, {
+					content: generation.content,
+					reasoning: generation.reasoning || null,
+					status: cancelled ? 'cancelled' : 'error',
+					error: reason,
+				});
+			}
+		} catch (error) {
+			io.error(`AI: could not finish response in ${store.conversationId}: ${io.errorText(error)}`);
+		}
 	} finally {
-		active.delete(init.conversationId);
+		active.delete(store.conversationId);
 	}
 }
 
-/** Streams a response into the pending `message`. Never throws. */
-export async function generate(conversation: ConversationRow, message: MessageRow): Promise<void> {
+async function savedHistory(conversationId: string, exclude: string): Promise<ai.Message[]> {
+	const rows = await database
+		.selectFrom('ai_messages')
+		.selectAll()
+		.where('conversationId', '=', conversationId)
+		.where('id', '!=', exclude)
+		.orderBy('created')
+		.execute();
+
+	return rows.map(toMessage);
+}
+
+/** Responds into the pending `message` of a saved conversation. Never throws. */
+export async function generate(conversation: ConversationRow, message: MessageRow, decisions?: ai.Decisions): Promise<void> {
 	await respond({
-		userId: conversation.userId,
-		conversationId: conversation.id,
-		messageId: message.id,
+		store: savedStore(conversation),
 		model: conversation.model,
 		reasoning: conversation.reasoning,
-		history: () => history(conversation.id, message.id),
-		async finish({ usage, ...outcome }, model) {
+		pending: toMessage(message),
+		history: () => savedHistory(conversation.id, message.id),
+		decisions,
+		allowedTools: conversation.allowedTools,
+		async allowForChat(names) {
 			const updated = await database
-				.updateTable('ai_messages')
-				.set({ ...outcome, usage: usage ? JSON.stringify(usage) : null })
-				.where('id', '=', message.id)
+				.updateTable('ai_conversations')
+				.set({ allowedTools: names })
+				.where('id', '=', conversation.id)
 				.returningAll()
 				.executeTakeFirstOrThrow();
-
-			emitMessage(conversation.userId, toMessage(updated));
-
-			if (outcome.status == 'done' && model) void nameConversation(conversation, model, outcome.content);
+			socketServer?.to('user:' + conversation.userId).emit('ai.conversation', updated);
 		},
+		onDone: (model, content) => void nameConversation(conversation, model, content),
 	});
 }
 
-/** Streams a response for a temporary conversation, which is never saved. Never throws. */
+/** Responds into `pending` for a temporary conversation, which is never saved. Never throws. */
 export async function generateTemporary(userId: string, init: ai.TemporaryInit, pending: ai.Message): Promise<void> {
-	await respond({
-		userId,
+	const history = init.messages.map((message): ai.Message => ({
 		conversationId: pending.conversationId,
-		messageId: pending.id,
+		created: new Date(),
+		reasoning: null,
+		error: null,
+		usage: null,
+		...message,
+		toolCalls: message.toolCalls ?? null,
+		toolCallId: message.toolCallId ?? null,
+		status: message.status ?? 'done',
+	}));
+
+	await respond({
+		store: temporaryStore(userId, pending.conversationId, [...history, pending]),
 		model: init.model ?? null,
 		reasoning: init.reasoning,
-		history: () => Promise.resolve(init.messages),
-		finish: outcome => emitMessage(userId, { ...pending, ...outcome }),
+		pending,
+		history: () => Promise.resolve(history),
+		decisions: init.decisions,
+		allowedTools: init.allowedTools,
+		anonymous: init.anonymous,
 	});
 }
 
@@ -283,7 +529,7 @@ async function nameConversation(conversation: ConversationRow, model: string, re
 	}
 }
 
-/** Marks responses left pending by a previous process as failed */
+/** Marks responses and tool calls left pending by a previous process as failed */
 export async function failInterrupted(): Promise<void> {
 	await database
 		.updateTable('ai_messages')

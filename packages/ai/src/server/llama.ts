@@ -390,15 +390,21 @@ export async function remove(source: string): Promise<void> {
 }
 
 /**
- * The reasoning levels a loaded model's chat template distinguishes, lowest to highest.
+ * What a loaded model's chat template supports.
  * Only available while the model is loaded; this never loads it.
  */
-export async function getReasoningLevels(model: string, signal?: AbortSignal): Promise<string[] | undefined> {
+export async function getTemplateCaps(model: string, signal?: AbortSignal): Promise<TemplateCaps | undefined> {
 	const response = await request(`props?model=${encodeURIComponent(model)}&autoload=false`, { signal }).catch(() => null);
 	if (!response) return;
 
-	const props = (await response.json()) as { chat_template_caps?: { reasoning_effort_levels?: string[] } | null };
-	return props.chat_template_caps?.reasoning_effort_levels;
+	const props = (await response.json()) as { chat_template_caps?: TemplateCaps | null };
+	return props.chat_template_caps ?? undefined;
+}
+
+export interface TemplateCaps {
+	/** Lowest to highest */
+	reasoning_effort_levels?: string[];
+	supports_tool_calls?: boolean;
 }
 
 /** The prompt a loaded model would see, without running it */

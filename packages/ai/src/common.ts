@@ -55,6 +55,10 @@ export const Config = z.object({
 	system_prompt: z.string(),
 	/** Seconds a single response may take before it is stopped */
 	timeout: z.number().positive(),
+	/** The most responses the model may give in one turn while using tools */
+	max_steps: z.int().positive(),
+	/** A SearXNG instance used by the web search tool, which is hidden while this is unset */
+	search_url: z.url().nullish(),
 });
 export interface Config extends z.infer<typeof Config> {}
 
@@ -141,6 +145,8 @@ export const Model = z.object({
 	reasoningLevels: Reasoning.array().optional(),
 	/** What the chat template does without a reasoning level: `none` or one of the levels. Missing when not known. */
 	templateReasoning: Reasoning.optional(),
+	/** Whether the chat template supports tool calls. Missing when not known. */
+	tools: z.boolean().optional(),
 	/** What `default` amounts to, set by an administrator */
 	reasoning: Reasoning.nullable(),
 	systemPrompt: z.string().max(20_000).nullable(),
@@ -257,14 +263,38 @@ export const Conversation = z.object({
 	reasoning: Reasoning,
 	created: z.coerce.date(),
 	modified: z.coerce.date(),
+	/** Names of tools the user allowed for the rest of the conversation */
+	allowedTools: z.string().array(),
 });
 export interface Conversation extends z.infer<typeof Conversation> {}
 
 export const MessageRole = z.literal(['user', 'assistant', 'tool']);
 export type MessageRole = z.infer<typeof MessageRole>;
 
-export const MessageStatus = z.literal(['pending', 'done', 'error', 'cancelled']);
+/** `awaiting` is a tool call waiting for the user to approve it */
+export const MessageStatus = z.literal(['pending', 'done', 'error', 'cancelled', 'awaiting']);
 export type MessageStatus = z.infer<typeof MessageStatus>;
+
+/** Where a tool acts: `account` uses the user's Axium data, `web` reaches the internet */
+export const Environment = z.literal(['account', 'web']);
+export type Environment = z.infer<typeof Environment>;
+
+/** `write` tools change data, so they may need the user's approval */
+export const ToolAccess = z.literal(['read', 'write']);
+export type ToolAccess = z.infer<typeof ToolAccess>;
+
+/** Tool call IDs mapped to whether the user approved them */
+/** Whether a write tool runs without asking */
+export const Approval = z.literal(['ask', 'allow']);
+export type Approval = z.infer<typeof Approval>;
+
+/** `chat` allows the tool for the rest of the conversation, `always` for every conversation */
+export const Decision = z.literal(['deny', 'once', 'chat', 'always']);
+export type Decision = z.infer<typeof Decision>;
+
+/** Tool call IDs mapped to the user's choice */
+export const Decisions = z.record(z.string(), Decision);
+export type Decisions = z.infer<typeof Decisions>;
 
 export const ToolCall = z.object({
 	id: z.string(),
@@ -311,12 +341,13 @@ export const ConversationAction = z.discriminatedUnion('action', [
 	z.object({ action: z.literal('retry') }),
 	/** Replaces the content of one of the user's messages, removes the messages after it, and responds again. */
 	MessageInit.extend({ action: z.literal('edit'), message: z.uuid() }),
+	/** Approves or denies every tool call awaiting the user, then continues the response */
+	z.object({ action: z.literal('decide'), decisions: Decisions }),
 ]);
 export type ConversationAction = z.infer<typeof ConversationAction>;
 
 /** A message in a temporary conversation, which only the client keeps */
-export const TemporaryMessage = z.object({
-	role: z.literal(['user', 'assistant']),
+export const TemporaryMessage = Message.pick({ id: true, role: true, toolCalls: true, toolCallId: true, status: true }).extend({
 	content: z.string().max(100_000),
 });
 export interface TemporaryMessage extends z.infer<typeof TemporaryMessage> {}
@@ -325,11 +356,14 @@ export const TemporaryInit = z.object({
 	/** `null` uses the default model */
 	model: ModelId.nullish(),
 	reasoning: Reasoning,
-	/** The conversation so far, ending with the message to respond to */
-	messages: TemporaryMessage.array()
-		.min(1)
-		.max(1000)
-		.refine(messages => messages.at(-1)?.role == 'user' && !!messages.at(-1)?.content.trim(), 'The last message must be from the user'),
+	/** Leaves out tools that use the user's data */
+	anonymous: z.boolean().default(false),
+	/** The conversation so far, ending with the message to respond to or the tool calls being decided */
+	messages: TemporaryMessage.array().min(1).max(1000),
+	/** For the tool calls at the end of `messages` that await the user */
+	decisions: Decisions.optional(),
+	/** Names of tools the user allowed for the rest of the conversation */
+	allowedTools: z.string().array().max(100).default([]),
 });
 export interface TemporaryInit extends z.infer<typeof TemporaryInit> {}
 
@@ -344,6 +378,22 @@ export const Preferences = z
 		ctrl_enter: z.boolean().default(false),
 		/** Added to the system prompt of every conversation */
 		instructions: z.string().max(10_000).optional().register(locales.zod, { multiline: true }),
+		tools: z
+			.object({
+				/** What tools may do with the user's Axium data */
+				account_access: z
+					.literal(['none', 'read', 'write'])
+					.default('none')
+					.register(locales.zod, { prefix: 'ai.data_access', feature: 'ai-account-access' }),
+				/** Whether tools that change the user's data wait for approval */
+				confirm_writes: z.boolean().default(true).register(locales.zod, { feature: 'ai-account-access' }),
+				/** Whether tools may search and read the web */
+				web: z.boolean().default(false).register(locales.zod, { feature: 'ai-web-tools' }),
+				/** Per-tool overrides of whether write calls ask first, by tool name */
+				approvals: z.record(z.string(), Approval).default({}).register(locales.zod, { feature: 'ai-account-access' }),
+			})
+			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {} })
+			.register(locales.zod, { prefix: 'ai.preferences.tools' }),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
 export interface Preferences extends z.infer<typeof Preferences> {}

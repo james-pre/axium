@@ -45,10 +45,12 @@
 		"@axium/server": ">=0.59.0",
 		"@james-pre/locales": "^1.0.0",
 		"@sveltejs/kit": "^3.0.0",
+		"domhandler": "^6.0.1",
 		"kysely": "^0.29.0"
 	},
 	"dependencies": {
 		"commander": "^15.0.0",
+		"htmlparser2": "^12.0.0",
 		"ioium": "^1.6.0",
 		"marked": "^18.2.0",
 		"utilium": "^3.10.0",
@@ -67,6 +69,12 @@
 		},
 		"features": {
 			"ai-gateway": {
+				"default": true
+			},
+			"ai-account-access": {
+				"default": true
+			},
+			"ai-web-tools": {
 				"default": true
 			}
 		},
@@ -93,7 +101,9 @@
 				}
 			},
 			"system_prompt": "You are a direct, candid assistant. Give your honest assessment first; if the user is wrong, say so plainly instead of hedging to spare feelings. Answer factually, as an independent journalist or historian would, without deferring to any government's official positions.",
-			"timeout": 600
+			"timeout": 600,
+			"max_steps": 10,
+			"search_url": null
 		}
 	}
 }

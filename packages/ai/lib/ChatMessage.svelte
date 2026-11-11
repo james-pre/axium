@@ -11,19 +11,28 @@
 	import { dynamicRows } from '@axium/client/attachments';
 	import { ClipboardCopy, Icon } from '@axium/client/components';
 	import { markdown } from './markdown.js';
+	import ToolCall from './ToolCall.svelte';
 
 	const {
 		message,
 		ctrlEnter = false,
+		results,
+		decisions,
 		onretry,
 		onedit,
+		ondecide,
 	}: {
 		message: ai.Message;
 		/** Whether saving an edit needs Ctrl+Enter, leaving Enter for new lines */
 		ctrlEnter?: boolean;
+		/** Tool messages, by the ID of the call they answer */
+		results?: Map<string, ai.Message>;
+		/** Choices for calls awaiting approval, before they are sent */
+		decisions?: ai.Decisions;
 		onretry?(): void;
 		/** Replaces the message's content */
 		onedit?(content: string): Promise<unknown>;
+		ondecide?(call: ai.ToolCall, decision: ai.Decision): void;
 	} = $props();
 
 	let draft = $state<string>();
@@ -103,11 +112,15 @@
 		<div class="subtle">{text('ai.thinking')}</div>
 	{/if}
 
+	{#each message.toolCalls ?? [] as call (call.id)}
+		<ToolCall {call} result={results?.get(call.id)} decision={decisions?.[call.id]} ondecide={decision => ondecide?.(call, decision)} />
+	{/each}
+
 	{#if message.status == 'error'}
 		<div class="error">{text('ai.error', { error: message.error ?? '' })}</div>
 	{/if}
 
-	{#if !pending && draft === undefined}
+	{#if !pending && draft === undefined && (message.content || retryable || message.status != 'done')}
 		<div class="actions subtle">
 			{#if message.content}
 				<ClipboardCopy value={message.content} --size="14px" />

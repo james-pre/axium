@@ -31,14 +31,19 @@
 		actions?: Snippet;
 	} = $props();
 
-	let messages = $state(conversation.messages);
-	let model = $state(conversation.model ?? models.default ?? '');
-	let reasoning = $state(conversation.reasoning);
-	let renaming = $state(false);
-	let container = $state<HTMLDivElement>();
+	let messages = $state(conversation.messages),
+		model = $state(conversation.model ?? models.default ?? ''),
+		reasoning = $state(conversation.reasoning),
+		renaming = $state(false),
+		container = $state<HTMLDivElement>(),
+		anonymous = $state(false),
+		decisions = $state<ai.Decisions>({}),
+		allowedTools = $state<string[]>([]);
 
 	const generating = $derived(messages.some(message => message.status == 'pending'));
 	const visible = $derived(messages.filter(message => message.role != 'tool'));
+	const results = $derived(new Map(messages.filter(message => message.toolCallId).map(message => [message.toolCallId!, message])));
+	const awaiting = $derived(messages.filter(message => message.status == 'awaiting'));
 
 	function isNearBottom(): boolean {
 		if (!container) return true;
@@ -107,21 +112,45 @@
 
 	$effect(() => void tick().then(scrollToBottom));
 
-	/** The history a temporary conversation sends with each message, as the server would build it for a saved one */
+	/** The history a temporary conversation sends with each request, which the server filters as it would a saved one */
 	function temporaryHistory(): ai.TemporaryMessage[] {
 		return messages
-			.filter(message => message.role != 'tool' && message.status != 'error' && message.content)
-			.map(({ role, content }) => ({ role: role as ai.TemporaryMessage['role'], content }));
+			.filter(message => message.status != 'pending')
+			.map(({ id, role, content, toolCalls, toolCallId, status }) => ({ id, role, content, toolCalls, toolCallId, status }));
 	}
 
-	async function respondTemporary(): Promise<void> {
+	async function respondTemporary(decided?: ai.Decisions): Promise<void> {
 		const pending = await fetchAPI(
 			'PUT',
 			'ai/temporary/:id',
-			{ model: model || null, reasoning, messages: temporaryHistory() },
+			{ model: model || null, reasoning, anonymous, messages: temporaryHistory(), decisions: decided, allowedTools },
 			conversation.id
 		);
 		add(pending);
+	}
+
+	/** Records a choice for a call awaiting approval, and continues the response once every awaiting call has one */
+	async function decide(call: ai.ToolCall, decision: ai.Decision) {
+		decisions[call.id] = decision;
+		if (decision == 'chat' && temporary && !allowedTools.includes(call.name)) allowedTools.push(call.name);
+		if (!awaiting.every(message => message.toolCallId! in decisions)) return;
+
+		const decided = $state.snapshot(decisions);
+		try {
+			if (temporary) await respondTemporary(decided);
+			else {
+				const { message } = await fetchAPI(
+					'POST',
+					'ai/conversations/:id',
+					{ action: 'decide', decisions: decided },
+					conversation.id
+				);
+				if (message) add(message);
+			}
+			decisions = {};
+		} catch (error) {
+			toast('error', error);
+		}
 	}
 
 	async function sendTemporary(content: string): Promise<void> {
@@ -163,11 +192,13 @@
 	async function retry() {
 		try {
 			if (temporary) {
-				const last = messages.pop();
+				const previous = messages;
+				const lastUser = messages.findLastIndex(message => message.role == 'user');
+				messages = messages.slice(0, lastUser + 1);
 				try {
 					await respondTemporary();
 				} catch (error) {
-					if (last) messages.push(last);
+					messages = previous;
 					throw error;
 				}
 				return;
@@ -265,14 +296,24 @@
 				<div class="empty">
 					<h2>{text('ai.temporary.title')}</h2>
 					<p class="subtle">{text('ai.temporary.description')}</p>
+					<div class="anonymous">
+						<input type="checkbox" id="ai-temporary-anonymous" bind:checked={anonymous} />
+						<label for="ai-temporary-anonymous" class="checkbox">
+							{#if anonymous}<Icon i="check" --size="1.3em" />{/if}
+						</label>
+						<label for="ai-temporary-anonymous">{text('ai.temporary.anonymous')}</label>
+					</div>
 				</div>
 			{/if}
 			{#each visible as message, index (message.id)}
 				<ChatMessage
 					{message}
 					{ctrlEnter}
+					{results}
+					{decisions}
 					onretry={index == visible.length - 1 && !generating ? retry : undefined}
 					onedit={message.role == 'user' && !generating ? content => edit(message.id, content) : undefined}
+					ondecide={generating ? undefined : decide}
 				/>
 			{/each}
 		</div>
@@ -338,6 +379,12 @@
 
 	.empty {
 		text-align: center;
+	}
+
+	.anonymous {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5em;
 	}
 
 	.footer {

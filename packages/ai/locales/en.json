@@ -87,7 +87,18 @@
 			"model": "Default model",
 			"reasoning": "Default reasoning",
 			"ctrl_enter": "Send with Ctrl+Enter",
-			"instructions": "Custom instructions"
+			"instructions": "Custom instructions",
+			"tools": {
+				"account_access": "Access to your data",
+				"confirm_writes": "Confirm changes to your data",
+				"web": "Web access",
+				"approvals": "Approvals by tool"
+			}
+		},
+		"data_access": {
+			"none": "None",
+			"read": "Read only",
+			"write": "Read and write"
 		},
 		"reasoning": "Reasoning",
 		"reasoning_default": "{level} (default)",
@@ -132,8 +143,22 @@
 			"toggle": "Temporary",
 			"description": "Temporary chats are never saved and won't appear in your history.",
 			"discard": "Discard",
-			"discard_confirm": "Leave this temporary chat? It will be lost."
+			"discard_confirm": "Leave this temporary chat? It will be lost.",
+			"anonymous": "Anonymous"
 		},
+		"tool": {
+			"fetch_url": "Read a web page",
+			"search_web": "Searched the web"
+		},
+		"tool_awaiting": "Allow this change?",
+		"tool_decision": {
+			"deny": "Deny",
+			"once": "Allow once",
+			"chat": "Allow in this chat",
+			"always": "Always allow"
+		},
+		"tool_input": "Input",
+		"tool_result": "Result",
 		"untitled": "New conversation"
 	}
 }
