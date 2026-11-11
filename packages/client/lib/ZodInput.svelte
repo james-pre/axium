@@ -192,8 +192,7 @@
 			{placeholder}
 			{readonly}
 			class={[error && 'error']}
-			{@attach dynamicRows(20, 4)}
-		></textarea>
+			{@attach dynamicRows(20, 4)}></textarea>
 	</div>
 {:else if schema.type == 'string'}
 	{@render _in({ type: schema.format == 'email' ? 'email' : 'text', ...pick(schema, 'minLength', 'maxLength') })}
