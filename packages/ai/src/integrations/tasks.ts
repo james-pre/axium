@@ -65,7 +65,7 @@ tools.add({
 	environment: 'account',
 	access: 'read',
 	input: z.object({
-		list: List.optional().describe("Only this task list, by ID or exact name"),
+		list: List.optional().describe('Only this task list, by ID or exact name'),
 		includeCompleted: z.boolean().optional().describe('Also list completed tasks'),
 	}),
 	async run({ list: idOrName, includeCompleted = false }, context) {
@@ -141,7 +141,7 @@ tools.add({
 
 tools.add({
 	name: 'update_task_list',
-	description: "Renames a task list or changes its description. Only the given fields change.",
+	description: 'Renames a task list or changes its description. Only the given fields change.',
 	environment: 'account',
 	access: 'write',
 	input: z.object({
