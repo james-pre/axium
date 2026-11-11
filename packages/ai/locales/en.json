@@ -148,7 +148,12 @@
 		},
 		"tool": {
 			"fetch_url": "Read a web page",
-			"search_web": "Searched the web"
+			"search_web": "Searched the web",
+			"list_notes": "Looked through notes",
+			"read_note": "Read a note",
+			"create_note": "Created a note",
+			"update_note": "Changed a note",
+			"delete_note": "Deleted a note"
 		},
 		"tool_awaiting": "Allow this change?",
 		"tool_decision": {

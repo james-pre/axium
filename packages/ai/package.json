@@ -42,11 +42,17 @@
 	"peerDependencies": {
 		"@axium/client": ">=0.42.0",
 		"@axium/core": ">=0.44.0",
+		"@axium/notes": ">=0.4.10",
 		"@axium/server": ">=0.59.0",
 		"@james-pre/locales": "^1.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"domhandler": "^6.0.1",
 		"kysely": "^0.29.0"
+	},
+	"peerDependenciesMeta": {
+		"@axium/notes": {
+			"optional": true
+		}
 	},
 	"dependencies": {
 		"commander": "^15.0.0",
@@ -62,7 +68,10 @@
 			"routes": "routes",
 			"hooks": "./dist/hooks.js",
 			"db": "./db.json",
-			"web_client_hooks": "./dist/common.js"
+			"web_client_hooks": "./dist/common.js",
+			"integrations": {
+				"@axium/notes": "./dist/integrations/notes.js"
+			}
 		},
 		"client": {
 			"cli": "./dist/client/cli.js"
