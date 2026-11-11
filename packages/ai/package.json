@@ -60,6 +60,11 @@
 			"db": "./db.json",
 			"web_client_hooks": "./dist/common.js"
 		},
+		"features": {
+			"ai-gateway": {
+				"default": true
+			}
+		},
 		"apps": [
 			{
 				"id": "ai",

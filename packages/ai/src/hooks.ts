@@ -2,6 +2,7 @@ import { count } from '@axium/server/database';
 import * as io from 'ioium';
 import './common.js';
 import './server/api/conversations.js';
+import './server/api/gateway.js';
 import { failInterrupted } from './server/generation.js';
 import * as llama from './server/llama.js';
 import './server/api/models.js';

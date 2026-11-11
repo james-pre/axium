@@ -337,15 +337,20 @@ export async function* serverSentEvents(response: Response): AsyncGenerator<any>
 	}
 }
 
-/** Sends a request to llama-server, throwing its error message on failure */
-export async function request(path: string, init: RequestInit = {}): Promise<Response> {
+/** Sends a request to llama-server, returning its response whether or not it succeeded */
+export async function send(path: string, init: RequestInit = {}): Promise<Response> {
 	if (!state) throw new Error('llama-server is not running');
 
 	const headers = new Headers(init.headers);
 	headers.set('Authorization', 'Bearer ' + state.key);
 	if (init.body) headers.set('Content-Type', 'application/json');
 
-	const response = await fetch(new URL(path, baseURL()), { ...init, headers });
+	return await fetch(new URL(path, baseURL()), { ...init, headers });
+}
+
+/** Sends a request to llama-server, throwing its error message on failure */
+export async function request(path: string, init: RequestInit = {}): Promise<Response> {
+	const response = await send(path, init);
 	if (response.ok) return response;
 
 	const body = await response.text();
