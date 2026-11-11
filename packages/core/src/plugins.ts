@@ -132,7 +132,7 @@ export async function runIntegrations() {
 		for (const [name, path] of Object.entries(integrations)) {
 			if (!plugins.has(name)) continue;
 			debug(`Running ${pluginName} integration with ${name}`);
-			await import(path).catch(e => {
+			await import(new URL(path, 'file://' + plugin.dirname + '/').href).catch(e => {
 				const text = e instanceof Error ? e.stack : String(e);
 				warn(`Failed to load ${pluginName} integration with ${name}:\n\t${text}`);
 			});
