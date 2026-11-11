@@ -47,6 +47,7 @@
 		"kysely": "^0.29.0"
 	},
 	"dependencies": {
+		"commander": "^15.0.0",
 		"ioium": "^1.6.0",
 		"marked": "^18.2.0",
 		"utilium": "^3.10.0",
@@ -59,6 +60,9 @@
 			"hooks": "./dist/hooks.js",
 			"db": "./db.json",
 			"web_client_hooks": "./dist/common.js"
+		},
+		"client": {
+			"cli": "./dist/client/cli.js"
 		},
 		"features": {
 			"ai-gateway": {
