@@ -203,7 +203,7 @@ export async function handleAPIRequest(request: Request, params: Record<string, 
 
 	if (result instanceof Response) return result;
 
-	if (typeof result == 'object' || typeof result == 'function') {
+	if ((typeof result == 'object' || typeof result == 'function') && result !== null) {
 		result._warnings ||= [];
 		result._warnings.push(..._warnings);
 	}
