@@ -319,6 +319,8 @@ export const AIPreferences = z
 			.default('default')
 			.register(locales.zod, { prefix: 'ai.reasoning_level' }),
 		ctrl_enter: z.boolean().default(false),
+		/** Added to the system prompt of every conversation */
+		instructions: z.string().max(10_000).optional().register(locales.zod, { multiline: true }),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
 export interface AIPreferences extends z.infer<typeof AIPreferences> {}

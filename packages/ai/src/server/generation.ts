@@ -5,7 +5,7 @@ import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium';
 import type { Selectable } from 'kysely';
 import type schema from '../../db.json';
-import type { AIMessage, AIToolCall, AIUsage } from '../common.js';
+import { AIPreferences, type AIMessage, type AIToolCall, type AIUsage } from '../common.js';
 import { chat, type ChatMessage } from './chat.js';
 import { getDefaultModel, getRow, learnCapabilities } from './models.js';
 
@@ -55,10 +55,26 @@ export function withProgress(message: AIMessage): AIMessage {
 	return { ...message, content: generation.content, reasoning: generation.reasoning || null };
 }
 
-function systemPrompt(prompt: string | null | undefined): string {
+async function userInstructions(userId: string): Promise<string | undefined> {
+	const row = await database
+		.selectFrom('app_preferences')
+		.select('data')
+		.where('userId', '=', userId)
+		.where('appId', '=', 'ai')
+		.executeTakeFirst();
+
+	return AIPreferences.safeParse(row?.data).data?.instructions?.trim() || undefined;
+}
+
+function systemPrompt(prompt: string | null | undefined, instructions: string | undefined): string {
 	const now = new Date();
 	const date = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-	return `${prompt ?? getConfig('@axium/ai').system_prompt}\n\nToday is ${date}.`;
+
+	const sections = [prompt ?? getConfig('@axium/ai').system_prompt];
+	sections.push(`Today is ${date}.`);
+	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
+
+	return sections.join('\n\n');
 }
 
 function toChatMessage(row: MessageRow): ChatMessage {
@@ -82,17 +98,19 @@ function toChatMessage(row: MessageRow): ChatMessage {
 	}
 }
 
-async function history(conversationId: string, exclude: string, prompt: string | null | undefined): Promise<ChatMessage[]> {
+async function history(conversation: ConversationRow, exclude: string, prompt: string | null | undefined): Promise<ChatMessage[]> {
 	const rows = await database
 		.selectFrom('ai_messages')
 		.selectAll()
-		.where('conversationId', '=', conversationId)
+		.where('conversationId', '=', conversation.id)
 		.where('id', '!=', exclude)
 		.where('status', '!=', 'error')
 		.orderBy('created')
 		.execute();
 
-	return [{ role: 'system', content: systemPrompt(prompt) }, ...rows.filter(row => row.content || row.toolCalls).map(toChatMessage)];
+	const system = systemPrompt(prompt, await userInstructions(conversation.userId));
+
+	return [{ role: 'system', content: system }, ...rows.filter(row => row.content || row.toolCalls).map(toChatMessage)];
 }
 
 interface Outcome extends Pick<AIMessage, 'content' | 'reasoning' | 'status'> {
@@ -140,7 +158,7 @@ export async function generate(conversation: ConversationRow, message: MessageRo
 
 		const result = await chat({
 			model,
-			messages: await history(conversation.id, message.id, settings.systemPrompt),
+			messages: await history(conversation, message.id, settings.systemPrompt),
 			reasoning: conversation.reasoning == 'default' ? (settings.reasoning ?? 'default') : conversation.reasoning,
 			signal: AbortSignal.any([controller.signal, AbortSignal.timeout(config.timeout * 1000)]),
 			onContent: text => append('content', text),

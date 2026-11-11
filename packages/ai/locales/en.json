@@ -86,7 +86,8 @@
 		"preferences": {
 			"model": "Default model",
 			"reasoning": "Default reasoning",
-			"ctrl_enter": "Send with Ctrl+Enter"
+			"ctrl_enter": "Send with Ctrl+Enter",
+			"instructions": "Custom instructions"
 		},
 		"reasoning": "Reasoning",
 		"reasoning_default": "{level} (default)",
