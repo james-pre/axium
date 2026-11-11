@@ -266,7 +266,12 @@ class Converter {
 		const rows = DomUtils.findAll(node => node.name == 'tr', element.children).map(row =>
 			row.children
 				.filter((cell): cell is Element => isTag(cell) && (cell.name == 'th' || cell.name == 'td'))
-				.map(cell => this.blocks(cell.children).join(' ').replace(/\s*\n\s*/g, ' ').replace(/\|/g, '\\|'))
+				.map(cell =>
+					this.blocks(cell.children)
+						.join(' ')
+						.replace(/\s*\n\s*/g, ' ')
+						.replace(/\|/g, '\\|')
+				)
 		);
 
 		const width = Math.max(0, ...rows.map(row => row.length));
