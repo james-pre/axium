@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { text } from '@axium/client';
+	import { ProgressBar } from '@axium/client/components';
 	import { type KinoView, viewProgress } from '@axium/kino/common';
 	import Poster from './Poster.svelte';
-	import ProgressBar from './ProgressBar.svelte';
 
 	const { views, empty }: { views: KinoView[]; empty: string } = $props();
 

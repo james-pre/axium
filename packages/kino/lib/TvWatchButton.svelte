@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { Icon } from '@axium/client/components';
+	import { Icon, ProgressBar } from '@axium/client/components';
 	import { getSeason } from '@axium/kino/client';
 	import { viewProgress, type KinoSeason, type KinoView } from '@axium/kino/common';
-	import ProgressBar from './ProgressBar.svelte';
 
 	interface Props {
 		/** The show the episode belongs to */

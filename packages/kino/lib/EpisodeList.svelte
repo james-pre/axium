@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { Icon } from '@axium/client/components';
+	import { Icon, ProgressBar } from '@axium/client/components';
 	import { viewProgress, type KinoEpisode } from '@axium/kino/common';
 	import Poster from './Poster.svelte';
-	import ProgressBar from './ProgressBar.svelte';
 
 	const { id, season, episodes }: { id: number; season: number; episodes?: KinoEpisode[] } = $props();
 </script>
