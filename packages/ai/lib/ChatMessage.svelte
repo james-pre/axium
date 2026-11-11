@@ -8,10 +8,37 @@
 <script lang="ts">
 	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
+	import { dynamicRows } from '@axium/client/attachments';
 	import { ClipboardCopy, Icon } from '@axium/client/components';
 	import { markdown } from './markdown.js';
 
-	const { message, onretry }: { message: ai.Message; onretry?(): void } = $props();
+	const {
+		message,
+		ctrlEnter = false,
+		onretry,
+		onedit,
+	}: {
+		message: ai.Message;
+		/** Whether saving an edit needs Ctrl+Enter, leaving Enter for new lines */
+		ctrlEnter?: boolean;
+		onretry?(): void;
+		/** Replaces the message's content */
+		onedit?(content: string): Promise<unknown>;
+	} = $props();
+
+	let draft = $state<string>();
+	let saving = $state(false);
+
+	async function save() {
+		if (!onedit || !draft?.trim() || draft.trim() == message.content || saving) return;
+		saving = true;
+		try {
+			await onedit(draft);
+			draft = undefined;
+		} finally {
+			saving = false;
+		}
+	}
 
 	const retryable = $derived(!!onretry && message.role == 'assistant' && message.status != 'pending');
 
@@ -25,7 +52,35 @@
 	);
 </script>
 
-<div class={['message', message.role]}>
+<div class={['message', message.role, draft !== undefined && 'editing']}>
+	{#if draft !== undefined}
+		<form
+			class="edit"
+			onsubmit={e => {
+				e.preventDefault();
+				void save();
+			}}
+		>
+			<textarea
+				bind:value={draft}
+				onkeydown={e => {
+					if (e.key == 'Escape') draft = undefined;
+					if (e.key != 'Enter' || e.shiftKey || e.isComposing) return;
+					if (ctrlEnter && !e.ctrlKey && !e.metaKey) return;
+					e.preventDefault();
+					void save();
+				}}
+				{@attach element => element.focus()}
+				{@attach dynamicRows(20, 1)}></textarea>
+			<div class="edit-actions">
+				<button type="button" onclick={() => (draft = undefined)}>{text('generic.cancel')}</button>
+				<button type="submit" class="send" disabled={saving || !draft.trim() || draft.trim() == message.content}>
+					{text('ai.send')}
+				</button>
+			</div>
+		</form>
+	{/if}
+
 	{#if message.reasoning}
 		<details
 			class="reasoning"
@@ -42,7 +97,7 @@
 
 	{#if message.content && message.role == 'assistant'}
 		<div class="markdown" {@attach markdown(message.content)}></div>
-	{:else if message.content}
+	{:else if message.content && draft === undefined}
 		<div class="bubble text">{message.content}</div>
 	{:else if pending && !message.reasoning}
 		<div class="subtle">{text('ai.thinking')}</div>
@@ -52,10 +107,15 @@
 		<div class="error">{text('ai.error', { error: message.error ?? '' })}</div>
 	{/if}
 
-	{#if !pending}
+	{#if !pending && draft === undefined}
 		<div class="actions subtle">
 			{#if message.content}
 				<ClipboardCopy value={message.content} --size="14px" />
+			{/if}
+			{#if onedit}
+				<button class="reset" title={text('ai.edit')} aria-label={text('ai.edit')} onclick={() => (draft = message.content)}>
+					<Icon i="pen" --size="14px" />
+				</button>
 			{/if}
 			{#if retryable && message.status == 'done'}
 				<button class="reset retry" title={text('ai.retry')} aria-label={text('ai.retry')} onclick={onretry}>
@@ -87,12 +147,43 @@
 			align-items: flex-end;
 			max-width: 80%;
 		}
+
+		&.user.editing {
+			align-self: stretch;
+			max-width: none;
+		}
 	}
 
 	.bubble {
 		padding: 0.75em 1em;
 		border-radius: 1em;
 		background-color: var(--bg-alt);
+	}
+
+	.edit {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5em;
+		width: 100%;
+		padding: 0.75em 1em;
+		border-radius: 1em;
+		background-color: var(--bg-alt);
+
+		textarea {
+			border: none;
+			background: none;
+			padding: 0;
+		}
+	}
+
+	.edit-actions {
+		display: flex;
+		justify-content: flex-end;
+		gap: 0.5em;
+
+		.send {
+			background-color: var(--bg-accent);
+		}
 	}
 
 	.actions {

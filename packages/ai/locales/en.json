@@ -105,6 +105,7 @@
 		"reasoning_template": "Model default ({level})",
 		"reasoning_toggle": "On or off",
 		"reasoning_unknown": "Learned the first time the model is loaded",
+		"edit": "Edit",
 		"retry": "Retry",
 		"save": "Save",
 		"send": "Send",

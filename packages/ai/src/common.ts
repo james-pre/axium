@@ -304,10 +304,14 @@ export const MessageInit = z.object({
 });
 export type MessageInit = z.infer<typeof MessageInit>;
 
-/** `retry` runs the last response again */
-export const ConversationAction = z.object({
-	action: z.literal(['cancel', 'retry']),
-});
+export const ConversationAction = z.discriminatedUnion('action', [
+	/** Cancel the current response */
+	z.object({ action: z.literal('cancel') }),
+	/** Retry the last response */
+	z.object({ action: z.literal('retry') }),
+	/** Replaces the content of one of the user's messages, removes the messages after it, and responds again. */
+	MessageInit.extend({ action: z.literal('edit'), message: z.uuid() }),
+]);
 export type ConversationAction = z.infer<typeof ConversationAction>;
 
 /** A message in a temporary conversation, which only the client keeps */
@@ -354,10 +358,7 @@ declare module '@axium/core/apps' {
 }
 
 /** The closest reasoning setting a model supports to a general preference */
-export function preferredReasoning(
-	preference: string,
-	model?: Pick<Model, 'reasoningLevels' | 'reasoning' | 'templateReasoning'>
-): string {
+export function preferredReasoning(preference: string, model?: Pick<Model, 'reasoningLevels' | 'reasoning' | 'templateReasoning'>): string {
 	if (preference == 'default' || preference == 'none' || !model?.reasoningLevels) return preference;
 
 	const levels = model.reasoningLevels;
@@ -399,7 +400,7 @@ const AIAPI = {
 		PATCH: [ConversationInit, Conversation],
 		/** Sends a message and starts the response; returns the user's message and the pending response */
 		PUT: [MessageInit, Message.array()],
-		/** `message` is the response being retried */
+		/** `message` is the new pending response, for `retry` and `edit` */
 		POST: [ConversationAction, z.object({ message: Message.optional() })],
 		DELETE: Conversation,
 	},
@@ -418,6 +419,12 @@ declare module '@axium/core/api' {
 
 Object.assign($API, AIAPI);
 
+export const MessagesRemoved = z.object({
+	conversationId: z.uuid(),
+	ids: z.uuid().array(),
+});
+export interface MessagesRemoved extends z.infer<typeof MessagesRemoved> {}
+
 /** Text appended to a field of a pending message */
 export const Delta = z.object({
 	conversationId: z.uuid(),
@@ -433,6 +440,7 @@ const AIServerToClient = {
 	'ai.delta': [Delta],
 	'ai.message': [Message],
 	'ai.model': [Model],
+	'ai.message.remove': [MessagesRemoved],
 	'ai.model.remove': [ModelId],
 	'ai.conversation': [Conversation],
 } as const;

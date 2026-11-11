@@ -28,6 +28,10 @@ export function emitMessage(userId: string, message: ai.Message): void {
 	socketServer?.to('user:' + userId).emit('ai.message', message);
 }
 
+export function emitRemoved(userId: string, removed: ai.MessagesRemoved): void {
+	socketServer?.to('user:' + userId).emit('ai.message.remove', removed);
+}
+
 interface Generation {
 	controller: AbortController;
 	userId: string;

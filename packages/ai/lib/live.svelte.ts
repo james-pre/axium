@@ -5,6 +5,8 @@ import { SvelteMap } from 'svelte/reactivity';
 export interface ConversationWatcher {
 	message(message: ai.Message): void;
 	delta(delta: ai.Delta): void;
+	/** Messages were deleted, e.g. those after an edited message */
+	remove(ids: string[]): void;
 	/** Updates sent while disconnected were missed */
 	reconnect(): void;
 }
@@ -29,6 +31,10 @@ export function listen(): void {
 
 	addListener('ai.delta', delta => {
 		for (const watcher of watchers.get(delta.conversationId) ?? []) watcher.delta(delta);
+	});
+
+	addListener('ai.message.remove', ({ conversationId, ids }) => {
+		for (const watcher of watchers.get(conversationId) ?? []) watcher.remove(ids);
 	});
 
 	addListener('ai.conversation', conversation => {

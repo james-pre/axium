@@ -5,7 +5,7 @@ import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
 import * as ai from '../../common.js';
-import { cancel, emitMessage, generate, isGenerating, toMessage, withProgress } from '../generation.js';
+import { cancel, emitMessage, emitRemoved, generate, isGenerating, toMessage, withProgress } from '../generation.js';
 import { getDefaultModel } from '../models.js';
 
 async function authConversation(request: Request, id: string) {
@@ -118,11 +118,11 @@ addRoute({
 		return messages;
 	},
 	async POST(request, { id }): AsyncResult<'POST', 'ai/conversations/:id'> {
-		const { action } = await parseBody(request, ai.ConversationAction);
+		const body = await parseBody(request, ai.ConversationAction);
 
 		const conversation = await authConversation(request, id);
 
-		switch (action) {
+		switch (body.action) {
 			case 'cancel':
 				if (!cancel(id, conversation.userId)) error(409, 'No response is being generated');
 				return {};
@@ -149,6 +149,59 @@ addRoute({
 					.catch(withError('Could not update message'));
 
 				const message = toMessage(pending);
+				emitMessage(conversation.userId, message);
+
+				void generate(conversation, pending);
+
+				return { message };
+			}
+			case 'edit': {
+				if (isGenerating(id)) error(409, 'A response is already being generated');
+
+				const target = await database
+					.selectFrom('ai_messages')
+					.selectAll()
+					.where('id', '=', body.message)
+					.where('conversationId', '=', id)
+					.executeTakeFirst()
+					.catch(withError('Could not get message'));
+
+				if (!target) error(404, 'Message not found');
+				if (target.role != 'user') error(409, 'Only your own messages can be edited');
+
+				const { edited, removed, pending } = await database
+					.transaction()
+					.execute(async tx => ({
+						edited: await tx
+							.updateTable('ai_messages')
+							.set({ content: body.content })
+							.where('id', '=', target.id)
+							.returningAll()
+							.executeTakeFirstOrThrow(),
+						removed: await tx
+							.deleteFrom('ai_messages')
+							.where('conversationId', '=', id)
+							.where('created', '>', target.created)
+							.returning('id')
+							.execute(),
+						pending: await tx
+							.insertInto('ai_messages')
+							.values({ conversationId: id, role: 'assistant', status: 'pending' })
+							.returningAll()
+							.executeTakeFirstOrThrow(),
+					}))
+					.catch(withError('Could not edit message'));
+
+				await database
+					.updateTable('ai_conversations')
+					.set({ modified: new Date() })
+					.where('id', '=', id)
+					.execute()
+					.catch(withError('Could not update conversation'));
+
+				const message = toMessage(pending);
+				emitMessage(conversation.userId, toMessage(edited));
+				emitRemoved(conversation.userId, { conversationId: id, ids: removed.map(row => row.id) });
 				emitMessage(conversation.userId, message);
 
 				void generate(conversation, pending);

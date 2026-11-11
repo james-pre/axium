@@ -68,6 +68,10 @@
 		if (!messages.some(existing => existing.id == message.id)) upsert(message);
 	}
 
+	function remove(ids: string[]): void {
+		messages = messages.filter(message => !ids.includes(message.id));
+	}
+
 	/** Deltas received during a reload, applied once it finishes */
 	let buffered: ai.Delta[] | null = null;
 
@@ -99,7 +103,7 @@
 		update(() => (message[delta.field] = current.slice(0, delta.position) + delta.text));
 	}
 
-	$effect(() => watchConversation(conversation.id, { message: upsert, delta: applyDelta, reconnect: reload }));
+	$effect(() => watchConversation(conversation.id, { message: upsert, delta: applyDelta, remove, reconnect: reload }));
 
 	$effect(() => void tick().then(scrollToBottom));
 
@@ -175,6 +179,35 @@
 		}
 	}
 
+	/** Replaces the content of one of the user's messages and responds again, dropping the messages after it */
+	async function edit(id: string, content: string) {
+		const index = messages.findIndex(message => message.id == id);
+		const later = messages.slice(index + 1).map(message => message.id);
+
+		try {
+			if (temporary) {
+				const previous = messages;
+				messages = [...messages.slice(0, index), { ...messages[index], content: content.trim() }];
+				try {
+					await respondTemporary();
+				} catch (error) {
+					messages = previous;
+					throw error;
+				}
+				return;
+			}
+
+			const { message } = await fetchAPI('POST', 'ai/conversations/:id', { action: 'edit', message: id, content }, conversation.id);
+			const edited = messages.find(message => message.id == id);
+			if (edited) edited.content = content.trim();
+			remove(later);
+			if (message) add(message);
+		} catch (error) {
+			toast('error', error);
+			throw error;
+		}
+	}
+
 	function stop() {
 		const request = temporary
 			? fetchAPI('POST', 'ai/temporary/:id', { action: 'cancel' }, conversation.id)
@@ -235,7 +268,12 @@
 				</div>
 			{/if}
 			{#each visible as message, index (message.id)}
-				<ChatMessage {message} onretry={index == visible.length - 1 && !generating ? retry : undefined} />
+				<ChatMessage
+					{message}
+					{ctrlEnter}
+					onretry={index == visible.length - 1 && !generating ? retry : undefined}
+					onedit={message.role == 'user' && !generating ? content => edit(message.id, content) : undefined}
+				/>
 			{/each}
 		</div>
 	</div>
