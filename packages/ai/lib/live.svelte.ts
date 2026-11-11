@@ -72,11 +72,6 @@ export function withUpdates(models: AIModel[]): AIModel[] {
 	return updated;
 }
 
-/** Whether a model can be chatted with */
-export function isUsable(model: AIModel): boolean {
-	return model.status != 'unavailable' && model.status != 'downloading' && model.status != 'incomplete';
-}
-
 /**
  * Receive live updates to a conversation's messages.
  * @returns a function that stops watching

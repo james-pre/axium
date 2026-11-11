@@ -1,6 +1,6 @@
 <script lang="ts">
-	import { defaultReasoning, type AIModel } from '@axium/ai/common';
-	import { isUsable, withUpdates } from '@axium/ai/live';
+	import { defaultReasoning, isUsable, type AIModel } from '@axium/ai/common';
+	import { withUpdates } from '@axium/ai/live';
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 

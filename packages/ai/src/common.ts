@@ -148,6 +148,11 @@ export const AIModel = z.object({
 });
 export interface AIModel extends z.infer<typeof AIModel> {}
 
+/** Whether a model can be chatted with */
+export function isUsable(model: Pick<AIModel, 'status'>): boolean {
+	return model.status != 'unavailable' && model.status != 'downloading' && model.status != 'incomplete';
+}
+
 /** What `default` amounts to for a model, when known */
 export function defaultReasoning(model: Pick<AIModel, 'reasoning' | 'templateReasoning'>): string | undefined {
 	return model.reasoning ?? model.templateReasoning;

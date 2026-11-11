@@ -1,10 +1,10 @@
 <script lang="ts">
 	import { invalidate } from '$app/navigation';
 	import { page } from '$app/state';
-	import { AIConversationInit } from '@axium/ai/common';
+	import { AIConversationInit, isUsable } from '@axium/ai/common';
 	import { renameConversation } from '@axium/ai/actions';
 	import { ConversationMenu } from '@axium/ai/components';
-	import { isUsable, onConversationChange, withUpdates } from '@axium/ai/live';
+	import { onConversationChange, withUpdates } from '@axium/ai/live';
 	import { preferencesSchema } from '@axium/ai/preferences';
 	import { text } from '@axium/client';
 	import { AppPreferencesDialog, Icon, InlineEdit, TopBarContent } from '@axium/client/components';
