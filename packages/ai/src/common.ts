@@ -173,16 +173,17 @@ export const Device = z.object({
 });
 export interface Device extends z.infer<typeof Device> {}
 
-export const Memory = z.object({
+/** RAM and VRAM */
+export const DRAM = z.object({
 	devices: Device.array(),
 	host: Device,
 });
-export interface Memory extends z.infer<typeof Memory> {}
+export interface DRAM extends z.infer<typeof DRAM> {}
 
 export const Models = z.object({
 	models: Model.array(),
 	default: ModelId.optional(),
-	memory: Memory,
+	memory: DRAM,
 	/** Whether llama-server is reachable */
 	running: z.boolean(),
 });
@@ -283,7 +284,6 @@ export type Environment = z.infer<typeof Environment>;
 export const ToolAccess = z.literal(['read', 'write']);
 export type ToolAccess = z.infer<typeof ToolAccess>;
 
-/** Tool call IDs mapped to whether the user approved them */
 /** Whether a write tool runs without asking */
 export const Approval = z.literal(['ask', 'allow']);
 export type Approval = z.infer<typeof Approval>;

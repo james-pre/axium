@@ -120,7 +120,7 @@ function gpuUse(): { total: number; used: number }[] {
 	return gpus.sort((a, b) => a.index - b.index);
 }
 
-function getMemory(): ai.Memory {
+function getMemory(): ai.DRAM {
 	const byIndex = new Map<number, { names: Set<string>; total: number; free?: number }>();
 
 	for (const model of listed.values()) {

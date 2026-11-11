@@ -3,7 +3,7 @@
 	import { text } from '@axium/client';
 	import { bytes } from 'utilium/format';
 
-	const { memory, models }: { memory: ai.Memory; models: ai.Model[] } = $props();
+	const { memory, models }: { memory: ai.DRAM; models: ai.Model[] } = $props();
 
 	const loaded = $derived(models.filter(model => model.memory?.current));
 
