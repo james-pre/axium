@@ -2,6 +2,7 @@ import { type RequestMethod, type User, type UserInternal } from '@axium/core';
 import { userProtectedFields, userPublicFields } from '@axium/core/user';
 import { parseCookie, stringifySetCookie } from 'cookie';
 import * as io from 'ioium';
+import { NoResultError } from 'kysely';
 import { pick } from 'utilium';
 import * as z from 'zod';
 import { audit } from './audit.js';
@@ -167,9 +168,13 @@ export function stripUser(user: UserInternal, includeProtected: boolean = false)
 	return pick(user, ...userPublicFields, ...(includeProtected ? userProtectedFields : []));
 }
 
+/**
+ * Turns an error into a response error with `text`.
+ */
 export function withError(text: string, code: number = 500) {
 	return function (e: Error | ResponseError) {
 		if (e.name == 'ResponseError') throw e;
+		if (e instanceof NoResultError && code == 500) error(404, text);
 		if (code == 500) {
 			void audit('response_error', undefined, { stack: e.stack });
 			io.error('(in response) ' + e.stack);
