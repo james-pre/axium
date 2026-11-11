@@ -30,6 +30,16 @@ function isThenable(value: unknown): value is PromiseLike<unknown> {
 
 const kTimestamp = Symbol('kTimestamp');
 
+function withTimestamp<T>(value: T, timestamp: number = Date.now()): T & { [kTimestamp]: number } {
+	Object.defineProperty(value, kTimestamp, {
+		value: timestamp,
+		enumerable: false,
+		configurable: false,
+		writable: false,
+	});
+	return value as T & { [kTimestamp]: number };
+}
+
 /**
  * Cache some arbitrary operation.
  * This is primarily intended for de-duplicating API requests
@@ -79,7 +89,7 @@ export class Cache<Keys extends string[], V extends object> {
 			this.items.delete(key);
 		}
 
-		this.items.set(key, Object.assign(value, { [kTimestamp]: Date.now() }));
+		this.items.set(key, withTimestamp(value));
 		this.onWrite?.(this.toJSON());
 	}
 
@@ -123,7 +133,7 @@ export class Cache<Keys extends string[], V extends object> {
 
 			delete value.$timestamp;
 
-			this.items.set(key, Object.assign(value, { [kTimestamp]: $timestamp }));
+			this.items.set(key, withTimestamp(value, $timestamp));
 		}
 	}
 
