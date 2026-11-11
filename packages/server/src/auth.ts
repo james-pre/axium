@@ -65,7 +65,24 @@ export async function getSession(sessionId: string): Promise<SessionInternal> {
 		.executeTakeFirstOrThrow();
 }
 
+/** Sessions of requests the server makes on a user's behalf, which have no token */
+const delegated = new WeakMap<Request, SessionAndUser>();
+
+/**
+ * Authenticates a request the server made itself as `session`.
+ * Such requests are refused by routes that need an elevated session.
+ * @internal
+ */
+export function delegate(request: Request, session: SessionAndUser): void {
+	delegated.set(request, session);
+}
+
 export async function requireSession(request: Request, sensitive: boolean = false): Promise<SessionAndUser> {
+	const delegatedSession = delegated.get(request);
+	if (delegatedSession && sensitive) error(403, 'This action needs an elevated session');
+	if (delegatedSession?.user.isSuspended) error(403, 'User is suspended');
+	if (delegatedSession) return delegatedSession;
+
 	const token = getToken(request, sensitive);
 
 	if (!token) error(401, 'Missing session (you are not logged in)');
@@ -257,14 +274,11 @@ export async function authRequestForItem<const TB extends acl.TargetName>(
 	permissions: Partial<acl.PermissionsFor<`acl.${TB}`>>,
 	recursive: boolean = false
 ): Promise<ItemAuthResult<TB>> {
-	let session: SessionAndUser | null;
+	let session: SessionAndUser | null = delegated.get(request) ?? null;
 
-	try {
+	if (!session) {
 		const token = getToken(request, false);
-		if (!token) error(401, 'Missing token');
-		session = await getSessionAndUser(token).catch(() => null);
-	} catch {
-		session = null;
+		session = token ? await getSessionAndUser(token).catch(() => null) : null;
 	}
 
 	return await authSessionForItem(itemType, itemId, permissions, session, recursive);
