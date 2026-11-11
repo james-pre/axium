@@ -124,7 +124,7 @@ addRoute({
 
 		switch (action) {
 			case 'cancel':
-				if (!cancel(id)) error(409, 'No response is being generated');
+				if (!cancel(id, conversation.userId)) error(409, 'No response is being generated');
 				return {};
 			case 'retry': {
 				if (isGenerating(id)) error(409, 'A response is already being generated');
@@ -158,9 +158,9 @@ addRoute({
 		}
 	},
 	async DELETE(request, { id }): AsyncResult<'DELETE', 'ai/conversations/:id'> {
-		await authConversation(request, id);
+		const conversation = await authConversation(request, id);
 
-		cancel(id);
+		cancel(id, conversation.userId);
 
 		return await database
 			.deleteFrom('ai_conversations')

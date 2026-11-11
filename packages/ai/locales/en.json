@@ -126,6 +126,13 @@
 		"toast_renamed": "Conversation renamed",
 		"tokens": "{count} tokens",
 		"unknown": "Unknown",
+		"temporary": {
+			"title": "Temporary chat",
+			"toggle": "Temporary",
+			"description": "Temporary chats are never saved and won't appear in your history.",
+			"discard": "Discard",
+			"discard_confirm": "Leave this temporary chat? It will be lost."
+		},
 		"untitled": "New conversation"
 	}
 }

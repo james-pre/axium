@@ -1,22 +1,42 @@
 <script lang="ts">
-	import { invalidate } from '$app/navigation';
-	import { AIConversationInit, type AIConversation, type AIDelta, type AIMessage, type AIModels } from '@axium/ai/common';
+	import { beforeNavigate, goto, invalidate } from '$app/navigation';
+	import {
+		AIConversationInit,
+		type AIConversation,
+		type AIDelta,
+		type AIMessage,
+		type AIModels,
+		type AITemporaryMessage,
+	} from '@axium/ai/common';
 	import { watchConversation } from '@axium/ai/live';
 	import { fetchAPI, text } from '@axium/client';
-	import { InlineEdit } from '@axium/client/components';
+	import { Icon, InlineEdit } from '@axium/client/components';
+	import { confirm } from '@axium/client/dialogs';
 	import { toast } from '@axium/client/toast';
-	import { tick } from 'svelte';
+	import { tick, type Snippet } from 'svelte';
 	import { renameConversation } from './actions.js';
 	import ChatMessage from './ChatMessage.svelte';
 	import Composer from './Composer.svelte';
 	import ConversationMenu from './ConversationMenu.svelte';
+	import { viewTransition } from './transition.js';
 
 	const {
 		conversation,
 		models,
 		title,
 		ctrlEnter,
-	}: { conversation: AIConversation & { messages: AIMessage[] }; models: AIModels; title: string; ctrlEnter?: boolean } = $props();
+		temporary = false,
+		actions,
+	}: {
+		conversation: Pick<AIConversation, 'id' | 'model' | 'reasoning'> & { messages: AIMessage[] };
+		models: AIModels;
+		title: string;
+		ctrlEnter?: boolean;
+		/** Nothing is saved: the messages only exist here, and the server forgets each response once it is sent */
+		temporary?: boolean;
+		/** Shown in the header of temporary conversations */
+		actions?: Snippet;
+	} = $props();
 
 	let messages = $state(conversation.messages);
 	let model = $state(conversation.model ?? models.default ?? '');
@@ -50,11 +70,16 @@
 		});
 	}
 
+	/** Adds `message` unless a live update already did, which would carry newer text */
+	function add(message: AIMessage): void {
+		if (!messages.some(existing => existing.id == message.id)) upsert(message);
+	}
+
 	/** Deltas received during a reload, applied once it finishes */
 	let buffered: AIDelta[] | null = null;
 
 	async function reload(): Promise<void> {
-		if (buffered) return;
+		if (buffered || temporary) return;
 		buffered = [];
 		try {
 			const latest = await fetchAPI('GET', 'ai/conversations/:id', {}, conversation.id);
@@ -67,7 +92,7 @@
 		for (const delta of received) applyDelta(delta);
 	}
 
-	/** Reloads when text is missing, e.g. after opening a conversation mid-response */
+	/** Reloads when text is missing, e.g. after opening a conversation mid-response. Temporary conversations wait for the finished message instead. */
 	function applyDelta(delta: AIDelta): void {
 		if (buffered) {
 			buffered.push(delta);
@@ -85,8 +110,51 @@
 
 	$effect(() => void tick().then(scrollToBottom));
 
+	/** The history a temporary conversation sends with each message, as the server would build it for a saved one */
+	function temporaryHistory(): AITemporaryMessage[] {
+		return messages
+			.filter(message => message.role != 'tool' && message.status != 'error' && message.content)
+			.map(({ role, content }) => ({ role: role as AITemporaryMessage['role'], content }));
+	}
+
+	async function respondTemporary(): Promise<void> {
+		const pending = await fetchAPI(
+			'PUT',
+			'ai/temporary/:id',
+			{ model: model || null, reasoning, messages: temporaryHistory() },
+			conversation.id
+		);
+		add(pending);
+	}
+
+	async function sendTemporary(content: string): Promise<void> {
+		const message: AIMessage = {
+			id: crypto.randomUUID(),
+			conversationId: conversation.id,
+			created: new Date(),
+			role: 'user',
+			content: content.trim(),
+			reasoning: null,
+			toolCalls: null,
+			toolCallId: null,
+			status: 'done',
+			error: null,
+			usage: null,
+		};
+		if (messages.length) upsert(message);
+		else await viewTransition(() => upsert(message));
+
+		try {
+			await respondTemporary();
+		} catch (error) {
+			messages = messages.filter(existing => existing.id != message.id);
+			throw error;
+		}
+	}
+
 	async function send(content: string) {
 		try {
+			if (temporary) return await sendTemporary(content);
 			for (const message of await fetchAPI('PUT', 'ai/conversations/:id', { content }, conversation.id)) upsert(message);
 			await invalidate('ai:conversations');
 		} catch (error) {
@@ -97,33 +165,82 @@
 
 	async function retry() {
 		try {
+			if (temporary) {
+				const last = messages.pop();
+				try {
+					await respondTemporary();
+				} catch (error) {
+					if (last) messages.push(last);
+					throw error;
+				}
+				return;
+			}
 			const { message } = await fetchAPI('POST', 'ai/conversations/:id', { action: 'retry' }, conversation.id);
 			if (message) upsert(message);
 		} catch (error) {
 			toast('error', error);
 		}
 	}
+
+	function stop() {
+		const request = temporary
+			? fetchAPI('POST', 'ai/temporary/:id', { action: 'cancel' }, conversation.id)
+			: fetchAPI('POST', 'ai/conversations/:id', { action: 'cancel' }, conversation.id);
+		request.catch(error => toast('error', error));
+	}
+
+	/** Set once the user agreed to discard a temporary conversation */
+	let discarding = false;
+
+	beforeNavigate(navigation => {
+		if (!temporary || !messages.length || discarding) return;
+		navigation.cancel();
+		const destination = navigation.to?.url;
+		if (navigation.type == 'leave' || !destination) return;
+
+		void confirm(text('ai.temporary.discard_confirm'), { confirmText: text('ai.temporary.discard'), danger: true }).then(confirmed => {
+			if (!confirmed) return;
+			discarding = true;
+			void goto(destination);
+		});
+	});
 </script>
 
-<div class="conversation">
+<div class={['conversation', temporary && !messages.length && 'empty']}>
 	<div class="header">
-		<div class="title">
-			{#if renaming}
-				<InlineEdit
-					value={title}
-					schema={AIConversationInit.shape.title}
-					commit={value => renameConversation(conversation.id, value)}
-					close={() => (renaming = false)}
-				/>
-			{:else}
-				<span>{title || text('ai.untitled')}</span>
-			{/if}
-		</div>
-		<ConversationMenu id={conversation.id} onrename={() => (renaming = true)} showToggle="always" />
+		{#if temporary}
+			<div class="title icon-text">
+				{#if messages.length}
+					<Icon i="ghost" />
+					<span>{text('ai.temporary.title')}</span>
+				{/if}
+			</div>
+			{@render actions?.()}
+		{:else}
+			<div class="title">
+				{#if renaming}
+					<InlineEdit
+						value={title}
+						schema={AIConversationInit.shape.title}
+						commit={value => renameConversation(conversation.id, value)}
+						close={() => (renaming = false)}
+					/>
+				{:else}
+					<span>{title || text('ai.untitled')}</span>
+				{/if}
+			</div>
+			<ConversationMenu id={conversation.id} onrename={() => (renaming = true)} showToggle="always" />
+		{/if}
 	</div>
 
 	<div class="messages" bind:this={container}>
 		<div class="column">
+			{#if temporary && !messages.length}
+				<div class="empty">
+					<h2>{text('ai.temporary.title')}</h2>
+					<p class="subtle">{text('ai.temporary.description')}</p>
+				</div>
+			{/if}
 			{#each visible as message, index (message.id)}
 				<ChatMessage {message} onretry={index == visible.length - 1 && !generating ? retry : undefined} />
 			{/each}
@@ -138,10 +255,10 @@
 			bind:model
 			bind:reasoning
 			onsend={send}
-			onstop={() =>
-				fetchAPI('POST', 'ai/conversations/:id', { action: 'cancel' }, conversation.id).catch(error => toast('error', error))}
-			onoptions={() =>
-				fetchAPI('PATCH', 'ai/conversations/:id', { model, reasoning }, conversation.id).catch(error => toast('error', error))}
+			onstop={stop}
+			onoptions={temporary
+				? undefined
+				: () => fetchAPI('PATCH', 'ai/conversations/:id', { model, reasoning }, conversation.id).catch(error => toast('error', error))}
 		/>
 	</div>
 </div>
@@ -185,9 +302,24 @@
 		margin: 0 auto;
 	}
 
+	.empty {
+		text-align: center;
+	}
+
 	.footer {
 		display: flex;
 		justify-content: center;
 		padding: 1em;
+	}
+
+	.conversation.empty {
+		.messages {
+			flex: 0 0 auto;
+			margin-top: auto;
+		}
+
+		.footer {
+			margin-bottom: auto;
+		}
 	}
 </style>

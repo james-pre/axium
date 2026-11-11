@@ -5,7 +5,7 @@ import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium';
 import type { Selectable } from 'kysely';
 import type schema from '../../db.json';
-import { AIPreferences, type AIMessage, type AIToolCall, type AIUsage } from '../common.js';
+import { AIPreferences, type AIMessage, type AITemporaryInit, type AIToolCall, type AIUsage } from '../common.js';
 import { chat, type ChatMessage } from './chat.js';
 import { getDefaultModel, getRow, learnCapabilities } from './models.js';
 
@@ -30,6 +30,7 @@ export function emitMessage(userId: string, message: AIMessage): void {
 
 interface Generation {
 	controller: AbortController;
+	userId: string;
 	messageId: string;
 	content: string;
 	reasoning: string;
@@ -42,10 +43,12 @@ export function isGenerating(conversationId: string): boolean {
 	return active.has(conversationId);
 }
 
-export function cancel(conversationId: string): boolean {
+/** Stops the response being generated in a conversation, if it belongs to `userId` */
+export function cancel(conversationId: string, userId: string): boolean {
 	const generation = active.get(conversationId);
-	generation?.controller.abort();
-	return !!generation;
+	if (generation?.userId != userId) return false;
+	generation.controller.abort();
+	return true;
 }
 
 /** Fills in the text streamed so far, which is only saved once the response ends */
@@ -98,53 +101,54 @@ function toChatMessage(row: MessageRow): ChatMessage {
 	}
 }
 
-async function history(conversation: ConversationRow, exclude: string, prompt: string | null | undefined): Promise<ChatMessage[]> {
+async function history(conversationId: string, exclude: string): Promise<ChatMessage[]> {
 	const rows = await database
 		.selectFrom('ai_messages')
 		.selectAll()
-		.where('conversationId', '=', conversation.id)
+		.where('conversationId', '=', conversationId)
 		.where('id', '!=', exclude)
 		.where('status', '!=', 'error')
 		.orderBy('created')
 		.execute();
 
-	const system = systemPrompt(prompt, await userInstructions(conversation.userId));
-
-	return [{ role: 'system', content: system }, ...rows.filter(row => row.content || row.toolCalls).map(toChatMessage)];
+	return rows.filter(row => row.content || row.toolCalls).map(toChatMessage);
 }
 
 interface Outcome extends Pick<AIMessage, 'content' | 'reasoning' | 'status'> {
-	error?: string | null;
-	usage?: AIUsage | null;
+	error: string | null;
+	usage: AIUsage | null;
 }
 
-async function finish(row: MessageRow, { usage, ...outcome }: Outcome, userId: string) {
-	const updated = await database
-		.updateTable('ai_messages')
-		.set({ ...outcome, usage: usage ? JSON.stringify(usage) : null })
-		.where('id', '=', row.id)
-		.returningAll()
-		.executeTakeFirstOrThrow();
-
-	emitMessage(userId, toMessage(updated));
+interface ResponseInit {
+	userId: string;
+	conversationId: string;
+	messageId: string;
+	/** `null` uses the default model */
+	model: string | null;
+	reasoning: string;
+	/** The conversation so far, without the system prompt */
+	history(): Promise<ChatMessage[]>;
+	/** Saves or sends the finished response; `model` is missing when none was available */
+	finish(outcome: Outcome, model?: string): Promise<void> | void;
 }
 
-/** Streams a response into the pending `message`. Never throws. */
-export async function generate(conversation: ConversationRow, message: MessageRow): Promise<void> {
+/** Streams a response, sending its text to the user as it arrives. Never throws. */
+async function respond(init: ResponseInit): Promise<void> {
 	const config = getConfig('@axium/ai');
 	const controller = new AbortController();
-	const generation: Generation = { controller, messageId: message.id, content: '', reasoning: '' };
-	active.set(conversation.id, generation);
+	const generation: Generation = { controller, userId: init.userId, messageId: init.messageId, content: '', reasoning: '' };
+	active.set(init.conversationId, generation);
 
 	let streaming = false;
 	let model: string | undefined;
+	let outcome: Outcome;
 
 	function append(field: 'content' | 'reasoning', text: string): void {
 		const position = generation[field].length;
 		generation[field] += text;
 		socketServer
-			?.to('user:' + conversation.userId)
-			.emit('ai.delta', { conversationId: conversation.id, messageId: message.id, field, text, position });
+			?.to('user:' + init.userId)
+			.emit('ai.delta', { conversationId: init.conversationId, messageId: init.messageId, field, text, position });
 
 		if (streaming || !model) return;
 		streaming = true;
@@ -152,42 +156,78 @@ export async function generate(conversation: ConversationRow, message: MessageRo
 	}
 
 	try {
-		model = conversation.model ?? (await getDefaultModel());
+		model = init.model ?? (await getDefaultModel());
 		const settings = model && (await getRow(model));
 		if (!model || !settings) throw new Error('No model is available');
 
+		const system = systemPrompt(settings.systemPrompt, await userInstructions(init.userId));
+
 		const result = await chat({
 			model,
-			messages: await history(conversation, message.id, settings.systemPrompt),
-			reasoning: conversation.reasoning == 'default' ? (settings.reasoning ?? 'default') : conversation.reasoning,
+			messages: [{ role: 'system', content: system }, ...(await init.history())],
+			reasoning: init.reasoning == 'default' ? (settings.reasoning ?? 'default') : init.reasoning,
 			signal: AbortSignal.any([controller.signal, AbortSignal.timeout(config.timeout * 1000)]),
 			onContent: text => append('content', text),
 			onReasoning: text => append('reasoning', text),
 		});
 
-		await finish(
-			message,
-			{ content: result.content, reasoning: result.reasoning || null, status: 'done', usage: result.usage },
-			conversation.userId
-		);
-
-		void nameConversation(conversation, model, result.content);
+		outcome = { content: result.content, reasoning: result.reasoning || null, status: 'done', error: null, usage: result.usage };
 	} catch (error) {
 		const cancelled = controller.signal.aborted;
-		if (!cancelled) io.warn(`AI: response in ${conversation.id} failed: ${io.errorText(error)}`);
-		await finish(
-			message,
-			{
-				content: generation.content,
-				reasoning: generation.reasoning || null,
-				status: cancelled ? 'cancelled' : 'error',
-				error: cancelled ? null : error instanceof Error && error.name == 'TimeoutError' ? 'Timed out' : io.errorText(error),
-			},
-			conversation.userId
-		).catch(error => io.error(`AI: could not save response ${message.id}: ${io.errorText(error)}`));
-	} finally {
-		active.delete(conversation.id);
+		if (!cancelled) io.warn(`AI: response in ${init.conversationId} failed: ${io.errorText(error)}`);
+		outcome = {
+			content: generation.content,
+			reasoning: generation.reasoning || null,
+			status: cancelled ? 'cancelled' : 'error',
+			error: cancelled ? null : error instanceof Error && error.name == 'TimeoutError' ? 'Timed out' : io.errorText(error),
+			usage: null,
+		};
 	}
+
+	try {
+		await init.finish(outcome, model);
+	} catch (error) {
+		io.error(`AI: could not finish response ${init.messageId}: ${io.errorText(error)}`);
+	} finally {
+		active.delete(init.conversationId);
+	}
+}
+
+/** Streams a response into the pending `message`. Never throws. */
+export async function generate(conversation: ConversationRow, message: MessageRow): Promise<void> {
+	await respond({
+		userId: conversation.userId,
+		conversationId: conversation.id,
+		messageId: message.id,
+		model: conversation.model,
+		reasoning: conversation.reasoning,
+		history: () => history(conversation.id, message.id),
+		async finish({ usage, ...outcome }, model) {
+			const updated = await database
+				.updateTable('ai_messages')
+				.set({ ...outcome, usage: usage ? JSON.stringify(usage) : null })
+				.where('id', '=', message.id)
+				.returningAll()
+				.executeTakeFirstOrThrow();
+
+			emitMessage(conversation.userId, toMessage(updated));
+
+			if (outcome.status == 'done' && model) void nameConversation(conversation, model, outcome.content);
+		},
+	});
+}
+
+/** Streams a response for a temporary conversation, which is never saved. Never throws. */
+export async function generateTemporary(userId: string, init: AITemporaryInit, pending: AIMessage): Promise<void> {
+	await respond({
+		userId,
+		conversationId: pending.conversationId,
+		messageId: pending.id,
+		model: init.model ?? null,
+		reasoning: init.reasoning,
+		history: () => Promise.resolve(init.messages),
+		finish: outcome => emitMessage(userId, { ...pending, ...outcome }),
+	});
 }
 
 const titlePrompt = 'Write a title of 2 to 6 words for the conversation below. Reply with only the title.';

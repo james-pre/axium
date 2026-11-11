@@ -83,6 +83,7 @@
 		background-color: var(--bg-alt);
 		max-width: 50em;
 		width: 100%;
+		view-transition-name: ai-composer;
 	}
 
 	textarea {

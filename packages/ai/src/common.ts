@@ -310,6 +310,25 @@ export const AIConversationAction = z.object({
 });
 export type AIConversationAction = z.infer<typeof AIConversationAction>;
 
+/** A message in a temporary conversation, which only the client keeps */
+export const AITemporaryMessage = z.object({
+	role: z.literal(['user', 'assistant']),
+	content: z.string().max(100_000),
+});
+export interface AITemporaryMessage extends z.infer<typeof AITemporaryMessage> {}
+
+export const AITemporaryInit = z.object({
+	/** `null` uses the default model */
+	model: AIModelId.nullish(),
+	reasoning: AIReasoning,
+	/** The conversation so far, ending with the message to respond to */
+	messages: AITemporaryMessage.array()
+		.min(1)
+		.max(1000)
+		.refine(messages => messages.at(-1)?.role == 'user' && !!messages.at(-1)?.content.trim(), 'The last message must be from the user'),
+});
+export interface AITemporaryInit extends z.infer<typeof AITemporaryInit> {}
+
 export const AIPreferences = z
 	.object({
 		/** Used for new conversations instead of the default model */
@@ -383,6 +402,11 @@ const AIAPI = {
 		/** `message` is the response being retried */
 		POST: [AIConversationAction, z.object({ message: AIMessage.optional() })],
 		DELETE: AIConversation,
+	},
+	'ai/temporary/:id': {
+		/** Starts a response without saving anything; returns the pending response */
+		PUT: [AITemporaryInit, AIMessage],
+		POST: [z.object({ action: z.literal('cancel') }), z.object({})],
 	},
 } as const;
 

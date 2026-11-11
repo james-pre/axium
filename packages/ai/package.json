@@ -26,7 +26,8 @@
 		"./components/*": "./lib/*.svelte",
 		"./live": "./lib/live.svelte.js",
 		"./actions": "./lib/actions.js",
-		"./preferences": "./lib/preferences.js"
+		"./preferences": "./lib/preferences.js",
+		"./transition": "./lib/transition.js"
 	},
 	"files": [
 		"dist",

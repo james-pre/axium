@@ -1,11 +1,12 @@
 <script lang="ts">
-	import { invalidate } from '$app/navigation';
+	import { invalidate, onNavigate } from '$app/navigation';
 	import { page } from '$app/state';
 	import { AIConversationInit, isUsable } from '@axium/ai/common';
 	import { renameConversation } from '@axium/ai/actions';
 	import { ConversationMenu } from '@axium/ai/components';
 	import { onConversationChange, withUpdates } from '@axium/ai/live';
 	import { preferencesSchema } from '@axium/ai/preferences';
+	import { canTransition } from '@axium/ai/transition';
 	import { text } from '@axium/client';
 	import { AppPreferencesDialog, Icon, InlineEdit, TopBarContent } from '@axium/client/components';
 
@@ -16,6 +17,19 @@
 	const schema = $derived(preferencesSchema(withUpdates(data.models.models).filter(isUsable)));
 
 	$effect(() => onConversationChange(() => invalidate('ai:conversations')));
+
+	/** Animates the composer between the start page and a conversation */
+	onNavigate(navigation => {
+		if (!canTransition()) return;
+		if (navigation.from?.url.pathname != '/ai' && navigation.to?.url.pathname != '/ai') return;
+
+		return new Promise(resolve => {
+			document.startViewTransition(async () => {
+				resolve();
+				await navigation.complete;
+			});
+		});
+	});
 </script>
 
 <TopBarContent name={text('app_name.ai')} icon="sparkles" href="/ai" />
