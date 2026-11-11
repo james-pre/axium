@@ -6,7 +6,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { freemem, totalmem } from 'node:os';
 import { join } from 'node:path';
 import type * as ai from '../common.js';
-import * as llama from './llama.js';
+import * as llama from '../node/llama.js';
 
 type ModelRow = Selectable<Schema['ai_models']>;
 

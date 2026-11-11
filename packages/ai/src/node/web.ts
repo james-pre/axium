@@ -5,7 +5,7 @@ import * as https from 'node:https';
 import { BlockList, isIP, type LookupFunction } from 'node:net';
 import * as z from 'zod';
 import { htmlToMarkdown } from './markdown.js';
-import * as tools from './tools.js';
+import * as tools from '../tools.js';
 
 /** Addresses tools may not reach, so the model can't be used to probe the server's network */
 const blocked = new BlockList();

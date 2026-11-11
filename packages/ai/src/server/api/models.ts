@@ -6,9 +6,9 @@ import { addRoute } from '@axium/server/routes';
 import * as io from 'ioium';
 import * as z from 'zod';
 import * as ai from '../../common.js';
-import * as hub from '../hub.js';
-import * as llama from '../llama.js';
-import { emitModel, emitRemoved, getModel, getModels, getRow, getRows, syncPreset } from '../models.js';
+import * as hub from '../../hub.js';
+import * as llama from '../../node/llama.js';
+import { emitModel, emitRemoved, getCapacity, getModel, getModels, getRow, getRows, syncPreset } from '../models.js';
 
 async function requireAdmin(request: Request): Promise<void> {
 	const session = await requireSession(request);
@@ -38,7 +38,7 @@ addRoute({
 
 		if (await getRow(init.id)) error(409, 'A model with this ID already exists');
 
-		const details = await hub.details(init.repo).catch(withError('Could not get the repository from Hugging Face', 502));
+		const details = await hub.details(init.repo, getCapacity()).catch(withError('Could not get the repository from Hugging Face', 502));
 		const quant = details.quants.find(quant => quant.tag == init.quant);
 		if (!quant) error(400, 'The repository has no such quantization');
 
@@ -159,6 +159,6 @@ addRoute({
 	async GET(request): AsyncResult<'GET', 'ai/hub/details'> {
 		const { repo } = parseSearch(request, z.object({ repo: ai.HubRepoId }));
 		await requireAdmin(request);
-		return await hub.details(repo).catch(withError('Could not get the repository from Hugging Face', 502));
+		return await hub.details(repo, getCapacity()).catch(withError('Could not get the repository from Hugging Face', 502));
 	},
 });

@@ -1,13 +1,22 @@
-import type { UserInternal } from '@axium/core';
+import type { $API, APIParameters, Endpoint, RequestBody, Result } from '@axium/core/api';
 import features from '@axium/core/features';
-import { isResponseError } from '@axium/server/requests';
+import type { RequestMethod } from '@axium/core/requests';
 import * as io from 'ioium';
 import * as z from 'zod';
-import type * as ai from '../common.js';
+import type * as ai from './common.js';
+
+/** Calls an Axium API route as the user, e.g. `fetchAPI` on a client or `callAPI` on the server */
+export type APICaller = <const E extends Endpoint, const M extends keyof $API[E] & RequestMethod>(
+	method: M,
+	endpoint: E,
+	data?: RequestBody<M, E>,
+	...params: APIParameters<E>
+) => Promise<Result<M, E>>;
 
 export interface Context {
 	/** The user the tool acts for */
-	user: UserInternal;
+	userId: string;
+	api: APICaller;
 	signal: AbortSignal;
 }
 
@@ -35,7 +44,7 @@ export function add<const Input extends z.ZodObject>(tool: Tool<Input>): void {
 	registry.set(tool.name, tool);
 }
 
-/** The tools allowed by the user's preferences and the server's features */
+/** The tools allowed by the user's preferences and the instance's features */
 export function allowed(preferences: ai.Preferences['tools'], anonymous: boolean = false): Tool[] {
 	return Array.from(registry.values()).filter(tool => {
 		if (tool.available && !tool.available()) return false;
@@ -109,8 +118,8 @@ export async function run(tool: Tool | undefined, call: ai.ToolCall, context: Co
 			error: null,
 		};
 	} catch (error) {
-		if (!isResponseError(error)) io.debug('AI: tool', tool.name, 'failed:', io.errorText(error));
-		return failure(isResponseError(error) ? error.message : io.errorText(error));
+		io.debug('AI: tool', tool.name, 'failed:', io.errorText(error));
+		return failure(io.errorText(error));
 	}
 }
 

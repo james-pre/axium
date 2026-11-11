@@ -1,5 +1,6 @@
 import { getConfig } from '@axium/core';
 import { getUser } from '@axium/server/auth';
+import { callAPI } from '@axium/server/call';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import { io as socketServer } from '@axium/server/socket';
@@ -8,9 +9,9 @@ import type { Selectable, Updateable } from 'kysely';
 import { randomUUID } from 'node:crypto';
 import type schema from '../../db.json';
 import * as ai from '../common.js';
-import { chat, type ChatMessage } from './chat.js';
+import { chat, type ChatMessage } from '../node/chat.js';
 import { getDefaultModel, getRow, learnCapabilities } from './models.js';
-import * as tools from './tools.js';
+import * as tools from '../tools.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -318,7 +319,11 @@ async function respond(init: TurnInit): Promise<void> {
 		if (!model || !settings) throw new Error('No model is available');
 
 		const [preferences, user] = await Promise.all([getPreferences(store.userId), getUser(store.userId)]);
-		const context: tools.Context = { user, signal };
+		const context: tools.Context = {
+			userId: user.id,
+			signal,
+			api: (method, endpoint, data, ...params) => callAPI(user, method, endpoint, data, ...params),
+		};
 		const offered = settings.tools === false ? [] : tools.allowed(preferences.tools, init.anonymous);
 		const definitions = tools.definitions(offered);
 

@@ -1,6 +1,5 @@
 import { getConfig } from '@axium/core';
-import type * as ai from '../common.js';
-import { getCapacity } from './models.js';
+import type * as ai from './common.js';
 
 const hubURL = 'https://huggingface.co/';
 
@@ -44,15 +43,15 @@ function isModelFile(path: string): boolean {
 	return !name.includes('imatrix') && !sidecarNames.some(sidecar => name.includes(sidecar));
 }
 
-function fitOf(size: bigint): ai.Fit {
-	const capacity = getCapacity();
+function fitOf(size: bigint, capacity: ai.MemoryUse): ai.Fit {
 	const needed = Number(size) * 1.15;
 	if (needed <= capacity.device) return 'device';
 	if (needed <= capacity.device + capacity.host) return 'host';
 	return 'none';
 }
 
-export async function details(repo: string): Promise<ai.HubDetails> {
+/** @param capacity Memory available for models on the host they would run on, used to say whether each quantization fits */
+export async function details(repo: string, capacity: ai.MemoryUse): Promise<ai.HubDetails> {
 	const [info, tree] = await Promise.all([
 		hubFetch<{ id: string; baseModels?: { relation?: string; models?: { id: string }[] } }>(`api/models/${repo}?expand[]=baseModels`),
 		hubFetch<{ type: string; path: string; size: number; lfs?: { size: number } }[]>(`api/models/${repo}/tree/main?recursive=true`),
@@ -85,7 +84,7 @@ export async function details(repo: string): Promise<ai.HubDetails> {
 		repo: info.id,
 		base,
 		quants: [...quants.values()]
-			.map(({ prefix: _, ...quant }) => ({ ...quant, fit: fitOf(quant.size) }))
+			.map(({ prefix: _, ...quant }) => ({ ...quant, fit: fitOf(quant.size, capacity) }))
 			.sort((a, b) => Number(a.size - b.size)),
 	};
 }

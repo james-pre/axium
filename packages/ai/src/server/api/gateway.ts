@@ -3,7 +3,7 @@ import { error, isResponseError, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import features from '@axium/core/features';
 import * as io from 'ioium';
-import * as llama from '../llama.js';
+import * as llama from '../../node/llama.js';
 import { getRows } from '../models.js';
 
 type Format = 'openai' | 'anthropic';
