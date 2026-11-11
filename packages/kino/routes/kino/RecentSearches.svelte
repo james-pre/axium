@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { text } from '@axium/client';
+	import { ProgressBar } from '@axium/client/components';
 	import { getAddOptions, getMovie, getTv } from '@axium/kino/client';
 	import type { KinoDownload, KinoDownloadTarget, KinoSearchResults } from '@axium/kino/common';
 	import * as io from 'ioium';
 	import { SvelteMap } from 'svelte/reactivity';
 	import { downloads, watchDownloads } from '@axium/kino/downloads';
-	import { Poster, ProgressBar } from '@axium/kino/components';
+	import { Poster } from '@axium/kino/components';
 
 	type Media = KinoSearchResults[number];
 
