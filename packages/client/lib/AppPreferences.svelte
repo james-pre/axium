@@ -11,7 +11,14 @@
 		appId,
 		schema,
 		_parentDialog,
-	}: { userId: string; appId: string; schema: ZodObject; _parentDialog?: HTMLDialogElement } = $props();
+		onsave,
+	}: {
+		userId: string;
+		appId: string;
+		schema: ZodObject;
+		_parentDialog?: HTMLDialogElement;
+		onsave?(preferences: Record<string, unknown>): void;
+	} = $props();
 
 	let initialValue = $state(await uap.get(userId, appId));
 	let currentValue = $state({ ...initialValue });
@@ -23,6 +30,7 @@
 
 	async function save() {
 		initialValue = await uap.set(userId, appId, currentValue);
+		onsave?.(initialValue);
 		if (!_parentDialog) return;
 		_parentDialog.close();
 		toast('success', text('AppPreferences.toast_saved'));

@@ -4,7 +4,12 @@
 	import Icon from './Icon.svelte';
 	import { text } from '@axium/client';
 
-	const { userId, appId, schema }: { userId: string; appId: string; schema: ZodObject } = $props();
+	const {
+		userId,
+		appId,
+		schema,
+		onsave,
+	}: { userId: string; appId: string; schema: ZodObject; onsave?(preferences: Record<string, unknown>): void } = $props();
 
 	const id = 'AppPreferencesDialog:' + appId;
 
@@ -17,5 +22,5 @@
 </button>
 
 <dialog bind:this={_parentDialog} {id}>
-	<AppPreferences {userId} {appId} {schema} {_parentDialog} />
+	<AppPreferences {userId} {appId} {schema} {_parentDialog} {onsave} />
 </dialog>
