@@ -9,7 +9,7 @@
 		appId,
 		schema,
 		onsave,
-	}: { userId: string; appId: string; schema: ZodObject; onsave?(preferences: Record<string, unknown>): void } = $props();
+	}: { userId: string; appId: string; schema: ZodObject; onsave?(preferences: object): void } = $props();
 
 	const id = 'AppPreferencesDialog:' + appId;
 

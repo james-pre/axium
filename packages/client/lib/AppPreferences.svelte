@@ -17,7 +17,7 @@
 		appId: string;
 		schema: ZodObject;
 		_parentDialog?: HTMLDialogElement;
-		onsave?(preferences: Record<string, unknown>): void;
+		onsave?(preferences: object): void;
 	} = $props();
 
 	let initialValue = $state(await uap.get(userId, appId));
