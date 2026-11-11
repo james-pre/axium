@@ -46,7 +46,7 @@ export function listen(): void {
 }
 
 /**
- * Receive changes to the current user's conversations, such as generated titles.
+ * Receive changes to the current user's conversations.
  * @returns a function that stops listening
  */
 export function onConversationChange(listener: (conversation: AIConversation) => void): () => void {

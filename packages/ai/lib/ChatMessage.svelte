@@ -111,6 +111,10 @@
 		.message.user:hover .actions {
 			visibility: visible;
 		}
+
+		.markdown :global(.code-block:not(:hover) .code-copy) {
+			visibility: hidden;
+		}
 	}
 
 	.text {
@@ -129,8 +133,21 @@
 			margin-bottom: 0;
 		}
 
+		:global(.code-block) {
+			position: relative;
+			margin: 1em 0;
+		}
+
+		:global(.code-copy) {
+			position: absolute;
+			top: 0.6em;
+			right: 0.75em;
+			font-size: 0.9em;
+		}
+
 		:global(pre) {
-			padding: 0.75em 1em;
+			margin: 0;
+			padding: 0.75em 2.5em 0.75em 1em;
 			border-radius: 0.5em;
 			background-color: var(--bg-alt);
 			overflow-x: auto;
