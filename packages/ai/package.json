@@ -44,6 +44,7 @@
 		"@axium/core": ">=0.44.0",
 		"@axium/notes": ">=0.4.10",
 		"@axium/server": ">=0.59.0",
+		"@axium/tasks": ">=0.5.13",
 		"@james-pre/locales": "^1.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"domhandler": "^6.0.1",
@@ -51,6 +52,9 @@
 	},
 	"peerDependenciesMeta": {
 		"@axium/notes": {
+			"optional": true
+		},
+		"@axium/tasks": {
 			"optional": true
 		}
 	},
@@ -70,7 +74,8 @@
 			"db": "./db.json",
 			"web_client_hooks": "./dist/common.js",
 			"integrations": {
-				"@axium/notes": "./dist/integrations/notes.js"
+				"@axium/notes": "./dist/integrations/notes.js",
+				"@axium/tasks": "./dist/integrations/tasks.js"
 			}
 		},
 		"client": {

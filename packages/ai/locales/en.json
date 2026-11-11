@@ -147,13 +147,18 @@
 			"anonymous": "Anonymous"
 		},
 		"tool": {
-			"fetch_url": "Read a web page",
-			"search_web": "Searched the web",
-			"list_notes": "Looked through notes",
-			"read_note": "Read a note",
-			"create_note": "Created a note",
-			"update_note": "Changed a note",
-			"delete_note": "Deleted a note"
+			"fetch_url": "Read web page",
+			"search_web": "Web search",
+			"list_notes": "List notes",
+			"read_note": "Read note",
+			"create_note": "Created note",
+			"update_note": "Changed note",
+			"delete_note": "Deleted note",
+			"list_tasks": "List tasks",
+			"add_task": "Added task",
+			"update_task": "Changed task",
+			"delete_task": "Deleted task",
+			"create_task_list": "Created task list"
 		},
 		"tool_awaiting": "Allow this change?",
 		"tool_decision": {
