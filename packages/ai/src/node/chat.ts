@@ -20,8 +20,12 @@ export interface ChatRequest {
 	/** In the OpenAI chat completions format */
 	tools?: object[];
 	signal?: AbortSignal;
-	onContent?(text: string): void;
-	onReasoning?(text: string): void;
+}
+
+/** Text the model streamed */
+export interface ChatDelta {
+	field: 'content' | 'reasoning';
+	text: string;
 }
 
 export interface ChatResult {
@@ -32,7 +36,18 @@ export interface ChatResult {
 	usage: ai.Usage | null;
 }
 
+/** Yields text as the model streams it, returning the complete result */
+export type ChatStream = AsyncGenerator<ChatDelta, ChatResult, void>;
+
+/** Runs a chat completion, ignoring the text as it streams */
 export async function chat(request: ChatRequest): Promise<ChatResult> {
+	const stream = streamChat(request);
+	let chunk = await stream.next();
+	while (!chunk.done) chunk = await stream.next();
+	return chunk.value;
+}
+
+export async function* streamChat(request: ChatRequest): ChatStream {
 	const response = await llamaRequest('v1/chat/completions', {
 		method: 'POST',
 		signal: request.signal,
@@ -66,11 +81,11 @@ export async function chat(request: ChatRequest): Promise<ChatResult> {
 		const delta = choice.delta ?? {};
 		if (delta.reasoning_content) {
 			result.reasoning += delta.reasoning_content;
-			request.onReasoning?.(delta.reasoning_content);
+			yield { field: 'reasoning', text: delta.reasoning_content };
 		}
 		if (delta.content) {
 			result.content += delta.content;
-			request.onContent?.(delta.content);
+			yield { field: 'content', text: delta.content };
 		}
 		for (const part of delta.tool_calls ?? []) {
 			const call = (result.toolCalls[part.index] ??= { id: '', name: '', arguments: '' });
