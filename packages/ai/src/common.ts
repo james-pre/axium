@@ -400,11 +400,13 @@ export const Message = z.object({
 	status: MessageStatus,
 	error: z.string().nullable(),
 	usage: Usage.nullable(),
+	voice: z.boolean(),
 });
 export interface Message extends z.infer<typeof Message> {}
 
 export const MessageInit = z.object({
 	content: z.string().trim().min(1).max(100_000),
+	voice: z.boolean().optional(),
 });
 export type MessageInit = z.infer<typeof MessageInit>;
 
@@ -414,7 +416,7 @@ export const ConversationAction = z.discriminatedUnion('action', [
 	/** Retry the last response */
 	z.object({ action: z.literal('retry') }),
 	/** Replaces the content of one of the user's messages, removes the messages after it, and responds again. */
-	MessageInit.extend({ action: z.literal('edit'), message: z.uuid() }),
+	MessageInit.pick({ content: true }).extend({ action: z.literal('edit'), message: z.uuid() }),
 	/** Approves or denies every tool call awaiting the user, then continues the response */
 	z.object({ action: z.literal('decide'), decisions: Decisions }),
 ]);
@@ -423,6 +425,7 @@ export type ConversationAction = z.infer<typeof ConversationAction>;
 /** A message in a temporary conversation, which only the client keeps */
 export const TemporaryMessage = Message.pick({ id: true, role: true, toolCalls: true, toolCallId: true, status: true }).extend({
 	content: z.string().max(100_000),
+	voice: z.boolean().default(false),
 });
 export interface TemporaryMessage extends z.infer<typeof TemporaryMessage> {}
 

@@ -133,6 +133,7 @@ function temporaryStore(userId: string, conversationId: string, messages: ai.Mes
 				status: 'done',
 				error: null,
 				usage: null,
+				voice: false,
 				...message,
 			};
 			known.set(added.id, added);

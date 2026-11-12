@@ -131,7 +131,7 @@ addRoute({
 			.catch(withError('Could not update conversation'));
 	},
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/conversations/:id'> {
-		const { content } = await parseBody(request, ai.MessageInit);
+		const { content, voice } = await parseBody(request, ai.MessageInit);
 
 		let conversation = await authConversation(request, id);
 
@@ -147,7 +147,7 @@ addRoute({
 
 		const user = await database
 			.insertInto('ai_messages')
-			.values({ conversationId: id, role: 'user', content })
+			.values({ conversationId: id, role: 'user', content, voice })
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not save message'));

@@ -5,6 +5,7 @@
 	import { Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import ModelOptions from './ModelOptions.svelte';
+	import VoiceMode from './VoiceMode.svelte';
 	import * as voice from './voice.svelte.js';
 
 	let {
@@ -23,7 +24,8 @@
 		models: ai.Model[];
 		model: string;
 		reasoning: string;
-		onsend(content: string): Promise<unknown>;
+		/** @param voice Whether the content was spoken in conversation mode */
+		onsend(content: string, voice?: boolean): Promise<unknown>;
 		onstop?(): void;
 		/** Called after the model or reasoning changes */
 		onoptions?(): void;
@@ -64,6 +66,8 @@
 
 	$effect(() => cancelDictation);
 
+	$effect(() => voice.useSender(async spoken => void (await onsend(spoken, true))));
+
 	async function send() {
 		if (!content.trim() || generating || sending) return;
 		sending = true;
@@ -83,60 +87,75 @@
 		void send();
 	}}
 >
-	<textarea
-		bind:value={content}
-		placeholder={transcribing ? text('ai.voice.transcribing') : recording ? text('ai.voice.listening') : text('ai.placeholder')}
-		onkeydown={e => {
-			if (e.key == 'Escape' && recording) return cancelDictation();
-			if (e.key != 'Enter' || e.shiftKey || e.isComposing) return;
-			if (ctrlEnter && !e.ctrlKey && !e.metaKey) return;
-			e.preventDefault();
-			void send();
-		}}
-		{@attach dynamicRows(12, 1)}></textarea>
-	<div class="controls">
-		<ModelOptions {models} bind:model bind:reasoning onchange={onoptions} />
-		{#if recording}
-			<button
-				type="button"
-				class="reset cancel"
-				title={text('ai.voice.cancel')}
-				aria-label={text('ai.voice.cancel')}
-				onclick={cancelDictation}
-			>
-				<Icon i="xmark" />
-			</button>
-			<button
-				type="button"
-				class="dictate recording"
-				title={text('ai.voice.finish')}
-				aria-label={text('ai.voice.finish')}
-				onclick={finishDictation}
-			>
-				<Icon i="check" />
-			</button>
-		{:else if voice.available.dictation}
-			<button
-				type="button"
-				class="dictate"
-				title={text('ai.voice.dictate')}
-				aria-label={text('ai.voice.dictate')}
-				disabled={transcribing}
-				onclick={startDictation}
-			>
-				<Icon i="microphone" />
-			</button>
-		{/if}
-		{#if generating}
-			<button type="button" class="send" title={text('ai.stop')} onclick={() => onstop?.()}>
-				<Icon i="stop" />
-			</button>
-		{:else}
-			<button type="submit" class="send" title={text('ai.send')} disabled={sending || !content.trim()}>
-				<Icon i="arrow-up" />
-			</button>
-		{/if}
-	</div>
+	{#if voice.conversation.active}
+		<VoiceMode {generating} {onstop} />
+	{:else}
+		<textarea
+			bind:value={content}
+			placeholder={transcribing ? text('ai.voice.transcribing') : recording ? text('ai.voice.listening') : text('ai.placeholder')}
+			onkeydown={e => {
+				if (e.key == 'Escape' && recording) return cancelDictation();
+				if (e.key != 'Enter' || e.shiftKey || e.isComposing) return;
+				if (ctrlEnter && !e.ctrlKey && !e.metaKey) return;
+				e.preventDefault();
+				void send();
+			}}
+			{@attach dynamicRows(12, 1)}></textarea>
+		<div class="controls">
+			<ModelOptions {models} bind:model bind:reasoning onchange={onoptions} />
+			{#if recording}
+				<button
+					type="button"
+					class="reset cancel"
+					title={text('ai.voice.cancel')}
+					aria-label={text('ai.voice.cancel')}
+					onclick={cancelDictation}
+				>
+					<Icon i="xmark" />
+				</button>
+				<button
+					type="button"
+					class="dictate recording"
+					title={text('ai.voice.finish')}
+					aria-label={text('ai.voice.finish')}
+					onclick={finishDictation}
+				>
+					<Icon i="check" />
+				</button>
+			{:else if voice.available.dictation}
+				{#if voice.available.speech}
+					<button
+						type="button"
+						class="dictate"
+						title={text('ai.voice.conversation')}
+						aria-label={text('ai.voice.conversation')}
+						onclick={voice.startConversation}
+					>
+						<Icon i="waveform-lines" />
+					</button>
+				{/if}
+				<button
+					type="button"
+					class="dictate"
+					title={text('ai.voice.dictate')}
+					aria-label={text('ai.voice.dictate')}
+					disabled={transcribing}
+					onclick={startDictation}
+				>
+					<Icon i="microphone" />
+				</button>
+			{/if}
+			{#if generating}
+				<button type="button" class="send" title={text('ai.stop')} onclick={() => onstop?.()}>
+					<Icon i="stop" />
+				</button>
+			{:else}
+				<button type="submit" class="send" title={text('ai.send')} disabled={sending || !content.trim()}>
+					<Icon i="arrow-up" />
+				</button>
+			{/if}
+		</div>
+	{/if}
 </form>
 
 <style>

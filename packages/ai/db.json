@@ -74,7 +74,8 @@
 							"check": "status IN ('pending', 'done', 'error', 'cancelled', 'awaiting')"
 						},
 						"error": { "type": "text" },
-						"usage": { "type": "jsonb" }
+						"usage": { "type": "jsonb" },
+						"voice": { "type": "boolean", "required": true, "default": "false" }
 					}
 				},
 				"ai_memories": {

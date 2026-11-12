@@ -70,21 +70,33 @@ const toolGuidance =
 	"Never create, change or delete anything the user didn't ask for, even as a workaround. " +
 	'Only say an action was done when a tool result confirms it; if you could not do something, say so.';
 
+const voiceGuidance =
+	'The user is speaking to you, and your reply will be read aloud by a speech synthesizer, so write only what should be heard. ' +
+	'Reply in plain spoken prose: no Markdown, lists, tables, headings, code, emoji, URLs or symbols that would be read out literally. ' +
+	'Be brief and conversational, usually one to three sentences, and offer more detail instead of giving it all at once. ' +
+	'Write numbers, dates, times and units the way they are said aloud, e.g. "twenty past three" and "about four kilometres". ' +
+	"Don't read out IDs, links, file paths or long values; describe them, or say the details are in the chat. " +
+	"Only state facts you are sure of or that a tool result gave you; if you don't know, say so briefly. " +
+	'The transcript of what the user said may contain recognition mistakes, so read it for its likely meaning.';
+
 interface PromptParts {
 	prompt: string;
 	instructions?: string;
 	offered: tools.Tool[];
 	/** The section about what the model remembers */
 	memory?: string;
+	/** Whether the reply will be read aloud */
+	voice?: boolean;
 }
 
-function systemPrompt({ prompt, instructions, offered, memory }: PromptParts): string {
+function systemPrompt({ prompt, instructions, offered, memory, voice }: PromptParts): string {
 	const date = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
 	const sections = [prompt, `Today is ${date}.`];
 	if (offered.length) sections.push(toolGuidance);
 	if (memory) sections.push(memory);
 	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
+	if (voice) sections.push(voiceGuidance);
 
 	return sections.join('\n\n');
 }
@@ -201,6 +213,7 @@ export async function respond(init: TurnInit): Promise<void> {
 					instructions: preferences.instructions?.trim(),
 					offered,
 					memory,
+					voice: history.findLast(message => message.role == 'user')?.voice,
 				}),
 			},
 			...history.map(toChatMessage).filter(message => !!message),

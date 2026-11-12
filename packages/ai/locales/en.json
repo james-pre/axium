@@ -233,7 +233,23 @@
 			"cancel": "Cancel dictation",
 			"microphone_error": "Could not use the microphone: {error}",
 			"speak": "Read aloud",
-			"stop_speaking": "Stop reading"
+			"stop_speaking": "Stop reading",
+			"conversation": "Talk",
+			"end": "End",
+			"phase": {
+				"idle": "Tap to talk",
+				"listening": "Listening…",
+				"transcribing": "Transcribing…",
+				"responding": "Thinking…",
+				"speaking": "Speaking. Tap to interrupt"
+			},
+			"action": {
+				"idle": "Start talking",
+				"listening": "Send now",
+				"transcribing": "Transcribing",
+				"responding": "Interrupt",
+				"speaking": "Interrupt"
+			}
 		}
 	}
 }

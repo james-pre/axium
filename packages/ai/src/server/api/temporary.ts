@@ -38,6 +38,7 @@ addRoute({
 			status: 'pending',
 			error: null,
 			usage: null,
+			voice: false,
 		};
 
 		emitMessage(userId, pending);

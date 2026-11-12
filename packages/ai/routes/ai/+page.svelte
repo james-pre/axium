@@ -7,6 +7,7 @@
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
+	import * as voice from '@axium/ai/voice';
 
 	const { data } = $props();
 
@@ -23,7 +24,7 @@
 
 	const temporary = $derived(page.url.searchParams.has('temporary'));
 
-	async function start(content: string) {
+	async function start(content: string, spoken = false) {
 		try {
 			const conversation = await fetchAPI(
 				'PUT',
@@ -31,7 +32,9 @@
 				{ model: model || undefined, reasoning },
 				data.session.userId
 			);
-			await fetchAPI('PUT', 'ai/conversations/:id', { content }, conversation.id);
+			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken }, conversation.id);
+			const message = sent.find(message => message.role == 'user');
+			if (spoken && message) voice.addTurn(message.id);
 			await invalidate('ai:conversations');
 			await goto('/ai/' + conversation.id);
 		} catch (error) {

@@ -12,6 +12,7 @@
 	import Composer from './Composer.svelte';
 	import ConversationMenu from './ConversationMenu.svelte';
 	import { viewTransition } from './transition.js';
+	import * as voice from './voice.svelte.js';
 
 	const {
 		conversation,
@@ -112,11 +113,29 @@
 
 	$effect(() => void tick().then(scrollToBottom));
 
+	/** Reads replies aloud in conversation mode */
+	$effect(() => {
+		const index = messages.findLastIndex(message => message.role == 'user');
+		const turn = messages[index];
+		if (!turn?.voice || !voice.isTurn(turn.id)) return;
+
+		const replies = messages.slice(index + 1).filter(message => message.role == 'assistant');
+		voice.follow(turn.id, replies.map(message => message.content).join('\n'), !generating);
+	});
+
 	/** The history a temporary conversation sends with each request, which the server filters as it would a saved one */
 	function temporaryHistory(): ai.TemporaryMessage[] {
 		return messages
 			.filter(message => message.status != 'pending')
-			.map(({ id, role, content, toolCalls, toolCallId, status }) => ({ id, role, content, toolCalls, toolCallId, status }));
+			.map(({ id, role, content, toolCalls, toolCallId, status, voice }) => ({
+				id,
+				role,
+				content,
+				toolCalls,
+				toolCallId,
+				status,
+				voice,
+			}));
 	}
 
 	async function respondTemporary(decided?: ai.Decisions): Promise<void> {
@@ -153,7 +172,7 @@
 		}
 	}
 
-	async function sendTemporary(content: string): Promise<void> {
+	async function sendTemporary(content: string, spoken: boolean): Promise<void> {
 		const message: ai.Message = {
 			id: crypto.randomUUID(),
 			conversationId: conversation.id,
@@ -166,7 +185,9 @@
 			status: 'done',
 			error: null,
 			usage: null,
+			voice: spoken,
 		};
+		if (spoken) voice.addTurn(message.id);
 		if (messages.length) upsert(message);
 		else await viewTransition(() => upsert(message));
 
@@ -178,10 +199,14 @@
 		}
 	}
 
-	async function send(content: string) {
+	async function send(content: string, spoken = false) {
 		try {
-			if (temporary) return await sendTemporary(content);
-			for (const message of await fetchAPI('PUT', 'ai/conversations/:id', { content }, conversation.id)) upsert(message);
+			if (temporary) return await sendTemporary(content, spoken);
+			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken }, conversation.id);
+			for (const message of sent) {
+				if (message.role == 'user' && spoken) voice.addTurn(message.id);
+				upsert(message);
+			}
 			await invalidate('ai:conversations');
 		} catch (error) {
 			toast('error', error);

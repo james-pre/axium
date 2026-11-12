@@ -3,9 +3,12 @@ import features from '@axium/core/features';
 import { requireSession } from '@axium/server/auth';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
-import { readFile, stat } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { mkdir, readFile, stat, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 import * as ai from '../../common.js';
 import * as llama from '../../node/llama.js';
+import { speakable } from '../../speech.js';
 import { resolveRole } from '../models.js';
 
 /** The most audio accepted for transcription, in bytes */
@@ -31,10 +34,37 @@ async function upstreamError(response: Response): Promise<string> {
 
 let reference: { path: string; modified: number; data: string } | undefined;
 
-/** The configured speaker reference in base64, read again when the file changes */
-async function speakerReference(): Promise<string | undefined> {
-	const path = getConfig('@axium/ai').speaker_reference;
-	if (!path) return;
+/** Keeps a voice the same between requests, which models without a speaker reference pick at random */
+const seed = 1;
+
+const defaultVoiceText = 'Hello. I am your assistant, and this is the voice I will use when I speak to you.';
+
+let generating: Promise<void> | undefined;
+
+/** Makes the voice used when no speaker reference is configured, once */
+async function generateDefaultVoice(path: string, model: string): Promise<void> {
+	const response = await llama.send('v1/audio/speech', {
+		method: 'POST',
+		body: JSON.stringify({ model, input: defaultVoiceText, response_format: 'wav', seed }),
+	});
+	if (!response.ok) throw new Error(await upstreamError(response));
+
+	await mkdir(dirname(path), { recursive: true });
+	await writeFile(path, Buffer.from(await response.arrayBuffer()));
+}
+
+/**
+ * The recording every reply imitates, in base64: the configured one, or a default voice made the first time it's needed.
+ * Without one, each request may get a different voice.
+ */
+async function speakerReference(model: string): Promise<string> {
+	const configured = getConfig('@axium/ai').speaker_reference;
+	const path = configured ?? join(getConfig('@axium/ai').data_dir, 'default-voice.wav');
+
+	if (!configured && !existsSync(path)) {
+		generating ??= generateDefaultVoice(path, model).finally(() => (generating = undefined));
+		await generating;
+	}
 
 	const { mtimeMs: modified } = await stat(path);
 	if (reference?.path != path || reference.modified != modified) {
@@ -74,15 +104,23 @@ addRoute({
 		const { text } = await parseBody(request, ai.SpeechInit);
 		const model = await requireVoice(request, 'tts');
 
-		const speaker = await speakerReference().catch(withError('Could not read the speaker reference', 500));
+		const input = speakable(text);
+		if (!/[\p{L}\p{N}]/u.test(input)) error(400, 'Nothing in the text can be spoken');
 
-		const upstream = await llama
-			.send('v1/audio/speech', {
-				method: 'POST',
-				body: JSON.stringify({ model, input: text, response_format: 'wav', speaker_ref_b64: speaker }),
-				signal: request.signal,
-			})
-			.catch(withError('Could not reach llama-server', 502));
+		const speaker = await speakerReference(model).catch(withError('Could not get the voice to speak with', 502));
+
+		const speech = (speaker_ref_b64?: string) =>
+			llama
+				.send('v1/audio/speech', {
+					method: 'POST',
+					body: JSON.stringify({ model, input, response_format: 'wav', seed, speaker_ref_b64 }),
+					signal: request.signal,
+				})
+				.catch(withError('Could not reach llama-server', 502));
+
+		let upstream = await speech(speaker);
+		const referenceRejected = upstream.status == 400;
+		if (referenceRejected) upstream = await speech();
 		if (!upstream.ok) error(502, 'Could not speak: ' + (await upstreamError(upstream)));
 
 		return new Response(upstream.body, { headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/wav' } });
