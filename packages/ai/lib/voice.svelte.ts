@@ -286,9 +286,11 @@ function startSpeaking(id: string): Speaker {
 	stopSpeaking();
 	const started = new Speaker(id);
 	speaker = started;
-	void started.done.catch(() => {}).finally(() => {
-		if (speaker == started) speaker = undefined;
-	});
+	void started.done
+		.catch(() => {})
+		.finally(() => {
+			if (speaker == started) speaker = undefined;
+		});
 	return started;
 }
 
