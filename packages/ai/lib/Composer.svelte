@@ -37,6 +37,7 @@
 		transcribing = $state(false);
 
 	async function startDictation() {
+		voice.prepare();
 		try {
 			recording = await voice.record();
 		} catch (error) {

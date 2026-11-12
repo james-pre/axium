@@ -405,8 +405,18 @@ export function toggle(): void {
 	else if (conversation.phase != 'transcribing') void listen();
 }
 
+/** Loads the voice models ahead of use, ignoring failures */
+export function prepare(): void {
+	void request('ai/voice/prepare', {
+		method: 'POST',
+		body: '{}',
+		headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+	}).catch(() => {});
+}
+
 export function startConversation(): void {
 	conversation.active = true;
+	prepare();
 	void listen();
 }
 
@@ -417,6 +427,18 @@ export function endConversation(): void {
 	recording?.cancel();
 	recording = undefined;
 	stopSpeaking();
+}
+
+/**
+ * Whether the messages after a user's message are a finished reply:
+ * not between tool steps, but done, paused for approval, stopped or failed.
+ */
+export function isSettled(after: ai.Message[]): boolean {
+	const last = after.at(-1);
+	if (!last || after.some(message => message.status == 'pending')) return false;
+	if (after.some(message => message.status == 'awaiting')) return true;
+	if (last.status == 'cancelled' || last.status == 'error') return last.role == 'assistant' || last.status == 'cancelled';
+	return last.role == 'assistant' && !last.toolCalls?.length;
 }
 
 /**

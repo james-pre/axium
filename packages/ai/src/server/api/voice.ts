@@ -1,4 +1,5 @@
 import { getConfig } from '@axium/core';
+import type { AsyncResult } from '@axium/core/api';
 import features from '@axium/core/features';
 import { requireSession } from '@axium/server/auth';
 import { error, parseBody, withError } from '@axium/server/requests';
@@ -9,16 +10,19 @@ import { dirname, join } from 'node:path';
 import * as ai from '../../common.js';
 import * as llama from '../../node/llama.js';
 import { speakable } from '../../speech.js';
-import { resolveRole } from '../models.js';
+import { getModels, resolveRole } from '../models.js';
 
 /** The most audio accepted for transcription, in bytes */
 const maxAudioSize = 32 * 1024 * 1024;
 
-async function requireVoice(request: Request, role: 'stt' | 'tts'): Promise<string> {
+async function requireVoiceEnabled(request: Request): Promise<void> {
 	await requireSession(request);
 	if (!features('ai-voice')) error(403, 'Voice is disabled');
 	if (!llama.isRunning()) error(503, 'llama-server is not running');
+}
 
+async function requireVoice(request: Request, role: 'stt' | 'tts'): Promise<string> {
+	await requireVoiceEnabled(request);
 	return (await resolveRole(role)) ?? error(503, `No ${role == 'stt' ? 'speech-to-text' : 'text-to-speech'} model is available`);
 }
 
@@ -124,5 +128,24 @@ addRoute({
 		if (!upstream.ok) error(502, 'Could not speak: ' + (await upstreamError(upstream)));
 
 		return new Response(upstream.body, { headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/wav' } });
+	},
+});
+
+addRoute({
+	path: '/api/ai/voice/prepare',
+	async POST(request): AsyncResult<'POST', 'ai/voice/prepare'> {
+		await requireVoiceEnabled(request);
+
+		const { models, roles } = await getModels();
+		const stt = ai.resolveRole(models, roles, 'stt');
+		const tts = ai.resolveRole(models, roles, 'tts');
+
+		for (const model of new Set([stt, tts])) {
+			if (!model || model.status == 'loaded' || model.status == 'loading') continue;
+			await llama.load(model.id).catch(withError(`Could not load ${model.name}`, 502));
+		}
+
+		if (tts) await speakerReference(tts.id).catch(withError('Could not get the voice to speak with', 502));
+		return {};
 	},
 });

@@ -119,8 +119,9 @@
 		const turn = messages[index];
 		if (!turn?.voice || !voice.isTurn(turn.id)) return;
 
-		const replies = messages.slice(index + 1).filter(message => message.role == 'assistant');
-		voice.follow(turn.id, replies.map(message => message.content).join('\n'), !generating);
+		const after = messages.slice(index + 1);
+		const replies = after.filter(message => message.role == 'assistant');
+		voice.follow(turn.id, replies.map(message => message.content).join('\n'), voice.isSettled(after));
 	});
 
 	/** The history a temporary conversation sends with each request, which the server filters as it would a saved one */

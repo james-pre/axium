@@ -73,7 +73,7 @@ const toolGuidance =
 const voiceGuidance =
 	'The user is speaking to you, and your reply will be read aloud by a speech synthesizer, so write only what should be heard. ' +
 	'Reply in plain spoken prose: no Markdown, lists, tables, headings, code, emoji, URLs or symbols that would be read out literally. ' +
-	'Be brief and conversational, usually one to three sentences, and offer more detail instead of giving it all at once. ' +
+	'Be brief and conversational, usually one to three sentences.' +
 	'Write numbers, dates, times and units the way they are said aloud, e.g. "twenty past three" and "about four kilometres". ' +
 	"Don't read out IDs, links, file paths or long values; describe them, or say the details are in the chat. " +
 	"Only state facts you are sure of or that a tool result gave you; if you don't know, say so briefly. " +
@@ -205,6 +205,9 @@ export async function respond(init: TurnInit): Promise<void> {
 		const history = await init.history();
 		await resolveAwaiting(history, init, allowed);
 
+		const spoken = !!history.findLast(message => message.role == 'user')?.voice;
+		const reasoning = spoken ? 'none' : init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning;
+
 		const messages: ChatMessage[] = [
 			{
 				role: 'system',
@@ -213,7 +216,7 @@ export async function respond(init: TurnInit): Promise<void> {
 					instructions: preferences.instructions?.trim(),
 					offered,
 					memory,
-					voice: history.findLast(message => message.role == 'user')?.voice,
+					voice: spoken,
 				}),
 			},
 			...history.map(toChatMessage).filter(message => !!message),
@@ -225,7 +228,7 @@ export async function respond(init: TurnInit): Promise<void> {
 		for (let step = 1; step < stepUpperBound; step++) {
 			const stream = init.complete({
 				messages,
-				reasoning: init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning,
+				reasoning,
 				tools: step < init.maxSteps ? definitions : undefined,
 				signal,
 			});

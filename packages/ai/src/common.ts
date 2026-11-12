@@ -587,6 +587,10 @@ const AIAPI = {
 		GET: Roles,
 		PATCH: [RolesUpdate, Roles],
 	},
+	'ai/voice/prepare': {
+		/** Loads the speech-to-text and text-to-speech models, so voice is ready when used */
+		POST: [z.object({}), z.object({})],
+	},
 	'ai/hub': {
 		GET: [HubSearch, HubRepo.array()],
 	},
