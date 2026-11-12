@@ -49,7 +49,7 @@
 		"utilium": "^3.0.0"
 	},
 	"dependencies": {
-		"mailauth": "^7.0.0",
+		"mailauth": "^8.0.0",
 		"postal-mime": "^4.0.0",
 		"smtp-server": "^3.19.2",
 		"zod": "^4.0.5"

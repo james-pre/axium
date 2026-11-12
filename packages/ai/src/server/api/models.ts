@@ -41,7 +41,9 @@ addRoute({
 
 		if (await getRow(init.id)) error(409, 'A model with this ID already exists');
 
-		const details = await hub.details(init.repo, getCapacity(), hfToken()).catch(withError('Could not get the repository from Hugging Face', 502));
+		const details = await hub
+			.details(init.repo, getCapacity(), hfToken())
+			.catch(withError('Could not get the repository from Hugging Face', 502));
 		const quant = details.quants.find(quant => quant.tag == init.quant);
 		if (!quant) error(400, 'The repository has no such quantization');
 

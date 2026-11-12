@@ -221,7 +221,9 @@ export async function respond(init: TurnInit): Promise<void> {
 			for (; !chunk.done; chunk = await stream.next()) append(chunk.value.field, chunk.value.text);
 			const result = chunk.value;
 
-			const calls = result.toolCalls.filter(call => call.name).map(call => ({ ...call, id: call.id || 'call_' + crypto.randomUUID() }));
+			const calls = result.toolCalls
+				.filter(call => call.name)
+				.map(call => ({ ...call, id: call.id || 'call_' + crypto.randomUUID() }));
 
 			const finished: ai.Message = await store.update(pending.id, {
 				content: result.content,

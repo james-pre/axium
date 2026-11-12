@@ -481,8 +481,10 @@ export function* display(delta: Version): Generator<string> {
 							.map(e => e.replaceAll('_', ' '))
 							.join(', ')
 					: null;
-			yield '\t' +
-				styleText(deltaColors[column.op], `${column.op} column ${column.name}${column.op != '*' ? '' : ': ' + columnChanges}`);
+			yield (
+				'\t' +
+				styleText(deltaColors[column.op], `${column.op} column ${column.name}${column.op != '*' ? '' : ': ' + columnChanges}`)
+			);
 		}
 
 		for (const [oldName, newName] of Object.entries(table.changes.rename_columns)) {

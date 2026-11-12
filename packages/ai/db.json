@@ -29,7 +29,13 @@
 							"primary": true,
 							"check": "role IN ('chat', 'assistant', 'coding', 'stt', 'tts')"
 						},
-						"modelId": { "type": "text", "required": true, "primary": true, "references": "ai_models.id", "onDelete": "cascade" },
+						"modelId": {
+							"type": "text",
+							"required": true,
+							"primary": true,
+							"references": "ai_models.id",
+							"onDelete": "cascade"
+						},
 						"position": { "type": "integer", "required": true }
 					}
 				},

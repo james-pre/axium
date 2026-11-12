@@ -53,8 +53,14 @@ function fitOf(size: bigint, capacity: ai.MemoryUse): ai.Fit {
 /** @param capacity Memory available for models on the host they would run on, used to say whether each quantization fits */
 export async function details(repo: string, capacity: ai.MemoryUse, token?: string): Promise<ai.HubDetails> {
 	const [info, tree] = await Promise.all([
-		hubFetch<{ id: string; baseModels?: { relation?: string; models?: { id: string }[] } }>(`api/models/${repo}?expand[]=baseModels`, token),
-		hubFetch<{ type: string; path: string; size: number; lfs?: { size: number } }[]>(`api/models/${repo}/tree/main?recursive=true`, token),
+		hubFetch<{ id: string; baseModels?: { relation?: string; models?: { id: string }[] } }>(
+			`api/models/${repo}?expand[]=baseModels`,
+			token
+		),
+		hubFetch<{ type: string; path: string; size: number; lfs?: { size: number } }[]>(
+			`api/models/${repo}/tree/main?recursive=true`,
+			token
+		),
 	]);
 
 	const files = tree.filter(entry => entry.type == 'file' && entry.path.toLowerCase().endsWith('.gguf'));
