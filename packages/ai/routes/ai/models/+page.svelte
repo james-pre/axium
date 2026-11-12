@@ -46,7 +46,7 @@
 	{/if}
 
 	<section>
-		<h3>{text('ai.memory.title')}</h3>
+		<h3>{text('ai.ram.title')}</h3>
 		<MemoryMeter memory={current.memory} {models} />
 	</section>
 

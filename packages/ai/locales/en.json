@@ -57,18 +57,34 @@
 		},
 		"load_failed": "Failed to load",
 		"make_default": "Make default",
-		"memory": {
-			"host": "RAM",
-			"other": "Other",
-			"split": "{device} VRAM, {host} RAM",
-			"title": "Memory",
-			"usage": "{used} of {total}"
-		},
+
 		"model": "Model",
 		"model_deleted": "Deleted {name}",
 		"model_removed": "This model was deleted.",
 		"model_saved": "Model saved",
 		"model_title": "AI — {name}",
+		"memory": {
+			"title": "Memory",
+			"description": "What the assistant remembers about you. It uses these in new conversations.",
+			"disabled": "Memory is turned off in your AI preferences, so these aren't used.",
+			"empty": "Nothing remembered yet.",
+			"description_placeholder": "What this memory is about, in one line",
+			"id_placeholder": "id-in-kebab-case",
+			"id_invalid": "Use lowercase words separated by hyphens",
+			"content_placeholder": "Details (optional, Markdown)",
+			"add": "Add",
+			"edit": "Edit",
+			"save": "Save",
+			"delete": "Delete",
+			"delete_confirm": "Delete the memory \"{id}\"?",
+			"from_conversation": "From a conversation",
+			"source": {
+				"user": "Added by you",
+				"explicit": "Saved when you asked",
+				"inferred": "Saved by the assistant",
+				"periodic": "From reviewing conversations"
+			}
+		},
 		"models": "Models",
 		"models_title": "AI — Models",
 		"new": "New chat",
@@ -92,13 +108,21 @@
 				"account_access": "Access to your account",
 				"confirm_writes": "Confirm writes",
 				"web": "Web access",
-				"approvals": "Approvals by tool"
+				"approvals": "Approvals by tool",
+				"memory": "Memory"
 			}
 		},
 		"data_access": {
 			"none": "None",
 			"read": "Read only",
 			"write": "Read and write"
+		},
+		"ram": {
+			"host": "RAM",
+			"other": "Other",
+			"split": "{device} VRAM, {host} RAM",
+			"title": "Memory",
+			"usage": "{used} of {total}"
 		},
 		"reasoning": "Reasoning",
 		"reasoning_default": "{level} (default)",
@@ -160,7 +184,11 @@
 			"delete_task": "Deleted task",
 			"create_task_list": "Created task list",
 			"update_task_list": "Changed task list",
-			"delete_task_list": "Deleted task list"
+			"delete_task_list": "Deleted task list",
+			"read_memory": "Recalled memory",
+			"add_memory": "Saved memory",
+			"update_memory": "Updated memory",
+			"delete_memory": "Removed memory"
 		},
 		"tool_awaiting": "Allow this change?",
 		"tool_decision": {

@@ -59,6 +59,23 @@
 						"error": { "type": "text" },
 						"usage": { "type": "jsonb" }
 					}
+				},
+				"ai_memories": {
+					"columns": {
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade", "primary": true },
+						"id": { "type": "text", "required": true, "primary": true },
+						"description": { "type": "text", "required": true },
+						"content": { "type": "text", "required": true, "default": "''" },
+						"source": {
+							"type": "text",
+							"required": true,
+							"default": "'user'",
+							"check": "source IN ('user', 'explicit', 'inferred', 'periodic')"
+						},
+						"conversationId": { "type": "uuid", "references": "ai_conversations.id", "onDelete": "set null" },
+						"created": { "type": "timestamptz", "required": true, "default": "now()" },
+						"modified": { "type": "timestamptz", "required": true, "default": "now()" }
+					}
 				}
 			},
 			"indexes": {
@@ -67,5 +84,5 @@
 			}
 		}
 	],
-	"wipe": ["ai_messages", "ai_conversations", "ai_models"]
+	"wipe": ["ai_memories", "ai_messages", "ai_conversations", "ai_models"]
 }

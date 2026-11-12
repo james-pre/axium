@@ -3,7 +3,9 @@ import * as io from 'ioium';
 import './common.js';
 import './server/api/conversations.js';
 import './server/api/gateway.js';
+import './server/api/memories.js';
 import './server/api/temporary.js';
+import './memory.js';
 import './node/web.js';
 import { failInterrupted } from './server/generation.js';
 import * as llama from './node/llama.js';
@@ -29,7 +31,12 @@ export async function configChanged() {
 }
 
 export async function statusText(): Promise<string> {
-	const { ai_models, ai_conversations, ai_messages } = await count('ai_models', 'ai_conversations', 'ai_messages');
+	const { ai_models, ai_conversations, ai_messages, ai_memories } = await count(
+		'ai_models',
+		'ai_conversations',
+		'ai_messages',
+		'ai_memories'
+	);
 
-	return `${ai_models} models, ${ai_conversations} conversations, ${ai_messages} messages`;
+	return `${ai_models} models, ${ai_conversations} conversations, ${ai_messages} messages, ${ai_memories} memories`;
 }

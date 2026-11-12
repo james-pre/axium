@@ -10,8 +10,11 @@ import { randomUUID } from 'node:crypto';
 import type schema from '../../db.json';
 import * as ai from '../common.js';
 import { chat, type ChatMessage } from '../node/chat.js';
-import { getDefaultModel, getRow, learnCapabilities } from './models.js';
+import features from '@axium/core/features';
+import { memoryPrompt } from '../memory.js';
 import * as tools from '../tools.js';
+import { getMemories } from './memory.js';
+import { getDefaultModel, getRow, learnCapabilities } from './models.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -83,13 +86,23 @@ const toolGuidance =
 	"Never create, change or delete anything the user didn't ask for, even as a workaround. " +
 	'Only say an action was done when a tool result confirms it; if you could not do something, say so.';
 
-function systemPrompt(prompt: string | null | undefined, instructions: string | undefined, offered: tools.Tool[]): string {
+interface PromptParts {
+	/** The model's system prompt, or the configured default */
+	prompt?: string | null;
+	instructions?: string;
+	offered: tools.Tool[];
+	/** The section about what the model remembers */
+	memory?: string;
+}
+
+function systemPrompt({ prompt, instructions, offered, memory }: PromptParts): string {
 	const now = new Date();
 	const date = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
 	const sections = [prompt ?? getConfig('@axium/ai').system_prompt];
 	sections.push(`Today is ${date}.`);
 	if (offered.length) sections.push(toolGuidance);
+	if (memory) sections.push(memory);
 	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
 
 	return sections.join('\n\n');
@@ -217,8 +230,10 @@ interface TurnInit {
 	allowedTools: string[];
 	/** Saves tools the user just allowed for the rest of the conversation */
 	allowForChat?(names: string[]): Promise<void>;
-	/** Leaves out tools that use the user's data */
+	/** Leaves out the user's memories and tools that use their data */
 	anonymous?: boolean;
+	/** For conversations that are never saved, which never save memories */
+	temporary?: boolean;
 	/** Called after the turn's final response */
 	onDone?(model: string, content: string): void;
 }
@@ -323,18 +338,32 @@ async function respond(init: TurnInit): Promise<void> {
 		const [preferences, user] = await Promise.all([getPreferences(store.userId), getUser(store.userId)]);
 		const context: tools.Context = {
 			userId: user.id,
+			conversationId: init.temporary ? undefined : store.conversationId,
 			signal,
 			api: (method, endpoint, data, ...params) => callAPI(user, method, endpoint, data, ...params),
 		};
-		const offered = settings.tools === false ? [] : tools.allowed(preferences.tools, init.anonymous);
+		const offered =
+			settings.tools === false ? [] : tools.allowed(preferences.tools, { anonymous: init.anonymous, temporary: init.temporary });
 		const definitions = tools.definitions(offered);
+
+		const remembers = preferences.tools.memory && features('ai-memory') && !init.anonymous;
+		const memories = remembers ? await getMemories(store.userId) : [];
+		const memory = remembers
+			? memoryPrompt(
+					memories,
+					offered.some(tool => tool.environment == 'memory' && tool.access == 'write')
+				)
+			: undefined;
 
 		const allowed = new Set(init.allowedTools);
 		const history = await init.history();
 		await resolveAwaiting(history, init, context, preferences, allowed);
 
 		const messages: ChatMessage[] = [
-			{ role: 'system', content: systemPrompt(settings.systemPrompt, preferences.instructions?.trim(), offered) },
+			{
+				role: 'system',
+				content: systemPrompt({ prompt: settings.systemPrompt, instructions: preferences.instructions?.trim(), offered, memory }),
+			},
 			...history.map(toChatMessage).filter(message => !!message),
 		];
 
@@ -484,6 +513,7 @@ export async function generateTemporary(userId: string, init: ai.TemporaryInit, 
 		decisions: init.decisions,
 		allowedTools: init.allowedTools,
 		anonymous: init.anonymous,
+		temporary: true,
 	});
 }
 

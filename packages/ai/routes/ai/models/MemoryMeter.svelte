@@ -22,7 +22,7 @@
 
 		const ours = used.reduce((sum, segment) => sum + segment.size, 0);
 		if (device.used !== undefined && device.used > ours) {
-			used.push({ label: text('ai.memory.other'), size: device.used - ours, kind: 'other' });
+			used.push({ label: text('ai.ram.other'), size: device.used - ours, kind: 'other' });
 		}
 		return used.filter(segment => segment.size > 0);
 	}
@@ -34,7 +34,7 @@
 
 	const bars = $derived([
 		...memory.devices.map(device => bar(device, 'device', memory.devices.length == 1)),
-		bar({ ...memory.host, name: text('ai.memory.host') }, 'host', true),
+		bar({ ...memory.host, name: text('ai.ram.host') }, 'host', true),
 	]);
 </script>
 
@@ -43,7 +43,7 @@
 		<div class="device">
 			<div class="label">
 				<span>{device.name}</span>
-				<span class="subtle">{text('ai.memory.usage', { used: bytes(used), total: bytes(device.total) })}</span>
+				<span class="subtle">{text('ai.ram.usage', { used: bytes(used), total: bytes(device.total) })}</span>
 			</div>
 			<div class="bar">
 				{#each segments as segment}
@@ -63,7 +63,7 @@
 			{#each loaded as model, index}
 				<span class="item"><span class="swatch segment model" style:--index={index}></span>{model.name}</span>
 			{/each}
-			<span class="item"><span class="swatch segment other"></span>{text('ai.memory.other')}</span>
+			<span class="item"><span class="swatch segment other"></span>{text('ai.ram.other')}</span>
 		</div>
 	{/if}
 </div>

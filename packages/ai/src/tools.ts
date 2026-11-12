@@ -16,6 +16,8 @@ export type APICaller = <const E extends Endpoint, const M extends keyof $API[E]
 export interface Context {
 	/** The user the tool acts for */
 	userId: string;
+	/** The conversation the call is from, when it is saved */
+	conversationId?: string;
 	api: APICaller;
 	signal: AbortSignal;
 }
@@ -45,7 +47,14 @@ export function add<const Input extends z.ZodObject>(tool: Tool<Input>): void {
 }
 
 /** The tools allowed by the user's preferences and the instance's features */
-export function allowed(preferences: ai.Preferences['tools'], anonymous: boolean = false): Tool[] {
+export interface AllowedOptions {
+	/** Leaves out tools that use the user's data or memories */
+	anonymous?: boolean;
+	/** Leaves out tools that change memories */
+	temporary?: boolean;
+}
+
+export function allowed(preferences: ai.Preferences['tools'], { anonymous, temporary }: AllowedOptions = {}): Tool[] {
 	return Array.from(registry.values()).filter(tool => {
 		if (tool.available && !tool.available()) return false;
 
@@ -55,6 +64,8 @@ export function allowed(preferences: ai.Preferences['tools'], anonymous: boolean
 			case 'account':
 				if (anonymous || !features('ai-account-access')) return false;
 				return preferences.account_access == 'write' || (preferences.account_access == 'read' && tool.access == 'read');
+			case 'memory':
+				return preferences.memory && features('ai-memory') && !anonymous && (tool.access == 'read' || !temporary);
 		}
 	});
 }

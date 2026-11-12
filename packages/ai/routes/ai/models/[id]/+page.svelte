@@ -71,7 +71,7 @@
 
 	function memoryText(use?: { device: number; host: number }): string {
 		if (!use) return text('ai.unknown');
-		return text('ai.memory.split', { device: bytes(use.device), host: bytes(use.host) });
+		return text('ai.ram.split', { device: bytes(use.device), host: bytes(use.host) });
 	}
 </script>
 

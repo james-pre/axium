@@ -34,7 +34,7 @@
 
 <TopBarContent name={text('app_name.ai')} icon="sparkles" href="/ai" />
 
-<div id="ai-app" class={[(page.params.id || page.url.pathname.startsWith('/ai/models')) && 'in-page']}>
+<div id="ai-app" class={[(page.params.id || page.url.pathname != '/ai') && 'in-page']}>
 	<nav id="ai-sidebar">
 		<a href="/ai" class="new icon-text">
 			<Icon i="plus" />
@@ -56,6 +56,10 @@
 			</div>
 		{/each}
 		<div class="footer">
+			<a href="/ai/memory" class={['icon-text', page.url.pathname == '/ai/memory' && 'active']}>
+				<Icon i="brain" />
+				<span>{text('ai.memory.title')}</span>
+			</a>
 			<a href="/ai/models" class={['icon-text', page.url.pathname.startsWith('/ai/models') && 'active']}>
 				<Icon i="microchip" />
 				<span>{text('ai.models')}</span>

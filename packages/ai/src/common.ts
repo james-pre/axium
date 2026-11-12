@@ -59,6 +59,10 @@ export const Config = z.object({
 	max_steps: z.int().positive(),
 	/** A SearXNG instance used by the web search tool, which is hidden while this is unset */
 	search_url: z.url().nullish(),
+	/** The most memories each user may have */
+	max_memories: z.int().positive(),
+	/** The most characters in a memory's content */
+	max_memory_length: z.int().positive().max(10_000),
 });
 export interface Config extends z.infer<typeof Config> {}
 
@@ -276,15 +280,15 @@ export type MessageRole = z.infer<typeof MessageRole>;
 export const MessageStatus = z.literal(['pending', 'done', 'error', 'cancelled', 'awaiting']);
 export type MessageStatus = z.infer<typeof MessageStatus>;
 
-/** Where a tool acts: `account` uses the user's Axium data, `web` reaches the internet */
-export const Environment = z.literal(['account', 'web']);
+/** Where a tool acts  */
+export const Environment = z.literal(['account', 'web', 'memory']);
 export type Environment = z.infer<typeof Environment>;
 
 /** `write` tools change data, so they may need the user's approval */
 export const ToolAccess = z.literal(['read', 'write']);
 export type ToolAccess = z.infer<typeof ToolAccess>;
 
-/** Whether a write tool runs without asking */
+/** Whether a tool runs without asking */
 export const Approval = z.literal(['ask', 'allow']);
 export type Approval = z.infer<typeof Approval>;
 
@@ -356,7 +360,7 @@ export const TemporaryInit = z.object({
 	/** `null` uses the default model */
 	model: ModelId.nullish(),
 	reasoning: Reasoning,
-	/** Leaves out tools that use the user's data */
+	/** Leaves out the user's memories and tools that use their data */
 	anonymous: z.boolean().default(false),
 	/** The conversation so far, ending with the message to respond to or the tool calls being decided */
 	messages: TemporaryMessage.array().min(1).max(1000),
@@ -366,6 +370,64 @@ export const TemporaryInit = z.object({
 	allowedTools: z.string().array().max(100).default([]),
 });
 export interface TemporaryInit extends z.infer<typeof TemporaryInit> {}
+
+/**
+ * Where a memory came from: added by the user on the memory page (`user`), saved when the user asked (`explicit`),
+ * saved because the model judged it worth keeping (`inferred`), or found by reviewing conversations (`periodic`)
+ */
+export const MemorySource = z.literal(['user', 'explicit', 'inferred', 'periodic']);
+export type MemorySource = z.infer<typeof MemorySource>;
+
+/** Unique for each user, in `kebab-case` */
+export const MemoryId = z
+	.string()
+	.min(1)
+	.max(64)
+	.regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Use lowercase words separated by hyphens, e.g. "coffee-preferences"');
+
+/** One line saying what a memory is about, shown to the model in every conversation */
+export const MemoryDescription = z.string().trim().min(1).max(200);
+
+/** Details the model reads only when relevant; limited further by the `max_memory_length` config */
+export const MemoryContent = z.string().trim().max(10_000);
+
+export const Memory = z.object({
+	id: MemoryId,
+	userId: z.uuid(),
+	description: z.string(),
+	content: z.string(),
+	source: MemorySource,
+	/** The conversation the memory was saved in, while it exists */
+	conversationId: z.uuid().nullable(),
+	created: z.coerce.date(),
+	modified: z.coerce.date(),
+});
+export interface Memory extends z.infer<typeof Memory> {}
+
+export const MemoryInit = z.object({
+	id: MemoryId,
+	description: MemoryDescription,
+	content: MemoryContent.default(''),
+	source: MemorySource.default('user'),
+	conversationId: z.uuid().nullish(),
+});
+export interface MemoryInit extends z.infer<typeof MemoryInit> {}
+
+export const MemoryUpdate = z.object({
+	id: MemoryId.optional(),
+	description: MemoryDescription.optional(),
+	content: MemoryContent.optional(),
+});
+export interface MemoryUpdate extends z.infer<typeof MemoryUpdate> {}
+
+export const Memories = z.object({
+	memories: Memory.array(),
+	/** The most memories a user may have */
+	limit: z.int().positive(),
+	/** The most characters in a memory's content */
+	maxLength: z.int().positive(),
+});
+export interface Memories extends z.infer<typeof Memories> {}
 
 export const Preferences = z
 	.object({
@@ -391,8 +453,10 @@ export const Preferences = z
 				web: z.boolean().default(false).register(locales.zod, { feature: 'ai-web-tools' }),
 				/** Per-tool overrides of whether write calls ask first, by tool name */
 				approvals: z.record(z.string(), Approval).default({}).register(locales.zod, { feature: 'ai-account-access' }),
+				/** Whether the assistant uses and saves memories */
+				memory: z.boolean().default(true).register(locales.zod, { feature: 'ai-memory' }),
 			})
-			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {} })
+			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {}, memory: true })
 			.register(locales.zod, { prefix: 'ai.preferences.tools' }),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
@@ -458,6 +522,15 @@ const AIAPI = {
 		/** Starts a response without saving anything; returns the pending response */
 		PUT: [TemporaryInit, Message],
 		POST: [z.object({ action: z.literal('cancel') }), z.object({})],
+	},
+	'users/:id/ai/memories': {
+		GET: Memories,
+		PUT: [MemoryInit, Memory],
+	},
+	'users/:id/ai/memories/:memory': {
+		GET: Memory,
+		PATCH: [MemoryUpdate, Memory],
+		DELETE: Memory,
 	},
 } as const;
 

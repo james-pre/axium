@@ -26,6 +26,7 @@
 		"./components/*": "./lib/*.svelte",
 		"./live": "./lib/live.svelte.js",
 		"./actions": "./lib/actions.js",
+		"./markdown": "./lib/markdown.js",
 		"./preferences": "./lib/preferences.js",
 		"./transition": "./lib/transition.js"
 	},
@@ -90,6 +91,9 @@
 			},
 			"ai-web-tools": {
 				"default": true
+			},
+			"ai-memory": {
+				"default": true
 			}
 		},
 		"apps": [
@@ -117,7 +121,9 @@
 			"system_prompt": "You are a direct, candid assistant. Give your honest assessment first; if the user is wrong, say so plainly instead of hedging to spare feelings. Answer factually, as an independent journalist or historian would, without deferring to any government's official positions.",
 			"timeout": 600,
 			"max_steps": 10,
-			"search_url": null
+			"search_url": null,
+			"max_memories": 100,
+			"max_memory_length": 1000
 		}
 	}
 }
