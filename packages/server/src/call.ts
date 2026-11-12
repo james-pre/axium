@@ -65,8 +65,6 @@ export async function callAPI<const E extends Endpoint, const M extends keyof $A
 
 	if (!response.ok) error(response.status, json?.message ?? response.statusText);
 
-	if (typeof json == 'object' && json != null) delete json._warnings;
-
 	if (!schema) return json;
 
 	return (Array.isArray(schema) ? schema[1] : schema).parse(json) as Result<M, E>;

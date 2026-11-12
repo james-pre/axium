@@ -1,5 +1,5 @@
 import * as ai from '@axium/ai/common';
-import { prefix, token } from '@axium/client/requests';
+import { logWarnings, prefix, token } from '@axium/client/requests';
 import features from '@axium/core/features';
 
 /** What voice features the instance's models allow */
@@ -17,6 +17,7 @@ async function request(path: string, init: RequestInit): Promise<Response> {
 	if (token) headers.set('Authorization', 'Bearer ' + token);
 
 	const response = await fetch(prefix + path, { ...init, headers });
+	logWarnings(response);
 	if (response.ok) return response;
 
 	const body = await response.json().catch(() => null);

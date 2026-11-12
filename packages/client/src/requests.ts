@@ -1,7 +1,7 @@
 import type { APIParameters, Endpoint, RequestBody, Result } from '@axium/core/api';
 import { $API } from '@axium/core/api';
 import { errorText } from 'ioium';
-import type { RequestMethod } from '@axium/core/requests';
+import { decodeWarnings, warningsHeader, type RequestMethod } from '@axium/core/requests';
 import { prettifyError } from 'zod';
 
 // @ts-expect-error 2339
@@ -40,6 +40,11 @@ export let userAgent: string | null = null;
  */
 export function useUserAgent(ua: string | null) {
 	userAgent = ua;
+}
+
+/** Logs the warnings the server sent about a request */
+export function logWarnings(response: Response): void {
+	for (const warning of decodeWarnings(response.headers.get(warningsHeader))) console.warn('[API]', warning);
 }
 
 export async function fetchAPI<const E extends Endpoint, const M extends keyof $API[E] & RequestMethod>(
@@ -100,12 +105,9 @@ export async function fetchAPI<const E extends Endpoint, const M extends keyof $
 
 	const json: any = await response.json().catch(() => ({ message: 'Unknown server error (invalid JSON response)' }));
 
-	if (!response.ok) throw Object.assign(new Error(json.message), { status: response.status });
+	logWarnings(response);
 
-	if (typeof json == 'object' && json != null && '_warnings' in json) {
-		for (const warning of json._warnings) console.warn('[API]', warning);
-		delete json._warnings;
-	}
+	if (!response.ok) throw Object.assign(new Error(json.message), { status: response.status });
 
 	if (!schema) return json;
 

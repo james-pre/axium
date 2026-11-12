@@ -1,4 +1,5 @@
 import { type RequestMethod, type User, type UserInternal } from '@axium/core';
+import { encodeWarnings, warningsHeader } from '@axium/core/requests';
 import { userProtectedFields, userPublicFields } from '@axium/core/user';
 import { parseCookie, stringifySetCookie } from 'cookie';
 import * as io from 'ioium';
@@ -186,9 +187,9 @@ export function withError(text: string, code: number = 500) {
 export async function handleAPIRequest(request: Request, params: Record<string, any>, route: ServerRoute): Promise<Response> {
 	const method = request.method as RequestMethod;
 
-	const _warnings: string[] = [];
+	const warnings: string[] = [];
 	if (route.api && !request.headers.get('Accept')?.includes('application/json')) {
-		_warnings.push('Only application/json is supported');
+		warnings.push('Only application/json is supported');
 		request.headers.set('Accept', 'application/json');
 	}
 
@@ -204,16 +205,13 @@ export async function handleAPIRequest(request: Request, params: Record<string, 
 
 	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
 
-	const result: void | (object & { _warnings?: string[] }) | Response = await route[method].call(route, request, params);
+	const result: void | object | Response = await route[method].call(route, request, params);
+	const response = result instanceof Response ? result : json(result);
+	if (!warnings.length) return response;
 
-	if (result instanceof Response) return result;
-
-	if ((typeof result == 'object' || typeof result == 'function') && result !== null) {
-		result._warnings ||= [];
-		result._warnings.push(..._warnings);
-	}
-
-	return json(result);
+	const withWarnings = new Response(response.body, response);
+	withWarnings.headers.set(warningsHeader, encodeWarnings(warnings));
+	return withWarnings;
 }
 
 export function handleResponseError(e: Error | ResponseError | Redirect) {
