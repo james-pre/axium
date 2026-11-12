@@ -22,6 +22,7 @@
 			"started": "Downloading {name}",
 			"title": "Add model"
 		},
+		"conversation_missing": "That conversation doesn't exist. It may have been deleted.",
 		"conversation_title": "AI — {title}",
 		"delete_body": "The model's files are deleted. Conversations using it switch to the default chat model.",
 		"delete_title": "Delete {name}?",
