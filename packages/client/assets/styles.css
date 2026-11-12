@@ -63,6 +63,10 @@ button:where(.reset) {
 	&:hover {
 		background-color: unset;
 	}
+
+	&:disabled {
+		border: none;
+	}
 }
 
 input,
