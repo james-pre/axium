@@ -38,14 +38,6 @@
 	}
 
 	/** A readable name from a repository name */
-	function nameFrom(repo: string): string {
-		return repo
-			.split('/')
-			.at(-1)!
-			.replace(/([-_.](i1|imatrix|gguf))+$/gi, '')
-			.replace(/[-_]+/g, ' ');
-	}
-
 	async function select(repo: string) {
 		loadingDetails = repo;
 		try {
@@ -60,7 +52,7 @@
 		const fitting = details.quants.filter(option => option.fit == 'device');
 		quant = (fitting.at(-1) ?? details.quants.find(option => option.fit == 'host') ?? details.quants[0])?.tag;
 
-		name = nameFrom(details.base ?? details.repo);
+		name = ai.nameFromRepo(details.base ?? details.repo);
 		modelId = ai.modelIdFrom(name);
 		if (models.some(model => model.id == modelId) && quant) modelId = ai.modelIdFrom(`${name} ${quant}`);
 	}

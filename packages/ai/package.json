@@ -46,6 +46,7 @@
 		"@axium/notes": ">=0.4.10",
 		"@axium/server": ">=0.59.0",
 		"@axium/tasks": ">=0.5.13",
+		"@james-pre/config": "^1.2.0",
 		"@james-pre/locales": "^1.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"domhandler": "^6.0.1",
@@ -80,7 +81,8 @@
 			}
 		},
 		"client": {
-			"cli": "./dist/client/cli.js"
+			"cli": "./dist/client/cli.js",
+			"hooks": "./dist/client/hooks.js"
 		},
 		"features": {
 			"ai-gateway": {

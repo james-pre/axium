@@ -1,3 +1,4 @@
+import { getConfig } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import { requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
@@ -14,6 +15,8 @@ async function requireAdmin(request: Request): Promise<void> {
 	const session = await requireSession(request);
 	if (!session.user.isAdmin) error(403, 'Only administrators can manage models');
 }
+
+const hfToken = () => getConfig('@axium/ai').llama.hf_token;
 
 function requireRunning(): void {
 	if (!llama.isRunning()) error(503, 'llama-server is not running');
@@ -38,7 +41,7 @@ addRoute({
 
 		if (await getRow(init.id)) error(409, 'A model with this ID already exists');
 
-		const details = await hub.details(init.repo, getCapacity()).catch(withError('Could not get the repository from Hugging Face', 502));
+		const details = await hub.details(init.repo, getCapacity(), hfToken()).catch(withError('Could not get the repository from Hugging Face', 502));
 		const quant = details.quants.find(quant => quant.tag == init.quant);
 		if (!quant) error(400, 'The repository has no such quantization');
 
@@ -160,7 +163,7 @@ addRoute({
 	async GET(request): AsyncResult<'GET', 'ai/hub'> {
 		const { search } = parseSearch(request, ai.HubSearch);
 		await requireAdmin(request);
-		return await hub.search(search).catch(withError('Could not search Hugging Face', 502));
+		return await hub.search(search, hfToken()).catch(withError('Could not search Hugging Face', 502));
 	},
 });
 
@@ -169,6 +172,6 @@ addRoute({
 	async GET(request): AsyncResult<'GET', 'ai/hub/details'> {
 		const { repo } = parseSearch(request, z.object({ repo: ai.HubRepoId }));
 		await requireAdmin(request);
-		return await hub.details(repo, getCapacity()).catch(withError('Could not get the repository from Hugging Face', 502));
+		return await hub.details(repo, getCapacity(), hfToken()).catch(withError('Could not get the repository from Hugging Face', 502));
 	},
 });

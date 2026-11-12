@@ -22,15 +22,7 @@ export interface Progress {
 }
 
 /** What the loop needs to know about the model */
-export interface ModelSettings {
-	id: string;
-	/** `null` uses the default system prompt */
-	systemPrompt: string | null;
-	/** What `default` reasoning amounts to, set by an administrator */
-	reasoning: string | null;
-	/** Whether the chat template supports tool calls, when known */
-	tools: boolean | null;
-}
+export interface ModelSettings extends Pick<ai.ModelInfo, 'id' | 'systemPrompt' | 'reasoning' | 'tools'> {}
 
 export interface TurnInit {
 	store: Store;

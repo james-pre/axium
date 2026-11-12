@@ -19,6 +19,15 @@ export function modelIdFrom(name: string): string {
 		.replace(/-+$/, '');
 }
 
+/** A display name for a model from its repository, e.g. "Gemma 4 E4B" from "org/Gemma-4-E4B-GGUF" */
+export function nameFromRepo(repo: string): string {
+	return repo
+		.split('/')
+		.at(-1)!
+		.replace(/([-_.](i1|imatrix|gguf))+$/gi, '')
+		.replace(/[-_]+/g, ' ');
+}
+
 /** A Hugging Face repository */
 export const HubRepoId = z
 	.string()
@@ -131,7 +140,7 @@ export interface DownloadProgress extends z.infer<typeof DownloadProgress> {}
 export const Modality = z.literal(['text', 'image', 'audio', 'video']);
 export type Modality = z.infer<typeof Modality>;
 
-export const Model = z.object({
+export const ModelInfo = z.object({
 	id: ModelId,
 	name: z.string().min(1).max(100),
 	/** `<repository>:<quantization>` */
@@ -139,6 +148,21 @@ export const Model = z.object({
 	/** Bytes on disk once downloaded */
 	size: z.coerce.bigint().nonnegative(),
 	created: z.coerce.date(),
+	/** Reasoning levels the model distinguishes, lowest to highest. Empty when it only has on and off; missing when not known yet. */
+	reasoningLevels: Reasoning.array().nullish(),
+	/** What the chat template does without a reasoning level: `none` or one of the levels. Missing when not known. */
+	templateReasoning: Reasoning.nullish(),
+	/** Whether the chat template supports tool calls. Missing when not known. */
+	tools: z.boolean().nullish(),
+	/** What `default` amounts to, set by an administrator */
+	reasoning: Reasoning.nullable(),
+	systemPrompt: z.string().max(20_000).nullable(),
+	options: ModelOptions,
+});
+export interface ModelInfo extends z.infer<typeof ModelInfo> {}
+
+export const Model = z.object({
+	...ModelInfo.shape,
 	status: ModelStatus,
 	/** The last attempt to load the model failed */
 	failed: z.boolean().optional(),
@@ -148,16 +172,6 @@ export const Model = z.object({
 	inputs: Modality.array().optional(),
 	outputs: Modality.array().optional(),
 	memory: ModelMemory.optional(),
-	/** Reasoning levels the model distinguishes, lowest to highest. Empty when it only has on and off; missing when not known yet. */
-	reasoningLevels: Reasoning.array().optional(),
-	/** What the chat template does without a reasoning level: `none` or one of the levels. Missing when not known. */
-	templateReasoning: Reasoning.optional(),
-	/** Whether the chat template supports tool calls. Missing when not known. */
-	tools: z.boolean().optional(),
-	/** What `default` amounts to, set by an administrator */
-	reasoning: Reasoning.nullable(),
-	systemPrompt: z.string().max(20_000).nullable(),
-	options: ModelOptions,
 });
 export interface Model extends z.infer<typeof Model> {}
 
@@ -167,7 +181,7 @@ export function isUsable(model: Pick<Model, 'status'>): boolean {
 }
 
 /** What `default` amounts to for a model, when known */
-export function defaultReasoning(model: Pick<Model, 'reasoning' | 'templateReasoning'>): string | undefined {
+export function defaultReasoning(model: Pick<Model, 'reasoning' | 'templateReasoning'>): string | null | undefined {
 	return model.reasoning ?? model.templateReasoning;
 }
 
@@ -215,21 +229,29 @@ export function canServe(model: Pick<Model, 'inputs' | 'outputs'>, role: Role): 
 	}
 }
 
+function servable(model: Model | undefined, role: Role): model is Model {
+	return !!model && isUsable(model) && canServe(model, role);
+}
+
+/** The first model of `ids` that is usable, can serve the role and didn't fail to load */
+export function firstServable(models: Model[], ids: string[], role: Role): Model | undefined {
+	for (const id of ids) {
+		const model = models.find(model => model.id == id);
+		if (servable(model, role) && !model.failed) return model;
+	}
+}
+
 /**
  * The model that serves a role: the first usable one in its list that didn't fail to load,
  * then the fallback role's, then any model that can serve it.
  */
 export function resolveRole(models: Model[], roleModels: Roles, role: Role): Model | undefined {
-	const servable = (model?: Model): model is Model => !!model && isUsable(model) && canServe(model, role);
-
-	for (const id of roleModels[role]) {
-		const model = models.find(model => model.id == id);
-		if (servable(model) && !model.failed) return model;
-	}
+	const listed = firstServable(models, roleModels[role], role);
+	if (listed) return listed;
 
 	const fallback = roleFallbacks[role];
 	if (fallback) return resolveRole(models, roleModels, fallback);
-	return models.find(model => servable(model) && !model.failed) ?? models.find(servable);
+	return models.find(model => servable(model, role) && !model.failed) ?? models.find(model => servable(model, role));
 }
 
 export const Models = z.object({

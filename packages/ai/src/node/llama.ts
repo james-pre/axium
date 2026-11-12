@@ -72,6 +72,19 @@ interface State {
 	key: string;
 }
 
+/** Where llama-server keeps its files and how it runs */
+export interface Settings {
+	data_dir: string;
+	llama: ai.LlamaConfig;
+}
+
+let settings: () => Settings = () => getConfig('@axium/ai');
+
+/** Uses settings other than the plugin's config, e.g. a device's own */
+export function useSettings(source: () => Settings): void {
+	settings = source;
+}
+
 let child: ChildProcess | undefined;
 let state: State | undefined;
 let failures = 0;
@@ -84,14 +97,14 @@ export function isRunning(): boolean {
 }
 
 function directory(): string {
-	return getConfig('@axium/ai').data_dir;
+	return settings().data_dir;
 }
 
 const statePath = () => join(directory(), 'llama-server.json');
 const presetPath = () => join(directory(), 'models.ini');
 
 function baseURL(): string {
-	const { host, port } = getConfig('@axium/ai').llama;
+	const { host, port } = settings().llama;
 	return `http://${host.includes(':') ? `[${host}]` : host}:${port}/`;
 }
 
@@ -101,7 +114,7 @@ function presetValue(value: string | number | boolean): string {
 
 /** Writes the presets file llama-server loads models from */
 export function writePreset(models: PresetModel[]): void {
-	const { llama } = getConfig('@axium/ai');
+	const { llama } = settings();
 
 	const lines = ['version = 1', '', '[*]'];
 	for (const [key, value] of Object.entries(llama.defaults)) lines.push(`${key} = ${presetValue(value)}`);
@@ -121,7 +134,7 @@ export function writePreset(models: PresetModel[]): void {
 }
 
 function invocation() {
-	const { llama, data_dir } = getConfig('@axium/ai');
+	const { llama, data_dir } = settings();
 
 	const args = [
 		'--models-preset',
@@ -217,6 +230,9 @@ function launch(command: string, args: string[], env: Record<string, string>, fi
 
 	server.on('error', error => {
 		io.error(`AI: could not run llama-server: ${io.errorText(error)}`);
+		if ((error as NodeJS.ErrnoException).code != 'ENOENT') return;
+		io.warn(`AI: not restarting llama-server until "${command}" is installed and the settings change`);
+		stopping = true;
 	});
 
 	server.on('exit', (code, signal) => {
@@ -254,6 +270,26 @@ export async function start(): Promise<void> {
 	}
 
 	void watch();
+}
+
+/**
+ * Uses a llama-server that another process supervises, e.g. the device daemon, without supervising it.
+ * @returns whether one is running with the current settings
+ */
+export async function attach(): Promise<boolean> {
+	const { command, fingerprint } = invocation();
+	const previous = readState();
+	if (!previous || previous.fingerprint != fingerprint || !isAlive(previous.pid) || !isLlamaServer(previous.pid, command)) return false;
+
+	state = previous;
+	try {
+		await waitUntilHealthy(10_000);
+	} catch {
+		state = undefined;
+		return false;
+	}
+	running = true;
+	return true;
 }
 
 /** Stops llama-server, e.g. when its settings change */
@@ -310,9 +346,12 @@ async function watch(): Promise<void> {
 	}
 }
 
-async function waitUntilHealthy(): Promise<void> {
+/** @param timeout In milliseconds */
+async function waitUntilHealthy(timeout = Infinity): Promise<void> {
+	const deadline = Date.now() + timeout;
 	for (;;) {
 		if (stopping || !state) throw new Error('Stopped');
+		if (Date.now() > deadline) throw new Error('llama-server did not become healthy in time');
 		const healthy = await fetch(new URL('health', baseURL()), { signal: AbortSignal.timeout(2000) })
 			.then(response => response.ok)
 			.catch(() => false);
@@ -320,6 +359,12 @@ async function waitUntilHealthy(): Promise<void> {
 		if (!child && !isAlive(state.pid)) throw new Error('llama-server is not running');
 		await sleep(500);
 	}
+}
+
+/** Subscribes to router events, which are yielded as they happen until `signal` aborts */
+export async function follow(signal?: AbortSignal): Promise<AsyncGenerator<RouterEvent>> {
+	const response = await request('models/sse', { signal });
+	return serverSentEvents(response);
 }
 
 export async function* serverSentEvents(response: Response): AsyncGenerator<any> {

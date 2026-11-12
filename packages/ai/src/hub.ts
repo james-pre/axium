@@ -1,24 +1,24 @@
-import { getConfig } from '@axium/core';
 import type * as ai from './common.js';
 
 const hubURL = 'https://huggingface.co/';
 
-async function hubFetch<T>(path: string): Promise<T> {
-	const { hf_token } = getConfig('@axium/ai').llama;
+/** @param token A Hugging Face access token, for gated or private repositories */
+async function hubFetch<T>(path: string, token?: string): Promise<T> {
 	const response = await fetch(new URL(path, hubURL), {
-		headers: hf_token ? { Authorization: 'Bearer ' + hf_token } : {},
+		headers: token ? { Authorization: 'Bearer ' + token } : {},
 		signal: AbortSignal.timeout(15_000),
 	});
 	if (!response.ok) throw new Error(`Hugging Face: ${response.status} ${response.statusText}`);
 	return (await response.json()) as T;
 }
 
-export async function search(query: string): Promise<ai.HubRepo[]> {
+export async function search(query: string, token?: string): Promise<ai.HubRepo[]> {
 	const params = new URLSearchParams({ search: query, filter: 'gguf', sort: 'downloads', direction: '-1', limit: '30' });
 	for (const field of ['downloads', 'likes', 'lastModified']) params.append('expand[]', field);
 
 	const results = await hubFetch<{ id: string; downloads?: number; likes?: number; lastModified?: string }[]>(
-		'api/models?' + params.toString()
+		'api/models?' + params.toString(),
+		token
 	);
 
 	return results.map(result => ({
@@ -51,10 +51,10 @@ function fitOf(size: bigint, capacity: ai.MemoryUse): ai.Fit {
 }
 
 /** @param capacity Memory available for models on the host they would run on, used to say whether each quantization fits */
-export async function details(repo: string, capacity: ai.MemoryUse): Promise<ai.HubDetails> {
+export async function details(repo: string, capacity: ai.MemoryUse, token?: string): Promise<ai.HubDetails> {
 	const [info, tree] = await Promise.all([
-		hubFetch<{ id: string; baseModels?: { relation?: string; models?: { id: string }[] } }>(`api/models/${repo}?expand[]=baseModels`),
-		hubFetch<{ type: string; path: string; size: number; lfs?: { size: number } }[]>(`api/models/${repo}/tree/main?recursive=true`),
+		hubFetch<{ id: string; baseModels?: { relation?: string; models?: { id: string }[] } }>(`api/models/${repo}?expand[]=baseModels`, token),
+		hubFetch<{ type: string; path: string; size: number; lfs?: { size: number } }[]>(`api/models/${repo}/tree/main?recursive=true`, token),
 	]);
 
 	const files = tree.filter(entry => entry.type == 'file' && entry.path.toLowerCase().endsWith('.gguf'));
