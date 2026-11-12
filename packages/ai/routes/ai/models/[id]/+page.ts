@@ -1,5 +1,6 @@
 import { fetchAPI } from '@axium/client/requests';
 
 export async function load({ params }) {
-	return { model: await fetchAPI('GET', 'ai/models/:id', {}, params.id!) };
+	const [model, models] = await Promise.all([fetchAPI('GET', 'ai/models/:id', {}, params.id!), fetchAPI('GET', 'ai/models')]);
+	return { model, models };
 }
