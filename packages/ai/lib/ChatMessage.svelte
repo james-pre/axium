@@ -10,7 +10,9 @@
 	import { text } from '@axium/client';
 	import { dynamicRows } from '@axium/client/attachments';
 	import { ClipboardCopy, Icon } from '@axium/client/components';
+	import { toast } from '@axium/client/toast';
 	import { markdown } from './markdown.js';
+	import * as voice from './voice.svelte.js';
 	import ToolCall from './ToolCall.svelte';
 
 	const {
@@ -124,6 +126,20 @@
 		<div class="actions subtle">
 			{#if message.content}
 				<ClipboardCopy value={message.content} --size="14px" />
+			{/if}
+			{#if message.content && message.role == 'assistant' && voice.available.speech}
+				{const speaking = $derived(voice.speaking() == message.id)}
+				<button
+					class="reset"
+					title={text(speaking ? 'ai.voice.stop_speaking' : 'ai.voice.speak')}
+					aria-label={text(speaking ? 'ai.voice.stop_speaking' : 'ai.voice.speak')}
+					onclick={() => {
+						if (speaking) voice.stopSpeaking();
+						else voice.speak(message.id, message.content).catch(error => toast('error', error));
+					}}
+				>
+					<Icon i={speaking ? 'stop' : 'volume-high'} --size="14px" />
+				</button>
 			{/if}
 			{#if onedit}
 				<button class="reset" title={text('ai.edit')} aria-label={text('ai.edit')} onclick={() => (draft = message.content)}>

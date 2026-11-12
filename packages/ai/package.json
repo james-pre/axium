@@ -28,7 +28,8 @@
 		"./actions": "./lib/actions.js",
 		"./markdown": "./lib/markdown.js",
 		"./preferences": "./lib/preferences.js",
-		"./transition": "./lib/transition.js"
+		"./transition": "./lib/transition.js",
+		"./voice": "./lib/voice.svelte.js"
 	},
 	"files": [
 		"dist",
@@ -96,6 +97,9 @@
 			},
 			"ai-memory": {
 				"default": true
+			},
+			"ai-voice": {
+				"default": true
 			}
 		},
 		"apps": [
@@ -112,7 +116,7 @@
 				"command": "llama-server",
 				"host": "127.0.0.1",
 				"port": 6687,
-				"models_max": 1,
+				"models_max": 3,
 				"memory_margin": 1024,
 				"defaults": {
 					"jinja": true,
@@ -125,7 +129,8 @@
 			"max_steps": 10,
 			"search_url": null,
 			"max_memories": 100,
-			"max_memory_length": 1000
+			"max_memory_length": 1000,
+			"speaker_reference": null
 		}
 	}
 }

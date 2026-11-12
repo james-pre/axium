@@ -72,6 +72,8 @@ export const Config = z.object({
 	max_memories: z.int().positive(),
 	/** The most characters in a memory's content */
 	max_memory_length: z.int().positive().max(10_000),
+	/** A recording of the voice that spoken replies imitate, for models that clone voices */
+	speaker_reference: z.string().nullish(),
 });
 export interface Config extends z.infer<typeof Config> {}
 
@@ -554,6 +556,17 @@ export function preferredReasoning(preference: string, model?: Pick<Model, 'reas
 
 	return known.reduce((best, level) => (Math.abs(ranks.indexOf(level) - target) < Math.abs(ranks.indexOf(best) - target) ? level : best));
 }
+
+/** Text to speak; long text is spoken in parts by the client */
+export const SpeechInit = z.object({
+	text: z.string().trim().min(1).max(1000),
+});
+export interface SpeechInit extends z.infer<typeof SpeechInit> {}
+
+export const Transcription = z.object({
+	text: z.string(),
+});
+export interface Transcription extends z.infer<typeof Transcription> {}
 
 const AIAPI = {
 	'ai/models': {

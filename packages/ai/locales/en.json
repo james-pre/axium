@@ -224,6 +224,16 @@
 				"stt": "Transcribing speech; needs audio input",
 				"tts": "Speaking replies; needs audio output"
 			}
+		},
+		"voice": {
+			"dictate": "Dictate",
+			"listening": "Listening…",
+			"transcribing": "Transcribing…",
+			"finish": "Finish dictating",
+			"cancel": "Cancel dictation",
+			"microphone_error": "Could not use the microphone: {error}",
+			"speak": "Read aloud",
+			"stop_speaking": "Stop reading"
 		}
 	}
 }

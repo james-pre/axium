@@ -388,7 +388,7 @@ export async function send(path: string, init: RequestInit = {}): Promise<Respon
 
 	const headers = new Headers(init.headers);
 	headers.set('Authorization', 'Bearer ' + state.key);
-	if (init.body) headers.set('Content-Type', 'application/json');
+	if (typeof init.body == 'string') headers.set('Content-Type', 'application/json');
 
 	return await fetch(new URL(path, baseURL()), { ...init, headers });
 }

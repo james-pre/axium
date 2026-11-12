@@ -7,6 +7,7 @@
 	import { onConversationChange, withUpdates } from '@axium/ai/live';
 	import { preferencesSchema } from '@axium/ai/preferences';
 	import { canTransition } from '@axium/ai/transition';
+	import * as voice from '@axium/ai/voice';
 	import { text } from '@axium/client';
 	import { AppPreferencesDialog, Icon, InlineEdit, TopBarContent } from '@axium/client/components';
 
@@ -17,6 +18,8 @@
 	const schema = $derived(preferencesSchema(withUpdates(data.models.models).filter(ai.isUsable)));
 
 	$effect(() => onConversationChange(() => invalidate('ai:conversations')));
+
+	$effect(() => voice.useModels({ models: withUpdates(data.models.models), roles: data.models.roles }));
 
 	/** Animates the composer between the start page and a conversation */
 	onNavigate(navigation => {

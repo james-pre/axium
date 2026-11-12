@@ -5,6 +5,7 @@ import './server/api/conversations.js';
 import './server/api/gateway.js';
 import './server/api/memories.js';
 import './server/api/temporary.js';
+import './server/api/voice.js';
 import './memory.js';
 import './node/web.js';
 import { failInterrupted } from './server/generation.js';
