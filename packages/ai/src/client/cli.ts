@@ -15,26 +15,26 @@ function gateway(): { url: string; token: string } {
 	return { url: new URL('/api/ai/gateway', config.server).href, token: config.token };
 }
 
-async function resolveModel(requested?: string): Promise<string> {
-	const { models, default: fallback } = await fetchAPI('GET', 'ai/models');
+/**
+ * Checks that a model or role can be used. The gateway resolves roles on each request,
+ * so a role keeps working when its first model becomes unavailable.
+ */
+async function checkModel(requested: string): Promise<void> {
+	const { models, roles } = await fetchAPI('GET', 'ai/models');
 	const usable = models.filter(ai.isUsable);
+	const role = ai.Role.safeParse(requested);
 
-	if (requested) {
-		if (!usable.some(model => model.id == requested)) {
-			io.exit(`Unknown or unavailable model "${requested}". Available: ${usable.map(model => model.id).join(', ')}`, 2);
-		}
-		return requested;
+	if (usable.some(model => model.id == requested)) return;
+	if (!role.success) {
+		io.exit(`Unknown or unavailable model "${requested}". Available: ${[...usable.map(model => model.id), ...ai.roles].join(', ')}`, 2);
 	}
-
-	const model = fallback ?? usable[0]?.id;
-	if (!model) io.exit('No models are available', 3);
-	return model;
+	if (!ai.resolveRole(models, roles, role.data)) io.exit(`No model is available for the ${role.data} role`, 3);
 }
 
 /** Environment variables that point Anthropic and OpenAI clients at the gateway */
-async function environment(requestedModel?: string): Promise<Record<string, string>> {
+async function environment(model: string = 'coding'): Promise<Record<string, string>> {
 	const { url, token } = gateway();
-	const model = await resolveModel(requestedModel);
+	await checkModel(model);
 
 	return {
 		ANTHROPIC_BASE_URL: url,
@@ -55,23 +55,24 @@ const shellQuote = (value: string) => `'${value.replaceAll("'", `'\\''`)}'`;
 cli.command('models')
 	.description('List the models on the server')
 	.action(async () => {
-		const { models, default: fallback } = await fetchAPI('GET', 'ai/models');
+		const { models, roles } = await fetchAPI('GET', 'ai/models');
 
 		for (const model of models) {
 			const status = ai.isUsable(model) ? styleText('green', model.status) : styleText('yellow', model.status);
+			const serves = ai.roles.filter(role => ai.resolveRole(models, roles, role)?.id == model.id);
 			console.log(
 				styleText('bold', model.name),
 				styleText('dim', model.id),
 				status,
 				styleText('blueBright', format.bytes(model.size)),
-				model.id == fallback ? styleText('cyan', '(default)') : ''
+				serves.length ? styleText('cyan', `(${serves.join(', ')})`) : ''
 			);
 		}
 	});
 
 cli.command('create-env')
 	.description('Print shell exports that point Anthropic and OpenAI clients at the AI gateway, using this client’s session')
-	.option('-m, --model <id>', 'the model to use instead of the default')
+	.option('-m, --model <id>', 'a model or role to use instead of the coding role')
 	.action(async (options: { model?: string }) => {
 		for (const [name, value] of Object.entries(await environment(options.model))) {
 			console.log(`export ${name}=${shellQuote(value)}`);
@@ -80,7 +81,7 @@ cli.command('create-env')
 
 cli.command('claude')
 	.description('Run Claude Code against the AI gateway, using this client’s session. Other arguments are passed to Claude Code.')
-	.option('-m, --model <id>', 'the model to use instead of the default')
+	.option('-m, --model <id>', 'a model or role to use instead of the coding role')
 	.argument('[args...]')
 	.allowUnknownOption()
 	.action(async (args: string[], options: { model?: string }) => {

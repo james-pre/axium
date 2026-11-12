@@ -4,8 +4,10 @@
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import { bytes } from 'utilium/format';
+	import * as ai from '@axium/ai/common';
 	import AddModel from './AddModel.svelte';
 	import MemoryMeter from './MemoryMeter.svelte';
+	import Roles from './Roles.svelte';
 
 	const { data } = $props();
 
@@ -56,7 +58,9 @@
 				<div class="info">
 					<div class="title">
 						<a href="/ai/models/{model.id}" class="name">{model.name}</a>
-						{#if model.id == current.default}<span class="badge">{text('ai.default')}</span>{/if}
+						{#each ai.roles.filter(role => ai.resolveRole(models, current.roles, role)?.id == model.id) as role (role)}
+							<span class="badge">{text(`ai.role.name.${role}`)}</span>
+						{/each}
 					</div>
 					<span class="subtle">{model.id}</span>
 				</div>
@@ -72,6 +76,12 @@
 		{:else}
 			<p class="subtle">{text(isAdmin ? 'ai.no_models_admin' : 'ai.no_models')}</p>
 		{/each}
+	</section>
+
+	<section>
+		<h3>{text('ai.role.title')}</h3>
+		<p class="subtle">{text('ai.role.description')}</p>
+		<Roles {models} bind:roles={current.roles} editable={isAdmin} />
 	</section>
 </div>
 
@@ -105,6 +115,10 @@
 
 	h3 {
 		margin: 0 0 0.75em;
+	}
+
+	h3 + p {
+		margin: -0.5em 0 0.75em;
 	}
 
 	.list {

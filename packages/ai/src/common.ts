@@ -128,6 +128,9 @@ export const DownloadProgress = z.object({
 });
 export interface DownloadProgress extends z.infer<typeof DownloadProgress> {}
 
+export const Modality = z.literal(['text', 'image', 'audio', 'video']);
+export type Modality = z.infer<typeof Modality>;
+
 export const Model = z.object({
 	id: ModelId,
 	name: z.string().min(1).max(100),
@@ -142,8 +145,8 @@ export const Model = z.object({
 	progress: DownloadProgress.optional(),
 	/** The context size the model was trained with, in tokens */
 	contextLength: z.int().optional(),
-	/** Input modalities */
-	inputs: z.string().array().optional(),
+	inputs: Modality.array().optional(),
+	outputs: Modality.array().optional(),
 	memory: ModelMemory.optional(),
 	/** Reasoning levels the model distinguishes, lowest to highest. Empty when it only has on and off; missing when not known yet. */
 	reasoningLevels: Reasoning.array().optional(),
@@ -184,9 +187,54 @@ export const DRAM = z.object({
 });
 export interface DRAM extends z.infer<typeof DRAM> {}
 
+/** What a model is used for */
+export const roles = ['chat', 'assistant', 'coding', 'stt', 'tts'] as const;
+
+export const Role = z.literal(roles);
+export type Role = z.infer<typeof Role>;
+
+/** Models for each role, most preferred first */
+export const Roles = z.record(Role, ModelId.array().max(50));
+export interface Roles extends z.infer<typeof Roles> {}
+
+export const RolesUpdate = z.partialRecord(Role, ModelId.array().max(50));
+export interface RolesUpdate extends z.infer<typeof RolesUpdate> {}
+
+/** Roles that use another role's models when none of their own are usable */
+const roleFallbacks: Partial<Record<Role, Role>> = { assistant: 'chat', coding: 'chat' };
+
+/** Whether a model has the modalities a role needs */
+export function canServe(model: Pick<Model, 'inputs' | 'outputs'>, role: Role): boolean {
+	switch (role) {
+		case 'stt':
+			return !!model.inputs?.includes('audio');
+		case 'tts':
+			return !!model.outputs?.includes('audio');
+		default:
+			return !model.outputs || model.outputs.includes('text');
+	}
+}
+
+/**
+ * The model that serves a role: the first usable one in its list that didn't fail to load,
+ * then the fallback role's, then any model that can serve it.
+ */
+export function resolveRole(models: Model[], roleModels: Roles, role: Role): Model | undefined {
+	const servable = (model?: Model): model is Model => !!model && isUsable(model) && canServe(model, role);
+
+	for (const id of roleModels[role]) {
+		const model = models.find(model => model.id == id);
+		if (servable(model) && !model.failed) return model;
+	}
+
+	const fallback = roleFallbacks[role];
+	if (fallback) return resolveRole(models, roleModels, fallback);
+	return models.find(model => servable(model) && !model.failed) ?? models.find(servable);
+}
+
 export const Models = z.object({
 	models: Model.array(),
-	default: ModelId.optional(),
+	roles: Roles,
 	memory: DRAM,
 	/** Whether llama-server is reachable */
 	running: z.boolean(),
@@ -207,8 +255,6 @@ export const ModelUpdate = z.object({
 	reasoning: Reasoning.nullable().optional(),
 	systemPrompt: Model.shape.systemPrompt.optional(),
 	options: ModelOptions.optional(),
-	/** Makes this the default model for everyone */
-	default: z.literal(true).optional(),
 });
 export interface ModelUpdate extends z.infer<typeof ModelUpdate> {}
 
@@ -498,6 +544,10 @@ const AIAPI = {
 		PATCH: [ModelUpdate, Model],
 		POST: [ModelAction, Model],
 		DELETE: Model,
+	},
+	'ai/roles': {
+		GET: Roles,
+		PATCH: [RolesUpdate, Roles],
 	},
 	'ai/hub': {
 		GET: [HubSearch, HubRepo.array()],

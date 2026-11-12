@@ -3,8 +3,9 @@ import { error, isResponseError, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import features from '@axium/core/features';
 import * as io from 'ioium';
+import * as ai from '../../common.js';
 import * as llama from '../../node/llama.js';
-import { getRows } from '../models.js';
+import { getRows, resolveRole } from '../models.js';
 
 type Format = 'openai' | 'anthropic';
 
@@ -72,7 +73,12 @@ for (const [path, format] of Object.entries(forwarded)) {
 
 				const models = await getRows();
 				if (!models.some(model => model.id == body?.model)) {
-					error(404, `Unknown model "${body?.model}". Available: ${models.map(model => model.id).join(', ')}`);
+					const role = ai.Role.safeParse(body?.model);
+					if (!role.success) {
+						const available = [...models.map(model => model.id), ...ai.roles].join(', ');
+						error(404, `Unknown model "${body?.model}". Available: ${available}`);
+					}
+					body.model = (await resolveRole(role.data)) ?? error(503, `No model is available for the ${role.data} role`);
 				}
 
 				const upstream = await llama.send('v1/' + path, {

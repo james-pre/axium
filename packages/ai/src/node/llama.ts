@@ -17,7 +17,7 @@ export interface RouterModel {
 		failed?: boolean;
 		progress?: Record<string, { done: number; total: number }>;
 	};
-	architecture?: { input_modalities?: string[] };
+	architecture?: { input_modalities?: string[]; output_modalities?: string[] };
 	/** Tokens; `null` when the model's files can't be read */
 	context_length?: number | null;
 	memory?: RouterMemory;

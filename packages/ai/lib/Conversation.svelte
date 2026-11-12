@@ -32,7 +32,7 @@
 	} = $props();
 
 	let messages = $state(conversation.messages),
-		model = $state(conversation.model ?? models.default ?? ''),
+		model = $state(conversation.model ?? ai.resolveRole(models.models, models.roles, 'chat')?.id ?? ''),
 		reasoning = $state(conversation.reasoning),
 		renaming = $state(false),
 		container = $state<HTMLDivElement>(),

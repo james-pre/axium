@@ -14,7 +14,7 @@ import features from '@axium/core/features';
 import { memoryPrompt } from '../memory.js';
 import * as tools from '../tools.js';
 import { getMemories } from './memory.js';
-import { getDefaultModel, getRow, learnCapabilities } from './models.js';
+import { getRow, learnCapabilities, resolveRole } from './models.js';
 
 declare module '@axium/server/database' {
 	export interface Schema extends FromSchemaFile<typeof schema> {}
@@ -331,7 +331,7 @@ async function respond(init: TurnInit): Promise<void> {
 	}
 
 	try {
-		model = init.model ?? (await getDefaultModel());
+		model = init.model ?? (await resolveRole('chat'));
 		const settings = model && (await getRow(model));
 		if (!model || !settings) throw new Error('No model is available');
 

@@ -12,7 +12,6 @@
 						"source": { "type": "text", "required": true },
 						"size": { "type": "bigint", "required": true, "default": "0" },
 						"created": { "type": "timestamptz", "required": true, "default": "now()" },
-						"isDefault": { "type": "boolean", "required": true, "default": "false" },
 						"reasoning": { "type": "text" },
 						"systemPrompt": { "type": "text" },
 						"options": { "type": "jsonb", "required": true, "default": "'{}'::jsonb" },
@@ -20,6 +19,18 @@
 						"templateReasoning": { "type": "text" },
 						"tools": { "type": "boolean" },
 						"learned": { "type": "timestamptz" }
+					}
+				},
+				"ai_roles": {
+					"columns": {
+						"role": {
+							"type": "text",
+							"required": true,
+							"primary": true,
+							"check": "role IN ('chat', 'assistant', 'coding', 'stt', 'tts')"
+						},
+						"modelId": { "type": "text", "required": true, "primary": true, "references": "ai_models.id", "onDelete": "cascade" },
+						"position": { "type": "integer", "required": true }
 					}
 				},
 				"ai_conversations": {
@@ -84,5 +95,5 @@
 			}
 		}
 	],
-	"wipe": ["ai_memories", "ai_messages", "ai_conversations", "ai_models"]
+	"wipe": ["ai_memories", "ai_messages", "ai_conversations", "ai_roles", "ai_models"]
 }

@@ -23,8 +23,7 @@
 			"title": "Add model"
 		},
 		"conversation_title": "AI — {title}",
-		"default": "Default",
-		"delete_body": "The model's files are deleted. Conversations using it switch to the default model.",
+		"delete_body": "The model's files are deleted. Conversations using it switch to the default chat model.",
 		"delete_title": "Delete {name}?",
 		"detail": {
 			"added": "Added",
@@ -40,7 +39,9 @@
 			"source": "Source",
 			"system_prompt": "System prompt",
 			"system_prompt_default": "Uses the default system prompt",
-			"template_default": "(model default: {level})"
+			"template_default": "(model default: {level})",
+			"outputs": "Outputs",
+			"roles": "Roles"
 		},
 		"empty": "What can I help with?",
 		"error": "The response failed: {error}",
@@ -49,15 +50,13 @@
 			"host": "Needs RAM",
 			"none": "Too large"
 		},
-		"input": {
+		"modality": {
 			"text": "Text",
 			"image": "Images",
 			"audio": "Audio",
 			"video": "Video"
 		},
 		"load_failed": "Failed to load",
-		"make_default": "Make default",
-
 		"model": "Model",
 		"model_deleted": "Deleted {name}",
 		"model_removed": "This model was deleted.",
@@ -199,6 +198,32 @@
 		},
 		"tool_input": "Input",
 		"tool_result": "Result",
-		"untitled": "New conversation"
+		"untitled": "New conversation",
+		"role": {
+			"title": "Roles",
+			"description": "Which models are used for each purpose, most preferred first.",
+			"add": "Add a model",
+			"none": "None",
+			"unavailable": "No model is available",
+			"fallback": "Using {name} as a fallback",
+			"serving": "In use for this role",
+			"move_up": "Prefer over the previous model",
+			"remove": "Remove",
+			"saved": "Roles saved",
+			"name": {
+				"chat": "Chat",
+				"assistant": "Assistant",
+				"coding": "Coding",
+				"stt": "Speech to text",
+				"tts": "Text to speech"
+			},
+			"about": {
+				"chat": "Conversations without a chosen model",
+				"assistant": "Quick tasks and voice",
+				"coding": "Claude Code and other coding tools",
+				"stt": "Transcribing speech; needs audio input",
+				"tts": "Speaking replies; needs audio output"
+			}
+		}
 	}
 }

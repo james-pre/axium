@@ -8,7 +8,7 @@ import * as z from 'zod';
 import * as ai from '../../common.js';
 import * as hub from '../../hub.js';
 import * as llama from '../../node/llama.js';
-import { emitModel, emitRemoved, getCapacity, getModel, getModels, getRow, getRows, syncPreset } from '../models.js';
+import { emitModel, emitRemoved, getCapacity, getModel, getModels, getRoles, getRow, getRows, setRoles, syncPreset } from '../models.js';
 
 async function requireAdmin(request: Request): Promise<void> {
 	const session = await requireSession(request);
@@ -73,27 +73,15 @@ addRoute({
 		return await existingModel(id);
 	},
 	async PATCH(request, { id }): AsyncResult<'PATCH', 'ai/models/:id'> {
-		const { default: makeDefault, options, ...update } = await parseBody(request, ai.ModelUpdate);
+		const { options, ...update } = await parseBody(request, ai.ModelUpdate);
 		await requireAdmin(request);
 		await existingModel(id);
 
 		await database
-			.transaction()
-			.execute(async tx => {
-				if (makeDefault) {
-					await tx.updateTable('ai_models').set({ isDefault: false }).where('isDefault', '=', true).execute();
-				}
-
-				await tx
-					.updateTable('ai_models')
-					.set({
-						...update,
-						...(makeDefault && { isDefault: true }),
-						...(options && { options: JSON.stringify(options) }),
-					})
-					.where('id', '=', id)
-					.execute();
-			})
+			.updateTable('ai_models')
+			.set({ ...update, ...(options && { options: JSON.stringify(options) }) })
+			.where('id', '=', id)
+			.execute()
 			.catch(withError('Could not update the model'));
 
 		if (options) await syncPreset().catch(withError('Could not apply the new options', 502));
@@ -142,6 +130,28 @@ addRoute({
 
 		emitRemoved(id);
 		return model;
+	},
+});
+
+addRoute({
+	path: '/api/ai/roles',
+	async GET(request): AsyncResult<'GET', 'ai/roles'> {
+		await requireSession(request);
+		return await getRoles();
+	},
+	async PATCH(request): AsyncResult<'PATCH', 'ai/roles'> {
+		const update = await parseBody(request, ai.RolesUpdate);
+		await requireAdmin(request);
+
+		const known = new Set((await getRows()).map(row => row.id));
+		for (const models of Object.values(update)) {
+			if (new Set(models).size != models.length) error(400, 'A model is listed twice for the same role');
+			const unknown = models.find(id => !known.has(id));
+			if (unknown) error(404, `Model "${unknown}" not found`);
+		}
+
+		await setRoles(update).catch(withError('Could not update the roles'));
+		return await getRoles();
 	},
 });
 

@@ -15,7 +15,9 @@
 	const removed = $derived(modelUpdates.get(data.model.id) === null);
 	const model = $derived(withUpdates([data.model])[0] ?? data.model);
 	const isAdmin = $derived(!!data.session.user.isAdmin);
-	const isDefault = $derived(data.models.default == model.id);
+	const serves = $derived(
+		ai.roles.filter(role => ai.resolveRole(withUpdates(data.models.models), data.models.roles, role)?.id == model.id)
+	);
 	const repo = $derived(model.source.split(':')[0]);
 
 	function levelName(level: string): string {
@@ -91,7 +93,6 @@
 		<div class="header">
 			<div class="title">
 				<h2>{model.name}</h2>
-				{#if isDefault}<span class="badge">{text('ai.default')}</span>{/if}
 				<span class="subtle">{model.id}</span>
 			</div>
 			{#if isAdmin}
@@ -122,7 +123,13 @@
 			</dd>
 
 			<dt>{text('ai.detail.inputs')}</dt>
-			<dd>{model.inputs?.map(input => text(`ai.input.${input as 'text'}`, { $default: input })).join(', ') ?? text('ai.unknown')}</dd>
+			<dd>{model.inputs?.map(input => text(`ai.modality.${input}`)).join(', ') ?? text('ai.unknown')}</dd>
+
+			<dt>{text('ai.detail.outputs')}</dt>
+			<dd>{model.outputs?.map(output => text(`ai.modality.${output}`)).join(', ') ?? text('ai.unknown')}</dd>
+
+			<dt>{text('ai.detail.roles')}</dt>
+			<dd>{serves.map(role => text(`ai.role.name.${role}`)).join(', ') || text('ai.role.none')}</dd>
 
 			<dt>{text('ai.reasoning')}</dt>
 			<dd>
@@ -150,13 +157,6 @@
 		{#if isAdmin}
 			<form class="settings" onsubmit={submit}>
 				<h3>{text('ai.settings')}</h3>
-
-				{#if !isDefault}
-					<button type="button" class="icon-text" disabled={saving} onclick={() => save({ default: true })}>
-						<Icon i="star" />
-						<span>{text('ai.make_default')}</span>
-					</button>
-				{/if}
 
 				<div class="field">
 					<label for="{id}:name">{text('ai.add.name')}</label>

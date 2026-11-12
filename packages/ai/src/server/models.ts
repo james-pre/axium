@@ -5,7 +5,7 @@ import type { Selectable } from 'kysely';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { freemem, totalmem } from 'node:os';
 import { join } from 'node:path';
-import type * as ai from '../common.js';
+import * as ai from '../common.js';
 import * as llama from '../node/llama.js';
 
 type ModelRow = Selectable<Schema['ai_models']>;
@@ -35,6 +35,14 @@ function sumUse(measurement?: llama.RouterMeasurement | null): ai.MemoryUse | un
 
 function measuredMemory(...models: (llama.RouterModel | undefined)[]): llama.RouterMemory | undefined {
 	return models.find(model => model?.memory?.status == 'measured')?.memory ?? models.find(model => model?.memory)?.memory;
+}
+
+function knownModalities(modalities?: string[]): ai.Modality[] | undefined {
+	return modalities?.filter((modality): modality is ai.Modality => {
+		if (ai.Modality.safeParse(modality).success) return true;
+		io.warnOnce(`AI: ignoring unknown modality "${modality}" reported by llama-server`);
+		return false;
+	});
 }
 
 function toModel(row: ModelRow): ai.Model {
@@ -71,7 +79,8 @@ function toModel(row: ModelRow): ai.Model {
 		failed: preset?.status.failed || undefined,
 		progress,
 		contextLength: preset?.context_length ?? undefined,
-		inputs: preset?.architecture?.input_modalities,
+		inputs: knownModalities(preset?.architecture?.input_modalities),
+		outputs: knownModalities(preset?.architecture?.output_modalities),
 		memory: memory && {
 			minimum: sumUse(memory.min),
 			current: status == 'loaded' ? sumUse(memory.effective) : undefined,
@@ -162,23 +171,43 @@ export function getCapacity(): { device: number; host: number } {
 	};
 }
 
-function defaultOf(rows: ModelRow[]): string | undefined {
-	return (rows.find(row => row.isDefault) ?? rows[0])?.id;
+export async function getRoles(): Promise<ai.Roles> {
+	const rows = await database.selectFrom('ai_roles').selectAll().orderBy('position').execute();
+	const roles = Object.fromEntries(ai.roles.map(role => [role, [] as string[]])) as ai.Roles;
+	for (const row of rows) roles[row.role as ai.Role].push(row.modelId);
+	return roles;
 }
 
-/** The default model, or the first one when no default is set */
-export async function getDefaultModel(): Promise<string | undefined> {
-	return defaultOf(await getRows());
+/** Replaces the model lists of the given roles */
+export async function setRoles(update: ai.RolesUpdate): Promise<void> {
+	await database.transaction().execute(async tx => {
+		for (const role of ai.roles) {
+			const models = update[role];
+			if (!models) continue;
+			await tx.deleteFrom('ai_roles').where('role', '=', role).execute();
+			if (!models.length) continue;
+			await tx
+				.insertInto('ai_roles')
+				.values(models.map((modelId, position) => ({ role, modelId, position })))
+				.execute();
+		}
+	});
 }
 
 export async function getModels(): Promise<ai.Models> {
-	const [rows] = await Promise.all([getRows(), refresh()]);
+	const [rows, roles] = await Promise.all([getRows(), getRoles(), refresh()]);
 	return {
 		models: rows.map(toModel),
-		default: defaultOf(rows),
+		roles,
 		memory: getMemory(),
 		running: llama.isRunning(),
 	};
+}
+
+/** The ID of the model that currently serves a role */
+export async function resolveRole(role: ai.Role): Promise<string | undefined> {
+	const { models, roles } = await getModels();
+	return ai.resolveRole(models, roles, role)?.id;
 }
 
 export async function getModel(id: string): Promise<ai.Model | undefined> {

@@ -7,7 +7,7 @@ import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
 import * as ai from '../../common.js';
 import { cancel, emitMessage, emitRemoved, generate, isGenerating, toMessage, withProgress } from '../generation.js';
-import { getDefaultModel } from '../models.js';
+import { resolveRole } from '../models.js';
 
 async function authConversation(request: Request, id: string) {
 	const conversation = await database
@@ -89,7 +89,7 @@ addRoute({
 
 		await checkAuthForUser(request, userId);
 
-		const model = init.model ?? (await getDefaultModel());
+		const model = init.model ?? (await resolveRole('chat'));
 		if (!model) error(503, 'No model is available');
 
 		return await database

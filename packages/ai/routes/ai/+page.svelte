@@ -13,7 +13,7 @@
 	const usable = withUpdates(data.models.models).filter(ai.isUsable);
 	const preferred = usable.find(model => model.id == data.preferences.model);
 
-	let model = $state(preferred?.id ?? data.models.default ?? usable[0]?.id ?? '');
+	let model = $state(preferred?.id ?? ai.resolveRole(usable, data.models.roles, 'chat')?.id ?? '');
 	let reasoning = $state(
 		ai.preferredReasoning(
 			data.preferences.reasoning,
