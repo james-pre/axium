@@ -163,6 +163,7 @@
 			bind:rootValue={user.preferences}
 			idPrefix="preferences"
 			schema={Preferences}
+			sort
 			updateValue={async (preferences: Preferences) => {
 				await fetchAPI('PATCH', 'users/:id', { preferences }, user.id);
 				await refreshAll();

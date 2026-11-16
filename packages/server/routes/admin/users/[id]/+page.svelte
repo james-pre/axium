@@ -167,6 +167,7 @@
 	<ZodForm
 		bind:rootValue={user.preferences}
 		schema={Preferences}
+		sort
 		updateValue={(preferences: Preferences) => fetchAPI('PATCH', 'users/:id', { preferences }, user.id)}
 	/>
 </div>
