@@ -195,14 +195,16 @@ export interface StorageBatchUpdate extends z.infer<typeof StorageBatchUpdate> {
 
 export const StoragePublicConfig = z.object({
 	/** Configuration for batch updates */
-	batch: z.object({
-		/** Whether to enable sending multiple files per request */
-		enabled: z.boolean(),
-		/** Maximum number of items that can be included in a single batch update */
-		max_items: z.int().positive(),
-		/** Maximum size in KiB per item */
-		max_item_size: z.int().positive(),
-	}),
+	batch: z
+		.object({
+			/** Whether to enable sending multiple files per request */
+			enabled: z.boolean(),
+			/** Maximum number of items that can be included in a single batch update */
+			max_items: z.int().positive(),
+			/** Maximum size in KiB per item */
+			max_item_size: z.int().positive(),
+		})
+		.register(locales.zod, { experimental: true }),
 	/** Maximum size in MiB per transfer/request */
 	max_transfer_size: z.int().positive(),
 });
