@@ -192,11 +192,13 @@
 	}
 
 	legend {
+		display: flex;
+		align-items: center;
 		padding: 0 0 0.75em;
 		font-weight: bold;
 
 		> :global(.ZodInput) {
-			display: inline-flex;
+			display: flex;
 			flex-direction: row-reverse;
 			align-items: center;
 			gap: 0.5em;
