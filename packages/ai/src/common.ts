@@ -61,7 +61,7 @@ export const Config = z.object({
 	data_dir: z.string().min(1),
 	llama: LlamaConfig,
 	/** Used for models without their own system prompt; the current date is appended */
-	system_prompt: z.string(),
+	system_prompt: z.string().register(locales.zod, { multiline: true }),
 	/** Seconds a single response may take before it is stopped */
 	timeout: z.number().positive(),
 	/** The most responses the model may give in one turn while using tools */
@@ -75,7 +75,7 @@ export const Config = z.object({
 	/** A recording of the voice that spoken replies imitate, for models that clone voices */
 	speaker_reference: z.string().nullish(),
 	/** What is said in `speaker_reference`; models that support it then also imitate its accent and delivery */
-	speaker_reference_text: z.string().trim().min(1).nullish(),
+	speaker_reference_text: z.string().trim().min(1).nullish().register(locales.zod, { multiline: true }),
 });
 export interface Config extends z.infer<typeof Config> {}
 
