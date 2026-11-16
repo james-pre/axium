@@ -157,9 +157,21 @@
 	const largeArrayTypes = ['object', 'array', 'record', 'tuple', 'template_literal'];
 </script>
 
+{#snippet labelFor(target: string)}
+	{#if !noLabel}
+		<label for={target}>
+			{labelText}{#if localeInfo?.experimental}<Icon
+					i="regular/flask"
+					class="ZodInput-experimental"
+					title={text('ZodInput.experimental')}
+				/>{/if}
+		</label>
+	{/if}
+{/snippet}
+
 {#snippet _in(rest: HTMLInputAttributes)}
 	<div class={['ZodInput', noLabel && 'no-label']}>
-		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
+		{@render labelFor(id)}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<input
 			{id}
@@ -180,7 +192,7 @@
 	<meta data-feature={localeInfo.feature} />
 {:else if schema.type == 'string' && localeInfo?.multiline}
 	<div class={['ZodInput', 'multiline', noLabel && 'no-label']}>
-		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
+		{@render labelFor(id)}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<textarea
 			{id}
@@ -203,7 +215,7 @@
 	{@render _in({ type: 'number', min: Number(schema.minValue), max: Number(schema.maxValue), step: 1 })}
 {:else if schema.type == 'boolean'}
 	<span class={['ZodInput', noLabel && 'no-label']}>
-		{#if !noLabel}<label for="{id}:checkbox">{labelText}</label>{/if}
+		{@render labelFor(`${id}:checkbox`)}
 		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} {placeholder} />
 		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if value}<Icon i="check" --size="1.3em" />{/if}
@@ -219,7 +231,7 @@
 	<!-- todo -->
 {:else if schema.type == 'literal'}
 	<div class="ZodInput">
-		<label for={id}>{labelText}</label>
+		{@render labelFor(id)}
 		<select bind:value {id} {onchange} required={!optional}>
 			{#each schema.values as literal}
 				<option value={literal} selected={value === literal}>{subText(String(literal), { $default: String(literal) })}</option>
@@ -229,7 +241,7 @@
 {:else if schema.type == 'template_literal'}
 	{const parts = splitTemplate(schema.def.parts, value)}
 	<div class={['ZodInput', noLabel && 'no-label']}>
-		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
+		{@render labelFor(id)}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<div class={['ZodInput-template', error && 'error']}>
 			{#each schema.def.parts as part, i}
@@ -281,7 +293,7 @@
 	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.innerType} optional={false} />
 {:else if schema.type == 'array'}
 	<div class={['ZodInput', noLabel && 'no-label']}>
-		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
+		{@render labelFor(id)}
 		<div class={['ZodInput-array', largeArrayTypes.includes(schema.element.type) && 'large']}>
 			{#each value, i}
 				<div class="ZodInput-element">
@@ -325,7 +337,7 @@
 	</div>
 {:else if schema.type == 'enum'}
 	<div class={['ZodInput', noLabel && 'no-label']}>
-		{#if !noLabel}<label for={id}>{labelText}</label>{/if}
+		{@render labelFor(id)}
 		{#if error}<span class="ZodInput-error">{error}</span>{/if}
 		<select {id} {onchange} bind:value required={!optional}>
 			{#each Object.entries(schema.enum) as [name, enumValue]}
@@ -334,19 +346,24 @@
 		</select>
 	</div>
 {:else if schema.type == 'success'}
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.innerType} {_parseSchema} />
+	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.innerType} {_parseSchema} />
 {:else if schema.type == 'pipe'}
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.in} {_parseSchema} />
+	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.in} {_parseSchema} />
 {:else if schema.type == 'union'}
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.options[0]} {_parseSchema} />
+	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.options[0]} {_parseSchema} />
 {:else if schema.type == 'intersection'}
-	<ZodInput bind:rootValue {...props} label={labelText} schema={schema.def.left} {_parseSchema} />
+	<ZodInput bind:rootValue {...props} {localeInfo} label={labelText} schema={schema.def.left} {_parseSchema} />
 {:else}
 	<!-- No idea how to render this -->
 	<i class="error">{text('ZodInput.invalid_type', { type: JSON.stringify((schema as ZodPref)?.def?.type) })}</i>
 {/if}
 
 <style>
+	:global(.ZodInput-experimental) {
+		margin-left: 0.4em;
+		vertical-align: -0.1em;
+	}
+
 	.ZodInput-error {
 		position: fixed;
 		position-anchor: --zod-input;

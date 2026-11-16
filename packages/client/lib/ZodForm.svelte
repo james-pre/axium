@@ -49,6 +49,7 @@
 <script lang="ts">
 	import { text } from '@axium/client';
 	import { getByString } from 'utilium';
+	import Icon from './Icon.svelte';
 	import ZodInput from './ZodInput.svelte';
 
 	interface Props {
@@ -150,6 +151,11 @@
 			{:else}
 				{label}
 			{/if}
+			{#if localeInfo?.experimental}<Icon
+					i="regular/flask"
+					class="ZodInput-experimental"
+					title={text('ZodInput.experimental')}
+				/>{/if}
 		</legend>
 		{@render fields()}
 	</fieldset>

@@ -66,6 +66,7 @@
 		"upgrade": "<span class=\"version\">{latest}</span> available"
 	},
 	"ZodInput": {
+		"experimental": "Experimental",
 		"invalid_type": "Invalid input type: {type}"
 	},
 	"error": {
