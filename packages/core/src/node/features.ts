@@ -44,9 +44,10 @@ export function persistFeaturesTo(path: string) {
 const FeatureIdArg = new Argument('<id>', 'The ID of the feature to enable').argParser(value => features.Id.parse(value));
 
 export function createFeatureCommand<C extends Command>(parent: C) {
-	const cmd = parent.command('feature').description('Manage features');
+	const cmd = parent.command('feature').aliases(['features', 'feat']).description('Manage features');
 
 	cmd.command('list')
+		.alias('ls')
 		.description('List features')
 		.option('-F, --from <from>', 'Filter by source plugin')
 		.action(opt => {
