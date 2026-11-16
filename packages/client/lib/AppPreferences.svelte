@@ -3,7 +3,7 @@
 	import { preferences as uap } from '@axium/client';
 	import { structurallyEqual } from 'utilium';
 	import type { ZodObject } from 'zod';
-	import ZodInput from './ZodInput.svelte';
+	import ZodForm from './ZodForm.svelte';
 	import { toast } from './toast.js';
 
 	const {
@@ -39,7 +39,7 @@
 
 <h2>{text('AppPreferences.title', { name: text(`app_name.${appId}`) })}</h2>
 
-<ZodInput {schema} updateValue={() => {}} bind:rootValue={currentValue} path="" />
+<ZodForm {schema} updateValue={() => {}} bind:rootValue={currentValue} />
 
 <div class="actions">
 	<button onclick={cancel}>{text('generic.cancel')}</button>

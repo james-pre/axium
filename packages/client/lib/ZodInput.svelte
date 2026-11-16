@@ -8,6 +8,7 @@
 	import { getByString, pick, setByString } from 'utilium';
 	import { prettifyError, type z } from 'zod';
 	import Icon from './Icon.svelte';
+	import ZodForm from './ZodForm.svelte';
 	import ZodInput from './ZodInput.svelte';
 
 	interface Props {
@@ -304,21 +305,18 @@
 			</button>
 		</div>
 	</div>
+{:else if (schema.type == 'record' || schema.type == 'object') && !noLabel}
+	<ZodForm bind:rootValue {updateValue} {idPrefix} {path} {schema} {localeInfo} label={labelText} />
 {:else if schema.type == 'record'}
 	<div class="ZodInput-record">
 		{#each Object.keys(value) as key}
-			<div class="ZodInput-record-entry">
-				{#if !noLabel}<label for={id}>{key}</label>{/if}
-				<ZodInput bind:rootValue {updateValue} {idPrefix} {noLabel} path="{path}.{key}" schema={schema.valueType} />
-			</div>
+			<ZodInput bind:rootValue {updateValue} {idPrefix} {noLabel} path="{path}.{key}" schema={schema.valueType} />
 		{/each}
 	</div>
 {:else if schema.type == 'object'}
-	<!-- <div class="ZodInput-object"> -->
 	{#each Object.entries(schema.shape) as [key, value]}
 		<ZodInput bind:rootValue {updateValue} {idPrefix} {noLabel} path="{path}.{key}" schema={value} label={subText(key)} />
 	{/each}
-	<!-- </div> -->
 {:else if schema.type == 'tuple'}
 	<div class="ZodInput-tuple" data-rest={schema.def.rest}>
 		{#each schema.def.items as item, i}
@@ -440,12 +438,26 @@
 		}
 	}
 
-	.ZodInput-object,
 	.ZodInput-record,
 	.ZodInput-tuple {
 		display: flex;
 		flex-direction: column;
 		align-items: stretch;
 		gap: 0.25em;
+	}
+
+	:global(.ZodForm) > .ZodInput {
+		grid-column: 1 / -1;
+		grid-template-columns: subgrid;
+		column-gap: normal;
+		align-items: center;
+
+		&.multiline > :not(.ZodInput-error) {
+			grid-column: 1 / -1;
+		}
+
+		> label.checkbox {
+			justify-self: start;
+		}
 	}
 </style>
