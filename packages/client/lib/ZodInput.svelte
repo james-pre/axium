@@ -202,13 +202,13 @@
 {:else if schema.type == 'bigint'}
 	{@render _in({ type: 'number', min: Number(schema.minValue), max: Number(schema.maxValue), step: 1 })}
 {:else if schema.type == 'boolean'}
-	<div class={['ZodInput', noLabel && 'no-label']}>
+	<span class={['ZodInput', noLabel && 'no-label']}>
 		{#if !noLabel}<label for="{id}:checkbox">{labelText}</label>{/if}
 		<input bind:checked={value} id="{id}:checkbox" type="checkbox" {onchange} required={!optional} {placeholder} />
 		<label for="{id}:checkbox" {id} class="checkbox">
 			{#if value}<Icon i="check" --size="1.3em" />{/if}
 		</label>
-	</div>
+	</span>
 {:else if schema.type == 'date'}
 	{@render _in({
 		type: 'date',
@@ -446,7 +446,8 @@
 		gap: 0.25em;
 	}
 
-	:global(.ZodForm) > .ZodInput {
+	:global(.ZodForm) > .ZodInput,
+	:global(.ZodForm-requires) > .ZodInput {
 		grid-column: 1 / -1;
 		grid-template-columns: subgrid;
 		column-gap: normal;

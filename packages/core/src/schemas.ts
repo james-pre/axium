@@ -111,6 +111,8 @@ export interface SchemaMetadata {
 	experimental?: boolean;
 	/** If set this string is edited with a multi-line text box */
 	multiline?: boolean;
+	/** If set this control is disabled unless each named sibling field has one of the listed values */
+	requires?: Record<string, readonly unknown[]>;
 }
 
 declare module '@james-pre/locales' {
