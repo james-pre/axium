@@ -130,7 +130,8 @@
 			"search_url": null,
 			"max_memories": 100,
 			"max_memory_length": 1000,
-			"speaker_reference": null
+			"speaker_reference": null,
+			"speaker_reference_text": null
 		}
 	}
 }

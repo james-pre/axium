@@ -96,7 +96,9 @@
 			"context": "Context size (tokens)",
 			"device": "Devices",
 			"parallel": "Parallel requests",
-			"reserve": "VRAM to leave free (MiB)"
+			"reserve": "VRAM to leave free (MiB)",
+			"mmproj": "Projector file",
+			"mmproj_default": "The repository's"
 		},
 		"placeholder": "Message",
 		"preferences": {

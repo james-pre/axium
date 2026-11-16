@@ -74,6 +74,8 @@ export const Config = z.object({
 	max_memory_length: z.int().positive().max(10_000),
 	/** A recording of the voice that spoken replies imitate, for models that clone voices */
 	speaker_reference: z.string().nullish(),
+	/** What is said in `speaker_reference`; models that support it then also imitate its accent and delivery */
+	speaker_reference_text: z.string().trim().min(1).nullish(),
 });
 export interface Config extends z.infer<typeof Config> {}
 
@@ -128,6 +130,12 @@ export const ModelOptions = z.object({
 	reserve: z.int().nonnegative().optional(),
 	/** Number of requests the model serves at once */
 	parallel: z.int().positive().max(64).optional(),
+	/** Path of a local multimodal projector file, used instead of the repository's */
+	mmproj: z
+		.string()
+		.regex(/^\/[^\r\n]*$/, 'Must be an absolute path')
+		.max(4096)
+		.optional(),
 });
 export interface ModelOptions extends z.infer<typeof ModelOptions> {}
 

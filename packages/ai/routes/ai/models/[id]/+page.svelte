@@ -41,6 +41,7 @@
 		context = $state(data.model.options.context),
 		reserve = $state(data.model.options.reserve),
 		parallel = $state(data.model.options.parallel),
+		mmproj = $state(data.model.options.mmproj ?? ''),
 		saving = $state(false);
 
 	async function save(update: ai.ModelUpdate) {
@@ -67,6 +68,7 @@
 				context: context || undefined,
 				reserve: reserve ?? undefined,
 				parallel: parallel || undefined,
+				mmproj: mmproj.trim() || undefined,
 			},
 		});
 	}
@@ -213,6 +215,10 @@
 							placeholder={text('ai.option.automatic')}
 						/>
 					</div>
+					<div class="field">
+						<label for="{id}:mmproj">{text('ai.option.mmproj')}</label>
+						<input id="{id}:mmproj" bind:value={mmproj} placeholder={text('ai.option.mmproj_default')} maxlength="4096" />
+					</div>
 				</div>
 
 				<div>
@@ -256,13 +262,6 @@
 		h2 {
 			margin: 0;
 		}
-	}
-
-	.badge {
-		padding: 0.1em 0.5em;
-		border-radius: 0.5em;
-		background-color: var(--bg-accent);
-		font-size: 0.8em;
 	}
 
 	.details {

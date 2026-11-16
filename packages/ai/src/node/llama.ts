@@ -122,7 +122,8 @@ export function writePreset(models: PresetModel[]): void {
 
 	for (const model of models) {
 		lines.push('', `[${model.id}]`, `hf-repo = ${model.source}`);
-		const { device, context, reserve, parallel } = model.options;
+		const { device, context, reserve, parallel, mmproj } = model.options;
+		if (mmproj) lines.push(`mmproj = ${presetValue(mmproj)}`);
 		if (device) lines.push(`device = ${device}`);
 		if (context) lines.push(`ctx-size = ${context}`);
 		if (reserve !== undefined) lines.push(`fit-target = ${reserve}`);

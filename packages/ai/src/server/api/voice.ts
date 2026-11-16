@@ -15,6 +15,15 @@ import { getModels, resolveRole } from '../models.js';
 /** The most audio accepted for transcription, in bytes */
 const maxAudioSize = 32 * 1024 * 1024;
 
+/** Makes speech reproducible, including the generated default voice */
+const seed = 1;
+
+/** How long the end of each clip fades out, in seconds */
+const fadeLength = 0.04;
+
+/** The pause after each clip, in seconds */
+const pauseLength = 0.25;
+
 async function requireVoiceEnabled(request: Request): Promise<void> {
 	await requireSession(request);
 	if (!features('ai-voice')) error(403, 'Voice is disabled');
@@ -36,16 +45,17 @@ async function upstreamError(response: Response): Promise<string> {
 	}
 }
 
-let reference: { path: string; modified: number; data: string } | undefined;
-
-/** Keeps a voice the same between requests, which models without a speaker reference pick at random */
-const seed = 1;
+interface SpeakerReference {
+	/** WAV, in base64 */
+	audio: string;
+	/** The transcript of the audio */
+	text?: string;
+}
 
 const defaultVoiceText = 'Hello. I am your assistant, and this is the voice I will use when I speak to you.';
 
 let generating: Promise<void> | undefined;
 
-/** Makes the voice used when no speaker reference is configured, once */
 async function generateDefaultVoice(path: string, model: string): Promise<void> {
 	const response = await llama.send('v1/audio/speech', {
 		method: 'POST',
@@ -54,16 +64,15 @@ async function generateDefaultVoice(path: string, model: string): Promise<void> 
 	if (!response.ok) throw new Error(await upstreamError(response));
 
 	await mkdir(dirname(path), { recursive: true });
-	await writeFile(path, Buffer.from(await response.arrayBuffer()));
+	await writeFile(path, await response.bytes());
 }
 
-/**
- * The recording every reply imitates, in base64: the configured one, or a default voice made the first time it's needed.
- * Without one, each request may get a different voice.
- */
-async function speakerReference(model: string): Promise<string> {
-	const configured = getConfig('@axium/ai').speaker_reference;
-	const path = configured ?? join(getConfig('@axium/ai').data_dir, 'default-voice.wav');
+let cached: { path: string; modified: number; audio: string } | undefined;
+
+/** The recording every reply imitates: the configured one, or a default voice made the first time it's needed */
+async function speakerReference(model: string): Promise<SpeakerReference> {
+	const { speaker_reference: configured, speaker_reference_text, data_dir } = getConfig('@axium/ai');
+	const path = configured ?? join(data_dir, 'default-voice.wav');
 
 	if (!configured && !existsSync(path)) {
 		generating ??= generateDefaultVoice(path, model).finally(() => (generating = undefined));
@@ -71,10 +80,60 @@ async function speakerReference(model: string): Promise<string> {
 	}
 
 	const { mtimeMs: modified } = await stat(path);
-	if (reference?.path != path || reference.modified != modified) {
-		reference = { path, modified, data: (await readFile(path)).toString('base64') };
+	if (cached?.path != path || cached.modified != modified) {
+		cached = { path, modified, audio: (await readFile(path)).toString('base64') };
 	}
-	return reference.data;
+
+	return { audio: cached.audio, text: (configured ? speaker_reference_text : defaultVoiceText) ?? undefined };
+}
+
+/**
+ * Fades out the end of 16-bit PCM WAV audio and adds a pause, so clips the model ends early don't stop mid-sound.
+ * Other formats are returned unchanged.
+ */
+function finishSpeech(wav: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
+	const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
+	const tag = (offset: number) => String.fromCharCode(...wav.subarray(offset, offset + 4));
+	if (wav.length < 44 || tag(0) != 'RIFF' || tag(8) != 'WAVE') return wav;
+
+	let format: { channels: number; rate: number; bits: number; pcm: boolean } | undefined;
+	let offset = 12;
+	while (offset + 8 <= wav.length) {
+		const size = view.getUint32(offset + 4, true);
+		if (tag(offset) == 'fmt ') {
+			format = {
+				pcm: view.getUint16(offset + 8, true) == 1,
+				channels: view.getUint16(offset + 10, true),
+				rate: view.getUint32(offset + 12, true),
+				bits: view.getUint16(offset + 22, true),
+			};
+		}
+		if (tag(offset) == 'data') break;
+		offset += 8 + size + (size % 2);
+	}
+	if (!format?.pcm || format.bits != 16 || tag(offset) != 'data') return wav;
+
+	const start = offset + 8;
+	const frameSize = format.channels * 2;
+	const length = Math.min(view.getUint32(offset + 4, true), wav.length - start);
+	const frames = Math.floor(length / frameSize);
+
+	const fadeFrames = Math.min(frames, Math.round(format.rate * fadeLength));
+	for (let frame = frames - fadeFrames; frame < frames; frame++) {
+		const gain = (frames - frame) / fadeFrames;
+		for (let channel = 0; channel < format.channels; channel++) {
+			const position = start + frame * frameSize + channel * 2;
+			view.setInt16(position, Math.round(view.getInt16(position, true) * gain), true);
+		}
+	}
+
+	const pause = Math.round(format.rate * pauseLength) * frameSize;
+	const result = new Uint8Array(start + frames * frameSize + pause);
+	result.set(wav.subarray(0, start + frames * frameSize));
+	const header = new DataView(result.buffer);
+	header.setUint32(4, result.length - 8, true);
+	header.setUint32(offset + 4, frames * frameSize + pause, true);
+	return result;
 }
 
 addRoute({
@@ -113,21 +172,29 @@ addRoute({
 
 		const speaker = await speakerReference(model).catch(withError('Could not get the voice to speak with', 502));
 
-		const speech = (speaker_ref_b64?: string) =>
+		const speak = (speaker?: SpeakerReference) =>
 			llama
 				.send('v1/audio/speech', {
 					method: 'POST',
-					body: JSON.stringify({ model, input, response_format: 'wav', seed, speaker_ref_b64 }),
+					body: JSON.stringify({
+						model,
+						input,
+						response_format: 'wav',
+						seed,
+						speaker_ref_b64: speaker?.audio,
+						speaker_ref_text: speaker?.text,
+					}),
 					signal: request.signal,
 				})
 				.catch(withError('Could not reach llama-server', 502));
 
-		let upstream = await speech(speaker);
-		const referenceRejected = upstream.status == 400;
-		if (referenceRejected) upstream = await speech();
+		let upstream = await speak(speaker);
+		// Models without a voice encoder reject speaker references.
+		if (upstream.status == 400) upstream = await speak();
 		if (!upstream.ok) error(502, 'Could not speak: ' + (await upstreamError(upstream)));
 
-		return new Response(upstream.body, { headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/wav' } });
+		const audio = finishSpeech(await upstream.bytes());
+		return new Response(audio, { headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/wav' } });
 	},
 });
 
