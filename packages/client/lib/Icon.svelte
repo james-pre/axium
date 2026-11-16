@@ -1,11 +1,12 @@
 <script lang="ts">
 	import type { SVGAttributes } from 'svelte/elements';
-	const { i, ...rest }: { i: string } & SVGAttributes<SVGSVGElement> = $props();
+	const { i, title, ...rest }: { i: string; title?: string } & SVGAttributes<SVGSVGElement> = $props();
 	const [style, id] = $derived(i.includes('/') ? i.split('/') : ['solid', i]);
 	const href = $derived(`/icons/${style}.svg#${id}`);
 </script>
 
 <svg {...rest} xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="1em" height="1em" class={['Icon', rest.class]}>
+	{#if title}<title>{title}</title>{/if}
 	<use {href} />
 </svg>
 
