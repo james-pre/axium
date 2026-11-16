@@ -106,6 +106,7 @@
 			"reasoning": "Default reasoning",
 			"ctrl_enter": "Send with Ctrl+Enter",
 			"instructions": "Custom instructions",
+			"tools_heading": "Tools",
 			"tools": {
 				"account_access": "Access to your account",
 				"confirm_writes": "Confirm writes",

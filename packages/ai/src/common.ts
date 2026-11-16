@@ -538,7 +538,7 @@ export const Preferences = z
 				memory: z.boolean().default(true).register(locales.zod, { feature: 'ai-memory' }),
 			})
 			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {}, memory: true })
-			.register(locales.zod, { prefix: 'ai.preferences.tools' }),
+			.register(locales.zod, { key: 'ai.preferences.tools_heading', prefix: 'ai.preferences.tools' }),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
 export interface Preferences extends z.infer<typeof Preferences> {}
