@@ -529,11 +529,17 @@ export const Preferences = z
 					.default('none')
 					.register(locales.zod, { prefix: 'ai.data_access', feature: 'ai-account-access' }),
 				/** Whether tools that change the user's data wait for approval */
-				confirm_writes: z.boolean().default(true).register(locales.zod, { feature: 'ai-account-access' }),
+				confirm_writes: z
+					.boolean()
+					.default(true)
+					.register(locales.zod, { feature: 'ai-account-access', requires: { account_access: ['write'] } }),
 				/** Whether tools may search and read the web */
 				web: z.boolean().default(false).register(locales.zod, { feature: 'ai-web-tools' }),
 				/** Per-tool overrides of whether write calls ask first, by tool name */
-				approvals: z.record(z.string(), Approval).default({}).register(locales.zod, { feature: 'ai-account-access' }),
+				approvals: z
+					.record(z.string(), Approval)
+					.default({})
+					.register(locales.zod, { feature: 'ai-account-access', requires: { account_access: ['write'] } }),
 				/** Whether the assistant uses and saves memories */
 				memory: z.boolean().default(true).register(locales.zod, { feature: 'ai-memory' }),
 			})
