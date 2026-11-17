@@ -551,6 +551,10 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 			io.done();
 		}
 
+		for (const index of delta.drop_indexes) {
+			await io.track('Dropping index ' + index, tx.schema.dropIndex(index).execute());
+		}
+
 		for (const tableName of delta.drop_tables) {
 			await io.track('Dropping table ' + tableName, tx.schema.dropTable(tableName).execute());
 		}
@@ -634,10 +638,6 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 
 		for (const [indexName, index] of Object.entries(delta.add_indexes)) {
 			await io.track('Creating index ' + indexName, tx.schema.createIndex(indexName).on(index.on).columns(index.columns).execute());
-		}
-
-		for (const index of delta.drop_indexes) {
-			await io.track('Dropping index ' + index, tx.schema.dropIndex(index).execute());
 		}
 
 		for (const script of delta.scripts.filter(s => s.when === 'after')) {
