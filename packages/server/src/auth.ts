@@ -1,6 +1,7 @@
 import type { Passkey, Session, UserInternal, VerificationInternal, VerificationRole } from '@axium/core';
 import { checkACL, controlMatchesUser } from '@axium/core';
 import type { AliasedRawBuilder, ExpressionBuilder, Insertable, Kysely, SelectQueryBuilder } from 'kysely';
+import { sql } from 'kysely';
 import { randomBytes, randomUUID } from 'node:crypto';
 import { omit, type WithRequired } from 'utilium';
 import * as acl from './acl.js';
@@ -111,9 +112,6 @@ export async function createVerification(
 	const token = randomBytes(64).toBase64({ alphabet: 'base64url', omitPadding: true });
 	const verification: VerificationInternal = { userId, token, expires: new Date(Date.now() + expires * 60_000), role };
 	await (this || db).insertInto('verifications').values(verification).executeTakeFirstOrThrow();
-	setTimeout(() => {
-		void db.deleteFrom('verifications').where('verifications.token', '=', verification.token).execute();
-	}, expires * 60_000);
 	return verification;
 }
 
@@ -122,7 +120,8 @@ export async function useVerification(role: VerificationRole, userId: string, to
 		.deleteFrom('verifications')
 		.where('verifications.token', '=', token)
 		.where('verifications.userId', '=', userId)
-		.where('verifications.role', '=', role);
+		.where('verifications.role', '=', role)
+		.where('verifications.expires', '>', sql<Date>`now()`);
 	return await query.returningAll().executeTakeFirst();
 }
 

@@ -30,6 +30,7 @@ import { build } from '../build.js';
 import { config, configManager } from '../config.js';
 import * as db from '../db/index.js';
 import { _portActions, _portMethods, localDir, logger, restrictedPorts, type PortOptions } from '../io.js';
+import * as jobs from '../jobs.js';
 import { linkRoutes, listRouteLinks, unlinkRoutes, writePluginHooks, type LinkInfo } from '../linking.js';
 import { generateKey as generatePushKey } from '../notifications.js';
 import { serve } from '../serve.js';
@@ -211,13 +212,22 @@ cli.command('serve')
 		logger.attach(createWriteStream(join(localDir(), 'server.log')), { output: allLogLevels });
 
 		db.connect();
-		await db.clean({});
 		await runLoadHooks();
+		await jobs.start();
 
 		if (opt.socket) await sync.watch().catch((e: unknown) => io.warn('Failed to watch for sync events: ' + io.errorText(e)));
 
 		// eslint-disable-next-line @typescript-eslint/no-misused-promises
 		process.on('beforeExit', () => db.database.destroy());
+
+		for (const signal of ['SIGTERM', 'SIGINT'] as const) {
+			process.once(signal, () => {
+				void jobs
+					.stop()
+					.catch((e: unknown) => io.warn('Failed to stop jobs:', io.errorText(e)))
+					.finally(() => process.exit(0));
+			});
+		}
 
 		server.listen(opt.port, () => {
 			console.log('Server is listening on port ' + opt.port);

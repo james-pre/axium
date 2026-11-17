@@ -14,6 +14,7 @@ import type { Entries, Expand } from 'utilium';
 import * as z from 'zod';
 import { config, configManager } from '../config.js';
 import { localDir, systemDir } from '../io.js';
+import * as jobs from '../jobs.js';
 
 import { connect, database } from './connection.js';
 
@@ -492,14 +493,17 @@ export async function missingConstraints(tables: Record<string, schema.Table>): 
 	return missing;
 }
 
+export async function removeExpired(): Promise<void> {
+	await database.deleteFrom('sessions').where('sessions.expires', '<', sql<Date>`now()`).execute();
+	await database.deleteFrom('verifications').where('verifications.expires', '<', sql<Date>`now()`).execute();
+}
+
+jobs.define('axium.expired', { every: 3_600_000, run: removeExpired });
+
 export async function clean(opt: Partial<OpOptions>): Promise<void> {
-	const db = connect();
+	connect();
 
-	const now = new Date();
-
-	await io.track('Removing expired sessions', db.deleteFrom('sessions').where('sessions.expires', '<', now).execute());
-
-	await io.track('Removing expired verifications', db.deleteFrom('verifications').where('verifications.expires', '<', now).execute());
+	await io.track('Removing expired sessions and verifications', removeExpired());
 
 	for (const plugin of plugins.values()) {
 		if (!plugin._hooks?.clean) continue;

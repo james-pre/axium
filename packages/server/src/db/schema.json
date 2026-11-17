@@ -197,7 +197,40 @@
 			"add_indexes": {
 				"push_subscriptions_userId": { "on": "push_subscriptions", "columns": ["userId"] }
 			}
+		},
+		{
+			"delta": true,
+			"add_tables": {
+				"jobs": {
+					"columns": {
+						"id": { "type": "uuid", "required": true, "primary": true, "default": "gen_random_uuid()" },
+						"kind": { "type": "text", "required": true },
+						"key": { "type": "text" },
+						"userId": { "type": "uuid", "references": "users.id", "onDelete": "cascade" },
+						"input": { "type": "jsonb", "required": true, "default": "'{}'::jsonb" },
+						"state": {
+							"type": "text",
+							"required": true,
+							"default": "'queued'",
+							"check": "state IN ('queued', 'running', 'failed')"
+						},
+						"runAt": { "type": "timestamptz", "required": true, "default": "now()" },
+						"attempts": { "type": "integer", "required": true, "default": 0 },
+						"lastError": { "type": "text" },
+						"lockedBy": { "type": "text" },
+						"lockedUntil": { "type": "timestamptz" },
+						"createdAt": { "type": "timestamptz", "required": true, "default": "now()" }
+					},
+					"constraints": {
+						"unique_job_key": { "type": "unique", "on": ["kind", "key"] }
+					}
+				}
+			},
+			"add_indexes": {
+				"jobs_kind_state": { "on": "jobs", "columns": ["kind", "state", "runAt"] },
+				"jobs_userId": { "on": "jobs", "columns": ["userId"] }
+			}
 		}
 	],
-	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log", "push_subscriptions"]
+	"wipe": ["users", "verifications", "passkeys", "sessions", "audit_log", "push_subscriptions", "jobs"]
 }
