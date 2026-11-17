@@ -1,5 +1,6 @@
 import { config, hostname } from '@axium/server/config';
 import { connect, database } from '@axium/server/database';
+import * as jobs from '@axium/server/jobs';
 import { program } from 'commander';
 import * as io from 'ioium/node';
 import { createPrivateKey, createPublicKey } from 'node:crypto';
@@ -43,43 +44,39 @@ cli.command('dns')
 	});
 
 cli.command('queue')
-	.description('Show the outbound email queue')
-	.option('-a, --all', 'Include delivered and failed messages', false)
+	.description('Show outbound messages that are waiting to be delivered or failed')
 	.option('--retry', 'Retry failed messages now', false)
-	.action(async (opt: { all: boolean; retry: boolean }) => {
+	.action(async (opt: { retry: boolean }) => {
 		connect();
 
 		if (opt.retry) {
-			const retried = await database
-				.updateTable('email_outbound')
-				.set({ status: 'pending', attempts: 0, nextAttempt: new Date() })
-				.where('status', '=', 'failed')
-				.returningAll()
-				.execute();
-			io.info(`Marked ${retried.length} messages for retry. They will be sent when the server processes the queue.`);
+			const retried = await jobs.retry('email.deliver');
+			io.info(`Marked ${retried} messages for retry.`);
 			return;
 		}
 
-		const jobs = await database
-			.selectFrom('email_outbound')
-			.innerJoin('emails', 'emails.id', 'email_outbound.emailId')
-			.select(['email_outbound.id', 'recipient', 'status', 'attempts', 'nextAttempt', 'lastError', 'emails.subject'])
-			.$if(!opt.all, qb => qb.where('status', '=', 'pending'))
-			.orderBy('nextAttempt', 'asc')
-			.execute();
+		const queued = await jobs.list<{ emailId: string; recipient: string }>('email.deliver');
 
-		if (!jobs.length) {
+		if (!queued.length) {
 			console.log(styleText(['italic', 'dim'], 'The queue is empty.'));
 			return;
 		}
 
-		for (const job of jobs) {
-			const color = job.status == 'sent' ? 'green' : job.status == 'failed' ? 'red' : 'yellow';
+		const ids = queued.map(job => job.input.emailId);
+		const subjects = new Map(
+			(await database.selectFrom('emails').select(['id', 'subject']).where('id', 'in', ids).execute()).map(email => [
+				email.id,
+				email.subject,
+			])
+		);
+
+		for (const job of queued) {
+			const color = job.state == 'failed' ? 'red' : job.state == 'running' ? 'green' : 'yellow';
 			console.log(
-				styleText(color, job.status.padEnd(7)),
-				job.recipient,
-				styleText('dim', `(${job.attempts} attempts, next ${job.nextAttempt.toISOString()})`),
-				styleText('yellow', JSON.stringify(job.subject)),
+				styleText(color, job.state.padEnd(7)),
+				job.input.recipient,
+				styleText('dim', `(${job.attempts} attempts, next ${job.runAt.toISOString()})`),
+				styleText('yellow', JSON.stringify(subjects.get(job.input.emailId) ?? null)),
 				job.lastError ? styleText('red', job.lastError) : ''
 			);
 		}

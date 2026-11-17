@@ -1,7 +1,6 @@
 import { count } from '@axium/server/database';
 import '../common.js';
 import './api.js';
-import { startOutbound } from './send.js';
 import { startInbound } from './smtp.js';
 
 export async function statusText(): Promise<string> {
@@ -12,5 +11,4 @@ export async function statusText(): Promise<string> {
 
 export function load(): void {
 	startInbound();
-	startOutbound();
 }

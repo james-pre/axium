@@ -77,7 +77,12 @@
 				"email_attachments_emailId": { "on": "email_attachments", "columns": ["emailId"] },
 				"email_outbound_nextAttempt": { "on": "email_outbound", "columns": ["nextAttempt"] }
 			}
+		},
+		{
+			"delta": true,
+			"drop_tables": ["email_outbound"],
+			"drop_indexes": ["email_outbound_nextAttempt"]
 		}
 	],
-	"wipe": ["emails", "email_attachments", "email_outbound"]
+	"wipe": ["emails", "email_attachments"]
 }

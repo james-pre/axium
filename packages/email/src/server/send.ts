@@ -2,11 +2,13 @@ import type { User } from '@axium/core';
 import { hostname } from '@axium/server/config';
 import { database } from '@axium/server/database';
 import { sendMail } from '@axium/server/email';
+import * as jobs from '@axium/server/jobs';
 import { error, withError } from '@axium/server/requests';
 import { notify } from '@axium/server/notifications';
 import { io as socketServer } from '@axium/server/socket';
 import * as io from 'ioium/node';
 import { pick } from 'utilium';
+import * as z from 'zod';
 import type { Email, EmailFolder, EmailInit, Mailbox } from '../common.js';
 import { splitQuoted } from '../common.js';
 import './db.js';
@@ -169,10 +171,8 @@ export async function send(sender: User, init: EmailInit): Promise<Email> {
 	}
 
 	for (const recipient of external) {
-		await database.insertInto('email_outbound').values({ emailId: sent.id, recipient }).execute();
+		await deliveries.enqueue({ emailId: sent.id, recipient }, { key: `${sent.id}:${recipient}`, userId: sender.id });
 	}
-
-	if (external.size) void processOutbound().catch(e => io.warn('Outbound delivery failed: ' + io.errorText(e)));
 
 	return sent;
 }
@@ -191,58 +191,8 @@ export function notifyReceived(email: Email): void {
 	});
 }
 
-const maxAttempts = 8;
-
-let outboundWorker: NodeJS.Timeout | undefined;
-let processing = false;
-
-/** Periodically deliver queued outbound messages */
-export function startOutbound(): void {
-	outboundWorker ??= setInterval(
-		() => void processOutbound().catch(e => io.warn('Outbound delivery failed: ' + io.errorText(e))),
-		60_000
-	);
-	outboundWorker.unref();
-}
-
-export function stopOutbound(): void {
-	clearInterval(outboundWorker);
-	outboundWorker = undefined;
-}
-
-/** Attempt delivery of a single queued message */
-async function attemptDelivery(job: { id: string; recipient: string; attempts: number }, email: Email): Promise<void> {
-	try {
-		await sendMail(job.recipient, {
-			...pick(email, 'subject', 'date', 'read', 'messageId'),
-			envelope: { from: email.from.address, to: [job.recipient] },
-			from: { name: email.from.name ?? '', address: email.from.address },
-			to: email.to.map(m => ({ name: m.name ?? '', address: m.address })),
-			cc: email.cc.map(m => ({ name: m.name ?? '', address: m.address })),
-			text: email.text ?? undefined,
-			html: email.html ?? undefined,
-			inReplyTo: email.inReplyTo ?? undefined,
-		});
-		await database.updateTable('email_outbound').set({ status: 'sent' }).where('id', '=', job.id).execute();
-	} catch (e: any) {
-		const attempts = job.attempts + 1;
-		const failed = attempts >= maxAttempts;
-		await database
-			.updateTable('email_outbound')
-			.set({
-				attempts,
-				status: failed ? 'failed' : 'pending',
-				lastError: String(e?.message ?? e),
-				nextAttempt: new Date(Date.now() + 5 * 2 ** attempts * 60_000),
-			})
-			.where('id', '=', job.id)
-			.execute();
-		if (failed) await bounce(email, job.recipient, String(e?.message ?? e));
-	}
-}
-
 /** Deliver a failure notice to the sender */
-async function bounce(email: Email, recipient: string, reason: string): Promise<void> {
+async function bounce(email: Pick<Email, 'userId' | 'messageId' | 'from'>, recipient: string, reason: string): Promise<void> {
 	notifyReceived(
 		await deliver(email.userId, 'inbox', {
 			messageId: `<${crypto.randomUUID()}@${hostname()}>`,
@@ -260,28 +210,33 @@ async function bounce(email: Email, recipient: string, reason: string): Promise<
 	);
 }
 
-export async function processOutbound(): Promise<void> {
-	if (processing) return;
-	processing = true;
+/** Deliveries of sent messages to external recipients */
+export const deliveries = jobs.define('email.deliver', {
+	input: z.object({ emailId: z.uuid(), recipient: z.string() }),
+	concurrency: 4,
+	attempts: 8,
+	backoff: 600_000,
+	async run({ emailId, recipient }) {
+		const email = await database.selectFrom('emails').selectAll().where('id', '=', emailId).executeTakeFirst();
+		if (!email) return;
 
-	try {
-		const jobs = await database
-			.selectFrom('email_outbound')
-			.selectAll()
-			.where('status', '=', 'pending')
-			.where('nextAttempt', '<=', new Date())
-			.limit(20)
-			.execute();
-
-		for (const job of jobs) {
-			const email = await database.selectFrom('emails').selectAll().where('id', '=', job.emailId).executeTakeFirst();
-			if (!email) {
-				await database.deleteFrom('email_outbound').where('id', '=', job.id).execute();
-				continue;
-			}
-			await attemptDelivery(job, { ...email, attachments: [] });
-		}
-	} finally {
-		processing = false;
-	}
-}
+		await sendMail(recipient, {
+			...pick(email, 'subject', 'date', 'read', 'messageId'),
+			envelope: { from: email.from.address, to: [recipient] },
+			from: { name: email.from.name ?? '', address: email.from.address },
+			to: email.to.map(mailbox => ({ name: mailbox.name ?? '', address: mailbox.address })),
+			cc: email.cc.map(mailbox => ({ name: mailbox.name ?? '', address: mailbox.address })),
+			text: email.text ?? undefined,
+			html: email.html ?? undefined,
+			inReplyTo: email.inReplyTo ?? undefined,
+		});
+	},
+	async failed({ emailId, recipient }, error) {
+		const email = await database
+			.selectFrom('emails')
+			.select(['userId', 'messageId', 'from'])
+			.where('id', '=', emailId)
+			.executeTakeFirst();
+		if (email) await bounce(email, recipient, io.errorText(error));
+	},
+});
