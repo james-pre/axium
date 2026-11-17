@@ -161,6 +161,8 @@ interface TurnInit extends Pick<
 	reasoning: string;
 	/** Called after the turn's final response */
 	onDone?(model: string, content: string): void;
+	/** The time zone of the session the turn was requested from */
+	timeZone?: string | null;
 }
 
 /** Saves tools the user allowed in every conversation */
@@ -200,6 +202,8 @@ async function respond(init: TurnInit): Promise<void> {
 			...pick(init, 'reasoning', 'pending', 'history', 'decisions', 'allowedTools', 'allowForChat', 'anonymous', 'temporary'),
 			complete: request => streamChat({ ...request, model: model.id }),
 			preferences,
+			timeZone: init.timeZone ?? user.preferences.time_zone,
+			homeTimeZone: user.preferences.time_zone,
 			memories: remembers ? await getMemories(store.userId) : undefined,
 			context: {
 				userId: user.id,
@@ -243,9 +247,12 @@ async function savedHistory(conversationId: string, exclude: string): Promise<ai
 	return rows.map(toMessage);
 }
 
+export interface GenerateOptions extends Pick<TurnInit, 'decisions' | 'timeZone'> {}
+
 /** Responds into the pending `message` of a saved conversation. Never throws. */
-export async function generate(conversation: ConversationRow, message: MessageRow, decisions?: ai.Decisions): Promise<void> {
+export async function generate(conversation: ConversationRow, message: MessageRow, { decisions, timeZone }: GenerateOptions): Promise<void> {
 	await respond({
+		timeZone,
 		store: savedStore(conversation),
 		model: conversation.model,
 		reasoning: conversation.reasoning,
@@ -267,10 +274,14 @@ export async function generate(conversation: ConversationRow, message: MessageRo
 }
 
 /** Responds into `pending` for a temporary conversation, which is never saved. Never throws. */
-export async function generateTemporary(userId: string, init: ai.TemporaryInit, pending: ai.Message): Promise<void> {
+export async function generateTemporary(
+	userId: string,
+	init: ai.TemporaryInit,
+	pending: ai.Message,
+	timeZone?: string | null
+): Promise<void> {
 	const history = init.messages.map((message): ai.Message => ({
 		conversationId: pending.conversationId,
-		created: new Date(),
 		reasoning: null,
 		error: null,
 		usage: null,
@@ -290,6 +301,7 @@ export async function generateTemporary(userId: string, init: ai.TemporaryInit, 
 		allowedTools: init.allowedTools,
 		anonymous: init.anonymous,
 		temporary: true,
+		timeZone,
 	});
 }
 

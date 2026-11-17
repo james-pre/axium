@@ -17,16 +17,21 @@ async function authConversation(request: Request, id: string) {
 		.executeTakeFirstOrThrow()
 		.catch(withError('Conversation not found', 404));
 
-	await checkAuthForUser(request, conversation.userId);
+	const { timezone } = await checkAuthForUser(request, conversation.userId);
 
-	return conversation;
+	return { conversation, timeZone: timezone };
 }
 
 type ConversationRow = Selectable<Schema['ai_conversations']>;
 type MessageRow = Selectable<Schema['ai_messages']>;
 
 /** Removes the messages after `from`, one of the user's, and responds to it again, with new content if given */
-async function restart(conversation: ConversationRow, from: MessageRow, content?: string): Promise<ai.Message> {
+async function restart(
+	conversation: ConversationRow,
+	from: MessageRow,
+	timeZone: string | null | undefined,
+	content?: string
+): Promise<ai.Message> {
 	const { edited, removed, pending } = await database
 		.transaction()
 		.execute(async tx => ({
@@ -65,7 +70,7 @@ async function restart(conversation: ConversationRow, from: MessageRow, content?
 	emitRemoved(conversation.userId, { conversationId: conversation.id, ids: removed.map(row => row.id) });
 	emitMessage(conversation.userId, message);
 
-	void generate(conversation, pending);
+	void generate(conversation, pending, { timeZone });
 
 	return message;
 }
@@ -105,7 +110,7 @@ addRoute({
 	path: '/api/ai/conversations/:id',
 	params: { id: z.uuid() },
 	async GET(request, { id }): AsyncResult<'GET', 'ai/conversations/:id'> {
-		const conversation = await authConversation(request, id);
+		const { conversation } = await authConversation(request, id);
 
 		const messages = await database
 			.selectFrom('ai_messages')
@@ -133,13 +138,13 @@ addRoute({
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/conversations/:id'> {
 		const { content, voice } = await parseBody(request, ai.MessageInit);
 
-		let conversation = await authConversation(request, id);
+		const auth = await authConversation(request, id);
 
 		if (isGenerating(id)) error(409, 'A response is already being generated');
 
-		conversation = await database
+		const conversation = await database
 			.updateTable('ai_conversations')
-			.set({ modified: new Date(), title: conversation.title || content.slice(0, 60) })
+			.set({ modified: new Date(), title: auth.conversation.title || content.slice(0, 60) })
 			.where('id', '=', id)
 			.returningAll()
 			.executeTakeFirstOrThrow()
@@ -162,14 +167,14 @@ addRoute({
 		const messages = [toMessage(user), toMessage(assistant)];
 		for (const message of messages) emitMessage(conversation.userId, message);
 
-		void generate(conversation, assistant);
+		void generate(conversation, assistant, { timeZone: auth.timeZone });
 
 		return messages;
 	},
 	async POST(request, { id }): AsyncResult<'POST', 'ai/conversations/:id'> {
 		const body = await parseBody(request, ai.ConversationAction);
 
-		const conversation = await authConversation(request, id);
+		const { conversation, timeZone } = await authConversation(request, id);
 
 		switch (body.action) {
 			case 'cancel':
@@ -190,7 +195,7 @@ addRoute({
 
 				if (!last) error(409, 'There is nothing to retry');
 
-				return { message: await restart(conversation, last) };
+				return { message: await restart(conversation, last, timeZone) };
 			}
 			case 'edit': {
 				if (isGenerating(id)) error(409, 'A response is already being generated');
@@ -206,7 +211,7 @@ addRoute({
 				if (!target) error(404, 'Message not found');
 				if (target.role != 'user') error(409, 'Only your own messages can be edited');
 
-				return { message: await restart(conversation, target, body.content) };
+				return { message: await restart(conversation, target, timeZone, body.content) };
 			}
 			case 'decide': {
 				if (isGenerating(id)) error(409, 'A response is already being generated');
@@ -231,14 +236,14 @@ addRoute({
 				const message = toMessage(pending);
 				emitMessage(conversation.userId, message);
 
-				void generate(conversation, pending, body.decisions);
+				void generate(conversation, pending, { decisions: body.decisions, timeZone });
 
 				return { message };
 			}
 		}
 	},
 	async DELETE(request, { id }): AsyncResult<'DELETE', 'ai/conversations/:id'> {
-		const conversation = await authConversation(request, id);
+		const { conversation } = await authConversation(request, id);
 
 		cancel(id, conversation.userId);
 

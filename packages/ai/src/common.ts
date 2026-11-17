@@ -436,6 +436,7 @@ export type ConversationAction = z.infer<typeof ConversationAction>;
 export const TemporaryMessage = Message.pick({ id: true, role: true, toolCalls: true, toolCallId: true, status: true }).extend({
 	content: z.string().max(100_000),
 	voice: z.boolean().default(false),
+	created: z.coerce.date(),
 });
 export interface TemporaryMessage extends z.infer<typeof TemporaryMessage> {}
 
@@ -525,13 +526,40 @@ export const Timer = z.object({
 });
 export interface Timer extends z.infer<typeof Timer> {}
 
-export const TimerInit = z.object({
+const TimerDetails = z.object({
 	label: TimerLabel.optional(),
 	message: TimerMessage.optional(),
-	/** In seconds @todo Temporal */
-	duration: z.int().positive().max(maxTimerDuration),
 });
-export interface TimerInit extends z.infer<typeof TimerInit> {}
+
+/** Whether `value` is an ISO 8601 date and time with a UTC offset */
+function isInstant(value: string): boolean {
+	try {
+		Temporal.Instant.from(value);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * An ISO 8601 date and time with a UTC offset, with or without seconds, e.g. `2026-11-16T15:30-06:00`
+ * @see https://github.com/colinhacks/zod/pull/5961
+ * @todo Remove once Zod has proper Temporal support built-in
+ */
+export const Instant = z.string().max(100).refine(isInstant, 'Expected a date and time with a UTC offset');
+
+/** A timer that runs for a length of time, or one that ends at a time */
+export const TimerInit = z.union([
+	TimerDetails.extend({
+		/** In seconds @todo Temporal */
+		duration: z.int().positive().max(maxTimerDuration),
+	}),
+	TimerDetails.extend({
+		/** An ISO 8601 date and time with its UTC offset, e.g. `2026-11-16T15:30-06:00` */
+		at: Instant,
+	}),
+]);
+export type TimerInit = z.infer<typeof TimerInit>;
 
 export const TimerRemoved = z.object({
 	id: z.uuid(),

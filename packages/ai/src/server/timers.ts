@@ -2,6 +2,7 @@ import * as jobs from '@axium/server/jobs';
 import { notify } from '@axium/server/notifications';
 import { error } from '@axium/server/requests';
 import { io as socketServer } from '@axium/server/socket';
+import { timeSpan } from 'utilium/format';
 import * as z from 'zod';
 import * as ai from '../common.js';
 import type * as tools from '../tools.js';
@@ -38,9 +39,16 @@ export async function list(userId: string): Promise<ai.Timer[]> {
 export async function start(userId: string, init: ai.TimerInit): Promise<ai.Timer> {
 	if ((await list(userId)).length >= maxTimers) error(409, `There are already ${maxTimers} timers running; cancel one first`);
 
+	const now = Date.now();
+	const ends = 'at' in init ? Temporal.Instant.from(init.at).epochMilliseconds : now + init.duration * 1000;
+	const duration = Math.round((ends - now) / 1000);
+
+	if (duration <= 0) error(400, 'That time has already passed');
+	if (duration > ai.maxTimerDuration) error(400, `Timers can end at most ${timeSpan(ai.maxTimerDuration * 1000)} from now`);
+
 	const id = crypto.randomUUID();
-	const input = { label: init.label ?? null, message: init.message ?? null, duration: init.duration };
-	await timers.enqueue(input, { key: id, userId, at: new Date(Date.now() + init.duration * 1000) });
+	const input = { label: init.label ?? null, message: init.message ?? null, duration };
+	await timers.enqueue(input, { key: id, userId, at: new Date(ends) });
 
 	const job = await timers.get(id);
 	if (!job) error(500, 'Could not start the timer');

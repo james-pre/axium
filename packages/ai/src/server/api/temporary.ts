@@ -13,7 +13,7 @@ addRoute({
 	params: { id: z.uuid() },
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/temporary/:id'> {
 		const init = await parseBody(request, ai.TemporaryInit);
-		const { userId } = await requireSession(request);
+		const { userId, timezone } = await requireSession(request);
 
 		if (isGenerating(id)) error(409, 'A response is already being generated');
 
@@ -43,7 +43,7 @@ addRoute({
 
 		emitMessage(userId, pending);
 
-		void generateTemporary(userId, init, pending);
+		void generateTemporary(userId, init, pending, timezone);
 
 		return pending;
 	},

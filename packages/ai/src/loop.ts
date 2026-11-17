@@ -63,6 +63,10 @@ export interface TurnInit {
 	onText?(field: 'content' | 'reasoning', text: string, position: number): void;
 	/** Called after the turn's final response */
 	onDone?(content: string): void;
+	/** The time zone of the user's device. Defaults to UTC. */
+	timeZone?: string;
+	/** The user's home time zone, when they have one */
+	homeTimeZone?: string;
 }
 
 const toolGuidance =
@@ -88,12 +92,36 @@ interface PromptParts {
 	memory?: string;
 	/** Whether the reply will be read aloud */
 	voice?: boolean;
+	timeZone: string;
+	homeTimeZone?: string;
 }
 
-function systemPrompt({ prompt, instructions, offered, memory, voice }: PromptParts): string {
-	const date = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+/** When a message was sent, e.g. `<sent>Monday 2026-11-16T21:15-06:00 (2026-11-17T03:15Z)</sent>` */
+function sentTag(created: Date, timeZone: string): string {
+	const instant = created.toTemporalInstant();
+	const local = instant.toZonedDateTimeISO(timeZone);
+	const weekday = local.toLocaleString('en-US', { weekday: 'long' });
+	const localText = local.toString({ smallestUnit: 'minute', timeZoneName: 'never' });
+	return `<sent>${weekday} ${localText} (${instant.toString({ smallestUnit: 'minute' })})</sent>`;
+}
 
-	const sections = [prompt, `Today is ${date}.`];
+function systemPrompt({ prompt, instructions, offered, memory, voice, timeZone, homeTimeZone }: PromptParts): string {
+	const sections = [prompt];
+
+	// date information
+
+	const local = Temporal.Now.zonedDateTimeISO(timeZone);
+	const date = local.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+	let dateText = `For the user, today is ${date}. Their time zone is ${timeZone} (UTC${local.offset}).`;
+	if (homeTimeZone && homeTimeZone != timeZone) dateText += ` Their home time zone is ${homeTimeZone}.`;
+
+	sections.push(
+		dateText +
+			" Each of the user's messages starts with a <sent> tag saying when it was sent, in their time and UTC; the latest one is the current time. " +
+			"The tag isn't part of what they wrote, so don't repeat it."
+	);
+
 	if (offered.length) sections.push(toolGuidance);
 	if (memory) sections.push(memory);
 	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
@@ -102,11 +130,14 @@ function systemPrompt({ prompt, instructions, offered, memory, voice }: PromptPa
 	return sections.join('\n\n');
 }
 
-/** A message as the model sees it, or nothing for messages it shouldn't see */
-export function toChatMessage(message: ai.Message): ChatMessage | undefined {
+/**
+ * A message as the model sees it, or nothing for messages it shouldn't see
+ * @param timeZone Used for when user messages were sent
+ */
+export function toChatMessage(message: ai.Message, timeZone: string = 'UTC'): ChatMessage | undefined {
 	switch (message.role) {
 		case 'user':
-			return { role: 'user', content: message.content };
+			return { role: 'user', content: `${sentTag(message.created, timeZone)}\n${message.content}` };
 		case 'tool':
 			return {
 				role: 'tool',
@@ -209,6 +240,8 @@ export async function respond(init: TurnInit): Promise<void> {
 		const spoken = !!history.findLast(message => message.role == 'user')?.voice;
 		const reasoning = spoken ? 'none' : init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning;
 
+		const timeZone = init.timeZone ?? 'UTC';
+
 		const messages: ChatMessage[] = [
 			{
 				role: 'system',
@@ -218,9 +251,11 @@ export async function respond(init: TurnInit): Promise<void> {
 					offered,
 					memory,
 					voice: spoken,
+					timeZone,
+					homeTimeZone: init.homeTimeZone,
 				}),
 			},
-			...history.map(toChatMessage).filter(message => !!message),
+			...history.map(message => toChatMessage(message, timeZone)).filter(message => !!message),
 		];
 
 		/** Calls that failed, by name and arguments */

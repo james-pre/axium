@@ -128,7 +128,7 @@
 	function temporaryHistory(): ai.TemporaryMessage[] {
 		return messages
 			.filter(message => message.status != 'pending')
-			.map(({ id, role, content, toolCalls, toolCallId, status, voice }) => ({
+			.map(({ id, role, content, toolCalls, toolCallId, status, voice, created }) => ({
 				id,
 				role,
 				content,
@@ -136,6 +136,7 @@
 				toolCallId,
 				status,
 				voice,
+				created,
 			}));
 	}
 
