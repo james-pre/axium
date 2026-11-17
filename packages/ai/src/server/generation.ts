@@ -250,7 +250,11 @@ async function savedHistory(conversationId: string, exclude: string): Promise<ai
 export interface GenerateOptions extends Pick<TurnInit, 'decisions' | 'timeZone'> {}
 
 /** Responds into the pending `message` of a saved conversation. Never throws. */
-export async function generate(conversation: ConversationRow, message: MessageRow, { decisions, timeZone }: GenerateOptions): Promise<void> {
+export async function generate(
+	conversation: ConversationRow,
+	message: MessageRow,
+	{ decisions, timeZone }: GenerateOptions
+): Promise<void> {
 	await respond({
 		timeZone,
 		store: savedStore(conversation),
