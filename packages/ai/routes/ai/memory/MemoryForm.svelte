@@ -1,5 +1,5 @@
 <script lang="ts">
-	import * as ai from '@axium/ai/common';
+	import { Id as MemoryId, type Node as Memory } from '@axium/ai/memory';
 	import { text } from '@axium/client';
 	import { dynamicRows } from '@axium/client/attachments';
 
@@ -10,7 +10,7 @@
 		oncancel,
 	}: {
 		/** The memory being edited, if any */
-		memory?: ai.Memory;
+		memory?: Memory;
 		maxLength: number;
 		onsave(values: { id: string; description: string; content: string }): Promise<unknown>;
 		oncancel?(): void;
@@ -22,7 +22,7 @@
 		saving = $state(false),
 		idEdited = $state(!!memory);
 
-	const idError = $derived(id && !ai.MemoryId.safeParse(id).success ? text('ai.memory.id_invalid') : undefined);
+	const idError = $derived(id && !MemoryId.safeParse(id).success ? text('ai.memory.id_invalid') : undefined);
 	const valid = $derived(!!id && !idError && !!description.trim());
 
 	function suggestId(from: string): string {

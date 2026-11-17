@@ -8,11 +8,12 @@ import * as io from 'ioium';
 import type { Selectable, Updateable } from 'kysely';
 import { randomUUID } from 'node:crypto';
 import type schema from '../../db.json';
-import * as ai from '../common.js';
+import type * as ai from '../common.js';
 import * as loop from '../loop.js';
 import { chat, streamChat } from '../node/chat.js';
 import features from '@axium/core/features';
 import { getMemories } from './memory.js';
+import { getPreferences } from './preferences.js';
 import * as timers from './timers.js';
 import { getRow, learnCapabilities, resolveRole } from './models.js';
 import { pick } from 'utilium';
@@ -66,17 +67,6 @@ export function withProgress(message: ai.Message): ai.Message {
 	const progress = active.get(message.conversationId)?.progress;
 	if (message.status != 'pending' || progress?.messageId != message.id) return message;
 	return { ...message, content: progress.content, reasoning: progress.reasoning || null };
-}
-
-async function getPreferences(userId: string): Promise<ai.Preferences> {
-	const row = await database
-		.selectFrom('app_preferences')
-		.select('data')
-		.where('userId', '=', userId)
-		.where('appId', '=', 'ai')
-		.executeTakeFirst();
-
-	return ai.Preferences.safeParse(row?.data ?? {}).data ?? ai.Preferences.parse({});
 }
 
 function toRow({ toolCalls, usage, ...changes }: loop.MessageChanges): Updateable<Schema['ai_messages']> {

@@ -1,6 +1,6 @@
 import * as io from 'ioium';
 import type * as ai from './common.js';
-import { memoryPrompt } from './memory.js';
+import * as memory from './memory.js';
 import './timers.js';
 import type { ChatMessage, ChatRequest, ChatStream } from './node/chat.js';
 import * as tools from './tools.js';
@@ -38,7 +38,7 @@ export interface TurnInit {
 	complete(request: Omit<ChatRequest, 'model'>): ChatStream;
 	preferences: ai.Preferences;
 	/** The user's memories, or nothing when they shouldn't be used */
-	memories?: ai.Memory[];
+	memories?: memory.Node[];
 	/** Tools act with this; its signal also cancels the turn */
 	context: tools.Context;
 	/** The pending assistant message to respond with */
@@ -89,7 +89,7 @@ interface PromptParts {
 	instructions?: string;
 	offered: tools.Tool[];
 	/** The section about what the model remembers */
-	memory?: string;
+	remembered?: string;
 	/** Whether the reply will be read aloud */
 	voice?: boolean;
 	timeZone: string;
@@ -105,7 +105,7 @@ function sentTag(created: Date, timeZone: string): string {
 	return `<sent>${weekday} ${localText} (${instant.toString({ smallestUnit: 'minute' })})</sent>`;
 }
 
-function systemPrompt({ prompt, instructions, offered, memory, voice, timeZone, homeTimeZone }: PromptParts): string {
+function systemPrompt({ prompt, instructions, offered, remembered, voice, timeZone, homeTimeZone }: PromptParts): string {
 	const sections = [prompt];
 
 	// date information
@@ -123,7 +123,7 @@ function systemPrompt({ prompt, instructions, offered, memory, voice, timeZone, 
 	);
 
 	if (offered.length) sections.push(toolGuidance);
-	if (memory) sections.push(memory);
+	if (remembered) sections.push(remembered);
 	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
 	if (voice) sections.push(voiceGuidance);
 
@@ -226,9 +226,9 @@ export async function respond(init: TurnInit): Promise<void> {
 			model.tools === false ? [] : tools.allowed(preferences.tools, { anonymous: init.anonymous, temporary: init.temporary });
 		const definitions = tools.definitions(offered);
 
-		const memory =
+		const remembered =
 			init.memories &&
-			memoryPrompt(
+			memory.prompt(
 				init.memories,
 				offered.some(tool => tool.environment == 'memory' && tool.access == 'write')
 			);
@@ -249,7 +249,7 @@ export async function respond(init: TurnInit): Promise<void> {
 					prompt: model.systemPrompt ?? init.defaultSystemPrompt,
 					instructions: preferences.instructions?.trim(),
 					offered,
-					memory,
+					remembered,
 					voice: spoken,
 					timeZone,
 					homeTimeZone: init.homeTimeZone,

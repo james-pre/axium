@@ -1,4 +1,5 @@
 import type * as ai from '@axium/ai/common';
+import type * as memory from '@axium/ai/memory';
 import { addListener, connect, onConnect } from '@axium/client/socket';
 import { SvelteMap } from 'svelte/reactivity';
 
@@ -14,6 +15,8 @@ export interface ConversationWatcher {
 const watchers = new Map<string, Set<ConversationWatcher>>();
 
 const conversationListeners = new Set<(conversation: ai.Conversation) => void>();
+
+const memoryUpdateListeners = new Set<(status: memory.Updates) => void>();
 
 /** Models that changed since the page loaded, by ID; `null` for removed models */
 export const modelUpdates = new SvelteMap<string, ai.Model | null>();
@@ -41,6 +44,10 @@ export function listen(): void {
 		for (const listener of conversationListeners) listener(conversation);
 	});
 
+	addListener('ai.memory_updates', status => {
+		for (const listener of memoryUpdateListeners) listener(status);
+	});
+
 	addListener('ai.model', model => modelUpdates.set(model.id, model));
 	addListener('ai.model.remove', id => modelUpdates.set(id, null));
 
@@ -59,6 +66,16 @@ export function onConversationChange(listener: (conversation: ai.Conversation) =
 	listen();
 	conversationListeners.add(listener);
 	return () => conversationListeners.delete(listener);
+}
+
+/**
+ * Receive the state of the current user's periodic memory updates when an update starts or finishes.
+ * @returns a function that stops listening
+ */
+export function onMemoryUpdates(listener: (status: memory.Updates) => void): () => void {
+	listen();
+	memoryUpdateListeners.add(listener);
+	return () => memoryUpdateListeners.delete(listener);
 }
 
 /** `models` with the live updates received since they were fetched */

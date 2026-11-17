@@ -1,22 +1,55 @@
 <script lang="ts">
-	import type * as ai from '@axium/ai/common';
+	import type { Node as Memory, Update as MemoryUpdate } from '@axium/ai/memory';
 	import { markdown } from '@axium/ai/markdown';
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
 	import { confirm } from '@axium/client/dialogs';
 	import { toast } from '@axium/client/toast';
+	import { onMemoryUpdates } from '@axium/ai/live';
+	import * as format from 'utilium/format';
 	import MemoryForm from './MemoryForm.svelte';
 
 	const { data } = $props();
 
 	let memories = $state(data.memories.memories),
 		adding = $state(false),
-		editing = $state<string>();
+		editing = $state<string>(),
+		updates = $state(data.updates),
+		starting = $state(false);
 
 	const { limit, maxLength } = data.memories;
 	const userId = data.session.userId;
 
-	function sort(list: ai.Memory[]): ai.Memory[] {
+	const updating = $derived(starting || updates.running);
+
+	$effect(() =>
+		onMemoryUpdates(status => {
+			const finished = updates.running && !status.running;
+			updates = status;
+			starting = false;
+			if (finished) void reload();
+		})
+	);
+
+	async function reload() {
+		try {
+			memories = sort((await fetchAPI('GET', 'users/:id/ai/memories', {}, userId)).memories);
+		} catch (error) {
+			toast('error', error);
+		}
+	}
+
+	async function startUpdate() {
+		starting = true;
+		try {
+			updates = await fetchAPI('POST', 'users/:id/ai/memory_updates', {}, userId);
+		} catch (error) {
+			starting = false;
+			toast('error', error);
+		}
+	}
+
+	function sort(list: Memory[]): Memory[] {
 		return list.toSorted((a, b) => a.id.localeCompare(b.id));
 	}
 
@@ -30,7 +63,7 @@
 		}
 	}
 
-	async function update(memory: ai.Memory, values: ai.MemoryUpdate) {
+	async function update(memory: Memory, values: MemoryUpdate) {
 		try {
 			const updated = await fetchAPI('PATCH', 'users/:id/ai/memories/:memory', values, userId, memory.id);
 			memories = sort(memories.map(existing => (existing.id == memory.id ? updated : existing)));
@@ -41,7 +74,7 @@
 		}
 	}
 
-	async function remove(memory: ai.Memory) {
+	async function remove(memory: Memory) {
 		if (!(await confirm(text('ai.memory.delete_confirm', { id: memory.id }), { confirmText: text('ai.memory.delete'), danger: true })))
 			return;
 		try {
@@ -71,6 +104,45 @@
 	<p class="subtle">{text('ai.memory.description')}</p>
 	{#if !data.preferences.tools.memory}
 		<p class="warning">{text('ai.memory.disabled')}</p>
+	{/if}
+
+	{#if updates.enabled}
+		<div class="updates">
+			<div class="status">
+				<strong>{text('ai.memory_updates.title')}</strong>
+				<span class="subtle">
+					{#if updates.frequency == 'off'}
+						{text('ai.memory_updates.off')}
+					{:else if updates.next}
+						{text('ai.memory_updates.schedule', {
+							frequency: text(`ai.memory_updates.frequency.${updates.frequency}`),
+							next: format.relativeToDate(updates.next),
+						})}
+					{:else}
+						{text(`ai.memory_updates.frequency.${updates.frequency}`)}
+					{/if}
+				</span>
+				{#if updates.ran}
+					<span class="subtle">
+						{text('ai.memory_updates.last', { when: format.relativeToDate(updates.ran) })}
+						{#if updates.changes}
+							· {text('ai.memory_updates.changes', {
+								added: updates.changes.added.length,
+								updated: updates.changes.updated.length,
+								deleted: updates.changes.deleted.length,
+							})}
+						{/if}
+					</span>
+					{#if updates.summary}<span>{updates.summary}</span>{/if}
+				{:else}
+					<span class="subtle">{text('ai.memory_updates.never_ran')}</span>
+				{/if}
+			</div>
+			<button class="icon-text" onclick={startUpdate} disabled={updating || !data.preferences.tools.memory}>
+				<Icon i="arrows-rotate" />
+				<span>{text(updating ? 'ai.memory_updates.running' : 'ai.memory_updates.run')}</span>
+			</button>
+		</div>
 	{/if}
 
 	{#if adding}
@@ -163,6 +235,24 @@
 
 	.warning {
 		color: var(--fg-warning);
+	}
+
+	.updates {
+		display: flex;
+		flex-wrap: wrap;
+		align-items: center;
+		gap: 1em;
+		padding: 0.75em 1em;
+		border-radius: 0.75em;
+		border: var(--border-accent);
+
+		.status {
+			flex: 1;
+			display: flex;
+			flex-direction: column;
+			gap: 0.2em;
+			min-width: 15em;
+		}
 	}
 
 	.list {

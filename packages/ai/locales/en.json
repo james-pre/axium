@@ -114,8 +114,25 @@
 				"approvals": {
 					"$title": "Approvals by tool"
 				},
-				"memory": "Memory"
+				"memory": "Memory",
+				"memory_updates": "Review conversations to update memory"
 			}
+		},
+		"memory_updates": {
+			"frequency": {
+				"off": "Never",
+				"daily": "Daily",
+				"weekly": "Weekly"
+			},
+			"title": "Automatic updates",
+			"off": "Off. Turn them on in your AI preferences.",
+			"schedule": "{frequency}, next {next}",
+			"never_ran": "Not run yet",
+			"last": "Last updated {when}",
+			"changes": "{added} added, {updated} updated, {deleted} removed",
+			"running": "Updating...",
+			"run": "Update now",
+			"started": "Updating memories in the background"
 		},
 		"approval": {
 			"ask": "Ask first",

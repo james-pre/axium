@@ -6,8 +6,9 @@ import { database } from '@axium/server/database';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
-import * as ai from '../../common.js';
-import { getMemories } from '../memory.js';
+import * as memory from '../../memory.js';
+import { getMemories, getStatus, startUpdate, updatesEnabled } from '../memory.js';
+import { getPreferences } from '../preferences.js';
 
 function checkWrite(content?: string): void {
 	if (!features('ai-memory')) error(403, 'Memory is disabled on this server');
@@ -38,7 +39,7 @@ addRoute({
 		return { memories: await getMemories(userId), limit: config.max_memories, maxLength: config.max_memory_length };
 	},
 	async PUT(request, { id: userId }): AsyncResult<'PUT', 'users/:id/ai/memories'> {
-		const init = await parseBody(request, ai.MemoryInit);
+		const init = await parseBody(request, memory.Init);
 
 		await checkAuthForUser(request, userId);
 		checkWrite(init.content);
@@ -68,7 +69,7 @@ addRoute({
 			.insertInto('ai_memories')
 			.values({ ...init, userId })
 			.returningAll()
-			.$castTo<ai.Memory>()
+			.$castTo<memory.Node>()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not save memory'));
 	},
@@ -76,7 +77,7 @@ addRoute({
 
 addRoute({
 	path: '/api/users/:id/ai/memories/:memory',
-	params: { id: z.uuid(), memory: ai.MemoryId },
+	params: { id: z.uuid(), memory: memory.Id },
 	async GET(request, { id: userId, memory: id }): AsyncResult<'GET', 'users/:id/ai/memories/:memory'> {
 		await checkAuthForUser(request, userId);
 
@@ -85,12 +86,12 @@ addRoute({
 			.selectAll()
 			.where('userId', '=', userId)
 			.where('id', '=', id)
-			.$castTo<ai.Memory>()
+			.$castTo<memory.Node>()
 			.executeTakeFirstOrThrow()
 			.catch(withError(`No memory has the ID "${id}"`));
 	},
 	async PATCH(request, { id: userId, memory: id }): AsyncResult<'PATCH', 'users/:id/ai/memories/:memory'> {
-		const update = await parseBody(request, ai.MemoryUpdate);
+		const update = await parseBody(request, memory.Update);
 
 		await checkAuthForUser(request, userId);
 		checkWrite(update.content);
@@ -105,7 +106,7 @@ addRoute({
 			.where('userId', '=', userId)
 			.where('id', '=', id)
 			.returningAll()
-			.$castTo<ai.Memory>()
+			.$castTo<memory.Node>()
 			.executeTakeFirstOrThrow()
 			.catch(withError(`No memory has the ID "${id}"`));
 	},
@@ -117,8 +118,27 @@ addRoute({
 			.where('userId', '=', userId)
 			.where('id', '=', id)
 			.returningAll()
-			.$castTo<ai.Memory>()
+			.$castTo<memory.Node>()
 			.executeTakeFirstOrThrow()
 			.catch(withError(`No memory has the ID "${id}"`));
+	},
+});
+
+addRoute({
+	path: '/api/users/:id/ai/memory_updates',
+	params: { id: z.uuid() },
+	async GET(request, { id: userId }): AsyncResult<'GET', 'users/:id/ai/memory_updates'> {
+		await checkAuthForUser(request, userId);
+		return await getStatus(userId).catch(withError('Could not get memory updates'));
+	},
+	async POST(request, { id: userId }): AsyncResult<'POST', 'users/:id/ai/memory_updates'> {
+		await parseBody(request, z.object({}));
+		await checkAuthForUser(request, userId);
+
+		if (!updatesEnabled()) error(403, 'Memory updates are disabled on this server');
+		if (!(await getPreferences(userId)).tools.memory) error(409, 'Memory is turned off in your AI preferences');
+
+		await startUpdate(userId).catch(withError('Could not start a memory update'));
+		return await getStatus(userId).catch(withError('Could not get memory updates'));
 	},
 });

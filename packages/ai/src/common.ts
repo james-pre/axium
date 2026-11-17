@@ -3,6 +3,7 @@ import { appPreferences } from '@axium/core/apps';
 import { addServerToClient, type ParseFunctions } from '@axium/core/socket';
 import * as locales from '@james-pre/locales';
 import * as z from 'zod';
+import * as memory from './memory.js';
 
 export const ModelId = z
 	.string()
@@ -455,55 +456,6 @@ export const TemporaryInit = z.object({
 });
 export interface TemporaryInit extends z.infer<typeof TemporaryInit> {}
 
-/**
- * Where a memory came from: added by the user on the memory page (`user`), saved when the user asked (`explicit`),
- * saved because the model judged it worth keeping (`inferred`), or found by reviewing conversations (`periodic`)
- */
-export const MemorySource = z.literal(['user', 'explicit', 'inferred', 'periodic']);
-export type MemorySource = z.infer<typeof MemorySource>;
-
-/** Unique for each user, in `kebab-case` */
-export const MemoryId = z
-	.string()
-	.min(1)
-	.max(64)
-	.regex(/^[a-z0-9]+(-[a-z0-9]+)*$/, 'Use lowercase words separated by hyphens, e.g. "coffee-preferences"');
-
-/** One line saying what a memory is about, shown to the model in every conversation */
-export const MemoryDescription = z.string().trim().min(1).max(200);
-
-/** Details the model reads only when relevant; limited further by the `max_memory_length` config */
-export const MemoryContent = z.string().trim().max(10_000);
-
-export const Memory = z.object({
-	id: MemoryId,
-	userId: z.uuid(),
-	description: z.string(),
-	content: z.string(),
-	source: MemorySource,
-	/** The conversation the memory was saved in, while it exists */
-	conversationId: z.uuid().nullable(),
-	created: z.coerce.date(),
-	modified: z.coerce.date(),
-});
-export interface Memory extends z.infer<typeof Memory> {}
-
-export const MemoryInit = z.object({
-	id: MemoryId,
-	description: MemoryDescription,
-	content: MemoryContent.default(''),
-	source: MemorySource.default('user'),
-	conversationId: z.uuid().nullish(),
-});
-export interface MemoryInit extends z.infer<typeof MemoryInit> {}
-
-export const MemoryUpdate = z.object({
-	id: MemoryId.optional(),
-	description: MemoryDescription.optional(),
-	content: MemoryContent.optional(),
-});
-export interface MemoryUpdate extends z.infer<typeof MemoryUpdate> {}
-
 export const TimerLabel = z.string().trim().min(1).max(100);
 
 export const TimerMessage = z.string().trim().min(1).max(200);
@@ -568,15 +520,6 @@ export const TimerRemoved = z.object({
 });
 export interface TimerRemoved extends z.infer<typeof TimerRemoved> {}
 
-export const Memories = z.object({
-	memories: Memory.array(),
-	/** The most memories a user may have */
-	limit: z.int().positive(),
-	/** The most characters in a memory's content */
-	maxLength: z.int().positive(),
-});
-export interface Memories extends z.infer<typeof Memories> {}
-
 export const Preferences = z
 	.object({
 		/** Used for new conversations instead of the default model */
@@ -609,8 +552,14 @@ export const Preferences = z
 					.register(locales.zod, { feature: 'ai-account-access', requires: { account_access: ['write'] } }),
 				/** Whether the assistant uses and saves memories */
 				memory: z.boolean().default(true).register(locales.zod, { feature: 'ai-memory' }),
+				/** How often the assistant reviews conversations to update its memories */
+				memory_updates: memory.UpdateFrequency.default('off').register(locales.zod, {
+					prefix: 'ai.memory_updates.frequency',
+					feature: 'ai-memory-updates',
+					requires: { memory: [true] },
+				}),
 			})
-			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {}, memory: true }),
+			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {}, memory: true, memory_updates: 'off' }),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
 export interface Preferences extends z.infer<typeof Preferences> {}
@@ -696,13 +645,18 @@ const AIAPI = {
 		POST: [z.object({ action: z.literal('cancel') }), z.object({})],
 	},
 	'users/:id/ai/memories': {
-		GET: Memories,
-		PUT: [MemoryInit, Memory],
+		GET: memory.List,
+		PUT: [memory.Init, memory.Node],
 	},
 	'users/:id/ai/memories/:memory': {
-		GET: Memory,
-		PATCH: [MemoryUpdate, Memory],
-		DELETE: Memory,
+		GET: memory.Node,
+		PATCH: [memory.Update, memory.Node],
+		DELETE: memory.Node,
+	},
+	'users/:id/ai/memory_updates': {
+		GET: memory.Updates,
+		/** Starts an update now */
+		POST: [z.object({}), memory.Updates],
 	},
 	'users/:id/ai/timers': {
 		GET: Timer.array(),
@@ -747,6 +701,7 @@ const AIServerToClient = {
 	'ai.conversation': [Conversation],
 	'ai.timer': [Timer],
 	'ai.timer.remove': [TimerRemoved],
+	'ai.memory_updates': [memory.Updates],
 } as const;
 
 declare module '@axium/core/socket' {

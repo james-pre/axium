@@ -98,6 +98,9 @@
 			"ai-memory": {
 				"default": true
 			},
+			"ai-memory-updates": {
+				"default": true
+			},
 			"ai-voice": {
 				"default": true
 			}

@@ -94,6 +94,14 @@
 						"created": { "type": "timestamptz", "required": true, "default": "now()" },
 						"modified": { "type": "timestamptz", "required": true, "default": "now()" }
 					}
+				},
+				"ai_memory_updates": {
+					"columns": {
+						"userId": { "type": "uuid", "required": true, "references": "users.id", "onDelete": "cascade", "primary": true },
+						"ran": { "type": "timestamptz", "required": true, "default": "now()" },
+						"summary": { "type": "text" },
+						"changes": { "type": "jsonb", "required": true, "default": "'{}'::jsonb" }
+					}
 				}
 			},
 			"indexes": {
@@ -102,5 +110,5 @@
 			}
 		}
 	],
-	"wipe": ["ai_memories", "ai_messages", "ai_conversations", "ai_roles", "ai_models"]
+	"wipe": ["ai_memory_updates", "ai_memories", "ai_messages", "ai_conversations", "ai_roles", "ai_models"]
 }

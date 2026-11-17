@@ -19,6 +19,8 @@ export interface ChatRequest {
 	maxTokens?: number;
 	/** In the OpenAI chat completions format */
 	tools?: object[];
+	/** A JSON schema the response must follow */
+	schema?: object;
 	signal?: AbortSignal;
 }
 
@@ -57,6 +59,7 @@ export async function* streamChat(request: ChatRequest): ChatStream {
 			reasoning_effort: request.reasoning == 'default' ? undefined : request.reasoning,
 			max_tokens: request.maxTokens,
 			tools: request.tools?.length ? request.tools : undefined,
+			response_format: request.schema && { type: 'json_schema', json_schema: { name: 'response', schema: request.schema } },
 			stream: true,
 			stream_options: { include_usage: true },
 		}),
