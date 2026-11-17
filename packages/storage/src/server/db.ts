@@ -1,6 +1,7 @@
 import { getConfig } from '@axium/core';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
+import * as jobs from '@axium/server/jobs';
 import { withError } from '@axium/server/requests';
 import { addObjectType as addSyncObjectType } from '@axium/server/sync';
 import type {
@@ -12,8 +13,9 @@ import type {
 	SelectQueryBuilder,
 	SqlBool,
 } from 'kysely';
+import { sql } from 'kysely';
 import { jsonArrayFrom, jsonObjectFrom } from 'kysely/helpers/postgres';
-import { unlinkSync } from 'node:fs';
+import { rmSync } from 'node:fs';
 import { join } from 'node:path/posix';
 import type schema from '../../db.json';
 import type { StorageItemMetadata, StorageStats } from '../common.js';
@@ -111,8 +113,25 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 
 	await database.deleteFrom('storage').where('id', 'in', itemId).returningAll().execute().catch(withError('Could not delete item'));
 
-	for (const id of toDelete) unlinkSync(join(getConfig('@axium/storage').data, id));
+	for (const id of toDelete) rmSync(join(getConfig('@axium/storage').data, id), { force: true });
 }
+
+/** Permanently delete items that have been in the trash longer than the configured duration */
+export async function purgeTrash(): Promise<void> {
+	const expired = await database
+		.selectFrom('storage')
+		.select(['id', 'type'])
+		.where('trashedAt', '<', sql<Date>`now() - make_interval(days => ${getConfig('@axium/storage').trash_duration})`)
+		.execute();
+
+	const directories = expired.filter(item => item.type == 'inode/directory').map(item => item.id);
+	const files = expired.filter(item => item.type != 'inode/directory').map(item => item.id);
+
+	if (directories.length) await deleteRecursive(false, ...directories);
+	if (files.length) await deleteRecursive(true, ...files);
+}
+
+jobs.define('storage.trash', { every: 3_600_000, run: purgeTrash });
 
 export interface ParentFromCTE {
 	parentId: string | null;
