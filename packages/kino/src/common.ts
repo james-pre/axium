@@ -116,7 +116,8 @@ export const KinoConfig = z
 	.refine(config => !config.torrent.seed || config.remux != 'replace', {
 		error: 'Seeding needs the original file, which remux "replace" discards',
 		path: ['torrent', 'seed'],
-	});
+	})
+	.register(locales.zod, { prefix: 'kino.config' });
 export interface KinoConfig extends z.infer<typeof KinoConfig> {}
 
 declare module '@axium/core/plugins' {

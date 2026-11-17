@@ -148,9 +148,11 @@ export interface NoExternal extends Omit<Contact, ExternalField> {}
 
 export const NoExternal = Contact.omit(_externalFields);
 
-const ContactsConfig = z.object({
-	auto_link: z.boolean(),
-});
+const ContactsConfig = z
+	.object({
+		auto_link: z.boolean(),
+	})
+	.register(locales.zod, { prefix: 'contacts.config' });
 
 declare module '@axium/core/plugins' {
 	export interface $PluginConfigs {

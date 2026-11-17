@@ -6,6 +6,15 @@
 		"archive": "Archive",
 		"back": "Back",
 		"compose": "Compose",
+		"config": {
+			"inbound": {
+				"$title": "Receiving",
+				"port": "SMTP port",
+				"max_size": "Largest message (KB)",
+				"ssl_key": "TLS key file",
+				"ssl_cert": "TLS certificate file"
+			}
+		},
 		"delete_forever": "Delete forever",
 		"drafts": "Drafts",
 		"empty_folder": "Nothing here",

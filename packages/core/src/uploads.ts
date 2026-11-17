@@ -1,3 +1,4 @@
+import * as locales from '@james-pre/locales';
 import * as z from 'zod';
 
 export const UploadSize = z.coerce.bigint().nonnegative();
@@ -11,10 +12,12 @@ export const UploadInit = z.object({
 });
 export interface UploadInit extends z.infer<typeof UploadInit> {}
 
-export const UploadConfig = z.object({
-	/** Where to put in-progress chunked uploads */
-	temp_dir: z.string(),
-	/** How many minutes an in-progress upload can go without receiving data before it times out */
-	timeout: z.number(),
-});
+export const UploadConfig = z
+	.object({
+		/** Where to put in-progress chunked uploads */
+		temp_dir: z.string(),
+		/** How many minutes an in-progress upload can go without receiving data before it times out */
+		timeout: z.number(),
+	})
+	.register(locales.zod, { prefix: 'upload_config' });
 export interface UploadConfig extends z.infer<typeof UploadConfig> {}

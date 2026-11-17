@@ -106,13 +106,40 @@
 			"reasoning": "Default reasoning",
 			"ctrl_enter": "Send with Ctrl+Enter",
 			"instructions": "Custom instructions",
-			"tools_heading": "Tools",
 			"tools": {
+				"$title": "Tools",
 				"account_access": "Access to your account",
 				"confirm_writes": "Confirm writes",
 				"web": "Web access",
 				"approvals": "Approvals by tool",
 				"memory": "Memory"
+			}
+		},
+		"approval": {
+			"ask": "Ask first",
+			"allow": "Allow"
+		},
+		"config": {
+			"data_dir": "Data directory",
+			"system_prompt": "Default system prompt",
+			"timeout": "Response timeout (seconds)",
+			"max_steps": "Most steps per turn",
+			"search_url": "SearXNG URL",
+			"max_memories": "Most memories per user",
+			"max_memory_length": "Longest memory (characters)",
+			"speaker_reference": "Voice reference recording",
+			"speaker_reference_text": "Voice reference transcript",
+			"llama": {
+				"$title": "llama-server",
+				"command": "Command",
+				"host": "Host",
+				"port": "Port",
+				"models_max": "Most loaded models (0 for no limit)",
+				"memory_margin": "Memory to keep free (MiB)",
+				"defaults": {
+					"$title": "Default model options"
+				},
+				"hf_token": "Hugging Face token"
 			}
 		},
 		"data_access": {

@@ -2,6 +2,7 @@ import { serverConfigs } from '@axium/core';
 import { $API } from '@axium/core/api';
 import type {} from '@axium/core/plugins';
 import { addServerToClient } from '@axium/core/socket';
+import * as locales from '@james-pre/locales';
 import * as z from 'zod';
 
 /** A single address in a message header, e.g. `"James" <james@example.com>` */
@@ -94,17 +95,19 @@ export const EmailListQuery = z.object({
 });
 export interface EmailListQuery extends z.infer<typeof EmailListQuery> {}
 
-export const EmailConfig = z.object({
-	inbound: z.object({
-		enabled: z.boolean(),
-		port: z.int().min(1).max(65535),
-		/** Max inbound message size in KB */
-		max_size: z.number().min(0),
-		/** Override the web SSL certificate for STARTTLS */
-		ssl_key: z.string().optional(),
-		ssl_cert: z.string().optional(),
-	}),
-});
+export const EmailConfig = z
+	.object({
+		inbound: z.object({
+			enabled: z.boolean(),
+			port: z.int().min(1).max(65535),
+			/** Max inbound message size in KB */
+			max_size: z.number().min(0),
+			/** Override the web SSL certificate for STARTTLS */
+			ssl_key: z.string().optional(),
+			ssl_cert: z.string().optional(),
+		}),
+	})
+	.register(locales.zod, { prefix: 'email.config' });
 export interface EmailConfig extends z.infer<typeof EmailConfig> {}
 
 declare module '@axium/core/plugins' {

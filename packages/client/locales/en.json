@@ -281,6 +281,11 @@
 		"debug": "Debug mode",
 		"theme": "Theme"
 	},
+	"upload_config": {
+		"$title": "Uploads",
+		"temp_dir": "Temporary directory",
+		"timeout": "Idle timeout (minutes)"
+	},
 	"themes": {
 		"default": "Default",
 		"light": "Light",

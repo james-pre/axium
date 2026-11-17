@@ -4,6 +4,9 @@
 	},
 	"contacts": {
 		"back": "Back",
+		"config": {
+			"auto_link": "Link new contacts to users with the same email"
+		},
 		"edit": "Edit",
 		"edit_title": "Contacts — Edit",
 		"delete": "Delete",

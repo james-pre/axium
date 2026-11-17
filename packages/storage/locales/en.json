@@ -102,6 +102,27 @@
 		}
 	},
 	"storage": {
+		"config": {
+			"max_transfer_size": "Largest transfer (MiB)",
+			"data": "Data directory",
+			"trash_duration": "Days to keep trash",
+			"batch": {
+				"$title": "Batch updates",
+				"max_items": "Most items per batch",
+				"max_item_size": "Largest item (KiB)"
+			},
+			"cas": {
+				"$title": "Content-addressable storage",
+				"include": "Included types",
+				"exclude": "Excluded types"
+			},
+			"limits": {
+				"$title": "Default limits",
+				"item_size": "Largest file (MB)",
+				"user_items": "Most items per user",
+				"user_size": "Storage per user (MB)"
+			}
+		},
 		"sync_rule": {
 			"+": "Include",
 			"-": "Exclude"

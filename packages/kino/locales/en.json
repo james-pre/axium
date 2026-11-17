@@ -4,6 +4,28 @@
 	},
 	"kino": {
 		"config": {
+			"allow_user_uploads": "Allow uploads by users",
+			"data_dir": "Data directory",
+			"tmdb_api_key": "TMDB API key",
+			"images": {
+				"$title": "Images",
+				"base_url": "TMDB image URL",
+				"cache": {
+					"$title": "Image cache",
+					"max_size": "Largest cache (MiB, 0 for no limit)",
+					"directory": "Cache directory",
+					"largest_only": "Only cache the largest size",
+					"max_image_sizes": {
+						"$title": "Largest cached sizes"
+					}
+				}
+			},
+			"torrent": {
+				"$title": "Torrents",
+				"sources": "Torrent sources",
+				"allow_user_magnets": "Allow magnet links from users",
+				"seed": "Seed downloaded torrents"
+			},
 			"remux": "Playback format",
 			"cache_mode": "Image cache mode",
 			"image_size": "Image size",

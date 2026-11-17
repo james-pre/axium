@@ -230,7 +230,7 @@ export const StorageConfig = StoragePublicConfig.safeExtend({
 	limits: StorageLimits,
 	/** How many days files are kept in the trash */
 	trash_duration: z.number(),
-});
+}).register(locales.zod, { prefix: 'storage.config' });
 
 declare module '@axium/core/plugins' {
 	export interface $PluginConfigs {

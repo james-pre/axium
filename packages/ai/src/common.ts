@@ -56,27 +56,29 @@ export const LlamaConfig = z.object({
 });
 export interface LlamaConfig extends z.infer<typeof LlamaConfig> {}
 
-export const Config = z.object({
-	/** Where downloaded models and llama-server's state are kept */
-	data_dir: z.string().min(1),
-	llama: LlamaConfig,
-	/** Used for models without their own system prompt; the current date is appended */
-	system_prompt: z.string().register(locales.zod, { multiline: true }),
-	/** Seconds a single response may take before it is stopped */
-	timeout: z.number().positive(),
-	/** The most responses the model may give in one turn while using tools */
-	max_steps: z.int().positive(),
-	/** A SearXNG instance used by the web search tool, which is hidden while this is unset */
-	search_url: z.url().nullish(),
-	/** The most memories each user may have */
-	max_memories: z.int().positive(),
-	/** The most characters in a memory's content */
-	max_memory_length: z.int().positive().max(10_000),
-	/** A recording of the voice that spoken replies imitate, for models that clone voices */
-	speaker_reference: z.string().nullish(),
-	/** What is said in `speaker_reference`; models that support it then also imitate its accent and delivery */
-	speaker_reference_text: z.string().trim().min(1).nullish().register(locales.zod, { multiline: true }),
-});
+export const Config = z
+	.object({
+		/** Where downloaded models and llama-server's state are kept */
+		data_dir: z.string().min(1),
+		llama: LlamaConfig,
+		/** Used for models without their own system prompt; the current date is appended */
+		system_prompt: z.string().register(locales.zod, { multiline: true }),
+		/** Seconds a single response may take before it is stopped */
+		timeout: z.number().positive(),
+		/** The most responses the model may give in one turn while using tools */
+		max_steps: z.int().positive(),
+		/** A SearXNG instance used by the web search tool, which is hidden while this is unset */
+		search_url: z.url().nullish(),
+		/** The most memories each user may have */
+		max_memories: z.int().positive(),
+		/** The most characters in a memory's content */
+		max_memory_length: z.int().positive().max(10_000),
+		/** A recording of the voice that spoken replies imitate, for models that clone voices */
+		speaker_reference: z.string().nullish(),
+		/** What is said in `speaker_reference`; models that support it then also imitate its accent and delivery */
+		speaker_reference_text: z.string().trim().min(1).nullish().register(locales.zod, { multiline: true }),
+	})
+	.register(locales.zod, { prefix: 'ai.config' });
 export interface Config extends z.infer<typeof Config> {}
 
 declare module '@axium/core/plugins' {
@@ -367,7 +369,7 @@ export const ToolAccess = z.literal(['read', 'write']);
 export type ToolAccess = z.infer<typeof ToolAccess>;
 
 /** Whether a tool runs without asking */
-export const Approval = z.literal(['ask', 'allow']);
+export const Approval = z.literal(['ask', 'allow']).register(locales.zod, { prefix: 'ai.approval' });
 export type Approval = z.infer<typeof Approval>;
 
 /** `chat` allows the tool for the rest of the conversation, `always` for every conversation */
@@ -543,8 +545,7 @@ export const Preferences = z
 				/** Whether the assistant uses and saves memories */
 				memory: z.boolean().default(true).register(locales.zod, { feature: 'ai-memory' }),
 			})
-			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {}, memory: true })
-			.register(locales.zod, { key: 'ai.preferences.tools_heading', prefix: 'ai.preferences.tools' }),
+			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {}, memory: true }),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
 export interface Preferences extends z.infer<typeof Preferences> {}
