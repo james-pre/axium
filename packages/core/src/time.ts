@@ -18,8 +18,3 @@ export const timeZones = ['UTC', ...Intl.supportedValuesOf('timeZone')];
 
 /** A time zone chosen from {@link timeZones}, also accepting other names the runtime knows, e.g. aliases reported by devices */
 export const TimeZoneChoice = z.union([z.literal(timeZones), TimeZone]);
-
-/** The time zone the device running this code is set to */
-export function deviceTimeZone(): string {
-	return Intl.DateTimeFormat().resolvedOptions().timeZone;
-}
