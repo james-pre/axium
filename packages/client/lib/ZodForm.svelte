@@ -112,21 +112,32 @@
 		return [...visible.filter(([, child]) => !isSection(child)), ...visible.filter(([, child]) => isSection(child))];
 	});
 
-	function childLabel(key: string, child: ZodPref): string | undefined {
-		if (schema.type == 'record' || !localeInfo?.prefix) return key;
-		if (infoOf(child)?.key) return;
-		return text(`${localeInfo.prefix}.${key}`);
+	/** A field's translation metadata, where sections without their own prefix nest under this form's prefix */
+	function childInfo(key: string, child: ZodPref): locales.ZodInfo | undefined {
+		const info = infoOf(child);
+		if (schema.type == 'record' || !isSection(child) || info?.prefix || !localeInfo?.prefix) return info;
+		return { ...info, prefix: `${localeInfo.prefix}.${key}` };
+	}
+
+	/** Sections are titled by the `$title` key under their prefix */
+	function childLabel(key: string, child: ZodPref, info?: locales.ZodInfo): string | undefined {
+		if (schema.type == 'record') return key;
+		if (info?.key) return;
+		if (info?.prefix && isSection(child)) return text(`${info.prefix}.$title`);
+		return localeInfo?.prefix ? text(`${localeInfo.prefix}.${key}`) : key;
 	}
 </script>
 
 {#snippet field(key: string, child: ZodPref)}
+	{const info = childInfo(key, child)}
 	<ZodInput
 		bind:rootValue
 		updateValue={update}
 		{idPrefix}
 		path={path ? `${path}.${key}` : key}
 		schema={child}
-		label={childLabel(key, child)}
+		localeInfo={info}
+		label={childLabel(key, child, info)}
 	/>
 {/snippet}
 
