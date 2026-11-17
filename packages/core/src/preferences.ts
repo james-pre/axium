@@ -1,6 +1,6 @@
 import * as locales from '@james-pre/locales';
 import type { ZodSerializable } from './schemas.js';
-import { TimeZone } from './time.js';
+import { TimeZoneChoice } from './time.js';
 import * as z from 'zod';
 
 /** @internal Used so we can narrow using `type` and get access to type-specific properties (e.g. `ZodNumber.minValue`) */
@@ -18,7 +18,7 @@ export let Preferences = z
 		debug: z.boolean().default(false),
 		theme: z.literal(themes).default('default').register(locales.zod, { prefix: 'themes', feature: 'themes' }),
 		/** The user's home time zone; each session also has the time zone of its device */
-		time_zone: TimeZone.optional(),
+		time_zone: TimeZoneChoice.optional(),
 	})
 	.register(locales.zod, { prefix: 'preference' });
 
