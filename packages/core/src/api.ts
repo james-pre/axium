@@ -2,7 +2,7 @@ import type { Add, Tuple } from 'utilium';
 import * as z from 'zod';
 import { AccessControl, AccessControlUpdate, AccessTarget } from './access.js';
 import { AuditEvent, AuditFilter, Severity } from './audit.js';
-import { AuthInfo, NewSessionResponse, Session, Verification, VerificationInternal } from './auth.js';
+import { AuthInfo, NewSessionResponse, Session, SessionUpdate, Verification, VerificationInternal } from './auth.js';
 import { Feature, Values as FeatureValues } from './features.js';
 import { PushSubscriptionInit } from './notifications.js';
 import { PackageVersionInfo } from './packages.js';
@@ -97,6 +97,7 @@ const _API = {
 	},
 	session: {
 		GET: z.object({ ...Session.shape, user: User }),
+		POST: [SessionUpdate, z.object({ ...Session.shape, user: User })],
 		DELETE: Session,
 	},
 	'session/push': {

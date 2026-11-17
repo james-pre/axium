@@ -1,4 +1,5 @@
 import * as z from 'zod';
+import { TimeZone } from './time.js';
 
 export const Session = z.object({
 	id: z.uuid(),
@@ -7,9 +8,14 @@ export const Session = z.object({
 	expires: z.coerce.date(),
 	created: z.coerce.date(),
 	elevated: z.boolean(),
+	/** The time zone the session's device last reported */
+	timezone: z.string().nullish(),
 });
 
 export interface Session extends z.infer<typeof Session> {}
+
+export const SessionUpdate = z.object({ timezone: TimeZone });
+export interface SessionUpdate extends z.infer<typeof SessionUpdate> {}
 
 export const Verification = z.object({
 	userId: z.uuid(),

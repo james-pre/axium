@@ -46,15 +46,20 @@ export async function loginWithAutofill(): Promise<NewSessionResponse> {
 
 let _currentSession: (Session & { user: User }) | null = null;
 
+/** Fetches the current session, reporting this device's time zone */
+function fetchSession(): Promise<Session & { user: User }> {
+	return fetchAPI('POST', 'session', { timezone: Intl.DateTimeFormat().resolvedOptions().timeZone });
+}
+
 export async function getCurrentSession(): Promise<Session & { user: User }> {
-	_currentSession ||= await fetchAPI('GET', 'session');
+	_currentSession ||= await fetchSession();
 	return _currentSession;
 }
 
 /** Get the current session, or `null` if there isn't a valid one (e.g. missing or expired) */
 export async function currentSession(): Promise<(Session & { user: User }) | null> {
 	try {
-		_currentSession ||= await fetchAPI('GET', 'session');
+		_currentSession ||= await fetchSession();
 		return _currentSession;
 	} catch (e) {
 		if (typeof e == 'object' && e !== null && 'status' in e && e.status === 401) return null;

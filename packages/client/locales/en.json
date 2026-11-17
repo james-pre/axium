@@ -279,7 +279,8 @@
 	"audit_severity": ["Emergency", "Alert", "Critical", "Error", "Warning", "Notice", "Info", "Debug"],
 	"preference": {
 		"debug": "Debug mode",
-		"theme": "Theme"
+		"theme": "Theme",
+		"time_zone": "Home time zone"
 	},
 	"upload_config": {
 		"$title": "Uploads",

@@ -1,23 +1,35 @@
+import { SessionUpdate } from '@axium/core';
 import type { AsyncResult } from '@axium/core/api';
 import { omit } from 'utilium';
 import { audit } from '../audit.js';
-import { getSessionAndUser } from '../auth.js';
+import { getSessionAndUser, setTimeZone, type SessionAndUser } from '../auth.js';
 import { database as db } from '../db/index.js';
-import { error, getToken, stripUser, withError } from '../requests.js';
+import { error, getToken, parseBody, stripUser, withError } from '../requests.js';
 import { addRoute } from '../routes.js';
+
+async function currentSession(request: Request): Promise<SessionAndUser> {
+	const token = getToken(request);
+	if (!token) error(401, 'Missing token');
+
+	return await getSessionAndUser(token).catch(withError('Invalid session', 400));
+}
+
+function toResult(session: SessionAndUser) {
+	return { ...omit(session, 'token'), user: stripUser(session.user, true) };
+}
 
 addRoute({
 	path: '/api/session',
 	async GET(request): AsyncResult<'GET', 'session'> {
-		const token = getToken(request);
-		if (!token) error(401, 'Missing token');
+		return toResult(await currentSession(request));
+	},
+	async POST(request): AsyncResult<'POST', 'session'> {
+		const { timezone } = await parseBody(request, SessionUpdate);
+		const session = await currentSession(request);
 
-		const result = await getSessionAndUser(token).catch(withError('Invalid session', 400));
+		await setTimeZone(session, timezone).catch(withError('Could not save the time zone'));
 
-		return {
-			...omit(result, 'token'),
-			user: stripUser(result.user, true),
-		};
+		return toResult(session);
 	},
 	async DELETE(request): AsyncResult<'DELETE', 'session'> {
 		const token = getToken(request);

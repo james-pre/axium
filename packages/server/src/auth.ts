@@ -95,6 +95,24 @@ export async function requireSession(request: Request, sensitive: boolean = fals
 	return session;
 }
 
+/** Saves the time zone a session's device reported, which also becomes the user's home time zone if they have none */
+export async function setTimeZone(session: SessionAndUser, timezone: string): Promise<void> {
+	if (timezone == session.timezone) return;
+
+	await db.updateTable('sessions').set({ timezone }).where('id', '=', session.id).execute();
+	session.timezone = timezone;
+
+	if (session.user.preferences.time_zone) return;
+
+	await db
+		.updateTable('users')
+		.set({ preferences: sql`preferences || jsonb_build_object('time_zone', ${timezone}::text)` })
+		.where('id', '=', session.userId)
+		.where(sql<boolean>`preferences->>'time_zone' IS NULL`)
+		.execute();
+	session.user.preferences.time_zone = timezone;
+}
+
 export async function getSessions(userId: string): Promise<SessionInternal[]> {
 	return await db.selectFrom('sessions').selectAll().where('userId', '=', userId).where('sessions.expires', '>', new Date()).execute();
 }
