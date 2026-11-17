@@ -494,8 +494,14 @@ export async function missingConstraints(tables: Record<string, schema.Table>): 
 }
 
 export async function removeExpired(): Promise<void> {
-	await database.deleteFrom('sessions').where('sessions.expires', '<', sql<Date>`now()`).execute();
-	await database.deleteFrom('verifications').where('verifications.expires', '<', sql<Date>`now()`).execute();
+	await database
+		.deleteFrom('sessions')
+		.where('sessions.expires', '<', sql<Date>`now()`)
+		.execute();
+	await database
+		.deleteFrom('verifications')
+		.where('verifications.expires', '<', sql<Date>`now()`)
+		.execute();
 }
 
 jobs.define('axium.expired', { every: 3_600_000, run: removeExpired });
