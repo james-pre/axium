@@ -22,6 +22,8 @@ export function dynamicRows(max: number = 40, min: number = 3): Attachment<HTMLT
 		element.style.minHeight = min + 'lh';
 		element.style.maxHeight = max + 'lh';
 
+		if (CSS.supports('field-sizing', 'content')) return;
+
 		/** Counts wrapped lines as well as explicit ones. */
 		function update() {
 			element.rows = 2;
@@ -32,7 +34,6 @@ export function dynamicRows(max: number = 40, min: number = 3): Attachment<HTMLT
 			element.rows = Math.max(Math.min(lines, max), min);
 		}
 
-		if (CSS.supports('field-sizing', 'content')) return;
 		update();
 		element.addEventListener('input', update);
 		let width = element.clientWidth;
