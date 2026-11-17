@@ -21,7 +21,7 @@ import {
 } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { deleteRecursive, getParents, getRecursive, getUserStats, parentsCTE, parseItem, withParents, withSync } from './db.js';
+import { deleteRecursive, deleteTrashed, getParents, getRecursive, getUserStats, parentsCTE, parseItem, withParents, withSync } from './db.js';
 import { checkItemUpdate, checkNewItem, createNewItem, emptyHash, finishItemUpdate, uploads } from './item.js';
 
 addRoute({
@@ -299,13 +299,6 @@ addRoute({
 	async DELETE(request, { id: userId }): AsyncResult<'DELETE', 'users/:id/storage/trash'> {
 		await checkAuthForUser(request, userId);
 
-		const deletedItems = await database
-			.deleteFrom('storage')
-			.where('userId', '=', userId)
-			.where('trashedAt', 'is not', null)
-			.execute()
-			.catch(withError('Could not clear trash'));
-
-		return deletedItems.length;
+		return await deleteTrashed(eb => eb('userId', '=', userId)).catch(withError('Could not clear trash'));
 	},
 });

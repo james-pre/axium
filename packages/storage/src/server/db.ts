@@ -116,19 +116,23 @@ export async function deleteRecursive(deleteSelf: boolean, ...itemId: string[]):
 	for (const id of toDelete) rmSync(join(getConfig('@axium/storage').data, id), { force: true });
 }
 
-/** Permanently delete items that have been in the trash longer than the configured duration */
-export async function purgeTrash(): Promise<void> {
-	const expired = await database
-		.selectFrom('storage')
-		.select(['id', 'type'])
-		.where('trashedAt', '<', sql<Date>`now() - make_interval(days => ${getConfig('@axium/storage').trash_duration})`)
-		.execute();
+/** Permanently delete trashed items matching a filter along with their contents, returning how many trashed items were deleted */
+export async function deleteTrashed(filter: ExpressionOrFactory<Schema, 'storage', SqlBool>): Promise<number> {
+	const trashed = await database.selectFrom('storage').select(['id', 'type']).where('trashedAt', 'is not', null).where(filter).execute();
 
-	const directories = expired.filter(item => item.type == 'inode/directory').map(item => item.id);
-	const files = expired.filter(item => item.type != 'inode/directory').map(item => item.id);
+	const directories = trashed.filter(item => item.type == 'inode/directory').map(item => item.id);
+	const files = trashed.filter(item => item.type != 'inode/directory').map(item => item.id);
 
 	if (directories.length) await deleteRecursive(false, ...directories);
 	if (files.length) await deleteRecursive(true, ...files);
+
+	return trashed.length;
+}
+
+/** Permanently delete items that have been in the trash longer than the configured duration */
+export async function purgeTrash(): Promise<void> {
+	const { trash_duration } = getConfig('@axium/storage');
+	await deleteTrashed(eb => eb('trashedAt', '<', sql<Date>`now() - make_interval(days => ${trash_duration})`));
 }
 
 jobs.define('storage.trash', { every: 3_600_000, run: purgeTrash });
