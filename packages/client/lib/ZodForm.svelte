@@ -119,11 +119,11 @@
 		return { ...info, prefix: `${localeInfo.prefix}.${key}` };
 	}
 
-	/** Sections are titled by the `$title` key under their prefix */
+	/** Sections are titled by the `$title` key under their prefix, or by their key when it is missing */
 	function childLabel(key: string, child: ZodPref, info?: locales.ZodInfo): string | undefined {
 		if (schema.type == 'record') return key;
 		if (info?.key) return;
-		if (info?.prefix && isSection(child)) return text(`${info.prefix}.$title`);
+		if (info?.prefix && isSection(child)) return text(`${info.prefix}.$title`, { $default: key });
 		return localeInfo?.prefix ? text(`${localeInfo.prefix}.${key}`) : key;
 	}
 </script>
