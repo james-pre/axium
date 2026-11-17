@@ -415,12 +415,12 @@ cli.command('develop')
 			building = true;
 			await stopServer();
 			clearLine();
-			process.stdout.write('Building...');
+			process.stdout.write('Building...' + (process.stdout.isTTY ? '' : '\n'));
 			const { time } = await build({ minify: false });
 			buildId++;
 			clearLine();
+			console.log(`Build #${buildId} finished in ${format.ms(time)}`);
 			server = fork(process.argv[1], serveArgs, { stdio: 'inherit' });
-			process.stdout.write(`Build #${buildId} finished in ${format.ms(time)}${process.stdout.isTTY ? '' : '\n'}`);
 			building = false;
 		}
 

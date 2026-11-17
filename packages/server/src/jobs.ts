@@ -312,7 +312,7 @@ async function runJob(job: Job, definition: Definition<any>, signal: AbortSignal
 		return;
 	}
 
-	const runAt = next ?? (definition.every ? after(definition.every) : undefined);
+	const runAt = next instanceof Date ? next : definition.every ? after(definition.every) : undefined;
 
 	if (!runAt) {
 		await database.deleteFrom('jobs').where('id', '=', job.id).where('lockedBy', '=', worker).execute();
