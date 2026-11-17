@@ -69,20 +69,20 @@ export interface TurnInit {
 	homeTimeZone?: string;
 }
 
-const toolGuidance =
-	'You can call tools. Only call one when it helps with what the user asked. ' +
-	'If a call fails, read the error and correct the input instead of repeating the same call. ' +
-	"Never create, change or delete anything the user didn't ask for, even as a workaround. " +
-	'Only say an action was done when a tool result confirms it; if you could not do something, say so.';
+const toolGuidance = `\
+You can call tools. Only call one when it helps with what the user asked.\
+ If a call fails, read the error and correct the input instead of repeating the same call.\
+ Never create, change or delete anything the user didn't ask for, even as a workaround.\
+ Only say an action was done when a tool result confirms it; if you could not do something, say so.`;
 
-const voiceGuidance =
-	'The user is speaking to you, and your reply will be read aloud by a speech synthesizer, so write only what should be heard. ' +
-	'Reply in plain spoken prose: no Markdown, lists, tables, headings, code, emoji, URLs or symbols that would be read out literally. ' +
-	'Be brief and conversational, usually one to three sentences.' +
-	'Write numbers, dates, times and units the way they are said aloud, e.g. "twenty past three" and "about four kilometres". ' +
-	"Don't read out IDs, links, file paths or long values; describe them, or say the details are in the chat. " +
-	"Only state facts you are sure of or that a tool result gave you; if you don't know, say so briefly. " +
-	'The transcript of what the user said may contain recognition mistakes, so read it for its likely meaning.';
+const voiceGuidance = `\
+The user is speaking to you, and your reply will be read aloud by a speech synthesizer, so write only what should be heard.\
+ Reply in plain spoken prose: no Markdown, lists, tables, headings, code, emoji, URLs or symbols that would be read out literally.\
+ Be brief and conversational, usually one to three sentences.\
+ Write numbers, dates, times and units the way they are said aloud, e.g. "twenty past three" and "about four kilometres".\
+ Don't read out IDs, links, file paths or long values; describe them, or say the details are in the chat.\
+ Only state facts you are sure of or that a tool result gave you; if you don't know, say so briefly.\
+ The transcript of what the user said may contain recognition mistakes, so read it for its likely meaning`;
 
 interface PromptParts {
 	prompt: string;
@@ -113,19 +113,18 @@ function systemPrompt({ prompt, instructions, offered, remembered, voice, timeZo
 	const local = Temporal.Now.zonedDateTimeISO(timeZone);
 	const date = local.toLocaleString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
-	let dateText = `For the user, today is ${date}. Their time zone is ${timeZone} (UTC${local.offset}).`;
-	if (homeTimeZone && homeTimeZone != timeZone) dateText += ` Their home time zone is ${homeTimeZone}.`;
-
 	sections.push(
-		dateText +
-			" Each of the user's messages starts with a <sent> tag saying when it was sent, in their time and UTC; the latest one is the current time. " +
-			"The tag isn't part of what they wrote, so don't repeat it."
+		`For the user, today is ${date}. Their time zone is ${timeZone} (UTC${local.offset}).\
+${homeTimeZone && homeTimeZone != timeZone ? ` Their home time zone is ${homeTimeZone}.` : ''}\
+ Each of the user's messages starts with a <sent> tag saying when it was sent,\
+ in their time and UTC; the latest one is the current time.\
+ The tag isn't part of what they wrote, so don't repeat it.`
 	);
 
 	if (offered.length) sections.push(toolGuidance);
 	if (remembered) sections.push(remembered);
-	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
 	if (voice) sections.push(voiceGuidance);
+	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
 
 	return sections.join('\n\n');
 }
