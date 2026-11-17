@@ -19,6 +19,8 @@ export function dynamicRows(max: number = 40, min: number = 3): Attachment<HTMLT
 		element.style.fieldSizing = 'content';
 		element.style.height = 'max-content';
 		element.style.overflowY = 'auto';
+		element.style.minHeight = min + 'lh';
+		element.style.maxHeight = max + 'lh';
 
 		/** Counts wrapped lines as well as explicit ones. */
 		function update() {
