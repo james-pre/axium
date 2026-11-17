@@ -111,7 +111,9 @@
 				"account_access": "Access to your account",
 				"confirm_writes": "Confirm writes",
 				"web": "Web access",
-				"approvals": "Approvals by tool",
+				"approvals": {
+					"$title": "Approvals by tool"
+				},
 				"memory": "Memory"
 			}
 		},
@@ -218,7 +220,18 @@
 			"read_memory": "Recalled memory",
 			"add_memory": "Saved memory",
 			"update_memory": "Updated memory",
-			"delete_memory": "Removed memory"
+			"delete_memory": "Removed memory",
+			"set_timer": "Started timer",
+			"list_timers": "Checked timers",
+			"cancel_timer": "Cancelled timer"
+		},
+		"timer": {
+			"title": "Timer",
+			"count": "{count} timers",
+			"list": "Timers",
+			"done": "Time's up",
+			"cancel": "Cancel timer",
+			"dismiss": "Dismiss"
 		},
 		"tool_awaiting": "Allow this change?",
 		"tool_decision": {

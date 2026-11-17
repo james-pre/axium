@@ -13,6 +13,13 @@ export type APICaller = <const E extends Endpoint, const M extends keyof $API[E]
 	...params: APIParameters<E>
 ) => Promise<Result<M, E>>;
 
+/** Timers kept by the host the loop runs on, which notifies the user when they end */
+export interface Timers {
+	start(init: ai.TimerInit): Promise<ai.Timer>;
+	list(): Promise<ai.Timer[]>;
+	cancel(id: string): Promise<ai.Timer>;
+}
+
 export interface Context {
 	/** The user the tool acts for */
 	userId: string;
@@ -20,6 +27,7 @@ export interface Context {
 	conversationId?: string;
 	api: APICaller;
 	signal: AbortSignal;
+	timers: Timers;
 }
 
 export interface Tool<Input extends z.ZodObject = z.ZodObject> {

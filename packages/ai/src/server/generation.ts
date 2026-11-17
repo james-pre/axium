@@ -13,6 +13,7 @@ import * as loop from '../loop.js';
 import { chat, streamChat } from '../node/chat.js';
 import features from '@axium/core/features';
 import { getMemories } from './memory.js';
+import * as timers from './timers.js';
 import { getRow, learnCapabilities, resolveRole } from './models.js';
 import { pick } from 'utilium';
 
@@ -205,6 +206,7 @@ async function respond(init: TurnInit): Promise<void> {
 				conversationId: init.temporary ? undefined : store.conversationId,
 				signal,
 				api: (method, endpoint, data, ...params) => callAPI(user, method, endpoint, data, ...params),
+				timers: timers.forUser(user.id),
 			},
 			allowAlways: names => allowAlways(store.userId, preferences, names),
 			progress,

@@ -1,6 +1,7 @@
 import * as io from 'ioium';
 import type * as ai from './common.js';
 import { memoryPrompt } from './memory.js';
+import './timers.js';
 import type { ChatMessage, ChatRequest, ChatStream } from './node/chat.js';
 import * as tools from './tools.js';
 

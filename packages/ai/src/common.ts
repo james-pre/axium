@@ -503,6 +503,43 @@ export const MemoryUpdate = z.object({
 });
 export interface MemoryUpdate extends z.infer<typeof MemoryUpdate> {}
 
+export const TimerLabel = z.string().trim().min(1).max(100);
+
+export const TimerMessage = z.string().trim().min(1).max(200);
+
+/**
+ * The longest timer, in seconds
+ * @todo Temporal
+ */
+export const maxTimerDuration = 7 * 86_400;
+
+export const Timer = z.object({
+	id: z.uuid(),
+	label: TimerLabel.nullable(),
+	/** Shown when the timer ends */
+	message: TimerMessage.nullable(),
+	/** In seconds @todo Temporal */
+	duration: z.int().positive(),
+	created: z.coerce.date(),
+	ends: z.coerce.date(),
+});
+export interface Timer extends z.infer<typeof Timer> {}
+
+export const TimerInit = z.object({
+	label: TimerLabel.optional(),
+	message: TimerMessage.optional(),
+	/** In seconds @todo Temporal */
+	duration: z.int().positive().max(maxTimerDuration),
+});
+export interface TimerInit extends z.infer<typeof TimerInit> {}
+
+export const TimerRemoved = z.object({
+	id: z.uuid(),
+	/** Whether the timer finished, rather than being cancelled */
+	done: z.boolean(),
+});
+export interface TimerRemoved extends z.infer<typeof TimerRemoved> {}
+
 export const Memories = z.object({
 	memories: Memory.array(),
 	/** The most memories a user may have */
@@ -639,6 +676,13 @@ const AIAPI = {
 		PATCH: [MemoryUpdate, Memory],
 		DELETE: Memory,
 	},
+	'users/:id/ai/timers': {
+		GET: Timer.array(),
+		PUT: [TimerInit, Timer],
+	},
+	'users/:id/ai/timers/:timer': {
+		DELETE: Timer,
+	},
 } as const;
 
 type AIAPI = typeof AIAPI;
@@ -673,6 +717,8 @@ const AIServerToClient = {
 	'ai.message.remove': [MessagesRemoved],
 	'ai.model.remove': [ModelId],
 	'ai.conversation': [Conversation],
+	'ai.timer': [Timer],
+	'ai.timer.remove': [TimerRemoved],
 } as const;
 
 declare module '@axium/core/socket' {

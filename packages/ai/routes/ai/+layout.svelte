@@ -7,9 +7,12 @@
 	import { onConversationChange, withUpdates } from '@axium/ai/live';
 	import { preferencesSchema } from '@axium/ai/preferences';
 	import { canTransition } from '@axium/ai/transition';
+	import { useTimers } from './timers.svelte.ts';
 	import * as voice from '@axium/ai/voice';
 	import { text } from '@axium/client';
 	import { AppPreferencesDialog, Icon, InlineEdit, TopBarContent } from '@axium/client/components';
+	import TimerAlerts from './TimerAlerts.svelte';
+	import Timers from './Timers.svelte';
 
 	const { data, children } = $props();
 
@@ -20,6 +23,8 @@
 	$effect(() => onConversationChange(() => invalidate('ai:conversations')));
 
 	$effect(() => voice.useModels({ models: withUpdates(data.models.models), roles: data.models.roles }));
+
+	$effect(() => useTimers(data.session.userId));
 
 	/** Animates the composer between the start page and a conversation */
 	onNavigate(navigation => {
@@ -59,6 +64,7 @@
 			</div>
 		{/each}
 		<div class="footer">
+			<Timers />
 			<a href="/ai/memory" class={['icon-text', page.url.pathname == '/ai/memory' && 'active']}>
 				<Icon i="brain" />
 				<span>{text('ai.memory.title')}</span>
@@ -75,6 +81,8 @@
 		{@render children()}
 	</main>
 </div>
+
+<TimerAlerts />
 
 <style>
 	#ai-app {
@@ -130,7 +138,7 @@
 			margin-top: auto;
 			padding-top: 1em;
 
-			> :global(*) {
+			> :global(:not(dialog)) {
 				padding: 0.5em 1em;
 				border-radius: 1.5em;
 			}
