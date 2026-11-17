@@ -21,7 +21,17 @@ import {
 } from '../common.js';
 import '../polyfills.js';
 import { getLimits } from './config.js';
-import { deleteRecursive, deleteTrashed, getParents, getRecursive, getUserStats, parentsCTE, parseItem, withParents, withSync } from './db.js';
+import {
+	deleteRecursive,
+	deleteTrashed,
+	getParents,
+	getRecursive,
+	getUserStats,
+	parentsCTE,
+	parseItem,
+	withParents,
+	withSync,
+} from './db.js';
 import { checkItemUpdate, checkNewItem, createNewItem, emptyHash, finishItemUpdate, uploads } from './item.js';
 
 addRoute({
