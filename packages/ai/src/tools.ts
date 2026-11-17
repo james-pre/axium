@@ -59,6 +59,8 @@ export function allowed(preferences: ai.Preferences['tools'], { anonymous, tempo
 		if (tool.available && !tool.available()) return false;
 
 		switch (tool.environment) {
+			case null:
+				return true;
 			case 'web':
 				return preferences.web && features('ai-web-tools');
 			case 'account':

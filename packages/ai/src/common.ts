@@ -361,7 +361,7 @@ export const MessageStatus = z.literal(['pending', 'done', 'error', 'cancelled',
 export type MessageStatus = z.infer<typeof MessageStatus>;
 
 /** Where a tool acts  */
-export const Environment = z.literal(['account', 'web', 'memory']);
+export const Environment = z.literal(['account', 'web', 'memory']).nullable();
 export type Environment = z.infer<typeof Environment>;
 
 /** `write` tools change data, so they may need the user's approval */
