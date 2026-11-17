@@ -4,7 +4,7 @@
 	import { CalendarInit, dateToInputValue, fromRRuleDate, getCalPermissionsInfo, toRRuleDate, weekDaysFor } from '@axium/calendar/common';
 	import * as Cal from '@axium/calendar/components';
 	import { fetchAPI, text } from '@axium/client';
-	import { contextMenu, dynamicRows } from '@axium/client/attachments';
+	import { contextMenu } from '@axium/client/attachments';
 	import { AccessControlDialog, ColorPicker, Discovery, discovery, FormDialog, Icon, Popover } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import { colorHashHex, decodeColor, encodeColor } from '@axium/core/color';
@@ -410,8 +410,7 @@
 			name="description"
 			id="eventInit.description"
 			placeholder={text('event_init.description_placeholder')}
-			bind:value={eventInit.description}
-			{@attach dynamicRows()}></textarea>
+			bind:value={eventInit.description}></textarea>
 	</div>
 </FormDialog>
 
@@ -466,3 +465,12 @@
 		<ColorPicker bind:value={calInit.color} defaultValue={defaultCalColor} />
 	</div>
 </FormDialog>
+
+<style>
+	textarea[name='description'] {
+		field-sizing: content;
+		resize: none;
+		min-height: 3lh;
+		max-height: 40lh;
+	}
+</style>

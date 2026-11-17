@@ -4,7 +4,6 @@
 	import feature from '@axium/core/features';
 	import * as locales from '@james-pre/locales';
 	import type { HTMLInputAttributes } from 'svelte/elements';
-	import { dynamicRows } from './attachments/index.js';
 	import { getByString, pick, setByString } from 'utilium';
 	import { prettifyError, type z } from 'zod';
 	import Icon from './Icon.svelte';
@@ -204,8 +203,7 @@
 			maxlength={schema.maxLength}
 			{placeholder}
 			{readonly}
-			class={[error && 'error']}
-			{@attach dynamicRows(20, 4)}></textarea>
+			class={[error && 'error']}></textarea>
 	</div>
 {:else if schema.type == 'string'}
 	{@render _in({ type: schema.format == 'email' ? 'email' : 'text', ...pick(schema, 'minLength', 'maxLength') })}
@@ -387,6 +385,13 @@
 	.ZodInput.multiline {
 		grid-template-columns: minmax(0, 1fr);
 		gap: 0.5em;
+
+		textarea {
+			field-sizing: content;
+			resize: none;
+			min-height: 4lh;
+			max-height: 20lh;
+		}
 	}
 
 	.ZodInput.no-label {

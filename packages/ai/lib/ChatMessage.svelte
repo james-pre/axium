@@ -8,7 +8,6 @@
 <script lang="ts">
 	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
-	import { dynamicRows } from '@axium/client/attachments';
 	import { ClipboardCopy, Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import { markdown } from './markdown.js';
@@ -81,8 +80,7 @@
 					e.preventDefault();
 					void save();
 				}}
-				{@attach element => element.focus()}
-				{@attach dynamicRows(20, 1)}></textarea>
+				{@attach element => element.focus()}></textarea>
 			<div class="edit-actions">
 				<button type="button" onclick={() => (draft = undefined)}>{text('generic.cancel')}</button>
 				<button type="submit" class="send" disabled={saving || !draft.trim() || draft.trim() == message.content}>
@@ -202,6 +200,10 @@
 			border: none;
 			background: none;
 			padding: 0;
+			field-sizing: content;
+			resize: none;
+			min-height: 1lh;
+			max-height: 20lh;
 		}
 	}
 

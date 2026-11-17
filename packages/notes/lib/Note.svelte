@@ -2,7 +2,6 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { fetchAPI, text } from '@axium/client';
-	import { dynamicRows } from '@axium/client/attachments';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { copy } from '@axium/client/web';
 	import { toastStatus } from '@axium/client/toast';
@@ -102,8 +101,7 @@
 			name="content"
 			class="note-content"
 			placeholder={text('notes.content_placeholder')}
-			oninput={() => fetchAPI('PATCH', 'notes/:id', note, note.id)}
-			{@attach dynamicRows()}>{note.content}</textarea
+			oninput={() => fetchAPI('PATCH', 'notes/:id', note, note.id)}>{note.content}</textarea
 		>
 	{:else}
 		<div class="note-content">
@@ -121,6 +119,13 @@
 	.note-content {
 		background: none;
 		border: none;
+	}
+
+	textarea.note-content {
+		field-sizing: content;
+		resize: none;
+		min-height: 3lh;
+		max-height: 40lh;
 	}
 
 	div.note-content i.subtle {

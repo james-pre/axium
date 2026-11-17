@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { Id as MemoryId, type Node as Memory } from '@axium/ai/memory';
 	import { text } from '@axium/client';
-	import { dynamicRows } from '@axium/client/attachments';
 
 	const {
 		memory,
@@ -73,8 +72,7 @@
 		title={idError}
 		oninput={() => (idEdited = true)}
 	/>
-	<textarea bind:value={content} placeholder={text('ai.memory.content_placeholder')} maxlength={maxLength} {@attach dynamicRows(12, 2)}
-	></textarea>
+	<textarea bind:value={content} placeholder={text('ai.memory.content_placeholder')} maxlength={maxLength}></textarea>
 	<div class="actions">
 		{#if oncancel}
 			<button type="button" onclick={oncancel}>{text('generic.cancel')}</button>
@@ -92,6 +90,13 @@
 
 	.id {
 		font-family: monospace;
+	}
+
+	textarea {
+		field-sizing: content;
+		resize: none;
+		min-height: 2lh;
+		max-height: 12lh;
 	}
 
 	.actions {

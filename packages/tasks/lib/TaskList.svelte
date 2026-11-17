@@ -2,7 +2,7 @@
 	import { goto } from '$app/navigation';
 	import { page } from '$app/state';
 	import { fetchAPI, preferences, text } from '@axium/client';
-	import { contextMenu, dynamicRows, type ContextMenuItem } from '@axium/client/attachments';
+	import { contextMenu, type ContextMenuItem } from '@axium/client/attachments';
 	import { AccessControlDialog, Icon, Popover } from '@axium/client/components';
 	import { copy } from '@axium/client/web';
 	import { toastStatus } from '@axium/client/toast';
@@ -116,8 +116,7 @@
 			oninput={e => {
 				task.summary = e.currentTarget.value.replaceAll('\n', ' ');
 				fetchAPI('PATCH', 'tasks/:id', { summary: task.summary }, task.id);
-			}}
-			{@attach dynamicRows(40, 1)}></textarea>
+			}}></textarea>
 		<Popover showToggle="hover">
 			{#each actions as item}
 				<div class="menu-item" onclick={item.action}>
@@ -324,6 +323,10 @@
 		textarea {
 			padding: 0.125em 0.25em;
 			width: 100%;
+			field-sizing: content;
+			resize: none;
+			min-height: 1lh;
+			max-height: 40lh;
 		}
 	}
 

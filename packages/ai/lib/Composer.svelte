@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
-	import { dynamicRows } from '@axium/client/attachments';
 	import { Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import ModelOptions from './ModelOptions.svelte';
@@ -100,8 +99,7 @@
 				if (ctrlEnter && !e.ctrlKey && !e.metaKey) return;
 				e.preventDefault();
 				void send();
-			}}
-			{@attach dynamicRows(12, 1)}></textarea>
+			}}></textarea>
 		<div class="controls">
 			<ModelOptions {models} bind:model bind:reasoning onchange={onoptions} />
 			{#if recording}
@@ -176,6 +174,10 @@
 		border: none;
 		background: none;
 		padding: 0.25em 0;
+		field-sizing: content;
+		resize: none;
+		min-height: 1lh;
+		max-height: 12lh;
 	}
 
 	.controls {

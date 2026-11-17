@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { dynamicRows } from '@axium/client/attachments';
 	import { Icon, LocationSelect, ZodInput, Discovery, discovery } from '@axium/client/components';
 	import { ContactURL, Custom, Email, Init, Phone, Relationship, SigDate, type Contact } from '@axium/contacts';
 	import ContactPicture from './ContactPicture.svelte';
@@ -191,7 +190,7 @@
 	{/if}
 
 	<Icon i="regular/note" />
-	<textarea bind:value={init.notes} {@attach dynamicRows(50, 3)}></textarea>
+	<textarea bind:value={init.notes}></textarea>
 	<span></span>
 
 	<span></span>
@@ -307,5 +306,12 @@
 				grid-column: 1 / -1;
 			}
 		}
+	}
+
+	textarea {
+		field-sizing: content;
+		resize: none;
+		min-height: 3lh;
+		max-height: 50lh;
 	}
 </style>
