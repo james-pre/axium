@@ -27,7 +27,7 @@ import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { getEvents, styleSeverity } from '../audit.js';
 import { build } from '../build.js';
-import { config, configManager } from '../config.js';
+import { config, configManager, startedPlugins } from '../config.js';
 import * as db from '../db/index.js';
 import { _portActions, _portMethods, localDir, logger, restrictedPorts, type PortOptions } from '../io.js';
 import * as jobs from '../jobs.js';
@@ -61,7 +61,7 @@ const cli = program
 		}
 	})
 	.hook('postAction', async (_, action) => {
-		if (db.database && !['develop', 'serve'].includes(action.name())) await db.database.destroy();
+		if (db.database && !['develop', 'serve'].includes(action.name())) await db.database[Symbol.asyncDispose]();
 	})
 	.on('option:debug', () => configManager.set('debug', true));
 
@@ -182,6 +182,7 @@ cli.command('init')
 /** Run the `load` hook of loaded plugins, e.g. so they can start background services */
 async function runLoadHooks() {
 	for (const plugin of plugins.values()) {
+		startedPlugins.add(plugin.name);
 		try {
 			await plugin._hooks?.load?.();
 		} catch (e) {

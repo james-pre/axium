@@ -129,6 +129,9 @@ const schema = z.looseObject({
 	plugins: z.string().array().default([]),
 });
 
+/** Names of plugins whose `load` hook has run in this process */
+export const startedPlugins = _unique('startedPlugins', new Set<string>());
+
 async function loadPlugins(path: string, file: { plugins?: string[] }, options: Partial<LoadOptions>): Promise<void> {
 	for (const pluginPath of file.plugins ?? []) {
 		const plugin = await loadPlugin('server', pluginPath, path, options.plugins);
@@ -157,7 +160,7 @@ async function loadPlugins(path: string, file: { plugins?: string[] }, options: 
 			plugin._configPath = configPath;
 		}
 
-		if (!options.plugins?.reload) continue;
+		if (!options.plugins?.reload || !startedPlugins.has(plugin.name)) continue;
 
 		try {
 			await plugin._hooks?.configChanged?.();
