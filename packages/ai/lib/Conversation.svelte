@@ -8,6 +8,7 @@
 	import { toast } from '@axium/client/toast';
 	import { tick, type Snippet } from 'svelte';
 	import { renameConversation } from './actions.js';
+	import BackLink from './BackLink.svelte';
 	import ChatMessage from './ChatMessage.svelte';
 	import Composer from './Composer.svelte';
 	import ConversationMenu from './ConversationMenu.svelte';
@@ -292,6 +293,7 @@
 
 <div class={['conversation', temporary && !messages.length && 'empty']}>
 	<div class="header">
+		<BackLink />
 		{#if temporary}
 			<div class="title icon-text">
 				{#if messages.length}

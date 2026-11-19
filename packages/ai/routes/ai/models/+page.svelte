@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { ModelActions, ModelStatus } from '@axium/ai/components';
+	import { BackLink, ModelActions, ModelStatus } from '@axium/ai/components';
 	import { withUpdates } from '@axium/ai/live';
 	import { fetchAPI, text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
@@ -34,6 +34,7 @@
 
 <div class="models-page">
 	<div class="header">
+		<BackLink />
 		<h2>{text('ai.models')}</h2>
 		{#if isAdmin}
 			<button class="icon-text" onclick={() => addDialog?.showModal()}>
@@ -55,23 +56,28 @@
 	<section class="list">
 		{#each models as model (model.id)}
 			<div class="model">
+				{const assigned = $derived(ai.roles.filter(role => ai.resolveRole(models, current.roles, role)?.id == model.id))}
 				<div class="info">
-					<div class="title">
-						<a href="/ai/models/{model.id}" class="name">{model.name}</a>
-						{#each ai.roles.filter(role => ai.resolveRole(models, current.roles, role)?.id == model.id) as role (role)}
-							<span class="badge">{text(`ai.role.name.${role}`)}</span>
-						{/each}
-					</div>
+					<a href="/ai/models/{model.id}" class="name">{model.name}</a>
 					<span class="subtle">{model.id}</span>
+					{#if assigned.length}
+						<div class="roles">
+							{#each assigned as role (role)}
+								<span class="badge">{text(`ai.role.name.${role}`)}</span>
+							{/each}
+						</div>
+					{/if}
 				</div>
-				<ModelStatus {model} />
-				<span class="subtle size">{bytes(model.size)}</span>
+				<div class="meta">
+					<div class="status"><ModelStatus {model} /></div>
+					<span class="subtle size">{bytes(model.size)}</span>
+				</div>
 				<div class="actions">
 					{#if isAdmin}
 						<ModelActions {model} onremove={refresh} />
 					{/if}
 				</div>
-				<Icon i="chevron-right" />
+				<span class="chevron"><Icon i="chevron-right" /></span>
 			</div>
 		{:else}
 			<p class="subtle">{text(isAdmin ? 'ai.no_models_admin' : 'ai.no_models')}</p>
@@ -105,11 +111,14 @@
 		display: flex;
 		flex-wrap: wrap;
 		align-items: center;
-		justify-content: space-between;
 		gap: 1em;
 
 		h2 {
 			margin: 0;
+		}
+
+		button {
+			margin-left: auto;
 		}
 	}
 
@@ -149,11 +158,11 @@
 		gap: 0.25em;
 		min-width: 0;
 
-		.title {
+		.roles {
 			display: flex;
 			flex-wrap: wrap;
-			align-items: center;
-			gap: 0.25em 0.75em;
+			gap: 0.25em 0.5em;
+			margin-top: 0.25em;
 		}
 
 		.name {
@@ -179,6 +188,14 @@
 		font-size: 0.8em;
 	}
 
+	.meta {
+		display: contents;
+	}
+
+	.status {
+		min-width: 0;
+	}
+
 	.size {
 		text-align: end;
 	}
@@ -189,11 +206,42 @@
 
 	@media (width < 800px) {
 		.list {
-			grid-template-columns: minmax(0, 1fr) max-content max-content;
+			display: flex;
+			flex-direction: column;
+		}
+
+		.model {
+			grid-template-columns: minmax(0, 1fr) max-content;
+			grid-template-areas:
+				'info chevron'
+				'meta meta'
+				'actions actions';
+			gap: 0.75em 1em;
+		}
+
+		.info {
+			grid-area: info;
+		}
+
+		.meta {
+			grid-area: meta;
+			display: flex;
+			align-items: first baseline;
+			gap: 1em;
+		}
+
+		.size {
+			text-align: start;
 		}
 
 		.actions {
-			grid-column: 1 / 3;
+			grid-area: actions;
+		}
+
+		.chevron {
+			grid-area: chevron;
+			align-self: start;
+			justify-self: end;
 		}
 	}
 </style>

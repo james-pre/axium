@@ -101,7 +101,9 @@
 				void send();
 			}}></textarea>
 		<div class="controls">
-			<ModelOptions {models} bind:model bind:reasoning onchange={onoptions} />
+			<div class="options">
+				<ModelOptions {models} bind:model bind:reasoning onchange={onoptions} />
+			</div>
 			{#if recording}
 				<button
 					type="button"
@@ -168,6 +170,7 @@
 		max-width: 50em;
 		width: 100%;
 		view-transition-name: ai-composer;
+		container: ai-composer / inline-size;
 	}
 
 	textarea {
@@ -182,10 +185,23 @@
 
 	.controls {
 		display: flex;
-		flex-wrap: wrap;
+		align-items: center;
+		gap: 0.75em;
+	}
+
+	.options {
+		display: flex;
+		flex: 1 1 auto;
 		align-items: center;
 		justify-content: flex-end;
 		gap: 0.75em;
+		min-width: 0;
+	}
+
+	.dictate,
+	.cancel,
+	.send {
+		flex-shrink: 0;
 	}
 
 	.dictate {

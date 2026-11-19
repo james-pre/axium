@@ -42,7 +42,7 @@
 
 <TopBarContent name={text('app_name.ai')} icon="sparkles" href="/ai" />
 
-<div id="ai-app" class={[(page.params.id || page.url.pathname != '/ai') && 'in-page']}>
+<div id="ai-app" class={[(page.params.id || page.url.pathname != '/ai' || page.url.searchParams.has('temporary')) && 'in-page']}>
 	<nav id="ai-sidebar">
 		<a href="/ai" class="new icon-text">
 			<Icon i="plus" />
@@ -65,6 +65,10 @@
 		{/each}
 		<div class="footer">
 			<Timers />
+			<a href="/ai?temporary" class="icon-text mobile-only" title={text('ai.temporary.description')}>
+				<Icon i="ghost" />
+				<span>{text('ai.temporary.toggle')}</span>
+			</a>
 			<a href="/ai/memory" class={['icon-text', page.url.pathname == '/ai/memory' && 'active']}>
 				<Icon i="brain" />
 				<span>{text('ai.memory.title')}</span>
@@ -159,9 +163,18 @@
 		overflow: hidden;
 	}
 
+	.mobile-only {
+		display: none;
+	}
+
 	@media (width < 700px) {
 		#ai-app {
 			grid-template-columns: 1fr;
+			grid-template-rows: minmax(0, 1fr) auto;
+		}
+
+		#ai-app.in-page {
+			grid-template-rows: 1fr;
 		}
 
 		#ai-main {
@@ -169,9 +182,62 @@
 			border-radius: 0;
 		}
 
-		#ai-app.in-page #ai-sidebar,
-		#ai-app:not(.in-page) #ai-main {
+		#ai-app.in-page #ai-sidebar {
 			display: none;
+		}
+
+		#ai-app:not(.in-page) #ai-main {
+			background: none;
+		}
+
+		#ai-sidebar {
+			gap: 0;
+			padding-bottom: 0;
+
+			.new {
+				display: none;
+			}
+
+			.item {
+				padding: 0.75em 1em;
+			}
+
+			.footer {
+				order: -1;
+				flex-direction: row;
+				flex-wrap: wrap;
+				gap: 0.5em;
+				margin: 0 0 0.75em;
+				padding: 0;
+
+				> :global(a),
+				> :global(button.icon-text) {
+					flex: 1;
+					justify-content: center;
+					background-color: var(--bg-alt);
+				}
+
+				> :global(a.active) {
+					background-color: var(--bg-accent);
+				}
+
+				> :global(:is(a, button.icon-text) span) {
+					position: absolute;
+					width: 1px;
+					height: 1px;
+					overflow: hidden;
+					clip-path: inset(50%);
+					white-space: nowrap;
+				}
+
+				> :global(.timer) {
+					flex-basis: 100%;
+				}
+			}
+
+			.mobile-only {
+				display: inline-flex;
+			}
 		}
 	}
 </style>

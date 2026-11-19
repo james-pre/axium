@@ -2,6 +2,7 @@
 	import type { Node as Memory, Update as MemoryUpdate } from '@axium/ai/memory';
 	import { markdown } from '@axium/ai/markdown';
 	import { fetchAPI, text } from '@axium/client';
+	import { BackLink } from '@axium/ai/components';
 	import { Icon } from '@axium/client/components';
 	import { confirm } from '@axium/client/dialogs';
 	import { toast } from '@axium/client/toast';
@@ -92,6 +93,7 @@
 
 <div class="memory-page">
 	<div class="header">
+		<BackLink />
 		<h2>{text('ai.memory.title')}</h2>
 		{#if !adding}
 			<button class="icon-text" onclick={() => (adding = true)} disabled={memories.length >= limit}>
@@ -217,7 +219,7 @@
 
 	.header {
 		display: flex;
-		align-items: baseline;
+		align-items: center;
 		gap: 1em;
 
 		h2 {

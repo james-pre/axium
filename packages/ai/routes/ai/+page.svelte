@@ -95,6 +95,18 @@
 		right: 1em;
 	}
 
+	@media (width < 700px) {
+		.start {
+			height: auto;
+			padding: 0.5em 1em 1em;
+
+			h2,
+			.corner {
+				display: none;
+			}
+		}
+	}
+
 	.toggle {
 		padding: 0.4em 0.9em;
 		border-radius: 1.5em;

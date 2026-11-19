@@ -71,12 +71,15 @@
 		{/each}
 	</select>
 {:else}
-	<span class="reasoning toggle subtle">
+	<span class="reasoning toggle subtle" title={text('ai.reasoning')}>
 		<input id="{id}:reasoning" type="checkbox" checked={enabled} onchange={e => setEnabled(e.currentTarget.checked)} />
 		<label for="{id}:reasoning" class="checkbox">
 			{#if enabled}<Icon i="check" --size="1.3em" />{/if}
 		</label>
-		<label for="{id}:reasoning">{text('ai.reasoning')}</label>
+		<label for="{id}:reasoning" class="name">
+			<Icon i="lightbulb" class="compact" />
+			<span>{text('ai.reasoning')}</span>
+		</label>
 	</span>
 {/if}
 
@@ -87,15 +90,38 @@
 		color: inherit;
 		cursor: pointer;
 		min-width: 0;
+		text-overflow: ellipsis;
 	}
 
 	.toggle {
 		display: inline-flex;
 		align-items: center;
 		gap: 0.5em;
+		flex-shrink: 0;
 
 		label {
 			cursor: pointer;
+		}
+
+		.name :global(.compact) {
+			display: none;
+		}
+	}
+
+	@container ai-composer (width < 28em) {
+		.toggle .name {
+			:global(.compact) {
+				display: inline-block;
+			}
+
+			span {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				overflow: hidden;
+				clip-path: inset(50%);
+				white-space: nowrap;
+			}
 		}
 	}
 </style>

@@ -1,3 +1,4 @@
+export { default as BackLink } from './BackLink.svelte';
 export { default as ChatMessage } from './ChatMessage.svelte';
 export { default as Composer } from './Composer.svelte';
 export { default as Conversation } from './Conversation.svelte';
