@@ -258,7 +258,8 @@ export function track({ model: name, event, data }: llama.RouterEvent): boolean 
 	switch (event) {
 		case 'download_progress': {
 			const progress: ai.DownloadProgress = { done: 0, total: 0 };
-			for (const file of Object.values(data as Record<string, ai.DownloadProgress>)) {
+			const files = (data as { progress?: Record<string, ai.DownloadProgress> } | undefined)?.progress ?? {};
+			for (const file of Object.values(files)) {
 				progress.done += file.done;
 				progress.total += file.total;
 			}
