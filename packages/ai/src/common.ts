@@ -8,16 +8,19 @@ import * as memory from './memory.js';
 export const ModelId = z
 	.string()
 	.max(64)
-	.regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, 'Model IDs may only contain lowercase letters, numbers, and single dashes between them');
+	.regex(
+		/^[a-z0-9]+(?:[.-][a-z0-9]+)*$/,
+		'Model IDs may only contain lowercase letters, numbers, and single dots or dashes between them'
+	);
 
 /** Turns a display name into a model ID */
 export function modelIdFrom(name: string): string {
 	return name
 		.toLowerCase()
-		.replace(/[^a-z0-9]+/g, '-')
-		.replace(/^-+|-+$/g, '')
+		.replace(/[^a-z0-9]+/g, separator => (separator == '.' ? '.' : '-'))
+		.replace(/^[.-]+|[.-]+$/g, '')
 		.slice(0, 64)
-		.replace(/-+$/, '');
+		.replace(/[.-]+$/, '');
 }
 
 /** A display name for a model from its repository, e.g. "Gemma 4 E4B" from "org/Gemma-4-E4B-GGUF" */
