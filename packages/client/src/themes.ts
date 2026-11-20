@@ -2,6 +2,7 @@ import type { Theme } from '@axium/core/preferences';
 
 export const themeStyles: Record<Theme, Record<string, string>> = Object.assign(Object.create(null), {
 	light: {
+		'color-scheme': 'light',
 		'fg-light': '10%',
 		'bg-light': '70%',
 		'light-step': '-6%',
@@ -17,6 +18,7 @@ export const themeStyles: Record<Theme, Record<string, string>> = Object.assign(
 		'light-step': '2.5%',
 	},
 	beach: {
+		'color-scheme': 'light',
 		hue: '50',
 		'fg-light': '30%',
 		'bg-light': '60%',

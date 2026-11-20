@@ -30,6 +30,9 @@
 
 /* html is used so themes can use :root to override these if needed */
 html {
+	--color-scheme: dark;
+	color-scheme: var(--color-scheme);
+
 	--bg-normal: hsl(0 0 var(--bg-light));
 	--bg-menu: hsl(0 0 calc(var(--bg-light) - var(--light-step)));
 	--bg-accent: hsl(var(--hue) 15 calc(var(--bg-light) + (var(--light-step) * 2)));
