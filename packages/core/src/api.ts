@@ -16,6 +16,7 @@ import {
 } from './passkeys.js';
 import { PluginInternal, PluginUpdate } from './plugins.js';
 import type { RequestMethod } from './requests.js';
+import { SecretInfo } from './schemas.js';
 import {
 	LogoutSessions,
 	SessionChangeable,
@@ -183,6 +184,7 @@ const _API = {
 		GET: z.object({
 			files: z.record(z.string(), z.any()),
 			config: z.record(z.string(), z.unknown()),
+			secrets: z.record(z.string(), SecretInfo),
 		}),
 	},
 	'admin/plugins': {

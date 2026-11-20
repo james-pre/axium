@@ -52,6 +52,7 @@
 				rootValue={plugin.config}
 				idPrefix={plugin.name}
 				{schema}
+				secrets={plugin.secrets}
 				sort
 				updateValue={config => fetchAPI('POST', 'admin/plugins', { plugin: plugin.name, config })}
 			/>

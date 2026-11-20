@@ -1,4 +1,5 @@
 import { config, hostname } from '@axium/server/config';
+import * as locales from '@james-pre/locales';
 import * as io from 'ioium/node';
 import { readFileSync } from 'node:fs';
 import { createTransport, type Transporter, type SendMailOptions } from 'nodemailer';
@@ -13,7 +14,7 @@ export const MxConfig = z.object({
 	auth: z
 		.object({
 			user: z.string(),
-			pass: z.string(),
+			pass: z.string().register(locales.zod, { secret: true }),
 		})
 		.optional(),
 	secure: cfg.bool,

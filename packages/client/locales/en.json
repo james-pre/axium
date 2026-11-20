@@ -65,9 +65,16 @@
 		"latest": "Latest",
 		"upgrade": "<span class=\"version\">{latest}</span> available"
 	},
+	"SecretStatus": {
+		"file": "Stored in the secrets file. Change it with `axium secret set {id}`.",
+		"systemd": "Stored as a systemd credential. Change it with `axium secret set {id}`.",
+		"unset": "Not set. Store it with `axium secret set {id}`."
+	},
 	"ZodInput": {
 		"experimental": "Experimental",
-		"invalid_type": "Invalid input type: {type}"
+		"invalid_type": "Invalid input type: {type}",
+		"secret_set": "Hidden, type to replace",
+		"secret_unset": "Not set"
 	},
 	"error": {
 		"network": {
@@ -206,6 +213,7 @@
 			"config": {
 				"active": "Active Configuration",
 				"loaded_files": "Loaded Files",
+				"secrets": "Secrets",
 				"title": "Admin — Configuration"
 			},
 			"dashboard": {

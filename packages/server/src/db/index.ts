@@ -15,6 +15,7 @@ import * as z from 'zod';
 import { config, configManager } from '../config.js';
 import { localDir, systemDir } from '../io.js';
 import * as jobs from '../jobs.js';
+import * as secrets from '../secrets.js';
 
 import { connect, database } from './connection.js';
 
@@ -186,8 +187,10 @@ export const warnExists = io.someWarnings([/\w+ "[\w.]+" already exists/, 'alrea
 
 export async function init(opt: InitOptions): Promise<void> {
 	if (!config.db.password) {
-		configManager.update({ db: { password: randomBytes(32).toString('base64') } }, 'system');
-		io.debug('Generated password and wrote to global config');
+		const password = randomBytes(32).toString('base64');
+		secrets.set('db.password', password);
+		configManager.set('db.password', password);
+		io.debug('Generated and stored the database password');
 	}
 
 	io.trackCommand('Checking for sudo', 'which', 'sudo');
@@ -521,7 +524,9 @@ export async function clean(opt: Partial<OpOptions>): Promise<void> {
 export function rotatePassword() {
 	const password = io.track('Generating new password', () => randomBytes(32).toString('base64'));
 
-	io.track('Updating global config', () => configManager.update({ db: { password } }, 'system'));
+	io.track('Storing password', () => secrets.set('db.password', password));
+	configManager.set('db.password', password);
 
 	_sql(`ALTER USER axium WITH ENCRYPTED PASSWORD '${password}'`, 'Updating database user password');
+	io.info('Restart Axium for the new password to take effect.');
 }

@@ -1,7 +1,11 @@
 <script lang="ts" module>
-	import type { ZodPref } from '@axium/core';
+	import type { SecretInfo, ZodPref } from '@axium/core';
 	import feature from '@axium/core/features';
 	import * as locales from '@james-pre/locales';
+
+	/** Context holding a getter for information about secret fields, keyed by path */
+	export const secretsContext = Symbol('ZodForm:secrets');
+	export type SecretsGetter = () => Record<string, SecretInfo> | undefined;
 
 	/** The schema a modifier or composite is rendered as */
 	function inner(schema: ZodPref): ZodPref | undefined {
@@ -48,6 +52,7 @@
 
 <script lang="ts">
 	import { text } from '@axium/client';
+	import { getContext, setContext } from 'svelte';
 	import { getByString } from 'utilium';
 	import Icon from './Icon.svelte';
 	import ZodInput from './ZodInput.svelte';
@@ -63,6 +68,8 @@
 		localeInfo?: locales.ZodInfo;
 		/** Whether fields are ordered by key instead of by the schema */
 		sort?: boolean;
+		/** Information about secret fields, keyed by path */
+		secrets?: Record<string, SecretInfo>;
 	}
 
 	let {
@@ -74,7 +81,11 @@
 		label,
 		localeInfo = locales.zod.get(schema),
 		sort,
+		secrets,
 	}: Props = $props();
+
+	const parentSecrets = getContext<SecretsGetter | undefined>(secretsContext);
+	setContext<SecretsGetter>(secretsContext, () => secrets ?? parentSecrets?.());
 
 	/** A section's `enabled` field, which disables the rest of the section when false */
 	const toggle = $derived.by((): ZodPref | undefined => {

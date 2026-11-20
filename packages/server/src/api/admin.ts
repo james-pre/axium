@@ -1,13 +1,13 @@
 import client from '@axium/client/package.json' with { type: 'json' };
 import type { AsyncResult, PluginInternal, UserInternal } from '@axium/core';
 import { AuditFilter, Severity, UserAdminChange, UserRegistrationInit } from '@axium/core';
-import { debug, errorText, warn, writeJSON } from 'ioium/node';
 import core from '@axium/core/package.json' with { type: 'json' };
 import { _findPlugin, plugins, PluginUpdate, serverConfigs } from '@axium/core/plugins';
+import { debug, errorText, warn, writeJSON } from 'ioium/node';
 import { jsonObjectFrom } from 'kysely/helpers/postgres';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path/posix';
-import { deepAssign, omit, type Add, type Tuple } from 'utilium';
+import { deepAssign, getByString, omit, setByString, type Add, type Tuple } from 'utilium';
 import * as z from 'zod';
 import $pkg from '../../package.json' with { type: 'json' };
 import { audit, events, getEvents } from '../audit.js';
@@ -16,6 +16,7 @@ import { config, configManager } from '../config.js';
 import { count, database as db } from '../db/index.js';
 import { error, parseBody, parseSearch, withError } from '../requests.js';
 import { addRoute, type RouteCommon } from '../routes.js';
+import * as secrets from '../secrets.js';
 
 export async function assertAdmin(route: RouteCommon, req: Request, sensitive: boolean = false): Promise<SessionAndUser> {
 	const admin = await requireSession(req, sensitive);
@@ -64,7 +65,14 @@ addRoute({
 		await assertAdmin(this, req);
 		return plugins
 			.values()
-			.map(p => omit(p, '_hooks', '_client'))
+			.map(plugin => {
+				const info = omit(plugin, '_hooks', '_client');
+				const schema = serverConfigs.get(plugin.name);
+				if (!schema || !plugin.config) return info;
+				const config = structuredClone(plugin.config);
+				secrets.strip(schema, config);
+				return { ...info, config };
+			})
 			.toArray();
 	},
 	async POST(req): AsyncResult<'POST', 'admin/plugins'> {
@@ -87,10 +95,31 @@ addRoute({
 			plugin.config ||= {};
 
 			debug('Updating plugin config:', name);
+
+			const changed = secrets.strip(schema, config);
+			for (const path of changed.keys()) {
+				const id = secrets.idFor(path, name);
+				if (!secrets.info(id).editable) error(409, `The secret ${id} can not be changed here`);
+			}
+
+			for (const path of secrets.paths(schema)) {
+				const value = changed.get(path) ?? getByString(plugin.config, path);
+				if (value !== undefined) setByString(config, path, value);
+			}
+
 			const parsed = await schema.parseAsync(config).catch(e => error(400, errorText(e)));
+
+			for (const [path, value] of changed) {
+				const id = secrets.idFor(path, name);
+				if (secrets.get(id)?.value !== value) secrets.set(id, value, 'file');
+			}
+			plugin.secrets = secrets.describe(schema, name);
+
 			deepAssign(plugin.config, parsed, { replaceArrays: true });
+			const file = structuredClone(plugin.config);
+			secrets.strip(schema, file);
 			mkdirSync(dirname(plugin._configPath), { recursive: true });
-			writeJSON(plugin._configPath, plugin.config);
+			writeJSON(plugin._configPath, file);
 
 			await Promise.resolve(plugin._hooks?.configChanged?.()).catch(e =>
 				warn(`Failed to apply new config for plugin ${name}: ${errorText(e)}`)
@@ -142,25 +171,23 @@ addRoute({
 	},
 });
 
-/**
- * Redacts critical information that we don't want to send over the API, even to admins.
- */
-function _redactConfig<T extends { db?: { password?: string } }>(config: T): T {
-	if (config.db?.password) {
-		config.db.password = '*'.repeat(config.db.password.length);
-	}
-
-	return config;
-}
-
 addRoute({
 	path: '/api/admin/config',
 	async GET(req): AsyncResult<'GET', 'admin/config'> {
 		await assertAdmin(this, req);
 
+		const active = structuredClone(configManager.data);
+		secrets.strip(configManager.schema, active);
+
 		return {
-			config: _redactConfig(structuredClone(configManager.data)),
-			files: Object.fromEntries(configManager.files.map(file => [file.path, _redactConfig(file.data)])),
+			config: active,
+			files: Object.fromEntries(
+				configManager.files.map(file => {
+					secrets.strip(configManager.schema, file.data);
+					return [file.path, file.data];
+				})
+			),
+			secrets: secrets.describe(configManager.schema),
 		};
 	},
 });

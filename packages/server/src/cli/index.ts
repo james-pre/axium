@@ -40,6 +40,7 @@ import { matchesGitGlob, matchesGitGlobs, sharedOptions as opts } from './common
 import { dbInitTables } from './db.js';
 // other subcommands
 import './db.js';
+import './secret.js';
 import { safe } from './plugins.js';
 import './user.js';
 

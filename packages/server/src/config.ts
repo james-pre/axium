@@ -1,8 +1,9 @@
-import { serverConfigs, toBaseName } from '@axium/core';
+import { SecretStore, serverConfigs, toBaseName } from '@axium/core';
 import type { Severity } from '@axium/core/audit';
 import { Id as FeatureId } from '@axium/core/features';
 import { loadPlugin, trackPluginLoading, type PluginLoadOptions } from '@axium/core/node/plugins';
 import * as jpConfig from '@james-pre/config';
+import * as locales from '@james-pre/locales';
 import * as io from 'ioium/node';
 import { levelText } from 'logzen';
 import { existsSync } from 'node:fs';
@@ -12,6 +13,7 @@ import * as z from 'zod';
 import * as cfg from './config_types.js';
 import { MxConfig } from './email.js';
 import { dirs, logger, systemDir } from './io.js';
+import * as secrets from './secrets.js';
 import { _duplicateStateWarnings, _unique } from './state.js';
 
 const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
@@ -66,7 +68,10 @@ const schema = z.looseObject({
 		port: cfg.port.default(
 			process.env.PGPORT && Number.isSafeInteger(parseInt(process.env.PGPORT)) ? parseInt(process.env.PGPORT) : 5432
 		),
-		password: z.string().default(process.env.PGPASSWORD || ''),
+		password: z
+			.string()
+			.default(process.env.PGPASSWORD || '')
+			.register(locales.zod, { secret: true }),
 		user: z.string().default(process.env.PGUSER || 'axium'),
 		database: z.string().default(process.env.PGDATABASE || 'axium'),
 	}),
@@ -102,6 +107,8 @@ const schema = z.looseObject({
 		subject: z.string().optional(),
 	}),
 	request_size_limit: z.coerce.number().min(0).optional().default(0),
+	/** Where new secrets are stored. Defaults to `systemd` when the system was booted with systemd, otherwise `file`. */
+	secret_store: SecretStore.optional(),
 	show_duplicate_state: cfg.bool.default(false),
 	/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
 	user_discovery: z.literal(['disabled', 'admin', 'user', 'public']).default('user'),
@@ -158,6 +165,8 @@ async function loadPlugins(path: string, file: { plugins?: string[] }, options: 
 				}
 			}
 			plugin._configPath = configPath;
+			secrets.apply(serverConfig, plugin.config, plugin.name);
+			plugin.secrets = secrets.describe(serverConfig, plugin.name);
 		}
 
 		if (!options.plugins?.reload || !startedPlugins.has(plugin.name)) continue;
@@ -175,6 +184,7 @@ export const configManager = _unique(
 	new jpConfig.Manager(schema, { enableIncludes: true, system: 'axium/config' }).$loadOptions<LoadOptions>()
 )
 	.on('change', () => {
+		secrets.apply(configManager.schema, configManager.data);
 		logger.detach(io);
 		if (config.log.console) logger.attach(io, { output: config.log.level });
 		io._setDebugOutput(config.debug);
@@ -182,7 +192,11 @@ export const configManager = _unique(
 	})
 	.on('create', path => io.debug('Created config file', path))
 	.on('write', path => io.debug('Wrote config to', path))
-	.on('reload', () => io.info('Reloaded configuration files'))
+	.on('reload', () => {
+		secrets.load();
+		secrets.apply(configManager.schema, configManager.data);
+		io.info('Reloaded configuration files');
+	})
 	.on('load_error', (path, stage, error) => {
 		switch (stage) {
 			case 'create':

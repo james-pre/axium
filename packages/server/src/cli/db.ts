@@ -226,7 +226,7 @@ axiumDB
 
 axiumDB
 	.command('rotate-password')
-	.description('Generate a new password for the database user and update the config')
+	.description('Generate a new password for the database user and store it')
 	.action(db.rotatePassword);
 
 axiumDB

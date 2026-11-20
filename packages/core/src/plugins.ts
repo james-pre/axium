@@ -2,7 +2,7 @@ import { debug, warn } from 'ioium';
 import * as z from 'zod';
 import { App, apps } from './apps.js';
 import * as features from './features.js';
-import { zAsyncFunction } from './schemas.js';
+import { SecretInfo, zAsyncFunction } from './schemas.js';
 import { AccessControlConfig } from './access.js';
 
 const fn = z.custom<(...args: any[]) => any>(data => typeof data === 'function');
@@ -82,6 +82,8 @@ export const PluginInfo = z.object({
 	isServer: z.boolean(),
 	_db: z.any().optional(),
 	_configPath: z.string().optional(),
+	/** Information about the secrets in the plugin's config, keyed by path */
+	secrets: z.record(z.string(), SecretInfo).optional(),
 });
 
 export interface PluginInfo extends z.infer<typeof PluginInfo> {}

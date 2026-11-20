@@ -3,11 +3,13 @@
 	import type { ZodPref } from '@axium/core';
 	import feature from '@axium/core/features';
 	import * as locales from '@james-pre/locales';
+	import { getContext } from 'svelte';
 	import type { HTMLInputAttributes } from 'svelte/elements';
 	import { getByString, pick, setByString } from 'utilium';
 	import { prettifyError, type z } from 'zod';
 	import Icon from './Icon.svelte';
-	import ZodForm from './ZodForm.svelte';
+	import SecretStatus from './SecretStatus.svelte';
+	import ZodForm, { secretsContext, type SecretsGetter } from './ZodForm.svelte';
 	import ZodInput from './ZodInput.svelte';
 
 	interface Props {
@@ -42,6 +44,8 @@
 	} = props;
 
 	const id = (idPrefix ? idPrefix + ':' : '') + path.replaceAll(' ', '_');
+
+	const secrets = getContext<SecretsGetter | undefined>(secretsContext);
 
 	let value = $state<any>(getByString(rootValue, path));
 
@@ -189,6 +193,27 @@
 
 {#if localeInfo?.feature && !feature(localeInfo.feature)}
 	<meta data-feature={localeInfo.feature} />
+{:else if schema.type == 'string' && localeInfo?.secret}
+	{const info = secrets?.()?.[path]}
+	<div class={['ZodInput', noLabel && 'no-label']}>
+		{@render labelFor(id)}
+		{#if info && !info.editable}
+			<SecretStatus {info} />
+		{:else}
+			{#if error}<span class="ZodInput-error">{error}</span>{/if}
+			<input
+				{id}
+				type="password"
+				autocomplete="new-password"
+				bind:value
+				{onchange}
+				required={!optional && !info?.source}
+				placeholder={text(info?.source ? 'ZodInput.secret_set' : 'ZodInput.secret_unset')}
+				{readonly}
+				class={[error && 'error']}
+			/>
+		{/if}
+	</div>
 {:else if schema.type == 'string' && localeInfo?.multiline}
 	<div class={['ZodInput', 'multiline', noLabel && 'no-label']}>
 		{@render labelFor(id)}

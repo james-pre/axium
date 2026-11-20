@@ -113,7 +113,22 @@ export interface SchemaMetadata {
 	multiline?: boolean;
 	/** If set this control is disabled unless each named sibling field has one of the listed values */
 	requires?: Record<string, readonly unknown[]>;
+	/** If set this string is kept in the secret store instead of config files and is never sent to clients */
+	secret?: boolean;
 }
+
+export const SecretStore = z.literal(['systemd', 'file']);
+export type SecretStore = z.infer<typeof SecretStore>;
+
+export const SecretInfo = z.object({
+	/** The key in secrets files, and the systemd credential name after `axium.` */
+	id: z.string(),
+	/** Where the value comes from, or null when it is not set */
+	source: SecretStore.nullable(),
+	/** Whether the value can be replaced through the API */
+	editable: z.boolean(),
+});
+export interface SecretInfo extends z.infer<typeof SecretInfo> {}
 
 declare module '@james-pre/locales' {
 	interface ZodInfo extends SchemaMetadata {}
