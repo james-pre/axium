@@ -95,6 +95,7 @@
 		margin: -0.1em 0;
 		font: inherit;
 		color: inherit;
+		width: 100%;
 		min-width: 0;
 		flex: 1 1 auto;
 		anchor-name: --inline-edit;
