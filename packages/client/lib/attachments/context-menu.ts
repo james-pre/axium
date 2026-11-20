@@ -117,7 +117,7 @@ export function contextMenu(...menuItems: ContextMenuEntry[] | [() => ContextMen
 			if (!_forcePopover) return;
 			e.stopPropagation();
 			e.preventDefault();
-			menu.togglePopover();
+			if (!menu.matches(':popover-open')) menu.showPopover();
 			_forcePopover = false;
 		};
 

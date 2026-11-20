@@ -48,7 +48,7 @@
 		if (!_forcePopover) return;
 		e.stopPropagation();
 		e.preventDefault();
-		popover!.togglePopover();
+		if (!popover!.matches(':popover-open')) popover!.showPopover();
 		_forcePopover = false;
 	}
 
