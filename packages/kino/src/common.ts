@@ -71,7 +71,7 @@ export const KinoConfig = z
 	.object({
 		allow_user_uploads: z.boolean(),
 		data_dir: z.string().nonempty(),
-		tmdb_api_key: z.string(),
+		tmdb_api_key: z.string().register(locales.zod, { secret: true }),
 		remux: RemuxMode,
 		images: z.object({
 			cache: z.object({
