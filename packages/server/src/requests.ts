@@ -206,19 +206,18 @@ export async function handleAPIRequest(request: Request, params: Record<string, 
 	if (typeof route[method] != 'function') error(405, `Method ${method} not allowed for ${route.path}`);
 
 	const result: void | object | Response = await route[method].call(route, request, params);
-	const response = result instanceof Response ? result : json(result);
-	if (!warnings.length) return response;
-
-	const withWarnings = new Response(response.body, response);
-	withWarnings.headers.set(warningsHeader, encodeWarnings(warnings));
-	return withWarnings;
+	const response = result instanceof Response ? new Response(result.body, result) : json(result);
+	if (!response.headers.has('Cache-Control')) response.headers.set('Cache-Control', 'no-store');
+	if (warnings.length) response.headers.set(warningsHeader, encodeWarnings(warnings));
+	return response;
 }
 
 export function handleResponseError(e: Error | ResponseError | Redirect) {
-	if (isResponseError(e)) return json({ message: e.message }, { status: e.status });
+	const headers = { 'Cache-Control': 'no-store' };
+	if (isResponseError(e)) return json({ message: e.message }, { status: e.status, headers });
 	if (isRedirect(e)) return Response.redirect(e.location, e.status);
 	console.error(e);
-	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500 });
+	return json({ message: 'Internal Error' + (config.debug ? ': ' + e.message : '') }, { status: 500, headers });
 }
 
 export const noCacheHeaders = {
