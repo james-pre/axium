@@ -85,4 +85,3 @@ axiumSecret
 		io.log(`Removed ${id}`);
 		applyNotice(store ?? secrets.defaultStore());
 	});
-

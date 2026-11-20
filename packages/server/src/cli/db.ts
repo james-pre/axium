@@ -224,10 +224,7 @@ axiumDB
 		await db.clean(opt);
 	});
 
-axiumDB
-	.command('rotate-password')
-	.description('Generate a new password for the database user and store it')
-	.action(db.rotatePassword);
+axiumDB.command('rotate-password').description('Generate a new password for the database user and store it').action(db.rotatePassword);
 
 axiumDB
 	.command('json-schema')
