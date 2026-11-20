@@ -56,7 +56,7 @@ export const LlamaConfig = z.object({
 	/** Options applied to every model, using llama-server's argument names without dashes */
 	defaults: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])),
 	/** Used for Hugging Face downloads */
-	hf_token: z.string().optional(),
+	hf_token: z.string().optional().register(locales.zod, { secret: true }),
 });
 export interface LlamaConfig extends z.infer<typeof LlamaConfig> {}
 
