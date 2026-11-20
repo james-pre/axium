@@ -1,0 +1,14 @@
+{
+	"extends": ["../tsconfig.json", "$app/tsconfig"],
+	"compilerOptions": {
+		"typeRoots": null,
+		"moduleResolution": "bundler",
+		"module": "esnext",
+		"noEmit": true,
+		"target": "esnext",
+		"rootDir": "..",
+		"types": ["@sveltejs/kit"]
+	},
+	"include": ["**/*", "../lib/*", "../src/.*.ts", "../../client/dist/.*.ts"],
+	"references": [{ "path": ".." }]
+}

@@ -1,0 +1,57 @@
+{
+	"groups": {
+		"pages": [
+			"*/main/index.html",
+			"*/main/index_loader.html",
+			"spreadsheeteditor/main/index_internal.html",
+			"documenteditor/forms/index.html",
+			"common/index.html"
+		],
+		"bundles": ["*/main/app.js", "documenteditor/forms/app.js"],
+		"stylesheets": ["*/main/app.css", "documenteditor/forms/app.css"],
+		"discussionStylesheets": [
+			"documenteditor/main/app.css",
+			"pdfeditor/main/app.css",
+			"presentationeditor/main/app.css",
+			"spreadsheeteditor/main/app.css"
+		]
+	},
+	"patches": [
+		{
+			"group": "pages",
+			"count": 2,
+			"anchor": "getItem(\"content-theme\") == 'dark'",
+			"replacement": "getItem(\"content-theme\") != 'light'"
+		},
+		{
+			"group": "bundles",
+			"count": 1,
+			"anchor": "const check_launched_custom_theme=function(){let theme_id=window.uitheme.id;if(themes_map[theme_id]){if(\"static\"!=themes_map[theme_id].source){",
+			"replacement": "const check_launched_custom_theme=function(){let theme_id=window.uitheme.id;if(themes_map[theme_id]){if(\"static\"!=themes_map[theme_id].source){if(themes_map[theme_id].src)return apply_theme.call(Common.UI.Themes,theme_id),void Common.NotificationCenter.trigger(\"uitheme:changed\",theme_id);"
+		},
+		{
+			"group": "bundles",
+			"count": 1,
+			"anchor": "document.getElementsByTagName(\"head\")[0].appendChild(style)}}(t.src.id,function(id,colors){if(colors&&id){var _css_array=[\":root .\",id,\"{\"]",
+			"replacement": "document.body.appendChild(style)}}(t.src.id,function(id,colors){if(colors&&id){var _css_array=[\":root body.\",id,\"{\"]"
+		},
+		{
+			"group": "pages",
+			"count": 1,
+			"anchor": "inject_style_tag('.' + objtheme.id + '{'",
+			"replacement": "inject_style_tag(':root body.' + objtheme.id + '{'"
+		},
+		{
+			"group": "stylesheets",
+			"count": 1,
+			"anchor": "  background: #4A87E7;\n  color: #fff;",
+			"replacement": "  background: var(--background-primary-dialog-button);\n  color: var(--text-inverse);"
+		},
+		{
+			"group": "discussionStylesheets",
+			"count": 1,
+			"anchor": "  background: #3494fb;\n  color: white;",
+			"replacement": "  background: var(--highlight-text-select);\n  color: var(--text-inverse);"
+		}
+	]
+}

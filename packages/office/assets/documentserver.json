@@ -1,0 +1,11 @@
+{
+	"services": {
+		"CoAuthoring": {
+			"autoAssembly": {
+				"enable": true,
+				"interval": "5m",
+				"step": "1m"
+			}
+		}
+	}
+}

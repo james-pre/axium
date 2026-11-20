@@ -1,0 +1,38 @@
+{
+	"app_name": {
+		"office": "Office"
+	},
+	"office": {
+		"config": {
+			"server_url": "Document server URL for browsers",
+			"internal_url": "Axium URL for the document server",
+			"secret": "Document server JWT secret"
+		},
+		"new": "New",
+		"kind": {
+			"document": "Document",
+			"spreadsheet": "Spreadsheet",
+			"presentation": "Presentation"
+		},
+		"untitled": {
+			"document": "Untitled document",
+			"spreadsheet": "Untitled spreadsheet",
+			"presentation": "Untitled presentation"
+		},
+		"empty": "No documents yet. Create one with New, or upload a .docx, .xlsx or .pptx file in Files.",
+		"shared": "Shared with you",
+		"modified": "Modified {date}",
+		"actions": "Actions for {name}",
+		"open": "Open",
+		"open_new_tab": "Open in new tab",
+		"download": "Download",
+		"trash": "Move to trash",
+		"renamed": "Renamed",
+		"trashed": "Moved to trash",
+		"read_only": "Read only",
+		"opening": "Opening {name}",
+		"failed": "The editor could not open this document.",
+		"back": "Back to documents",
+		"trust_hint": "If the document server uses a self-signed certificate, open it once and accept the certificate:"
+	}
+}
