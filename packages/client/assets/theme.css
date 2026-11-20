@@ -56,7 +56,7 @@ html {
 
 	--green: hsl(140 50 50);
 
-	--border-disabled: 1px solid hsl(0 5 calc(var(--bg-light) - var(--light-step)));
+	--border-disabled: 1px solid hsl(0 5 calc(var(--bg-light) + (var(--light-step) * 2)));
 	--border-accent: 1px solid hsl(var(--hue) 10 calc(var(--bg-light) + (var(--light-step) * 3)));
 	--border-alt: 1px solid var(--bg-alt);
 	--border-strong: 1px solid hsl(var(--hue) 20 calc(var(--bg-light) + (var(--light-step) * 3)));

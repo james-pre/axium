@@ -60,7 +60,8 @@
 	interface Props {
 		rootValue: any;
 		schema: Extract<ZodPref, { type: 'object' | 'record' }>;
-		updateValue(value: any): void;
+		/** May return a promise, which secret fields wait on to report errors */
+		updateValue(value: any): unknown;
 		idPrefix?: string;
 		/** Where the value is in `rootValue`, which renders the form as a section when set */
 		path?: string;
@@ -101,9 +102,9 @@
 	/** A copy of this object's value, replaced when a field changes since `rootValue` may not be deeply reactive */
 	let value = $derived(valueAt(rootValue));
 
-	function update(root: any) {
+	function update(root: any): unknown {
 		value = valueAt(root);
-		updateValue(root);
+		return updateValue(root);
 	}
 
 	/** Whether each sibling field named in `requires` has one of the values it lists */

@@ -8,7 +8,7 @@
 	import { getByString, pick, setByString } from 'utilium';
 	import { prettifyError, type z } from 'zod';
 	import Icon from './Icon.svelte';
-	import SecretStatus from './SecretStatus.svelte';
+	import Secret from './Secret.svelte';
 	import ZodForm, { secretsContext, type SecretsGetter } from './ZodForm.svelte';
 	import ZodInput from './ZodInput.svelte';
 
@@ -24,7 +24,7 @@
 		optional?: boolean;
 		readonly?: boolean;
 		noLabel?: boolean | 'placeholder';
-		updateValue(value: any): void;
+		updateValue(value: any): unknown;
 	}
 
 	let { rootValue = $bindable(), ...props }: Props = $props();
@@ -101,13 +101,29 @@
 		const oldValue = getByString(rootValue, path);
 		if (val == oldValue) return;
 
-		if (defaultValue == val) {
-			const parts = path.split('.');
-			const prop = parts.pop()!;
-			delete getByString<Record<string, any>>(rootValue, parts.join('.'))![prop];
-		} else setByString(rootValue, path, val);
+		if (defaultValue == val) removeValue();
+		else setByString(rootValue, path, val);
 
 		updateValue(rootValue);
+	}
+
+	function removeValue() {
+		const parts = path.split('.');
+		const prop = parts.pop()!;
+		delete getByString<Record<string, any>>(rootValue, parts.join('.'))![prop];
+	}
+
+	/** Sends a new secret, then drops it from `rootValue` so later updates don't send it again */
+	async function saveSecret(secret: string) {
+		const result = schema.safeParse(secret);
+		if (!result.success) throw prettifyError(result.error);
+
+		setByString(rootValue, path, result.data);
+		try {
+			await updateValue(rootValue);
+		} finally {
+			removeValue();
+		}
 	}
 
 	const oninput = onchange;
@@ -194,25 +210,15 @@
 {#if localeInfo?.feature && !feature(localeInfo.feature)}
 	<meta data-feature={localeInfo.feature} />
 {:else if schema.type == 'string' && localeInfo?.secret}
-	{const info = secrets?.()?.[path]}
 	<div class={['ZodInput', noLabel && 'no-label']}>
 		{@render labelFor(id)}
-		{#if info && !info.editable}
-			<SecretStatus {info} />
-		{:else}
-			{#if error}<span class="ZodInput-error">{error}</span>{/if}
-			<input
-				{id}
-				type="password"
-				autocomplete="new-password"
-				bind:value
-				{onchange}
-				required={!optional && !info?.source}
-				placeholder={text(info?.source ? 'ZodInput.secret_set' : 'ZodInput.secret_unset')}
-				{readonly}
-				class={[error && 'error']}
-			/>
-		{/if}
+		<Secret
+			info={secrets?.()?.[path] ?? { id: path, source: null, editable: true }}
+			label={labelText}
+			save={readonly ? undefined : saveSecret}
+			minLength={schema.minLength}
+			maxLength={schema.maxLength}
+		/>
 	</div>
 {:else if schema.type == 'string' && localeInfo?.multiline}
 	<div class={['ZodInput', 'multiline', noLabel && 'no-label']}>
@@ -506,6 +512,13 @@
 
 		> label.checkbox {
 			justify-self: start;
+		}
+
+		@media (width < 700px) {
+			&:not(:has(> label.checkbox)) {
+				grid-template-columns: minmax(0, 1fr);
+				row-gap: 0.25em;
+			}
 		}
 	}
 </style>

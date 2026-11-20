@@ -22,7 +22,7 @@ export { default as ProgressBar } from './ProgressBar.svelte';
 export { default as ProgressRing } from './ProgressRing.svelte';
 export { default as PWAIndicator } from './PWAIndicator.svelte';
 export { default as Register } from './Register.svelte';
-export { default as SecretStatus } from './SecretStatus.svelte';
+export { default as Secret } from './Secret.svelte';
 export { default as SessionList } from './SessionList.svelte';
 export { default as SidebarLayout } from './SidebarLayout.svelte';
 export { default as TopBar } from './TopBar.svelte';

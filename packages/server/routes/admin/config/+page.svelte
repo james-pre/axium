@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { text } from '@axium/client';
-	import { SecretStatus } from '@axium/client/components';
+	import { Secret } from '@axium/client/components';
 	const { data } = $props();
 </script>
 
@@ -15,9 +15,8 @@
 <h2>{text('page.admin.config.secrets')}</h2>
 
 <div class="secrets">
-	{#each Object.entries(data.secrets) as [path, info]}
-		<span class="path">{path}</span>
-		<SecretStatus {info} />
+	{#each Object.values(data.secrets) as info}
+		<Secret {info} />
 	{/each}
 </div>
 
@@ -32,14 +31,10 @@
 
 <style>
 	.secrets {
-		display: grid;
-		grid-template-columns: fit-content(50%) minmax(0, 1fr);
-		align-items: center;
-		gap: 0.75em 1.5em;
-	}
-
-	.path {
-		font-family: monospace;
+		display: flex;
+		flex-direction: column;
+		align-items: flex-start;
+		gap: 0.75em;
 	}
 
 	summary {

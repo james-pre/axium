@@ -65,16 +65,18 @@
 		"latest": "Latest",
 		"upgrade": "<span class=\"version\">{latest}</span> available"
 	},
-	"SecretStatus": {
+	"Secret": {
+		"add": "Set",
 		"file": "Stored in the secrets file. Change it with `axium secret set {id}`.",
+		"replace": "Replace",
+		"replace_notice": "This replaces the current value.",
+		"save": "Save",
 		"systemd": "Stored as a systemd credential. Change it with `axium secret set {id}`.",
 		"unset": "Not set. Store it with `axium secret set {id}`."
 	},
 	"ZodInput": {
 		"experimental": "Experimental",
-		"invalid_type": "Invalid input type: {type}",
-		"secret_set": "Hidden, type to replace",
-		"secret_unset": "Not set"
+		"invalid_type": "Invalid input type: {type}"
 	},
 	"error": {
 		"network": {
