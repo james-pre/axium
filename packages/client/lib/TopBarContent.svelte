@@ -1,5 +1,6 @@
 <script module lang="ts">
 	import type { Snippet } from 'svelte';
+	import type { Attachment } from 'svelte/attachments';
 
 	export interface TopBarContentProps {
 		name: string;
@@ -12,11 +13,20 @@
 	}
 
 	let stack = $state.raw<TopBarContentProps[]>([]);
+	let middle = $state<HTMLElement>();
 
 	/** The content registered by the most recently mounted `TopBarContent`. */
 	export function currentContent(): TopBarContentProps | undefined {
 		return stack.at(-1);
 	}
+
+	/** Marks the element in the top bar that the current content's children are moved into. */
+	export const topBarMiddle: Attachment<HTMLElement> = element => {
+		middle = element;
+		return () => {
+			if (middle === element) middle = undefined;
+		};
+	};
 </script>
 
 <script lang="ts">
@@ -28,4 +38,19 @@
 	onDestroy(() => {
 		stack = stack.filter(entry => entry !== props);
 	});
+
+	const moveToTopBar: Attachment<HTMLElement> = element => {
+		middle?.append(element);
+		return () => element.remove();
+	};
 </script>
+
+{#if props.children && currentContent() === props && middle}
+	<div class="TopBarContent" {@attach moveToTopBar}>{@render props.children()}</div>
+{/if}
+
+<style>
+	.TopBarContent {
+		display: contents;
+	}
+</style>

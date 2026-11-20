@@ -4,7 +4,7 @@
 	import AppMenu from './AppMenu.svelte';
 	import Icon from './Icon.svelte';
 	import PWAIndicator from './PWAIndicator.svelte';
-	import { currentContent } from './TopBarContent.svelte';
+	import { currentContent, topBarMiddle } from './TopBarContent.svelte';
 	import UserMenu from './UserMenu.svelte';
 	import Boundary from './Boundary.svelte';
 
@@ -19,9 +19,6 @@
 			{#if content.icon}<Icon i={content.icon} --size="1.25em" />{/if}
 			<span>{content.name}</span>
 		</a>
-		{#if content.children}
-			<div class="middle" style:justify-content={content.align ?? 'center'}>{@render content.children()}</div>
-		{/if}
 	{:else}
 		<a class="title" href="/">
 			<img src="/favicon.svg" alt="" />
@@ -30,6 +27,8 @@
 			</Boundary>
 		</a>
 	{/if}
+
+	<div class="middle" style:justify-content={content?.align ?? 'center'} {@attach topBarMiddle}></div>
 
 	<div class="end">
 		<PWAIndicator />
@@ -104,7 +103,7 @@
 			padding: 0.5em 0.75em;
 		}
 
-		.TopBar:has(.middle) .title span {
+		.TopBar:has(.middle:not(:empty)) .title span {
 			display: none;
 		}
 
