@@ -49,7 +49,7 @@ export const Config = z
 		/** Where the document server reaches Axium */
 		internal_url: z.url().nullish(),
 		/** The document server's JWT secret */
-		secret: z.string(),
+		secret: z.string().register(locales.zod, { secret: true }),
 	})
 	.register(locales.zod, { prefix: 'office.config' });
 export interface Config extends z.infer<typeof Config> {}
