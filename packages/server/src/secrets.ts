@@ -1,4 +1,4 @@
-import { toBaseName, type SecretInfo, type SecretStore, type ZodSpecificType } from '@axium/core';
+import { SecretStore, toBaseName, type SecretInfo, type ZodSpecificType } from '@axium/core';
 import * as locales from '@james-pre/locales';
 import * as io from 'ioium/node';
 import { spawnSync } from 'node:child_process';
@@ -62,8 +62,10 @@ export function idFor(path: string, plugin?: string): string {
 	return plugin ? `${toBaseName(plugin)}.${path}` : path;
 }
 
-/** Where secrets are written when no store is specified */
+/** Where secrets are written when no store is specified. `AXIUM_SECRET_STORE` takes precedence over the config. */
 export function defaultStore(): SecretStore {
+	const override = SecretStore.safeParse(process.env.AXIUM_SECRET_STORE);
+	if (override.success) return override.data;
 	return config.secret_store ?? (existsSync('/run/systemd/system') ? 'systemd' : 'file');
 }
 

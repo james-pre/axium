@@ -107,7 +107,7 @@ const schema = z.looseObject({
 		subject: z.string().optional(),
 	}),
 	request_size_limit: z.coerce.number().min(0).optional().default(0),
-	/** Where new secrets are stored. Defaults to `systemd` when the system was booted with systemd, otherwise `file`. */
+	/** Where new secrets are stored. Defaults to `systemd` when the system was booted with systemd, otherwise `file`. Overridden by `AXIUM_SECRET_STORE`. */
 	secret_store: SecretStore.optional(),
 	show_duplicate_state: cfg.bool.default(false),
 	/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */

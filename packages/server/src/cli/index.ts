@@ -391,6 +391,8 @@ cli.command('develop')
 		if (typeof options.debug == 'boolean') serveArgs.push(options.debug ? '--debug' : '--no-debug');
 		if (options.config) serveArgs.push('--config', resolve(options.config));
 
+		process.env.AXIUM_SECRET_STORE ||= 'file';
+
 		let buildId = 0,
 			server: ChildProcess | undefined;
 
