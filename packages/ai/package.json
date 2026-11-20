@@ -43,7 +43,7 @@
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.43.0",
-		"@axium/core": ">=0.45.0",
+		"@axium/core": ">=0.46.0",
 		"@axium/notes": ">=0.4.10",
 		"@axium/server": ">=0.60.0",
 		"@axium/tasks": ">=0.5.13",

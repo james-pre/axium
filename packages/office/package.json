@@ -34,7 +34,7 @@
 	},
 	"peerDependencies": {
 		"@axium/client": ">=0.43.0",
-		"@axium/core": ">=0.45.0",
+		"@axium/core": ">=0.46.0",
 		"@axium/server": ">=0.60.0",
 		"@axium/storage": ">=0.34.0",
 		"@james-pre/locales": "^1.0.0",
