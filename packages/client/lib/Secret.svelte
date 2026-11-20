@@ -51,8 +51,7 @@
 				spellcheck="false"
 				required
 				minlength={minLength || 1}
-				maxlength={maxLength ?? undefined}
-			></textarea>
+				maxlength={maxLength ?? undefined}></textarea>
 		</FormDialog>
 	{/if}
 </span>
