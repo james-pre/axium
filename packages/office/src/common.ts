@@ -48,6 +48,8 @@ export const Config = z
 		server_url: z.url().nullish(),
 		/** Where the document server reaches Axium */
 		internal_url: z.url().nullish(),
+		/** Where Axium reaches the document server */
+		server_internal_url: z.url().nullish(),
 		/** The document server's JWT secret */
 		secret: z.string().register(locales.zod, { secret: true }),
 	})

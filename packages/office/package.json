@@ -64,6 +64,7 @@
 		"config": {
 			"server_url": null,
 			"internal_url": null,
+			"server_internal_url": null,
 			"secret": ""
 		},
 		"update_checks": true

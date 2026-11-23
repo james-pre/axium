@@ -6,6 +6,7 @@
 		"config": {
 			"server_url": "Document server URL for browsers",
 			"internal_url": "Axium URL for the document server",
+			"server_internal_url": "Document server URL for Axium",
 			"secret": "Document server JWT secret"
 		},
 		"new": "New",

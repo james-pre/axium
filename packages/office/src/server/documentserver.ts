@@ -31,6 +31,12 @@ function serverURL(): URL {
 	return new URL(`${protocol}//${hostname}:8443`);
 }
 
+/** Where Axium reaches the document server, which defaults to where browsers reach it */
+function serverInternalURL(): URL {
+	const { server_internal_url } = getConfig('@axium/office');
+	return server_internal_url ? new URL(server_internal_url) : serverURL();
+}
+
 /** Where the document server reaches Axium */
 function internalURL(): string {
 	return getConfig('@axium/office').internal_url ?? serverConfig.origin;
@@ -154,7 +160,7 @@ addRoute({
 /** The document server only offers saved documents from itself, so this refuses to download from anywhere else */
 async function save(itemId: string, location: string): Promise<StorageItemMetadata> {
 	const url = new URL(location);
-	const server = serverURL();
+	const server = serverInternalURL();
 	url.protocol = server.protocol;
 	url.host = server.host;
 
