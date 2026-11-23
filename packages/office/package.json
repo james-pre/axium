@@ -66,6 +66,6 @@
 			"internal_url": null,
 			"secret": ""
 		},
-		"update_checks": false
+		"update_checks": true
 	}
 }
