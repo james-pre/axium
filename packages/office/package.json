@@ -1,6 +1,6 @@
 {
 	"name": "@axium/office",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Office documents for Axium, edited with Euro-Office or OnlyOffice",
 	"funding": {
