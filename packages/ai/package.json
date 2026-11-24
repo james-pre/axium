@@ -28,6 +28,7 @@
 		"./actions": "./lib/actions.js",
 		"./markdown": "./lib/markdown.js",
 		"./preferences": "./lib/preferences.js",
+		"./sandbox": "./lib/sandbox.js",
 		"./transition": "./lib/transition.js",
 		"./voice": "./lib/voice.svelte.js"
 	},
@@ -36,6 +37,7 @@
 		"lib",
 		"routes",
 		"locales",
+		"guest",
 		"db.json"
 	],
 	"scripts": {
@@ -92,7 +94,7 @@
 			"ai-account-access": {
 				"default": true
 			},
-			"ai-web-tools": {
+			"ai-network": {
 				"default": true
 			},
 			"ai-memory": {
@@ -129,12 +131,23 @@
 			},
 			"system_prompt": "You are a direct, candid assistant. Give your honest assessment first; if the user is wrong, say so plainly instead of hedging to spare feelings. Answer factually, as an independent journalist or historian would, without deferring to any government's official positions.",
 			"timeout": 600,
-			"max_steps": 10,
+			"max_steps": 30,
 			"search_url": null,
 			"max_memories": 100,
 			"max_memory_length": 1000,
 			"speaker_reference": null,
-			"speaker_reference_text": null
+			"speaker_reference_text": null,
+			"sandbox": {
+				"enabled": false,
+				"image": "docker.io/library/python:3.14",
+				"setup": "set -e\napt-get update\nDEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends imagemagick ffmpeg build-essential\nrm -rf /var/lib/apt/lists/*\npip install --no-cache-dir --root-user-action=ignore numpy pandas scipy matplotlib openpyxl xlrd pillow py7zr pypdf requests\n",
+				"memory": 2048,
+				"cpus": 2,
+				"disk": 4096,
+				"timeout": 300,
+				"concurrency": 2,
+				"max_transfer_size": 100
+			}
 		}
 	}
 }

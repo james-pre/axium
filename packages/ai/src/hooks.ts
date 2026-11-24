@@ -4,12 +4,14 @@ import './common.js';
 import './server/api/conversations.js';
 import './server/api/gateway.js';
 import './server/api/memories.js';
+import './server/api/sandbox.js';
 import './server/api/temporary.js';
 import './server/api/timers.js';
 import './server/api/voice.js';
 import './memory.js';
 import './node/web.js';
 import { failInterrupted } from './server/generation.js';
+import * as sandbox from './server/sandbox.js';
 import * as llama from './node/llama.js';
 import './server/api/models.js';
 import { syncPreset } from './server/models.js';
@@ -18,9 +20,12 @@ export async function load() {
 	await failInterrupted();
 	await syncPreset();
 	await llama.start();
+	await sandbox.prepare();
 }
 
 export async function configChanged() {
+	await sandbox.prepare();
+
 	if (llama.settingsChanged()) {
 		io.info('AI: restarting llama-server with the new settings');
 		await llama.stop();

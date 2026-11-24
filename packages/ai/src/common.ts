@@ -1,6 +1,7 @@
 import { $API, serverConfigs } from '@axium/core';
 import { appPreferences } from '@axium/core/apps';
 import { addServerToClient, type ParseFunctions } from '@axium/core/socket';
+import { UploadInit } from '@axium/core/uploads';
 import * as locales from '@james-pre/locales';
 import * as z from 'zod';
 import * as memory from './memory.js';
@@ -60,6 +61,28 @@ export const LlamaConfig = z.object({
 });
 export interface LlamaConfig extends z.infer<typeof LlamaConfig> {}
 
+export const SandboxConfig = z.object({
+	/** Whether every conversation gets an isolated virtual machine to run commands in */
+	enabled: z.boolean(),
+	/** The container image the root filesystem is built from */
+	image: z.string().min(1),
+	/** Run as root while building the root filesystem, with access to package registries */
+	setup: z.string().register(locales.zod, { multiline: true }),
+	/** Memory for each sandbox while it runs a command, in MiB */
+	memory: z.int().min(128).max(65_536),
+	/** Processors for each sandbox while it runs a command */
+	cpus: z.int().min(1).max(64),
+	/** Space for each sandbox's files, in MiB */
+	disk: z.int().min(64).max(1_048_576),
+	/** The longest a command may run, in seconds */
+	timeout: z.int().min(1).max(3600),
+	/** The most sandboxes running commands at once */
+	concurrency: z.int().min(1).max(64),
+	/** The largest piece of an attachment sent in one request, in MiB */
+	max_transfer_size: z.int().positive(),
+});
+export interface SandboxConfig extends z.infer<typeof SandboxConfig> {}
+
 export const Config = z
 	.object({
 		/** Where downloaded models and llama-server's state are kept */
@@ -81,6 +104,7 @@ export const Config = z
 		speaker_reference: z.string().nullish(),
 		/** What is said in `speaker_reference`; models that support it then also imitate its accent and delivery */
 		speaker_reference_text: z.string().trim().min(1).nullish().register(locales.zod, { multiline: true }),
+		sandbox: SandboxConfig,
 	})
 	.register(locales.zod, { prefix: 'ai.config' });
 export interface Config extends z.infer<typeof Config> {}
@@ -365,7 +389,7 @@ export const MessageStatus = z.literal(['pending', 'done', 'error', 'cancelled',
 export type MessageStatus = z.infer<typeof MessageStatus>;
 
 /** Where a tool acts  */
-export const Environment = z.literal(['account', 'web', 'memory']).nullable();
+export const Environment = z.literal(['account', 'web', 'memory', 'sandbox']).nullable();
 export type Environment = z.infer<typeof Environment>;
 
 /** `write` tools change data, so they may need the user's approval */
@@ -402,6 +426,16 @@ export const Usage = z.object({
 });
 export interface Usage extends z.infer<typeof Usage> {}
 
+/** A file the user added to a conversation's sandbox */
+export const Attachment = z.object({
+	name: z.string().min(1).max(255),
+	/** Relative to the sandbox's files */
+	path: z.string().min(1).max(1024),
+	/** In bytes */
+	size: z.int().nonnegative(),
+});
+export interface Attachment extends z.infer<typeof Attachment> {}
+
 export const Message = z.object({
 	id: z.uuid(),
 	conversationId: z.uuid(),
@@ -415,12 +449,14 @@ export const Message = z.object({
 	error: z.string().nullable(),
 	usage: Usage.nullable(),
 	voice: z.boolean(),
+	attachments: Attachment.array().nullable(),
 });
 export interface Message extends z.infer<typeof Message> {}
 
 export const MessageInit = z.object({
 	content: z.string().trim().min(1).max(100_000),
 	voice: z.boolean().optional(),
+	attachments: Attachment.array().max(100).optional(),
 });
 export type MessageInit = z.infer<typeof MessageInit>;
 
@@ -440,6 +476,7 @@ export type ConversationAction = z.infer<typeof ConversationAction>;
 export const TemporaryMessage = Message.pick({ id: true, role: true, toolCalls: true, toolCallId: true, status: true }).extend({
 	content: z.string().max(100_000),
 	voice: z.boolean().default(false),
+	attachments: Attachment.array().max(100).nullish(),
 	created: z.coerce.date(),
 });
 export interface TemporaryMessage extends z.infer<typeof TemporaryMessage> {}
@@ -523,6 +560,10 @@ export const TimerRemoved = z.object({
 });
 export interface TimerRemoved extends z.infer<typeof TimerRemoved> {}
 
+/** `packages` allows only package registries, `all` any public address */
+export const SandboxNetwork = z.literal(['none', 'packages', 'all']);
+export type SandboxNetwork = z.infer<typeof SandboxNetwork>;
+
 export const Preferences = z
 	.object({
 		/** Used for new conversations instead of the default model */
@@ -547,7 +588,12 @@ export const Preferences = z
 					.default(true)
 					.register(locales.zod, { feature: 'ai-account-access', requires: { account_access: ['write'] } }),
 				/** Whether tools may search and read the web */
-				web: z.boolean().default(false).register(locales.zod, { feature: 'ai-web-tools' }),
+				web: z.boolean().default(false).register(locales.zod, { feature: 'ai-network' }),
+				/** What the sandbox can reach on the internet */
+				sandbox_network: SandboxNetwork.default('none').register(locales.zod, {
+					prefix: 'ai.sandbox_network',
+					feature: 'ai-network',
+				}),
 				/** Per-tool overrides of whether write calls ask first, by tool name */
 				approvals: z
 					.record(z.string(), Approval)
@@ -562,7 +608,15 @@ export const Preferences = z
 					requires: { memory: [true] },
 				}),
 			})
-			.default({ account_access: 'none', confirm_writes: true, web: false, approvals: {}, memory: true, memory_updates: 'off' }),
+			.default({
+				account_access: 'none',
+				confirm_writes: true,
+				web: false,
+				sandbox_network: 'none',
+				approvals: {},
+				memory: true,
+				memory_updates: 'off',
+			}),
 	})
 	.register(locales.zod, { prefix: 'ai.preferences' });
 export interface Preferences extends z.infer<typeof Preferences> {}
@@ -602,6 +656,30 @@ export const Transcription = z.object({
 	text: z.string(),
 });
 export interface Transcription extends z.infer<typeof Transcription> {}
+
+export const SandboxFile = z.object({
+	/** Relative to the sandbox's files */
+	path: z.string(),
+	/** In bytes */
+	size: z.int().nonnegative(),
+	modified: z.coerce.date(),
+});
+export interface SandboxFile extends z.infer<typeof SandboxFile> {}
+
+export const SandboxFiles = z.object({
+	files: SandboxFile.array(),
+	/** Whether there were more files than listed */
+	truncated: z.boolean(),
+});
+export interface SandboxFiles extends z.infer<typeof SandboxFiles> {}
+
+export const TemporaryAction = z.discriminatedUnion('action', [
+	/** Cancel the current response */
+	z.object({ action: z.literal('cancel') }),
+	/** The user is done with the conversation, so its sandbox is deleted */
+	z.object({ action: z.literal('end') }),
+]);
+export type TemporaryAction = z.infer<typeof TemporaryAction>;
 
 const AIAPI = {
 	'ai/models': {
@@ -645,7 +723,18 @@ const AIAPI = {
 	'ai/temporary/:id': {
 		/** Starts a response without saving anything; returns the pending response */
 		PUT: [TemporaryInit, Message],
-		POST: [z.object({ action: z.literal('cancel') }), z.object({})],
+		POST: [TemporaryAction, z.object({})],
+	},
+	'ai/sandbox': {
+		GET: z.object({ available: z.boolean() }),
+	},
+	'ai/sandbox/:id': {
+		/** Lists the files in a conversation's sandbox */
+		GET: SandboxFiles,
+	},
+	'ai/sandbox/:id/attachments': {
+		/** Starts uploading an attachment, finished by sending chunks to `/raw/ai/attachments` */
+		PUT: [UploadInit, z.object({ token: z.string(), max_transfer_size: z.int().positive() })],
 	},
 	'users/:id/ai/memories': {
 		GET: memory.List,

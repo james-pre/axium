@@ -112,6 +112,7 @@
 				"account_access": "Access to your account",
 				"confirm_writes": "Confirm writes",
 				"web": "Web access",
+				"sandbox_network": "Sandbox network access",
 				"approvals": {
 					"$title": "Approvals by tool"
 				},
@@ -135,6 +136,23 @@
 			"run": "Update now",
 			"started": "Updating memories in the background"
 		},
+		"sandbox_network": {
+			"none": "Off",
+			"packages": "Package registries only",
+			"all": "All public sites"
+		},
+		"sandbox": {
+			"files": "Sandbox files",
+			"loading": "Loading files...",
+			"empty": "No files yet",
+			"truncated": "Showing the first {count} files"
+		},
+		"attachments": {
+			"add": "Attach files",
+			"drop": "Attach to the conversation",
+			"remove": "Remove",
+			"empty": "{name} is empty, so it can't be attached"
+		},
 		"approval": {
 			"ask": "Ask first",
 			"allow": "Allow"
@@ -149,6 +167,17 @@
 			"max_memory_length": "Longest memory (characters)",
 			"speaker_reference": "Voice reference recording",
 			"speaker_reference_text": "Voice reference transcript",
+			"sandbox": {
+				"$title": "Sandbox",
+				"image": "Container image",
+				"setup": "Setup script",
+				"memory": "Memory per sandbox (MiB)",
+				"cpus": "Processors per sandbox",
+				"disk": "Disk space per sandbox (MiB)",
+				"timeout": "Longest command (seconds)",
+				"concurrency": "Most sandboxes running at once",
+				"max_transfer_size": "Largest upload request (MiB)"
+			},
 			"llama": {
 				"$title": "llama-server",
 				"command": "Command",

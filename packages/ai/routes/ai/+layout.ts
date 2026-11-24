@@ -16,11 +16,12 @@ export async function load({ parent, depends }) {
 
 	if (!session) redirect(307, '/login?after=/ai');
 
-	const [conversations, models, aiPreferences] = await Promise.all([
+	const [conversations, models, aiPreferences, sandbox] = await Promise.all([
 		fetchAPI('GET', 'users/:id/ai/conversations', {}, session.userId),
 		fetchAPI('GET', 'ai/models'),
 		preferences.get(session.userId, 'ai'),
+		fetchAPI('GET', 'ai/sandbox'),
 	]);
 
-	return { session, conversations, models, preferences: aiPreferences };
+	return { session, conversations, models, preferences: aiPreferences, sandbox: sandbox.available };
 }

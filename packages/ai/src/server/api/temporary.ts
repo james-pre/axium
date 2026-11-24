@@ -1,12 +1,13 @@
 import type { AsyncResult } from '@axium/core/api';
 import { requireSession } from '@axium/server/auth';
 import { database } from '@axium/server/database';
-import { error, parseBody } from '@axium/server/requests';
+import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
 import * as ai from '../../common.js';
 import { cancel, emitMessage, generateTemporary, isGenerating } from '../generation.js';
+import * as sandbox from '../sandbox.js';
 
 addRoute({
 	path: '/api/ai/temporary/:id',
@@ -39,6 +40,7 @@ addRoute({
 			error: null,
 			usage: null,
 			voice: false,
+			attachments: null,
 		};
 
 		emitMessage(userId, pending);
@@ -48,10 +50,17 @@ addRoute({
 		return pending;
 	},
 	async POST(request, { id }): AsyncResult<'POST', 'ai/temporary/:id'> {
-		await parseBody(request, z.object({ action: z.literal('cancel') }));
+		const { action } = await parseBody(request, ai.TemporaryAction);
 		const { userId } = await requireSession(request);
 
-		if (!cancel(id, userId)) error(409, 'No response is being generated');
-		return {};
+		switch (action) {
+			case 'cancel':
+				if (!cancel(id, userId)) error(409, 'No response is being generated');
+				return {};
+			case 'end':
+				cancel(id, userId);
+				await sandbox.remove(userId, id, true).catch(withError('Could not delete the sandbox'));
+				return {};
+		}
 	},
 });

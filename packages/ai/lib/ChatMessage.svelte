@@ -9,8 +9,11 @@
 	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
 	import { ClipboardCopy, Icon } from '@axium/client/components';
+	import { forPath } from '@axium/core/icons';
 	import { toast } from '@axium/client/toast';
+	import { bytes as formatBytes } from 'utilium/format';
 	import { markdown } from './markdown.js';
+	import { downloadURL } from './sandbox.js';
 	import * as voice from './voice.svelte.js';
 	import ToolCall from './ToolCall.svelte';
 
@@ -104,6 +107,18 @@
 		</details>
 	{/if}
 
+	{#if message.attachments?.length}
+		<div class="attachments">
+			{#each message.attachments as file (file.path)}
+				<a class="attachment" href={downloadURL(message.conversationId, file.path)} download={file.name}>
+					<Icon i={forPath(file.path)} --size="12px" />
+					<span class="name">{file.name}</span>
+					<span class="subtle">{formatBytes(file.size)}</span>
+				</a>
+			{/each}
+		</div>
+	{/if}
+
 	{#if message.content && message.role == 'assistant'}
 		<div class="markdown" {@attach markdown(message.content)}></div>
 	{:else if message.content && draft === undefined}
@@ -178,6 +193,32 @@
 		&.user.editing {
 			align-self: stretch;
 			max-width: none;
+		}
+	}
+
+	.attachments {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: flex-end;
+		gap: 0.5em;
+	}
+
+	.attachment {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		max-width: 100%;
+		padding: 0.25em 0.6em;
+		border-radius: 0.5em;
+		background-color: var(--bg-alt);
+		color: inherit;
+		font-size: 0.85em;
+		text-decoration: none;
+
+		.name {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
 		}
 	}
 

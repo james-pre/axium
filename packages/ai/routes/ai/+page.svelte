@@ -8,6 +8,7 @@
 	import { Icon } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
 	import * as voice from '@axium/ai/voice';
+	import { attach } from '@axium/ai/sandbox';
 
 	const { data } = $props();
 
@@ -24,19 +25,27 @@
 
 	const temporary = $derived(page.url.searchParams.has('temporary'));
 
-	async function start(content: string, spoken = false) {
+	/** Created by the first attachment or message */
+	let created: Promise<ai.Conversation> | undefined;
+
+	function conversation(): Promise<ai.Conversation> {
+		created ??= fetchAPI('PUT', 'users/:id/ai/conversations', { model: model || undefined, reasoning }, data.session.userId).catch(
+			error => {
+				created = undefined;
+				throw error;
+			}
+		);
+		return created;
+	}
+
+	async function start(content: string, spoken = false, attachments?: ai.Attachment[]) {
 		try {
-			const conversation = await fetchAPI(
-				'PUT',
-				'users/:id/ai/conversations',
-				{ model: model || undefined, reasoning },
-				data.session.userId
-			);
-			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken }, conversation.id);
+			const { id } = await conversation();
+			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken, attachments }, id);
 			const message = sent.find(message => message.role == 'user');
 			if (spoken && message) voice.addTurn(message.id);
 			await invalidate('ai:conversations');
-			await goto('/ai/' + conversation.id);
+			await goto('/ai/' + id);
 		} catch (error) {
 			toast('error', error);
 			throw error;
@@ -67,13 +76,23 @@
 		models={data.models}
 		title=""
 		ctrlEnter={data.preferences.ctrl_enter}
+		sandbox={data.sandbox}
 		actions={toggle}
 	/>
 {:else}
 	<div class="start">
 		<div class="corner">{@render toggle()}</div>
 		<h2>{text('ai.empty')}</h2>
-		<Composer models={data.models.models} bind:model bind:reasoning onsend={start} ctrlEnter={data.preferences.ctrl_enter} />
+		<Composer
+			models={data.models.models}
+			bind:model
+			bind:reasoning
+			onsend={start}
+			onattach={data.sandbox
+				? async (file, path, onProgress, signal) => attach((await conversation()).id, file, path, onProgress, signal)
+				: undefined}
+			ctrlEnter={data.preferences.ctrl_enter}
+		/>
 	</div>
 {/if}
 

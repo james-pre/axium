@@ -14,6 +14,7 @@ import { chat, streamChat } from '../node/chat.js';
 import features from '@axium/core/features';
 import { getMemories } from './memory.js';
 import { getPreferences } from './preferences.js';
+import * as sandbox from './sandbox.js';
 import * as timers from './timers.js';
 import { getRow, learnCapabilities, resolveRole } from './models.js';
 import { pick } from 'utilium';
@@ -30,6 +31,7 @@ export function toMessage(row: MessageRow): ai.Message {
 		...row,
 		toolCalls: row.toolCalls as ai.ToolCall[] | null,
 		usage: row.usage as ai.Usage | null,
+		attachments: row.attachments as ai.Attachment[] | null,
 	} as ai.Message;
 }
 
@@ -125,6 +127,7 @@ function temporaryStore(userId: string, conversationId: string, messages: ai.Mes
 				error: null,
 				usage: null,
 				voice: false,
+				attachments: null,
 				...message,
 			};
 			known.set(added.id, added);
@@ -201,6 +204,10 @@ async function respond(init: TurnInit): Promise<void> {
 				signal,
 				api: (method, endpoint, data, ...params) => callAPI(user, method, endpoint, data, ...params),
 				timers: timers.forUser(user.id),
+				sandbox: sandbox.forConversation(user.id, store.conversationId, {
+					temporary: !!init.temporary,
+					network: features('ai-network') ? preferences.tools.sandbox_network : 'none',
+				}),
 			},
 			allowAlways: names => allowAlways(store.userId, preferences, names),
 			progress,
@@ -280,6 +287,7 @@ export async function generateTemporary(
 		error: null,
 		usage: null,
 		...message,
+		attachments: message.attachments ?? null,
 		toolCalls: message.toolCalls ?? null,
 		toolCallId: message.toolCallId ?? null,
 		status: message.status ?? 'done',

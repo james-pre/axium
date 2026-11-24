@@ -12,6 +12,8 @@
 	import ChatMessage from './ChatMessage.svelte';
 	import Composer from './Composer.svelte';
 	import ConversationMenu from './ConversationMenu.svelte';
+	import { attach } from './sandbox.js';
+	import SandboxFiles from './SandboxFiles.svelte';
 	import { viewTransition } from './transition.js';
 	import * as voice from './voice.svelte.js';
 
@@ -21,6 +23,7 @@
 		title,
 		ctrlEnter,
 		temporary = false,
+		sandbox = false,
 		actions,
 	}: {
 		conversation: Pick<ai.Conversation, 'id' | 'model' | 'reasoning'> & { messages: ai.Message[] };
@@ -29,6 +32,8 @@
 		ctrlEnter?: boolean;
 		/** Nothing is saved: the messages only exist here, and the server forgets each response once it is sent */
 		temporary?: boolean;
+		/** Whether the conversation has a sandbox for files and commands */
+		sandbox?: boolean;
 		/** Shown in the header of temporary conversations */
 		actions?: Snippet;
 	} = $props();
@@ -129,7 +134,7 @@
 	function temporaryHistory(): ai.TemporaryMessage[] {
 		return messages
 			.filter(message => message.status != 'pending')
-			.map(({ id, role, content, toolCalls, toolCallId, status, voice, created }) => ({
+			.map(({ id, role, content, toolCalls, toolCallId, status, voice, attachments, created }) => ({
 				id,
 				role,
 				content,
@@ -137,6 +142,7 @@
 				toolCallId,
 				status,
 				voice,
+				attachments,
 				created,
 			}));
 	}
@@ -175,7 +181,7 @@
 		}
 	}
 
-	async function sendTemporary(content: string, spoken: boolean): Promise<void> {
+	async function sendTemporary(content: string, spoken: boolean, attachments?: ai.Attachment[]): Promise<void> {
 		const message: ai.Message = {
 			id: crypto.randomUUID(),
 			conversationId: conversation.id,
@@ -189,6 +195,7 @@
 			error: null,
 			usage: null,
 			voice: spoken,
+			attachments: attachments ?? null,
 		};
 		if (spoken) voice.addTurn(message.id);
 		if (messages.length) upsert(message);
@@ -202,10 +209,10 @@
 		}
 	}
 
-	async function send(content: string, spoken = false) {
+	async function send(content: string, spoken = false, attachments?: ai.Attachment[]) {
 		try {
-			if (temporary) return await sendTemporary(content, spoken);
-			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken }, conversation.id);
+			if (temporary) return await sendTemporary(content, spoken, attachments);
+			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken, attachments }, conversation.id);
 			for (const message of sent) {
 				if (message.role == 'user' && spoken) voice.addTurn(message.id);
 				upsert(message);
@@ -289,6 +296,12 @@
 			void goto(destination);
 		});
 	});
+
+	/** Deletes a temporary conversation's sandbox once it is closed */
+	$effect(() => () => {
+		if (!temporary || !sandbox) return;
+		fetchAPI('POST', 'ai/temporary/:id', { action: 'end' }, conversation.id).catch(() => {});
+	});
 </script>
 
 <div class={['conversation', temporary && !messages.length && 'empty']}>
@@ -301,6 +314,9 @@
 					<span>{text('ai.temporary.title')}</span>
 				{/if}
 			</div>
+			{#if sandbox && messages.length}
+				<SandboxFiles conversationId={conversation.id} />
+			{/if}
 			{@render actions?.()}
 		{:else}
 			<div class="title">
@@ -315,6 +331,9 @@
 					<span>{title || text('ai.untitled')}</span>
 				{/if}
 			</div>
+			{#if sandbox}
+				<SandboxFiles conversationId={conversation.id} />
+			{/if}
 			<ConversationMenu id={conversation.id} onrename={() => (renaming = true)} showToggle="always" />
 		{/if}
 	</div>
@@ -357,6 +376,7 @@
 			bind:reasoning
 			onsend={send}
 			onstop={stop}
+			onattach={sandbox ? (file, path, onProgress, signal) => attach(conversation.id, file, path, onProgress, signal) : undefined}
 			onoptions={temporary
 				? undefined
 				: () =>

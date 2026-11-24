@@ -108,6 +108,16 @@
 				"ai_conversations_userId": { "on": "ai_conversations", "columns": ["userId"] },
 				"ai_messages_conversationId": { "on": "ai_messages", "columns": ["conversationId"] }
 			}
+		},
+		{
+			"delta": true,
+			"alter_tables": {
+				"ai_messages": {
+					"add_columns": {
+						"attachments": { "type": "jsonb" }
+					}
+				}
+			}
 		}
 	],
 	"wipe": ["ai_memory_updates", "ai_memories", "ai_messages", "ai_conversations", "ai_roles", "ai_models"]

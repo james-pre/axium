@@ -8,6 +8,8 @@ import * as z from 'zod';
 import * as ai from '../../common.js';
 import { cancel, emitMessage, emitRemoved, generate, isGenerating, toMessage, withProgress } from '../generation.js';
 import { resolveRole } from '../models.js';
+import * as sandbox from '../sandbox.js';
+import * as io from 'ioium';
 
 async function authConversation(request: Request, id: string) {
 	const conversation = await database
@@ -136,7 +138,7 @@ addRoute({
 			.catch(withError('Could not update conversation'));
 	},
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/conversations/:id'> {
-		const { content, voice } = await parseBody(request, ai.MessageInit);
+		const { content, voice, attachments } = await parseBody(request, ai.MessageInit);
 
 		const auth = await authConversation(request, id);
 
@@ -152,7 +154,13 @@ addRoute({
 
 		const user = await database
 			.insertInto('ai_messages')
-			.values({ conversationId: id, role: 'user', content, voice })
+			.values({
+				conversationId: id,
+				role: 'user',
+				content,
+				voice,
+				attachments: attachments?.length ? JSON.stringify(attachments) : null,
+			})
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not save message'));
@@ -247,11 +255,17 @@ addRoute({
 
 		cancel(id, conversation.userId);
 
-		return await database
+		const deleted = await database
 			.deleteFrom('ai_conversations')
 			.where('id', '=', id)
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not delete conversation'));
+
+		await sandbox
+			.remove(conversation.userId, id, false)
+			.catch(error => io.warn(`AI: could not delete the sandbox of ${id}: ${io.errorText(error)}`));
+
+		return deleted;
 	},
 });

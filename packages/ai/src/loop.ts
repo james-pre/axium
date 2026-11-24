@@ -1,9 +1,11 @@
 import * as io from 'ioium';
 import type * as ai from './common.js';
 import * as memory from './memory.js';
-import './timers.js';
+import './tools/sandbox.js';
+import './tools/timers.js';
 import type { ChatMessage, ChatRequest, ChatStream } from './node/chat.js';
 import * as tools from './tools.js';
+import { bytes as formatBytes } from 'utilium/format';
 
 export type MessageChanges = Partial<Omit<ai.Message, 'id' | 'conversationId' | 'created'>>;
 
@@ -73,7 +75,8 @@ const toolGuidance = `\
 You can call tools. Only call one when it helps with what the user asked.\
  If a call fails, read the error and correct the input instead of repeating the same call.\
  Never create, change or delete anything the user didn't ask for, even as a workaround.\
- Only say an action was done when a tool result confirms it; if you could not do something, say so.`;
+ Only say an action was done when a tool result confirms it; if you could not do something, say so.\
+ Results you report, such as numbers, file contents or decoded text, must come from a tool result; never guess them, and say so plainly when your tools could not produce them.`;
 
 const voiceGuidance = `\
 The user is speaking to you, and your reply will be read aloud by a speech synthesizer, so write only what should be heard.\
@@ -94,7 +97,20 @@ interface PromptParts {
 	voice?: boolean;
 	timeZone: string;
 	homeTimeZone?: string;
+	/** What the sandbox can reach, when sandbox tools are offered */
+	sandboxNetwork?: ai.SandboxNetwork;
 }
+
+const sandboxNetworkGuidance: Record<ai.SandboxNetwork, string> = {
+	none: 'The sandbox has no internet access, so only what is already installed can be used (see `pip list`). If a task needs more, tell the user they can allow package registries in their AI preferences.',
+	packages:
+		'The sandbox can reach package registries (pip, npm and similar) but no other sites, so install what a task needs, e.g. with `pip install`.',
+	all: 'The sandbox can reach public internet sites, including package registries, so install what a task needs, e.g. with `pip install`.',
+};
+
+/** Added to the last tool result the model sees before it must answer without tools */
+const lastStepNote = `\n\n[This was the last tool call allowed for this turn. Answer the user now from the tool results above:\
+ say what you found and what is unfinished, and never present a result you don't have. The user can ask you to continue.]`;
 
 /** When a message was sent, e.g. `<sent>Monday 2026-11-16T21:15-06:00 (2026-11-17T03:15Z)</sent>` */
 function sentTag(created: Date, timeZone: string): string {
@@ -105,7 +121,7 @@ function sentTag(created: Date, timeZone: string): string {
 	return `<sent>${weekday} ${localText} (${instant.toString({ smallestUnit: 'minute' })})</sent>`;
 }
 
-function systemPrompt({ prompt, instructions, offered, remembered, voice, timeZone, homeTimeZone }: PromptParts): string {
+function systemPrompt({ prompt, instructions, offered, remembered, voice, timeZone, homeTimeZone, sandboxNetwork }: PromptParts): string {
 	const sections = [prompt];
 
 	// date information
@@ -122,6 +138,7 @@ ${homeTimeZone && homeTimeZone != timeZone ? ` Their home time zone is ${homeTim
 	);
 
 	if (offered.length) sections.push(toolGuidance);
+	if (sandboxNetwork) sections.push(sandboxNetworkGuidance[sandboxNetwork]);
 	if (remembered) sections.push(remembered);
 	if (voice) sections.push(voiceGuidance);
 	if (instructions) sections.push(`The user has given these instructions for every conversation:\n\n${instructions}`);
@@ -135,8 +152,14 @@ ${homeTimeZone && homeTimeZone != timeZone ? ` Their home time zone is ${homeTim
  */
 export function toChatMessage(message: ai.Message, timeZone: string = 'UTC'): ChatMessage | undefined {
 	switch (message.role) {
-		case 'user':
-			return { role: 'user', content: `${sentTag(message.created, timeZone)}\n${message.content}` };
+		case 'user': {
+			const tags = [sentTag(message.created, timeZone)];
+			if (message.attachments?.length)
+				tags.push(
+					`<attachments>${message.attachments.map(file => `${file.path} (${formatBytes(file.size)})`).join(', ')}</attachments>`
+				);
+			return { role: 'user', content: `${tags.join('\n')}\n${message.content}` };
+		}
 		case 'tool':
 			return {
 				role: 'tool',
@@ -222,7 +245,9 @@ export async function respond(init: TurnInit): Promise<void> {
 
 	try {
 		const offered =
-			model.tools === false ? [] : tools.allowed(preferences.tools, { anonymous: init.anonymous, temporary: init.temporary });
+			model.tools === false
+				? []
+				: tools.allowed(preferences.tools, { anonymous: init.anonymous, temporary: init.temporary, sandbox: !!context.sandbox });
 		const definitions = tools.definitions(offered);
 
 		const remembered =
@@ -252,6 +277,7 @@ export async function respond(init: TurnInit): Promise<void> {
 					voice: spoken,
 					timeZone,
 					homeTimeZone: init.homeTimeZone,
+					sandboxNetwork: offered.some(tool => tool.environment == 'sandbox') ? context.sandbox?.network : undefined,
 				}),
 			},
 			...history.map(message => toChatMessage(message, timeZone)).filter(message => !!message),
@@ -318,6 +344,9 @@ export async function respond(init: TurnInit): Promise<void> {
 				running.delete(message.id);
 				messages.push(toChatMessage(done)!);
 			}
+
+			const last = messages.at(-1);
+			if (step + 1 >= init.maxSteps && last?.role == 'tool') last.content += lastStepNote;
 
 			signal.throwIfAborted();
 			if (awaiting) return;

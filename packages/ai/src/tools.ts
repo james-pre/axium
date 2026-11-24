@@ -20,6 +20,35 @@ export interface Timers {
 	cancel(id: string): Promise<ai.Timer>;
 }
 
+export interface CommandResult {
+	/** `null` when the command was stopped */
+	exitCode: number | null;
+	stdout: string;
+	stderr: string;
+	timedOut: boolean;
+}
+
+export interface CommandOptions {
+	/** In seconds */
+	timeout?: number;
+	/** Given to the command as its input */
+	stdin?: Uint8Array;
+	signal?: AbortSignal;
+}
+
+/**
+ * A place to run commands and keep files for one conversation, e.g. a virtual machine on the server.
+ * Paths are relative to the directory commands start in.
+ */
+export interface Sandbox {
+	/** What commands can reach on the internet */
+	readonly network: ai.SandboxNetwork;
+	run(command: string, options?: CommandOptions): Promise<CommandResult>;
+	read(path: string, signal?: AbortSignal): Promise<Uint8Array>;
+	write(path: string, data: Uint8Array | ReadableStream<Uint8Array>, signal?: AbortSignal): Promise<void>;
+	list(signal?: AbortSignal): Promise<ai.SandboxFiles>;
+}
+
 export interface Context {
 	/** The user the tool acts for */
 	userId: string;
@@ -28,6 +57,8 @@ export interface Context {
 	api: APICaller;
 	signal: AbortSignal;
 	timers: Timers;
+	/** Only present when the host offers one */
+	sandbox?: Sandbox;
 }
 
 export interface Tool<Input extends z.ZodObject = z.ZodObject> {
@@ -60,9 +91,11 @@ export interface AllowedOptions {
 	anonymous?: boolean;
 	/** Leaves out tools that change memories */
 	temporary?: boolean;
+	/** Whether the host offers a sandbox */
+	sandbox?: boolean;
 }
 
-export function allowed(preferences: ai.Preferences['tools'], { anonymous, temporary }: AllowedOptions = {}): Tool[] {
+export function allowed(preferences: ai.Preferences['tools'], { anonymous, temporary, sandbox }: AllowedOptions = {}): Tool[] {
 	return Array.from(registry.values()).filter(tool => {
 		if (tool.available && !tool.available()) return false;
 
@@ -70,7 +103,9 @@ export function allowed(preferences: ai.Preferences['tools'], { anonymous, tempo
 			case null:
 				return true;
 			case 'web':
-				return preferences.web && features('ai-web-tools');
+				return preferences.web && features('ai-network');
+			case 'sandbox':
+				return !!sandbox;
 			case 'account':
 				if (anonymous || !features('ai-account-access')) return false;
 				return preferences.account_access == 'write' || (preferences.account_access == 'read' && tool.access == 'read');

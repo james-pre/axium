@@ -1,7 +1,7 @@
 import { timeSpan } from 'utilium/format';
 import * as z from 'zod';
-import * as ai from './common.js';
-import * as tools from './tools.js';
+import * as ai from '../common.js';
+import * as tools from '../tools.js';
 
 function describe(timer: ai.Timer) {
 	return {

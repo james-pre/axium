@@ -1,8 +1,11 @@
 <script lang="ts">
 	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
-	import { Icon } from '@axium/client/components';
+	import { drag } from '@axium/client/attachments';
+	import { forPath } from '@axium/core/icons';
+	import { Icon, ProgressRing } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
+	import { bytes as formatBytes } from 'utilium/format';
 	import ModelOptions from './ModelOptions.svelte';
 	import VoiceMode from './VoiceMode.svelte';
 	import * as voice from './voice.svelte.js';
@@ -15,6 +18,7 @@
 		onsend,
 		onstop,
 		onoptions,
+		onattach,
 		ctrlEnter = false,
 	}: {
 		generating?: boolean;
@@ -24,11 +28,89 @@
 		model: string;
 		reasoning: string;
 		/** @param voice Whether the content was spoken in conversation mode */
-		onsend(content: string, voice?: boolean): Promise<unknown>;
+		onsend(content: string, voice?: boolean, attachments?: ai.Attachment[]): Promise<unknown>;
 		onstop?(): void;
 		/** Called after the model or reasoning changes */
 		onoptions?(): void;
+		/**
+		 * Uploads a file to the conversation's sandbox. Files can only be attached when this is given.
+		 * @param path Relative to the attachments folder, keeping the folders of dropped folders
+		 */
+		onattach?(
+			file: File,
+			path: string,
+			onProgress: (uploaded: number, total: number) => void,
+			signal: AbortSignal
+		): Promise<ai.Attachment>;
 	} = $props();
+
+	interface Upload {
+		id: string;
+		name: string;
+		size: number;
+		/** From 0 to 1 */
+		progress: number;
+		controller: AbortController;
+		attachment?: ai.Attachment;
+	}
+
+	let uploads = $state<Upload[]>([]),
+		fileInput = $state<HTMLInputElement>();
+
+	const uploading = $derived(uploads.some(upload => !upload.attachment));
+
+	interface PickedFile {
+		file: File;
+		path: string;
+	}
+
+	/** Files in dropped entries, with their paths relative to the drop */
+	async function collectEntries(entries: Iterable<FileSystemEntry>, files: PickedFile[] = []): Promise<PickedFile[]> {
+		for (const entry of entries) {
+			if (entry.isFile) {
+				const file = await new Promise<File>((entry as FileSystemFileEntry).file.bind(entry));
+				files.push({ file, path: entry.fullPath.replace(/^\/+/, '') });
+				continue;
+			}
+
+			const reader = (entry as FileSystemDirectoryEntry).createReader();
+			const read = () => new Promise<FileSystemEntry[]>(reader.readEntries.bind(reader));
+			for (let batch = await read(); batch.length; batch = await read()) await collectEntries(batch, files);
+		}
+		return files;
+	}
+
+	function attachFiles(files: Iterable<PickedFile>) {
+		if (!onattach) return;
+		for (const { file, path } of files) {
+			if (!file.size) {
+				toast('error', text('ai.attachments.empty', { name: path }));
+				continue;
+			}
+
+			const upload: Upload = {
+				id: crypto.randomUUID(),
+				name: path,
+				size: file.size,
+				progress: 0,
+				controller: new AbortController(),
+			};
+			uploads.push(upload);
+			const tracked = uploads.at(-1)!;
+
+			onattach(file, path, (uploaded, total) => (tracked.progress = uploaded / total), upload.controller.signal)
+				.then(attachment => (tracked.attachment = attachment))
+				.catch(error => {
+					uploads = uploads.filter(existing => existing.id != upload.id);
+					if (!upload.controller.signal.aborted) toast('error', error);
+				});
+		}
+	}
+
+	function removeUpload(upload: Upload) {
+		upload.controller.abort();
+		uploads = uploads.filter(existing => existing.id != upload.id);
+	}
 
 	let content = $state(''),
 		sending = $state(false),
@@ -69,11 +151,13 @@
 	$effect(() => voice.useSender(async spoken => void (await onsend(spoken, true))));
 
 	async function send() {
-		if (!content.trim() || generating || sending) return;
+		if (!content.trim() || generating || sending || uploading) return;
 		sending = true;
 		try {
-			await onsend(content);
+			const attachments = uploads.map(upload => upload.attachment!);
+			await onsend(content, false, attachments.length ? $state.snapshot(attachments) : undefined);
 			content = '';
+			uploads = [];
 		} finally {
 			sending = false;
 		}
@@ -86,11 +170,46 @@
 		e.preventDefault();
 		void send();
 	}}
+	{@attach onattach &&
+		drag.uploadTarget(text('ai.attachments.drop'), entries =>
+			collectEntries(entries)
+				.then(attachFiles)
+				.catch(error => toast('error', error))
+		)}
 >
 	{#if voice.conversation.active}
 		<VoiceMode {generating} {onstop} />
 	{:else}
+		{#if uploads.length}
+			<div class="uploads">
+				{#each uploads as upload (upload.id)}
+					<div class="upload">
+						{#if upload.attachment}
+							<Icon i={forPath(upload.name)} --size="14px" />
+						{:else}
+							<ProgressRing value={upload.progress} --size="14px" />
+						{/if}
+						<span class="name">{upload.name}</span>
+						<span class="subtle">{formatBytes(upload.size)}</span>
+						<button
+							type="button"
+							class="reset"
+							title={text('ai.attachments.remove')}
+							aria-label={text('ai.attachments.remove')}
+							onclick={() => removeUpload(upload)}
+						>
+							<Icon i="xmark" --size="12px" />
+						</button>
+					</div>
+				{/each}
+			</div>
+		{/if}
 		<textarea
+			onpaste={e => {
+				if (!onattach || !e.clipboardData?.files.length) return;
+				e.preventDefault();
+				attachFiles(Array.from(e.clipboardData.files, file => ({ file, path: file.name })));
+			}}
 			bind:value={content}
 			placeholder={transcribing ? text('ai.voice.transcribing') : recording ? text('ai.voice.listening') : text('ai.placeholder')}
 			onkeydown={e => {
@@ -101,6 +220,27 @@
 				void send();
 			}}></textarea>
 		<div class="controls">
+			{#if onattach}
+				<input
+					type="file"
+					multiple
+					hidden
+					bind:this={fileInput}
+					onchange={e => {
+						attachFiles(Array.from(e.currentTarget.files ?? [], file => ({ file, path: file.name })));
+						e.currentTarget.value = '';
+					}}
+				/>
+				<button
+					type="button"
+					class="attach"
+					title={text('ai.attachments.add')}
+					aria-label={text('ai.attachments.add')}
+					onclick={() => fileInput?.click()}
+				>
+					<Icon i="paperclip" />
+				</button>
+			{/if}
 			<div class="options">
 				<ModelOptions {models} bind:model bind:reasoning onchange={onoptions} />
 			</div>
@@ -151,7 +291,7 @@
 					<Icon i="stop" />
 				</button>
 			{:else}
-				<button type="submit" class="send" title={text('ai.send')} disabled={sending || !content.trim()}>
+				<button type="submit" class="send" title={text('ai.send')} disabled={sending || uploading || !content.trim()}>
 					<Icon i="arrow-up" />
 				</button>
 			{/if}
@@ -171,6 +311,29 @@
 		width: 100%;
 		view-transition-name: ai-composer;
 		container: ai-composer / inline-size;
+	}
+
+	.uploads {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 0.5em;
+	}
+
+	.upload {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.4em;
+		max-width: 100%;
+		padding: 0.25em 0.5em;
+		border-radius: 0.5em;
+		background-color: var(--bg-strong);
+		font-size: 0.85em;
+
+		.name {
+			overflow: hidden;
+			text-overflow: ellipsis;
+			white-space: nowrap;
+		}
 	}
 
 	textarea {
@@ -198,12 +361,14 @@
 		min-width: 0;
 	}
 
+	.attach,
 	.dictate,
 	.cancel,
 	.send {
 		flex-shrink: 0;
 	}
 
+	.attach,
 	.dictate {
 		display: inline-flex;
 		align-items: center;
