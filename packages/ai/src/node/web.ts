@@ -206,7 +206,10 @@ const SearchResponse = z.object({
 
 tools.add({
 	name: 'search_web',
-	description: 'Searches the web. Returns titles, URLs and snippets; use fetch_url to read a result.',
+	description:
+		'Searches the web. Returns titles, URLs and snippets; use fetch_url to read a result. ' +
+		'Your training data stops at some point in the past, so search instead of answering from memory ' +
+		'whenever the answer may have changed since then: news, recent events, current prices, scores, releases, or who holds a role.',
 	environment: 'web',
 	access: 'read',
 	available: () => !!getConfig('@axium/ai').search_url,

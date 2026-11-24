@@ -21,8 +21,8 @@ const seed = 1;
 /** How long the end of each clip fades out, in seconds */
 const fadeLength = 0.04;
 
-/** The pause after each clip, in seconds */
-const pauseLength = 0.25;
+/** Silence added after the speaker reference so speech doesn't continue a sound the clip cuts off, in seconds */
+const referencePadding = 0.5;
 
 async function requireVoiceEnabled(request: Request): Promise<void> {
 	await requireSession(request);
@@ -81,20 +81,33 @@ async function speakerReference(model: string): Promise<SpeakerReference> {
 
 	const { mtimeMs: modified } = await stat(path);
 	if (cached?.path != path || cached.modified != modified) {
-		cached = { path, modified, audio: (await readFile(path)).toString('base64') };
+		const audio = withSilence(await readFile(path), referencePadding);
+		cached = { path, modified, audio: Buffer.from(audio).toString('base64') };
 	}
 
 	return { audio: cached.audio, text: (configured ? speaker_reference_text : defaultVoiceText) ?? undefined };
 }
 
-/**
- * Fades out the end of 16-bit PCM WAV audio and adds a pause, so clips the model ends early don't stop mid-sound.
- * Other formats are returned unchanged.
- */
-function finishSpeech(wav: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
+/** Where the samples of 16-bit PCM WAV audio are */
+interface PCM {
+	view: DataView;
+	/** The offset of the data chunk's header */
+	header: number;
+	/** The offset of the first sample */
+	start: number;
+	frames: number;
+	/** In bytes */
+	frameSize: number;
+	channels: number;
+	/** Frames per second */
+	rate: number;
+}
+
+/** Finds the samples in 16-bit PCM WAV audio, or nothing for other formats */
+function findPCM(wav: Uint8Array): PCM | undefined {
 	const view = new DataView(wav.buffer, wav.byteOffset, wav.byteLength);
 	const tag = (offset: number) => String.fromCharCode(...wav.subarray(offset, offset + 4));
-	if (wav.length < 44 || tag(0) != 'RIFF' || tag(8) != 'WAVE') return wav;
+	if (wav.length < 44 || tag(0) != 'RIFF' || tag(8) != 'WAVE') return;
 
 	let format: { channels: number; rate: number; bits: number; pcm: boolean } | undefined;
 	let offset = 12;
@@ -111,28 +124,45 @@ function finishSpeech(wav: Uint8Array<ArrayBuffer>): Uint8Array<ArrayBuffer> {
 		if (tag(offset) == 'data') break;
 		offset += 8 + size + (size % 2);
 	}
-	if (!format?.pcm || format.bits != 16 || tag(offset) != 'data') return wav;
+	if (!format?.pcm || format.bits != 16 || tag(offset) != 'data') return;
 
 	const start = offset + 8;
 	const frameSize = format.channels * 2;
 	const length = Math.min(view.getUint32(offset + 4, true), wav.length - start);
-	const frames = Math.floor(length / frameSize);
+	return { view, header: offset, start, frames: Math.floor(length / frameSize), frameSize, ...format };
+}
 
-	const fadeFrames = Math.min(frames, Math.round(format.rate * fadeLength));
+/** Fades out the end of 16-bit PCM WAV audio, so clips the model ends early don't stop mid-sound */
+function fadeOut(wav: Uint8Array): void {
+	const pcm = findPCM(wav);
+	if (!pcm) return;
+
+	const { view, start, frames, frameSize, channels, rate } = pcm;
+	const fadeFrames = Math.min(frames, Math.round(rate * fadeLength));
 	for (let frame = frames - fadeFrames; frame < frames; frame++) {
 		const gain = (frames - frame) / fadeFrames;
-		for (let channel = 0; channel < format.channels; channel++) {
+		for (let channel = 0; channel < channels; channel++) {
 			const position = start + frame * frameSize + channel * 2;
 			view.setInt16(position, Math.round(view.getInt16(position, true) * gain), true);
 		}
 	}
+}
 
-	const pause = Math.round(format.rate * pauseLength) * frameSize;
-	const result = new Uint8Array(start + frames * frameSize + pause);
+/**
+ * Adds silence to the end of 16-bit PCM WAV audio. Other formats are returned unchanged.
+ * @param length in seconds
+ */
+function withSilence(wav: Uint8Array, length: number): Uint8Array {
+	const pcm = findPCM(wav);
+	if (!pcm) return wav;
+
+	const { header, start, frames, frameSize, rate } = pcm;
+	const data = frames * frameSize + Math.round(rate * length) * frameSize;
+	const result = new Uint8Array(start + data);
 	result.set(wav.subarray(0, start + frames * frameSize));
-	const header = new DataView(result.buffer);
-	header.setUint32(4, result.length - 8, true);
-	header.setUint32(offset + 4, frames * frameSize + pause, true);
+	const view = new DataView(result.buffer);
+	view.setUint32(4, result.length - 8, true);
+	view.setUint32(header + 4, data, true);
 	return result;
 }
 
@@ -193,7 +223,8 @@ addRoute({
 		if (upstream.status == 400) upstream = await speak();
 		if (!upstream.ok) error(502, 'Could not speak: ' + (await upstreamError(upstream)));
 
-		const audio = finishSpeech(await upstream.bytes());
+		const audio = await upstream.bytes();
+		fadeOut(audio);
 		return new Response(audio, { headers: { 'Content-Type': upstream.headers.get('Content-Type') ?? 'audio/wav' } });
 	},
 });

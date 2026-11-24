@@ -19,35 +19,46 @@ export function speakable(markdown: string): string {
 /** The most characters spoken in one request, which keeps each part well within what the model generates at once */
 export const maxPartLength = 300;
 
-/** Splits text into parts to speak one after another, at sentence and line boundaries where possible */
-export function speechParts(text: string): string[] {
-	const sentences = text.match(/[^.!?\n]+(?:[.!?]+["')\]]*|\n+|$)\s*/g) ?? [];
-	const parts: string[] = [];
-	let current = '';
+const segmenter = new Intl.Segmenter(undefined, { granularity: 'sentence' });
 
-	for (const sentence of sentences) {
-		if (current && current.length + sentence.length > maxPartLength) {
-			parts.push(current.trim());
-			current = '';
-		}
+/** Ends of text where a sentence continues, e.g. "Dr. Smith" and "U.S. Army" */
+const abbreviation = /(?:\b\p{Lu}|\b(?:Mr|Mrs|Ms|Dr|Prof|St|Sr|Jr|Mt|vs))\.\s*$/u;
 
-		let rest = sentence;
-		while (rest.length > maxPartLength) {
-			const space = rest.lastIndexOf(' ', maxPartLength);
-			const end = space > 0 ? space : maxPartLength;
-			parts.push(rest.slice(0, end).trim());
-			rest = rest.slice(end).trimStart();
-		}
-		current += rest;
+/** Splits text into sentences, keeping any whitespace after each */
+function sentences(text: string): string[] {
+	const result: string[] = [];
+	for (const { segment } of segmenter.segment(text)) {
+		if (result.length && abbreviation.test(result.at(-1)!)) result[result.length - 1] += segment;
+		else result.push(segment);
 	}
+	return result;
+}
 
-	if (current.trim()) parts.push(current.trim());
-	return parts.filter(part => /[\p{L}\p{N}]/u.test(part));
+/** Splits a sentence that is too long to speak at once, at clause boundaries where possible */
+function splitSentence(sentence: string): string[] {
+	const parts: string[] = [];
+	let rest = sentence;
+	while (rest.length > maxPartLength) {
+		const window = rest.slice(0, maxPartLength);
+		const clause = Math.max(...Array.from(window.matchAll(/[,;:–—]\s/g), match => match.index + 1));
+		const end = clause > maxPartLength / 3 ? clause : window.lastIndexOf(' ') > 0 ? window.lastIndexOf(' ') : maxPartLength;
+		parts.push(rest.slice(0, end).trim());
+		rest = rest.slice(end).trimStart();
+	}
+	parts.push(rest.trim());
+	return parts;
+}
+
+/** Splits text into sentences to speak one after another, splitting any that are too long */
+export function speechParts(text: string): string[] {
+	return sentences(text)
+		.flatMap(splitSentence)
+		.filter(part => /[\p{L}\p{N}]/u.test(part));
 }
 
 /**
  * Collects Markdown as it streams and gives the parts that are ready to be spoken:
- * whole sentences and lines, never the inside of a code block.
+ * whole sentences, never the inside of a code block.
  */
 export class SpeechBuffer {
 	protected text = '';
@@ -57,11 +68,12 @@ export class SpeechBuffer {
 		this.text += text;
 
 		const fences = this.text.match(/```/g)?.length ?? 0;
-		const searchable = fences % 2 ? this.text.slice(0, this.text.lastIndexOf('```')) : this.text;
+		const inCode = fences % 2 == 1;
+		const searchable = inCode ? this.text.slice(0, this.text.lastIndexOf('```')) : this.text;
 
-		let end = -1;
-		for (const match of searchable.matchAll(/[.!?]["')\]]*\s|\n/g)) end = match.index + match[0].length;
-		if (end == -1) return [];
+		// The last sentence may still be streaming, unless a code block has started after it.
+		const end = inCode ? searchable.length : searchable.length - (sentences(searchable).at(-1)?.length ?? 0);
+		if (end <= 0) return [];
 
 		const ready = this.text.slice(0, end);
 		this.text = this.text.slice(end);

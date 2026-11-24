@@ -1,5 +1,5 @@
 import * as ai from '@axium/ai/common';
-import { SpeechBuffer } from '@axium/ai/speech';
+import { maxPartLength, SpeechBuffer } from '@axium/ai/speech';
 import { logWarnings, prefix, token } from '@axium/client/requests';
 import features from '@axium/core/features';
 
@@ -174,43 +174,38 @@ export async function transcribe(audio: Blob): Promise<string> {
 	return text;
 }
 
-async function synthesize(text: string, signal: AbortSignal): Promise<string> {
+let audioContext: AudioContext | undefined;
+
+/** The audio context speech plays in, kept open so clips play back to back. Browsers only let it start during a user gesture. */
+function useAudioContext(): AudioContext {
+	audioContext ??= new AudioContext();
+	if (audioContext.state == 'suspended') void audioContext.resume();
+	return audioContext;
+}
+
+async function synthesize(text: string, signal: AbortSignal): Promise<AudioBuffer> {
 	const response = await request('ai/speech', {
 		method: 'POST',
 		body: JSON.stringify({ text }),
 		headers: { 'Content-Type': 'application/json' },
 		signal,
 	});
-	return URL.createObjectURL(await response.blob());
+	return await useAudioContext().decodeAudioData(await response.arrayBuffer());
 }
 
-function play(url: string, signal: AbortSignal): Promise<void> {
-	const { promise, resolve, reject } = Promise.withResolvers<void>();
-	const audio = new Audio(url);
+/** The pause between parts, in seconds */
+const partPause = 0.25;
 
-	const stop = () => {
-		audio.pause();
-		resolve();
-	};
-	signal.addEventListener('abort', stop, { once: true });
-
-	audio.addEventListener('ended', () => resolve(), { once: true });
-	audio.addEventListener('error', () => reject(new Error('Could not play the audio')), { once: true });
-	audio.play().catch(reject);
-
-	return promise.finally(() => {
-		signal.removeEventListener('abort', stop);
-		URL.revokeObjectURL(url);
-	});
-}
-
-/** Speaks Markdown as it arrives, synthesizing each part while the one before it plays */
+/** Speaks Markdown as it arrives, synthesizing each part as soon as it's ready and playing them back to back */
 class Speaker {
 	protected buffer = new SpeechBuffer();
 	protected parts: string[] = [];
 	protected ended = false;
 	protected controller = new AbortController();
 	protected wake?: () => void;
+	protected sources = new Set<AudioBufferSourceNode>();
+	/** When the scheduled audio ends, in the audio context's time */
+	protected scheduledUntil = 0;
 	/** Settles once everything is spoken or the speaker is stopped; rejects when speech can't be made or played */
 	readonly done: Promise<void>;
 
@@ -231,6 +226,7 @@ class Speaker {
 
 	stop(): void {
 		this.controller.abort();
+		for (const source of this.sources) source.stop();
 		this.wake?.();
 	}
 
@@ -240,8 +236,11 @@ class Speaker {
 		this.wake?.();
 	}
 
-	/** Starts synthesizing the next part, waiting for one when none is ready */
-	protected async next(): Promise<Promise<string> | undefined> {
+	/**
+	 * Waits for text to speak: the first part alone so speech starts sooner, then whatever has queued up since.
+	 * @returns nothing once there is nothing left
+	 */
+	protected async next(first: boolean): Promise<string | undefined> {
 		const { signal } = this.controller;
 		while (!this.parts.length) {
 			if (this.ended || signal.aborted) return;
@@ -249,21 +248,46 @@ class Speaker {
 		}
 		if (signal.aborted) return;
 
-		const audio = synthesize(this.parts.shift()!, signal);
-		audio.catch(() => {});
-		return audio;
+		let text = this.parts.shift()!;
+		while (!first && this.parts.length && text.length + this.parts[0].length < maxPartLength) {
+			text += ' ' + this.parts.shift();
+		}
+		return text;
+	}
+
+	/** Plays audio after what is already scheduled, resolving once it has played */
+	protected play(audio: AudioBuffer): Promise<void> {
+		const context = useAudioContext();
+		const source = context.createBufferSource();
+		source.buffer = audio;
+		source.connect(context.destination);
+
+		const start = Math.max(context.currentTime, this.scheduledUntil);
+		this.scheduledUntil = start + audio.duration + partPause;
+		this.sources.add(source);
+		source.start(start);
+
+		const { promise, resolve } = Promise.withResolvers<void>();
+		source.addEventListener(
+			'ended',
+			() => {
+				this.sources.delete(source);
+				resolve();
+			},
+			{ once: true }
+		);
+		return promise;
 	}
 
 	protected async run(): Promise<void> {
 		const { signal } = this.controller;
+		let playing: Promise<void> | undefined;
 		try {
-			let upcoming = await this.next();
-			while (upcoming && !signal.aborted) {
-				const playing = play(await upcoming, signal);
-				playing.catch(() => {});
-				upcoming = await this.next();
-				await playing;
+			for (let text = await this.next(true); text && !signal.aborted; text = await this.next(false)) {
+				const audio = await synthesize(text, signal);
+				if (!signal.aborted) playing = this.play(audio);
 			}
+			await playing;
 		} catch (error) {
 			if (!signal.aborted) throw error;
 		}
@@ -284,6 +308,7 @@ export function stopSpeaking(): void {
 
 function startSpeaking(id: string): Speaker {
 	stopSpeaking();
+	useAudioContext();
 	const started = new Speaker(id);
 	speaker = started;
 	void started.done
@@ -416,6 +441,7 @@ export function prepare(): void {
 
 export function startConversation(): void {
 	conversation.active = true;
+	useAudioContext();
 	prepare();
 	void listen();
 }
