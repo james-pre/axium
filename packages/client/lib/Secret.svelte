@@ -20,9 +20,7 @@
 	let dialog = $state<HTMLDialogElement>(),
 		saved = $state(false);
 
-	const source = $derived<SecretStore | null>(saved ? 'file' : info.source),
-		store = $derived<SecretStore>(source ?? (info.editable ? 'file' : 'systemd')),
-		name = $derived(store == 'systemd' ? 'axium.' + info.id : info.id);
+	const source = $derived<SecretStore | null>(saved ? info.store : info.source);
 
 	async function submit(data: Record<string, FormDataEntryValue>) {
 		await save!(String(data.value));
@@ -32,9 +30,9 @@
 </script>
 
 <span class={['Secret', !source && 'unset']}>
-	<Icon i={store == 'systemd' ? 'lock-keyhole' : 'file-lock'} title={text(`Secret.${source ?? 'unset'}`, { id: info.id })} />
-	<code>{name}</code>
-	<ClipboardCopy value={name} />
+	<Icon i={(source ?? info.store) == 'systemd' ? 'lock-keyhole' : 'file-lock'} title={text(`Secret.${source ?? 'unset'}`, { id: info.id })} />
+	<code>{info.id}</code>
+	<ClipboardCopy value={info.id} />
 	{#if save && info.editable}
 		<button type="button" title={text(source ? 'Secret.replace' : 'Secret.add')} onclick={() => dialog?.showModal()}>
 			<Icon i="pencil" />

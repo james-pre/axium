@@ -213,7 +213,7 @@
 	<div class={['ZodInput', noLabel && 'no-label']}>
 		{@render labelFor(id)}
 		<Secret
-			info={secrets?.()?.[path] ?? { id: path, source: null, editable: true }}
+			info={secrets?.()?.[path] ?? { id: path, source: null, store: 'file', editable: true }}
 			label={labelText}
 			save={readonly ? undefined : saveSecret}
 			minLength={schema.minLength}

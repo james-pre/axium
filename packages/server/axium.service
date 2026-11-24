@@ -18,7 +18,6 @@ NoNewPrivileges=false
 Environment=BODY_SIZE_LIMIT=1048576
 ExecStart=%Y/dist/main.js serve
 ExecReload=kill -HUP $MAINPID
-ImportCredential=axium.*
 SyslogIdentifier=axium
 Restart=on-failure
 RestartSec=3s

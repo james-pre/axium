@@ -111,7 +111,7 @@ addRoute({
 
 			for (const [path, value] of changed) {
 				const id = secrets.idFor(path, name);
-				if (secrets.get(id)?.value !== value) secrets.set(id, value, 'file');
+				if (secrets.get(id)?.value !== value) secrets.set(id, value);
 			}
 			plugin.secrets = secrets.describe(schema, name);
 

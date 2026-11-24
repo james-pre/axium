@@ -2,7 +2,8 @@ import { SecretStore, toBaseName, type SecretInfo, type ZodSpecificType } from '
 import * as locales from '@james-pre/locales';
 import * as io from 'ioium/node';
 import { spawnSync } from 'node:child_process';
-import { chownSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chownSync, existsSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { userInfo } from 'node:os';
 import { dirname, join } from 'node:path/posix';
 import { getByString } from 'utilium';
 import { isRoot } from 'utilium/node';
@@ -11,9 +12,8 @@ import config from './config.js';
 import { dirs, localDir, systemDir } from './io.js';
 import { _unique } from './state.js';
 
-const credentialPrefix = 'axium.';
-const credentialStore = '/etc/credstore.encrypted';
 const fileName = 'secrets.json';
+const credentialsDir = join(systemDir, 'credentials');
 const serviceUser = 'axium';
 
 const SecretsFile = z.record(z.string(), z.string());
@@ -69,32 +69,35 @@ export function defaultStore(): SecretStore {
 	return config.secret_store ?? (existsSync('/run/systemd/system') ? 'systemd' : 'file');
 }
 
-function readCredentials(found: Map<string, Secret>): void {
-	const directory = process.env.CREDENTIALS_DIRECTORY;
-	if (directory) {
-		for (const name of readdirSync(directory)) {
-			if (!name.startsWith(credentialPrefix)) continue;
-			const value = readFileSync(join(directory, name), 'utf8').replace(/\r?\n$/, '');
-			found.set(name.slice(credentialPrefix.length), { value, source: 'systemd' });
-		}
-		return;
-	}
+/** Whether this process can encrypt and decrypt the service user's credentials */
+function canUseCredentials(): boolean {
+	return isRoot || userInfo().username == serviceUser;
+}
 
+/** Give the service user a file or directory this process created as root */
+function chownToService(path: string): void {
+	if (!isRoot) return;
+	const id = spawnSync('id', ['-u', serviceUser], { encoding: 'utf8' });
+	const uid = parseInt(id.stdout);
+	if (!id.status && Number.isSafeInteger(uid)) chownSync(path, uid, -1);
+}
+
+function readCredentials(found: Map<string, Secret>): void {
 	let names: string[];
 	try {
-		names = readdirSync(credentialStore);
+		names = readdirSync(credentialsDir);
 	} catch {
 		return;
 	}
 
-	for (const name of names) {
-		if (!name.startsWith(credentialPrefix)) continue;
-		const result = spawnSync('systemd-creds', ['decrypt', '--no-ask-password', join(credentialStore, name), '-'], { encoding: 'utf8' });
+	for (const id of names) {
+		const path = join(credentialsDir, id);
+		const result = spawnSync('systemd-creds', ['decrypt', '--no-ask-password', '--uid=' + serviceUser, path, '-'], { encoding: 'utf8' });
 		if (result.status) {
-			io.debug(`Could not decrypt credential ${name}: ${result.stderr.trim()}`);
+			io.debug(`Could not decrypt credential ${id}: ${result.stderr.trim()}`);
 			continue;
 		}
-		found.set(name.slice(credentialPrefix.length), { value: result.stdout.replace(/\r?\n$/, ''), source: 'systemd' });
+		found.set(id, { value: result.stdout, source: 'systemd' });
 	}
 }
 
@@ -117,11 +120,7 @@ function writeFile(path: string, secrets: Record<string, string>): void {
 	const created = !existsSync(path);
 	mkdirSync(dirname(path), { recursive: true });
 	writeFileSync(path, JSON.stringify(secrets, null, '\t'), { encoding: 'utf8', mode: 0o600 });
-	if (!created || !isRoot) return;
-
-	const id = spawnSync('id', ['-u', serviceUser], { encoding: 'utf8' });
-	const uid = parseInt(id.stdout);
-	if (!id.status && Number.isSafeInteger(uid)) chownSync(path, uid, -1);
+	if (created) chownToService(path);
 }
 
 const loaded = _unique('secrets', new Map<string, Secret>());
@@ -150,16 +149,14 @@ export function ids(): string[] {
 
 export function info(id: string): SecretInfo {
 	const source = get(id)?.source ?? null;
-	return { id, source, editable: defaultStore() == 'file' && source != 'systemd' };
+	const store = defaultStore();
+	const editable = store == 'systemd' ? canUseCredentials() : source != 'systemd';
+	return { id, source, store, editable };
 }
 
 /** Information about each secret in values of `schema`, keyed by path */
 export function describe(schema: z.ZodType, plugin?: string): Record<string, SecretInfo> {
 	return Object.fromEntries(paths(schema).map(path => [path, info(idFor(path, plugin))]));
-}
-
-function assertRoot(): void {
-	if (!isRoot) throw 'Storing systemd credentials needs root, try again with sudo';
 }
 
 export function set(id: string, value: string, store: SecretStore = defaultStore()): void {
@@ -169,15 +166,19 @@ export function set(id: string, value: string, store: SecretStore = defaultStore
 		const path = join(localDir(), fileName);
 		writeFile(path, { ...readFile(path), [id]: value });
 	} else {
-		assertRoot();
-		const name = credentialPrefix + id;
-		mkdirSync(credentialStore, { recursive: true, mode: 0o700 });
-		const result = spawnSync('systemd-creds', ['encrypt', '--name=' + name, '-', join(credentialStore, name)], {
-			input: value,
-			encoding: 'utf8',
-		});
+		if (!canUseCredentials()) throw `Storing systemd credentials needs to run as root or ${serviceUser}`;
+
+		if (!existsSync(credentialsDir)) {
+			mkdirSync(credentialsDir, { recursive: true, mode: 0o700 });
+			chownToService(credentialsDir);
+		}
+
+		const path = join(credentialsDir, id);
+		const args = ['encrypt', '--no-ask-password', '--uid=' + serviceUser, '--name=' + id, '-', path];
+		const result = spawnSync('systemd-creds', args, { input: value, encoding: 'utf8' });
 		if (result.error) throw result.error;
 		if (result.status) throw result.stderr.trim() || 'systemd-creds failed';
+		chownToService(path);
 	}
 
 	if (!isLoaded) load();
@@ -187,13 +188,7 @@ export function set(id: string, value: string, store: SecretStore = defaultStore
 
 /** Remove a secret from `store`, or from every store */
 export function remove(id: string, store?: SecretStore): void {
-	if (store != 'file') {
-		const path = join(credentialStore, credentialPrefix + id);
-		if (existsSync(path)) {
-			assertRoot();
-			rmSync(path);
-		}
-	}
+	if (store == 'systemd' || (!store && canUseCredentials())) rmSync(join(credentialsDir, id), { force: true });
 
 	if (store != 'systemd') {
 		for (const path of filePaths()) {

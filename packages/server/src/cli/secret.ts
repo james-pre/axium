@@ -18,21 +18,15 @@ function knownIds(): string[] {
 	return ids;
 }
 
-/** Accepts systemd credential names too, e.g. `axium.db.password` */
-function parseId(input: string): string {
-	const id = input.replace(/^axium\./, '');
+function parseId(id: string): string {
 	if (knownIds().includes(id)) return id;
-	throw `Unknown secret "${input}". Use \`axium secret list\` to see the available secrets.`;
+	throw `Unknown secret "${id}". Use \`axium secret list\` to see the available secrets.`;
 }
 
 /** Read all of piped input, or prompt for a value without showing it */
 async function readValue(id: string): Promise<string> {
 	if (process.stdin.isTTY) return await io.askHidden(`Value for ${id}: `);
 	return (await text(process.stdin)).replace(/\r?\n$/, '');
-}
-
-function applyNotice(store: SecretStore): void {
-	io.info(store == 'systemd' ? 'Restart Axium for changes to take effect.' : 'Reload or restart Axium for changes to take effect.');
 }
 
 const argId = new Argument('<id>', 'the secret, e.g. db.password').argParser(parseId);
@@ -66,7 +60,7 @@ axiumSecret
 			io.exit(e);
 		}
 		io.log(`Stored ${id} (${store})`);
-		applyNotice(store);
+		io.info('Reload or restart Axium for the change to take effect.');
 	});
 
 axiumSecret
@@ -83,5 +77,5 @@ axiumSecret
 			io.exit(e);
 		}
 		io.log(`Removed ${id}`);
-		applyNotice(store ?? secrets.defaultStore());
+		io.info('Reload or restart Axium for the change to take effect.');
 	});

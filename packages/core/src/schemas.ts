@@ -121,10 +121,12 @@ export const SecretStore = z.literal(['systemd', 'file']);
 export type SecretStore = z.infer<typeof SecretStore>;
 
 export const SecretInfo = z.object({
-	/** The key in secrets files, and the systemd credential name after `axium.` */
+	/** The key in secrets files and the name of the systemd credential */
 	id: z.string(),
 	/** Where the value comes from, or null when it is not set */
 	source: SecretStore.nullable(),
+	/** Where a new value is stored */
+	store: SecretStore,
 	/** Whether the value can be replaced through the API */
 	editable: z.boolean(),
 });
