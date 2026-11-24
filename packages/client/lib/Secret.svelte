@@ -30,7 +30,10 @@
 </script>
 
 <span class={['Secret', !source && 'unset']}>
-	<Icon i={(source ?? info.store) == 'systemd' ? 'lock-keyhole' : 'file-lock'} title={text(`Secret.${source ?? 'unset'}`, { id: info.id })} />
+	<Icon
+		i={(source ?? info.store) == 'systemd' ? 'lock-keyhole' : 'file-lock'}
+		title={text(`Secret.${source ?? 'unset'}`, { id: info.id })}
+	/>
 	<code>{info.id}</code>
 	<ClipboardCopy value={info.id} />
 	{#if save && info.editable}

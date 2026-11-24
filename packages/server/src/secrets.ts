@@ -92,7 +92,9 @@ function readCredentials(found: Map<string, Secret>): void {
 
 	for (const id of names) {
 		const path = join(credentialsDir, id);
-		const result = spawnSync('systemd-creds', ['decrypt', '--no-ask-password', '--uid=' + serviceUser, path, '-'], { encoding: 'utf8' });
+		const result = spawnSync('systemd-creds', ['decrypt', '--no-ask-password', '--uid=' + serviceUser, path, '-'], {
+			encoding: 'utf8',
+		});
 		if (result.status) {
 			io.debug(`Could not decrypt credential ${id}: ${result.stderr.trim()}`);
 			continue;
