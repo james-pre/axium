@@ -684,7 +684,7 @@ export interface ContextUsage extends z.infer<typeof ContextUsage> {}
 
 export const ContextQuery = z.object({
 	/** Also counts what each part takes up */
-	parts: z.stringbool().optional(),
+	parts: z.boolean().optional(),
 });
 export interface ContextQuery extends z.infer<typeof ContextQuery> {}
 
