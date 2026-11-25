@@ -192,6 +192,32 @@ export function linkTo<const TB extends TargetName>(itemType: TB, item: kysely.S
 	};
 }
 
+/**
+ * Selects the rows of a target table that can be accessed at all.
+ * @param table The name or alias the target table is referenced by
+ */
+export type TargetFilter = (eb: kysely.ExpressionBuilder<any, any>, table: string) => kysely.Expression<kysely.SqlBool>;
+
+const targetFilters = new Map<string, TargetFilter[]>();
+
+/**
+ * Hide rows of a target table from item auth, ACL lookups, and sync, even for their owners.
+ * Hidden rows behave as if they do not exist.
+ */
+export function addTargetFilter(table: TargetName, filter: TargetFilter): void {
+	const filters = targetFilters.get(table) ?? [];
+	filters.push(filter);
+	targetFilters.set(table, filters);
+}
+
+/**
+ * Use in a `where` to exclude rows hidden by filters added with `addTargetFilter`.
+ */
+export function filterTarget(table: TargetName, alias: string = table) {
+	return <DB, TB extends keyof DB>(eb: kysely.ExpressionBuilder<DB, TB>): kysely.ExpressionWrapper<DB, TB, kysely.SqlBool> =>
+		eb.and((targetFilters.get(table) ?? []).map(filter => filter(eb as kysely.ExpressionBuilder<any, any>, alias)));
+}
+
 export interface OptionsForWhere<TB extends TargetName> {
 	itemId?: keyof db.Schema[TB] & string;
 	/** Alias for the item table/value */
@@ -223,14 +249,19 @@ export function existsIn<const TB extends TargetName, const O extends OptionsFor
 ): FilterCallback<TB, O> {
 	if (options.optional && !getAccessControlConfig(table)) return eb => eb.val(false);
 
+	const alias = options.alias || `public.${table}`;
+
 	return eb =>
-		eb.exists(
-			eb
-				.selectFrom<TableName>(`acl.${table}`)
-				// @ts-expect-error 2349
-				.whereRef('itemId', '=', `${options.alias || `public.${table}`}.${options.itemId || 'id'}`)
-				.where(match(user))
-		);
+		eb.and([
+			eb.exists(
+				eb
+					.selectFrom<TableName>(`acl.${table}`)
+					// @ts-expect-error 2349
+					.whereRef('itemId', '=', `${alias}.${options.itemId || 'id'}`)
+					.where(match(user))
+			),
+			filterTarget(table, alias)(eb),
+		]);
 }
 
 /**
@@ -241,5 +272,9 @@ export function userHasAccess<const TB extends TargetName, const O extends Optio
 	user: Pick<UserInternal, 'id' | 'roles' | 'tags'>,
 	options: O = {} as any
 ): FilterCallback<TB, O> {
-	return eb => eb.or([eb('userId', '=', user.id as any), existsIn(table, user, options)(eb)]);
+	return eb =>
+		eb.and([
+			eb.or([eb('userId', '=', user.id as any), existsIn(table, user, options)(eb)]),
+			filterTarget(table, options.alias || `public.${table}`)(eb),
+		]);
 }

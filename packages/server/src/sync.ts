@@ -3,7 +3,7 @@ import { debug, error, errorText, warnOnce } from 'ioium';
 import type { ReferenceExpression, SelectQueryBuilder } from 'kysely';
 import type { WithRequired } from 'utilium';
 import type { TargetName } from './acl.js';
-import { from as aclFrom, existsIn } from './acl.js';
+import { from as aclFrom, existsIn, filterTarget } from './acl.js';
 import { database, listen } from './db/connection.js';
 import type { Schema } from './db/index.js';
 import { io, type Socket } from './socket.js';
@@ -53,7 +53,8 @@ function selectObject<K extends keyof Schema>(type: K, user: Pick<UserInternal, 
 				eb((cfg.userId as ReferenceExpression<Schema, TargetName>) || 'userId', '=', user.id),
 				existsIn(type as TargetName, user, { optional: true })(eb),
 			])
-		);
+		)
+		.where(filterTarget(type as TargetName));
 }
 
 export async function getEvents<T extends { id: string }>(

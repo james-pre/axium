@@ -206,6 +206,7 @@ export async function authSessionForItem<const TB extends keyof Schema & acl.Tar
 		.selectAll()
 		.select(acl.from(itemType) as (eb: ExpressionBuilder<Schema, any>) => AliasedRawBuilder<acl.Result<`acl.${TB}`>[], 'acl'>)
 		.where('id', '=', itemId)
+		.where(acl.filterTarget(itemType))
 		.executeTakeFirstOrThrow()
 		.catch(e => {
 			if (e.constructor.name == 'NoResultError' || e.message.includes('no rows')) error(404, 'Not found');
