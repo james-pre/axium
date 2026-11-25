@@ -21,9 +21,9 @@ export type ContextMenuEntry = ContextMenuItem | ContextMenuHeader | false | nul
 /**
  * Attach a context menu to an element with the given actions.
  *
- * Pass a function instead of a fixed list to have the menu rebuilt every time it opens — useful when
- * the available actions or their labels depend on state that changes after the menu is attached (e.g. a
- * selection).
+ * Pass a function instead of a fixed list to have the menu rebuilt every time it opens.
+ * Useful when the available actions or their labels depend on state that changes after the menu is attached.
+ * When the function returns no entries, the browser's own menu is shown instead.
  */
 export function contextMenu(...menuItems: ContextMenuEntry[] | [() => ContextMenuEntry[]]): Attachment<HTMLElement> {
 	return function _attachContextMenu(element: HTMLElement) {
@@ -74,15 +74,17 @@ export function contextMenu(...menuItems: ContextMenuEntry[] | [() => ContextMen
 				if (node instanceof HTMLDialogElement || (node.popover && node !== menu)) return;
 			}
 
-			e.preventDefault();
-			e.stopPropagation();
-
 			if (typeof menuItems[0] == 'function') {
+				const entries = menuItems[0]();
+				if (!entries.some(Boolean)) return;
 				for (const icon of mountedIcons) unmount(icon);
 				mountedIcons.clear();
 				menu.replaceChildren();
-				build(menuItems[0]());
+				build(entries);
 			}
+
+			e.preventDefault();
+			e.stopPropagation();
 
 			menu.showPopover();
 			_forcePopover = true;
