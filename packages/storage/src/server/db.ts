@@ -1,4 +1,5 @@
 import { getConfig } from '@axium/core';
+import { addTargetFilter } from '@axium/server/acl';
 import { database, type Schema } from '@axium/server/database';
 import type { FromFile as FromSchemaFile } from '@axium/server/db/schema';
 import * as jobs from '@axium/server/jobs';
@@ -43,6 +44,8 @@ export function parseItem<T extends SelectedItem>(item: T): Omit<T, keyof Schema
 }
 
 addSyncObjectType('storage', { parse: parseItem });
+
+addTargetFilter('storage', (eb, table) => eb(`${table}.plugin`, 'is', null));
 
 /**
  * Returns the current usage of the storage for a user in bytes.

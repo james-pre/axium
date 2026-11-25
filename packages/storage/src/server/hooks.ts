@@ -8,6 +8,7 @@ import { decodeUUID } from 'utilium/string';
 import * as z from 'zod';
 import '../common.js';
 import './api.js';
+import * as appDirectories from './app-directories.js';
 import './batch.js';
 import { getTotalUse, purgeTrash } from './db.js';
 import './raw.js';
@@ -29,4 +30,8 @@ export async function statusText(): Promise<string> {
 
 export async function clean() {
 	await track('Removing expired trash items', purgeTrash());
+}
+
+export async function pluginRemoved(name: string) {
+	await track(`Removing app directories for ${name}`, appDirectories.removeAll(name));
 }

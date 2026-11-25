@@ -29,12 +29,24 @@ export function useCAS(type: string) {
 	);
 }
 
-export async function checkNewItem(init: StorageItemInit, session: SessionAndUser): Promise<NewItemResult> {
-	const { size, type, hash } = init;
-
-	const [usage, limits] = await Promise.all([getUserStats(session.userId), getLimits(session.userId)]).catch(
+/**
+ * Throws if a user can not add a new item because of their limits.
+ * @param size in bytes
+ */
+export async function checkLimits(userId: string, size: bigint): Promise<void> {
+	const [usage, limits] = await Promise.all([getUserStats(userId), getLimits(userId)]).catch(
 		withError('Could not fetch usage and/or limits')
 	);
+
+	if (limits.user_items && usage.itemCount >= limits.user_items) error(409, 'Too many items');
+
+	if (limits.user_size && (usage.usedBytes + size) / 1_000_000n >= limits.user_size) error(413, 'Not enough space');
+
+	if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
+}
+
+export async function checkNewItem(init: StorageItemInit, session: SessionAndUser): Promise<NewItemResult> {
+	const { size, type, hash } = init;
 
 	const parentId = init.parentId
 		? await z
@@ -45,11 +57,7 @@ export async function checkNewItem(init: StorageItemInit, session: SessionAndUse
 
 	if (parentId) await authSessionForItem('storage', parentId, { write: true }, session);
 
-	if (limits.user_items && usage.itemCount >= limits.user_items) error(409, 'Too many items');
-
-	if (limits.user_size && (usage.usedBytes + size) / 1_000_000n >= limits.user_size) error(413, 'Not enough space');
-
-	if (limits.item_size && size > limits.item_size * 1_000_000) error(413, 'File size exceeds maximum size');
+	await checkLimits(session.userId, size);
 
 	const isDirectory = type == 'inode/directory';
 
@@ -87,7 +95,7 @@ export async function checkNewItem(init: StorageItemInit, session: SessionAndUse
 }
 
 export async function createNewItem(
-	init: StorageItemInit,
+	init: StorageItemInit & { plugin?: string },
 	userId: string,
 	writeContent?: (path: string) => void
 ): Promise<StorageItemMetadata> {

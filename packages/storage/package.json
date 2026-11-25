@@ -22,6 +22,7 @@
 	"exports": {
 		".": "./dist/index.js",
 		"./client": "./dist/client/index.js",
+		"./server": "./dist/server/index.js",
 		"./*": "./dist/*.js",
 		"./sidebar": "./lib/sidebar.svelte.js",
 		"./components": "./lib/index.js",

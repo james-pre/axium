@@ -208,6 +208,7 @@ addRoute({
 				.select(acl.from('storage'))
 				.where('userId', '=', userId)
 				.where('trashedAt', 'is', null)
+				.where(acl.filterTarget('storage'))
 				.$if(!!sort, qb => qb.orderBy(sort!.by, sort!.descending ? 'desc' : 'asc'))
 				.execute(),
 			getUserStats(userId),
@@ -225,7 +226,12 @@ addRoute({
 		await checkAuthForUser(request, userId);
 
 		const eb = expressionBuilder<Schema, 'storage'>();
-		const matching = eb.and([eb('userId', '=', userId), eb('trashedAt', 'is', null), eb('size', '>', 0n)]);
+		const matching = eb.and([
+			eb('userId', '=', userId),
+			eb('trashedAt', 'is', null),
+			eb('size', '>', 0n),
+			acl.filterTarget('storage')(eb),
+		]);
 
 		const [items, stats, limits] = await Promise.all([
 			database
@@ -262,6 +268,7 @@ addRoute({
 			.where('userId', '=', userId)
 			.where('trashedAt', 'is', null)
 			.where('parentId', 'is', null)
+			.where(acl.filterTarget('storage'))
 			.execute()
 			.catch(withError('Could not get storage items'));
 

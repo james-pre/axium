@@ -62,14 +62,19 @@ addRoute({
 
 		// checkAuthForItem but optimized to not re-fetch the session and also only run one DB query
 
+		const requestedIds = new Set([...deletedIds, ...Object.keys(header.metadata), ...changedIds]);
+
 		const items = await database
 			.selectFrom('storage')
 			.selectAll()
-			.where('id', 'in', [...deletedIds, ...Object.keys(header.metadata), ...changedIds])
+			.where('id', 'in', [...requestedIds])
+			.where(acl.filterTarget('storage'))
 			.select(acl.from('storage', { filterByUser: user }))
 			.$castTo<acl.WithACL<'storage'>>()
 			.execute()
 			.catch(withError('Item(s) not found', 404));
+
+		if (items.length != requestedIds.size) error(404, 'Item(s) not found');
 
 		for (const item of items) {
 			if (changedIds.has(item.id)) {
