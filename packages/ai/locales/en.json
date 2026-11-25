@@ -289,7 +289,11 @@
 			"delete_memory": "Removed memory",
 			"set_timer": "Started timer",
 			"list_timers": "Checked timers",
-			"cancel_timer": "Cancelled timer"
+			"cancel_timer": "Cancelled timer",
+			"run_command": "Ran command",
+			"write_file": "Wrote file",
+			"read_file": "Read file",
+			"view_image": "Viewed image"
 		},
 		"timer": {
 			"title": "Timer",

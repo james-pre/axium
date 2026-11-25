@@ -2,6 +2,7 @@
 	import type * as ai from '@axium/ai/common';
 	import { text } from '@axium/client';
 	import { Icon } from '@axium/client/components';
+	import { downloadURL } from './sandbox.js';
 
 	const {
 		call,
@@ -67,6 +68,9 @@
 			{#if result?.status == 'done'}
 				<span class="subtle">{text('ai.tool_result')}</span>
 				<pre>{pretty(result.content)}</pre>
+				{#if call.name == 'view_image' && typeof preview == 'string'}
+					<img class="image" src={downloadURL(result.conversationId, preview)} alt={preview} />
+				{/if}
 			{/if}
 		</div>
 	</details>
@@ -88,6 +92,12 @@
 </div>
 
 <style>
+	.image {
+		max-width: 100%;
+		max-height: 24em;
+		border-radius: 0.5em;
+	}
+
 	.ToolCall {
 		display: flex;
 		flex-direction: column;

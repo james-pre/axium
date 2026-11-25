@@ -170,6 +170,14 @@ async function allowAlways(userId: string, preferences: ai.Preferences, names: s
 		.execute();
 }
 
+/** The model a conversation uses, with what llama-server reports about it now */
+async function modelSettings(id: string | null) {
+	id ??= (await resolveRole('chat')) ?? null;
+	const [row, model] = id ? await Promise.all([getRow(id), getModel(id)]) : [];
+	if (!row) throw new Error('No model is available');
+	return { ...row, inputs: model?.inputs, status: model?.status };
+}
+
 /** What a turn needs to know about its user, beyond the conversation */
 async function turnSettings(userId: string, conversationId: string, { anonymous, temporary }: Pick<TurnInit, 'anonymous' | 'temporary'>) {
 	const [preferences, user] = await Promise.all([getPreferences(userId), getUser(userId)]);
@@ -195,10 +203,7 @@ async function respond(init: TurnInit): Promise<void> {
 	active.set(store.conversationId, { controller, userId: store.userId, progress });
 
 	try {
-		const id = init.model ?? (await resolveRole('chat'));
-		const model = id && (await getRow(id));
-		if (!model) throw new Error('No model is available');
-
+		const model = await modelSettings(init.model);
 		const { preferences, user, memories, sandbox } = await turnSettings(store.userId, store.conversationId, init);
 		let streaming = false;
 
@@ -334,9 +339,7 @@ interface ContextInit extends Pick<TurnInit, 'model' | 'reasoning' | 'anonymous'
  * Counting needs the model loaded, so otherwise this falls back to the size of the last response's request.
  */
 async function measureContext(init: ContextInit): Promise<ai.ContextUsage> {
-	const id = init.model ?? (await resolveRole('chat'));
-	const model = id && (await getRow(id));
-	if (!model) throw new Error('No model is available');
+	const model = await modelSettings(init.model);
 
 	const last = init.history.findLast(message => message.role == 'assistant' && message.usage)?.usage;
 	const fallback: ai.ContextUsage = {
@@ -344,7 +347,7 @@ async function measureContext(init: ContextInit): Promise<ai.ContextUsage> {
 		counted: false,
 		used: last ? last.promptTokens + last.completionTokens : undefined,
 	};
-	if ((await getModel(model.id))?.status != 'loaded') return fallback;
+	if (model.status != 'loaded') return fallback;
 
 	const { preferences, user, memories, sandbox } = await turnSettings(init.userId, init.conversationId, init);
 	const request = loop.createRequest({

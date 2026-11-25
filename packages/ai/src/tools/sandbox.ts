@@ -90,3 +90,40 @@ tools.add({
 		return { path, text: part, ...(end < text.length && { next: end, length: text.length }) };
 	},
 });
+
+/** Image formats llama.cpp can read, by their first bytes */
+const imageSignatures: [type: string, signature: number[]][] = [
+	['image/png', [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]],
+	['image/jpeg', [0xff, 0xd8, 0xff]],
+	['image/gif', [0x47, 0x49, 0x46, 0x38]],
+	['image/bmp', [0x42, 0x4d]],
+];
+
+/** The largest image shown to the model, in bytes */
+const maxImageSize = 20 * 1024 * 1024;
+
+tools.add({
+	name: 'view_image',
+	description:
+		'Shows you an image from the sandbox, such as one the user attached or a chart you made. ' +
+		'You see it for the rest of this turn; later, view it again if you need it. ' +
+		'Only PNG, JPEG, GIF and BMP images can be shown, so convert other formats first with run_command.',
+	environment: 'sandbox',
+	access: 'read',
+	needs: 'image',
+	input: z.object({
+		path: z.string().min(1).max(1024).describe('Relative to /work, or absolute'),
+	}),
+	async run({ path }, context) {
+		const data = await requireSandbox(context).read(path, context.signal);
+		if (data.length > maxImageSize)
+			throw new Error(`The image is larger than ${maxImageSize / 1024 / 1024} MiB; make a smaller copy first`);
+
+		const type = imageSignatures.find(([, signature]) => signature.every((byte, index) => data[index] == byte))?.[0];
+		if (!type) throw new Error('This is not a PNG, JPEG, GIF or BMP image; convert it with run_command first');
+
+		return new tools.WithImages(`Showing ${path}. It was shown to you when this ran; view it again if you need to see it later.`, [
+			{ type, data },
+		]);
+	},
+});

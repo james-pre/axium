@@ -25,7 +25,7 @@ export interface Progress {
 }
 
 /** What the loop needs to know about the model */
-export interface ModelSettings extends Pick<ai.ModelInfo, 'id' | 'systemPrompt' | 'reasoning' | 'tools'> {}
+export interface ModelSettings extends Pick<ai.ModelInfo, 'id' | 'systemPrompt' | 'reasoning' | 'tools'>, Pick<ai.Model, 'inputs'> {}
 
 export interface TurnInit {
 	store: Store;
@@ -246,7 +246,12 @@ export function createRequest(init: RequestInit): TurnRequest {
 	const offered =
 		model.tools === false
 			? []
-			: tools.allowed(preferences.tools, { anonymous: init.anonymous, temporary: init.temporary, sandbox: !!context.sandbox });
+			: tools.allowed(preferences.tools, {
+					anonymous: init.anonymous,
+					temporary: init.temporary,
+					sandbox: !!context.sandbox,
+					inputs: model.inputs,
+				});
 
 	const remembered =
 		init.memories &&
@@ -276,6 +281,21 @@ export function createRequest(init: RequestInit): TurnRequest {
 		],
 		tools: tools.definitions(offered),
 		reasoning: spoken ? 'none' : init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning,
+	};
+}
+
+/** Adds images a tool showed to its result, for the rest of the turn */
+function withImages(message: ChatMessage, images?: tools.Image[]): ChatMessage {
+	if (message.role != 'tool' || !images?.length) return message;
+	return {
+		...message,
+		content: [
+			{ type: 'text', text: typeof message.content == 'string' ? message.content : '' },
+			...images.map(image => ({
+				type: 'image_url' as const,
+				image_url: { url: `data:${image.type};base64,${image.data.toBase64()}` },
+			})),
+		],
 	};
 }
 
@@ -362,16 +382,19 @@ export async function respond(init: TurnInit): Promise<void> {
 				signal.throwIfAborted();
 
 				const key = call.name + '\n' + call.arguments;
-				const outcome = failed.has(key) ? repeatedFailure : await tools.run(tool, call, context);
+				const { images, ...outcome } = failed.has(key) ? repeatedFailure : await tools.run(tool, call, context);
 				if (outcome.status == 'error') failed.add(key);
 
 				const done = await store.update(message.id, signal.aborted ? { status: 'cancelled' } : outcome);
 				running.delete(message.id);
-				messages.push(toChatMessage(done)!);
+				messages.push(withImages(toChatMessage(done)!, signal.aborted ? undefined : images));
 			}
 
 			const last = messages.at(-1);
-			if (step + 1 >= init.maxSteps && last?.role == 'tool') last.content += lastStepNote;
+			if (step + 1 >= init.maxSteps && last?.role == 'tool') {
+				if (typeof last.content == 'string') last.content += lastStepNote;
+				else last.content.push({ type: 'text', text: lastStepNote });
+			}
 
 			signal.throwIfAborted();
 			if (awaiting) return;

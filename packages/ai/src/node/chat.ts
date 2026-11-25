@@ -1,6 +1,9 @@
 import type * as ai from '../common.js';
 import { request as llamaRequest, serverSentEvents } from './llama.js';
 
+/** Part of a message's content, in the OpenAI chat completions format */
+export type ContentPart = { type: 'text'; text: string } | { type: 'image_url'; image_url: { url: string } };
+
 /** A message in the OpenAI chat completions format */
 export type ChatMessage =
 	| { role: 'system' | 'user'; content: string }
@@ -9,7 +12,7 @@ export type ChatMessage =
 			content: string | null;
 			tool_calls?: { id: string; type: 'function'; function: { name: string; arguments: string } }[];
 	  }
-	| { role: 'tool'; tool_call_id: string; content: string };
+	| { role: 'tool'; tool_call_id: string; content: string | ContentPart[] };
 
 export interface ChatRequest {
 	model: string;

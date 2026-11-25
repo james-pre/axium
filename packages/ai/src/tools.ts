@@ -73,6 +73,8 @@ export interface Tool<Input extends z.ZodObject = z.ZodObject> {
 	input: Input;
 	/** Whether the tool can be offered, e.g. `false` while its configuration is missing */
 	available?(): boolean;
+	/** Only offered to models that accept this kind of input */
+	needs?: ai.Modality;
 	/** The result is given to the model as-is when it's a string, and as JSON otherwise */
 	run(input: z.infer<Input>, context: Context): Promise<unknown>;
 }
@@ -93,11 +95,14 @@ export interface AllowedOptions {
 	temporary?: boolean;
 	/** Whether the host offers a sandbox */
 	sandbox?: boolean;
+	/** What the model accepts besides text */
+	inputs?: ai.Modality[];
 }
 
-export function allowed(preferences: ai.Preferences['tools'], { anonymous, temporary, sandbox }: AllowedOptions = {}): Tool[] {
+export function allowed(preferences: ai.Preferences['tools'], { anonymous, temporary, sandbox, inputs }: AllowedOptions = {}): Tool[] {
 	return Array.from(registry.values()).filter(tool => {
 		if (tool.available && !tool.available()) return false;
+		if (tool.needs && !inputs?.includes(tool.needs)) return false;
 
 		switch (tool.environment) {
 			case null:
@@ -135,10 +140,27 @@ export function definitions(offered: Tool[]) {
 /** Characters of a result given to the model */
 const maxResultLength = 32_000;
 
+export interface Image {
+	/** A MIME type, e.g. `image/png` */
+	type: string;
+	data: Uint8Array;
+}
+
+/** A tool result that also shows the model images, which only the turn it ran in keeps */
+export class WithImages {
+	constructor(
+		/** What is saved, and what later turns see instead of the images */
+		readonly text: string,
+		readonly images: Image[]
+	) {}
+}
+
 export interface CallResult {
 	status: 'done' | 'error';
 	/** What the model sees */
 	content: string;
+	/** Shown to the model for the rest of the turn, but not saved */
+	images?: Image[];
 	/** What the user sees */
 	error: string | null;
 }
@@ -163,6 +185,8 @@ export async function run(tool: Tool | undefined, call: ai.ToolCall, context: Co
 
 	try {
 		const result = await tool.run(parsed.data, context);
+		if (result instanceof WithImages) return { status: 'done', content: result.text, images: result.images, error: null };
+
 		const text = typeof result == 'string' ? result : JSON.stringify(result);
 		if (text.length <= maxResultLength) return { status: 'done', content: text, error: null };
 
