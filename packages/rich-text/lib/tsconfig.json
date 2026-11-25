@@ -1,0 +1,12 @@
+{
+	"extends": ["../tsconfig.json"],
+	"compilerOptions": {
+		"rootDir": "..",
+		"noEmit": true,
+		"module": "preserve",
+		"moduleResolution": "Bundler",
+		"lib": ["ESNext", "DOM", "DOM.Iterable"]
+	},
+	"include": ["./**/*", "../src/.*.ts", "../locales/*.json"],
+	"references": [{ "path": ".." }]
+}

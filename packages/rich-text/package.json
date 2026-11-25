@@ -1,0 +1,51 @@
+{
+	"name": "@axium/rich-text",
+	"version": "0.0.0",
+	"author": "James Prevett <axium@jamespre.dev>",
+	"description": "Rich text editing for Axium",
+	"funding": {
+		"type": "individual",
+		"url": "https://github.com/sponsors/james-pre"
+	},
+	"license": "LGPL-3.0-or-later",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/james-pre/axium.git"
+	},
+	"homepage": "https://github.com/james-pre/axium#readme",
+	"bugs": {
+		"url": "https://github.com/james-pre/axium/issues"
+	},
+	"type": "module",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		".": "./dist/index.js",
+		"./*": "./dist/*.js",
+		"./components": "./lib/index.js",
+		"./components/*": "./lib/*.svelte"
+	},
+	"files": [
+		"dist",
+		"lib",
+		"locales"
+	],
+	"scripts": {
+		"build": "tsc"
+	},
+	"peerDependencies": {
+		"@axium/client": ">=0.44.0",
+		"@james-pre/locales": "^1.0.0",
+		"svelte": "^5.36.0",
+		"zod": "^4.0.5"
+	},
+	"dependencies": {
+		"@tiptap/core": "^3.35.0",
+		"@tiptap/extension-bubble-menu": "^3.35.0",
+		"@tiptap/extension-list": "^3.35.0",
+		"@tiptap/extension-table": "^3.35.0",
+		"@tiptap/pm": "^3.35.0",
+		"@tiptap/starter-kit": "^3.35.0",
+		"@tiptap/suggestion": "^3.35.0"
+	}
+}

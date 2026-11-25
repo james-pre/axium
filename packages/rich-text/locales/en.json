@@ -1,0 +1,16 @@
+{
+	"RichText": {
+		"bold": "Bold",
+		"italic": "Italic",
+		"underline": "Underline",
+		"strike": "Strikethrough",
+		"code": "Code",
+		"link": "Link",
+		"link_placeholder": "Paste or type a link",
+		"link_apply": "Apply",
+		"unlink": "Remove link",
+		"task_done": "Done",
+		"suggestions_loading": "Loading…",
+		"suggestions_empty": "No results"
+	}
+}
