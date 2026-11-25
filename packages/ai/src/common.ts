@@ -83,6 +83,9 @@ export const SandboxConfig = z.object({
 });
 export interface SandboxConfig extends z.infer<typeof SandboxConfig> {}
 
+export const SearchFallback = z.literal(['none', 'duckduckgo']);
+export type SearchFallback = z.infer<typeof SearchFallback>;
+
 export const Config = z
 	.object({
 		/** Where downloaded models and llama-server's state are kept */
@@ -94,8 +97,10 @@ export const Config = z
 		timeout: z.number().positive(),
 		/** The most responses the model may give in one turn while using tools */
 		max_steps: z.int().positive(),
-		/** A SearXNG instance for the web search tool, which searches DuckDuckGo while this is unset */
+		/** A SearXNG instance for the web search tool */
 		search_url: z.url().nullish(),
+		/** A search engine the web search tool uses while `search_url` is unset, which the server sends queries to */
+		search_fallback: SearchFallback.register(locales.zod, { prefix: 'ai.search_fallback' }),
 		/** The most memories each user may have */
 		max_memories: z.int().positive(),
 		/** The most characters in a memory's content */

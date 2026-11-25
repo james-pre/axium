@@ -133,6 +133,7 @@
 			"timeout": 600,
 			"max_steps": 30,
 			"search_url": null,
+			"search_fallback": "none",
 			"max_memories": 100,
 			"max_memory_length": 1000,
 			"speaker_reference": null,

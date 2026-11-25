@@ -2,6 +2,8 @@ import { getConfig } from '@axium/core';
 import * as http from 'node:http';
 import * as https from 'node:https';
 import * as z from 'zod';
+import type { Element } from 'domhandler';
+import { DomUtils, parseDocument } from 'htmlparser2';
 import { htmlToMarkdown } from './markdown.js';
 import { checkLiteral, publicLookup } from './network.js';
 import * as tools from '../tools.js';
@@ -146,7 +148,14 @@ tools.add({
 	},
 });
 
-const SearchResponse = z.object({
+interface SearchResult {
+	title?: string;
+	url: string;
+	snippet?: string;
+	published?: string;
+}
+
+const SearXNGResponse = z.object({
 	results: z
 		.object({
 			url: z.string(),
@@ -157,6 +166,62 @@ const SearchResponse = z.object({
 		.array(),
 });
 
+async function searchSearXNG(instance: string, query: string, page: number, signal: AbortSignal): Promise<SearchResult[]> {
+	const url = new URL('search', instance.replace(/\/?$/, '/'));
+	url.searchParams.set('q', query);
+	url.searchParams.set('format', 'json');
+	url.searchParams.set('pageno', String(page));
+
+	const response = await fetch(url, { signal, headers: { Accept: 'application/json' } });
+	if (!response.ok) throw new Error(`The search service responded with ${response.status}`);
+
+	const { results } = SearXNGResponse.parse(await response.json());
+	return results.map(result => ({
+		title: result.title,
+		url: result.url,
+		snippet: result.content,
+		published: result.publishedDate ?? undefined,
+	}));
+}
+
+function hasClass(element: Element, name: string): boolean {
+	return element.attribs.class?.split(/\s+/).includes(name) ?? false;
+}
+
+/** DuckDuckGo's HTML results, which needs no account or key */
+async function searchDuckDuckGo(query: string, page: number, signal: AbortSignal): Promise<SearchResult[]> {
+	const url = new URL('https://html.duckduckgo.com/html/');
+	url.searchParams.set('q', query);
+	if (page > 1) {
+		url.searchParams.set('s', String((page - 1) * 10));
+		url.searchParams.set('dc', String((page - 1) * 10 + 1));
+	}
+
+	const { body } = await fetchPublic(url, signal);
+	const document = parseDocument(body);
+
+	const results = DomUtils.findAll(element => hasClass(element, 'web-result') && !hasClass(element, 'result--ad'), document.children);
+	if (!results.length && /anomaly|challenge/i.test(body)) {
+		throw new Error('DuckDuckGo refused the search because it limits automated searches; try again later');
+	}
+
+	return results.flatMap(result => {
+		const link = DomUtils.findOne(element => hasClass(element, 'result__a'), result.children);
+		const href = link?.attribs.href;
+		if (!link || !href) return [];
+
+		const target = new URL(href, 'https://duckduckgo.com');
+		const snippet = DomUtils.findOne(element => hasClass(element, 'result__snippet'), result.children);
+		return [
+			{
+				title: DomUtils.textContent(link).trim(),
+				url: (target.pathname == '/l/' && target.searchParams.get('uddg')) || target.href,
+				snippet: snippet ? DomUtils.textContent(snippet).trim() : undefined,
+			},
+		];
+	});
+}
+
 tools.add({
 	name: 'search_web',
 	description:
@@ -165,27 +230,23 @@ tools.add({
 		'whenever the answer may have changed since then: news, recent events, current prices, scores, releases, or who holds a role.',
 	environment: 'web',
 	access: 'read',
-	available: () => !!getConfig('@axium/ai').search_url,
+	available() {
+		const { search_url, search_fallback } = getConfig('@axium/ai');
+		return !!search_url || search_fallback != 'none';
+	},
 	input: z.object({
 		query: z.string().min(1).max(400).describe('What to search for, as you would type it into a search engine'),
 		page: z.int().min(1).max(10).optional().describe('Result page, starting at 1'),
 	}),
-	async run({ query, page }, { signal }) {
-		const url = new URL('search', getConfig('@axium/ai').search_url!.replace(/\/?$/, '/'));
-		url.searchParams.set('q', query);
-		url.searchParams.set('format', 'json');
-		if (page) url.searchParams.set('pageno', String(page));
+	async run({ query, page = 1 }, { signal }) {
+		const { search_url, search_fallback } = getConfig('@axium/ai');
+		if (search_url) return (await searchSearXNG(search_url, query, page, signal)).slice(0, 10);
 
-		const response = await fetch(url, { signal, headers: { Accept: 'application/json' } });
-		if (!response.ok) throw new Error(`The search service responded with ${response.status}`);
-
-		const { results } = SearchResponse.parse(await response.json());
-
-		return results.slice(0, 10).map(result => ({
-			title: result.title,
-			url: result.url,
-			snippet: result.content,
-			published: result.publishedDate ?? undefined,
-		}));
+		switch (search_fallback) {
+			case 'duckduckgo':
+				return (await searchDuckDuckGo(query, page, signal)).slice(0, 10);
+			case 'none':
+				throw new Error('No search engine is configured');
+		}
 	},
 });

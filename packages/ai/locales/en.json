@@ -136,6 +136,10 @@
 			"run": "Update now",
 			"started": "Updating memories in the background"
 		},
+		"search_fallback": {
+			"none": "None",
+			"duckduckgo": "DuckDuckGo"
+		},
 		"sandbox_network": {
 			"none": "Off",
 			"packages": "Package registries only",
@@ -177,6 +181,7 @@
 			"timeout": "Response timeout (seconds)",
 			"max_steps": "Most steps per turn",
 			"search_url": "SearXNG URL",
+			"search_fallback": "Search engine without a SearXNG URL",
 			"max_memories": "Most memories per user",
 			"max_memory_length": "Longest memory (characters)",
 			"speaker_reference": "Voice reference recording",
