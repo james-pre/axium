@@ -306,9 +306,9 @@
 				<span class="name">{item.name}</span>
 			{/if}
 			<span class="modified mobile-subtle">{item.modifiedAt.toLocaleString()}</span>
-			<span class={['size', item.type != 'inode/directory' && 'file-size', 'mobile-subtle']}
-				>{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}</span
-			>
+			<span class={['size', item.type != 'inode/directory' && 'file-size', 'mobile-subtle']}>
+				{item.type == 'inode/directory' ? '—' : formatBytes(item.size)}
+			</span>
 			<div
 				class="item-actions"
 				data-no-select

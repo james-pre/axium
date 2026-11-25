@@ -225,11 +225,11 @@
 									{/if}
 								</span>
 								{#if iface.speed}
-									<span class="subtle"
-										>{iface.speed < 1000
+									<span class="subtle">
+										{iface.speed < 1000
 											? `${iface.speed} MBit/s`
-											: `${(iface.speed / 1000).toFixed(2).replace(/\.?0+$/, '')} GBit/s`}</span
-									>
+											: `${(iface.speed / 1000).toFixed(2).replace(/\.?0+$/, '')} GBit/s`}
+									</span>
 								{/if}
 							</span>
 						</div>

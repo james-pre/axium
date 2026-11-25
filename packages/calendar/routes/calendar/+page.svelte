@@ -115,15 +115,19 @@
 			onclick={() => {
 				start.setDate(start.getDate() - spanDays);
 				end.setDate(end.getDate() - spanDays);
-			}}><Icon i="chevron-left" /></button
+			}}
 		>
+			<Icon i="chevron-left" />
+		</button>
 		<button
 			class="reset mobile-hide"
 			onclick={() => {
 				start.setDate(start.getDate() + spanDays);
 				end.setDate(end.getDate() + spanDays);
-			}}><Icon i="chevron-right" /></button
+			}}
 		>
+			<Icon i="chevron-right" />
+		</button>
 
 		<!-- mobile -->
 		<button class="reset mobile-only icon-text" onclick={() => calSidebar?.classList.toggle('active')}><Icon i="bars" /></button>

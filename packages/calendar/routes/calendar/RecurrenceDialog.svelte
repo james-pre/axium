@@ -94,8 +94,10 @@
 							else if (byWeekday.size && i !== eventInit.start.getDay()) byWeekday.delete(i);
 						}}
 						aria-label={short}
-						aria-pressed={byWeekday.has(i)}>{narrow}</button
+						aria-pressed={byWeekday.has(i)}
 					>
+						{narrow}
+					</button>
 				{/each}
 			</div>
 		</div>

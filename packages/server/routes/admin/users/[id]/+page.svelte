@@ -99,8 +99,10 @@
 				} catch (e) {
 					await toast('error', e);
 				}
-			}}>{user.isSuspended ? text('page.admin.users.unsuspend') : text('page.admin.users.suspend')}</button
+			}}
 		>
+			{user.isSuspended ? text('page.admin.users.unsuspend') : text('page.admin.users.suspend')}
+		</button>
 	</div>
 	<div class="item info">
 		<p>{text('page.admin.users.profile_image')}</p>

@@ -51,8 +51,10 @@
 				doubleClicked = true;
 				flushSync(() => (isDirectoryUpload = false));
 				document.querySelector<HTMLInputElement>('#StorageAdd-upload')?.click();
-			}}><Icon i="plus" />{text('storage.Add.text')}</button
+			}}
 		>
+			<Icon i="plus" />{text('storage.Add.text')}
+		</button>
 	{/snippet}
 
 	<button

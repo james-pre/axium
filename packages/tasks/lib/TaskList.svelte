@@ -142,9 +142,9 @@
 			{@render inside()}
 		{:else}
 			<details>
-				<summary style:margin-left="{depth * 1.75 + 1}em" class="completed-subtasks subtle"
-					>{text('tasks.completed_heading', { count: completedSubs.length })}</summary
-				>
+				<summary style:margin-left="{depth * 1.75 + 1}em" class="completed-subtasks subtle">
+					{text('tasks.completed_heading', { count: completedSubs.length })}
+				</summary>
 				{@render inside()}
 			</details>
 		{/if}
@@ -263,11 +263,11 @@
 
 	{#if completed.length || (!showCompletedInline && tasks.some(t => t.completed))}
 		<details bind:open>
-			<summary
-				>{text('tasks.completed_heading', {
+			<summary>
+				{text('tasks.completed_heading', {
 					count: (showCompletedInline ? completed : tasks.filter(t => t.completed)).length,
-				})}</summary
-			>
+				})}
+			</summary>
 			{#if showCompletedInline}
 				{#each completed as node (node.task.id)}
 					{@render task_tree(node)}

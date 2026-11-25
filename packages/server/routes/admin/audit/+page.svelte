@@ -113,15 +113,19 @@
 					}
 				}
 				location.search = params ? '?' + params.toString() : '';
-			}}>{text('page.admin.audit.apply')}</button
+			}}
 		>
+			{text('page.admin.audit.apply')}
+		</button>
 		<button
 			class="inline-button"
 			onclick={e => {
 				e.preventDefault();
 				location.search = '';
-			}}>{text('page.admin.audit.reset')}</button
+			}}
 		>
+			{text('page.admin.audit.reset')}
+		</button>
 	</div>
 </form>
 

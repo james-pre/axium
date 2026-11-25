@@ -19,7 +19,9 @@
 			onclick={e => {
 				e.preventDefault();
 				history.back();
-			}}>{text('Logout.back')}</button
+			}}
 		>
+			{text('Logout.back')}
+		</button>
 	{/if}
 </FormDialog>
