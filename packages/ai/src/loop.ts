@@ -221,6 +221,64 @@ async function resolveAwaiting(history: ai.Message[], init: TurnInit, allowed: S
 	if (always.size) await init.allowAlways?.([...always]);
 }
 
+export interface RequestInit extends Pick<
+	TurnInit,
+	'model' | 'reasoning' | 'defaultSystemPrompt' | 'preferences' | 'memories' | 'anonymous' | 'temporary' | 'timeZone' | 'homeTimeZone'
+> {
+	/** Only whether there is a sandbox matters */
+	context: Pick<tools.Context, 'sandbox'>;
+	/** The conversation so far, oldest first */
+	history: ai.Message[];
+}
+
+/** What a turn sends to the model before it calls any tools */
+export interface TurnRequest {
+	/** Starting with the system message */
+	messages: ChatMessage[];
+	tools: ReturnType<typeof tools.definitions>;
+	reasoning: string;
+}
+
+/** Builds the request a turn starts with, which is also what the context view measures */
+export function createRequest(init: RequestInit): TurnRequest {
+	const { model, preferences, context, history } = init;
+
+	const offered =
+		model.tools === false
+			? []
+			: tools.allowed(preferences.tools, { anonymous: init.anonymous, temporary: init.temporary, sandbox: !!context.sandbox });
+
+	const remembered =
+		init.memories &&
+		memory.prompt(
+			init.memories,
+			offered.some(tool => tool.environment == 'memory' && tool.access == 'write')
+		);
+
+	const spoken = !!history.findLast(message => message.role == 'user')?.voice;
+	const timeZone = init.timeZone ?? 'UTC';
+
+	const system = systemPrompt({
+		prompt: model.systemPrompt ?? init.defaultSystemPrompt,
+		instructions: preferences.instructions?.trim(),
+		offered,
+		remembered,
+		voice: spoken,
+		timeZone,
+		homeTimeZone: init.homeTimeZone,
+		sandboxNetwork: offered.some(tool => tool.environment == 'sandbox') ? context.sandbox?.network : undefined,
+	});
+
+	return {
+		messages: [
+			{ role: 'system', content: system },
+			...history.map(message => toChatMessage(message, timeZone)).filter(message => !!message),
+		],
+		tools: tools.definitions(offered),
+		reasoning: spoken ? 'none' : init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning,
+	};
+}
+
 /** Anything more than this is probably a bug. */
 const stepUpperBound = 1000;
 
@@ -229,7 +287,7 @@ const stepUpperBound = 1000;
  * Never throws: failures are saved on the messages they affect.
  */
 export async function respond(init: TurnInit): Promise<void> {
-	const { store, model, preferences, context, progress } = init;
+	const { store, preferences, context, progress } = init;
 	const { signal } = context;
 
 	/** The assistant message being streamed into, until it finishes */
@@ -244,44 +302,11 @@ export async function respond(init: TurnInit): Promise<void> {
 	}
 
 	try {
-		const offered =
-			model.tools === false
-				? []
-				: tools.allowed(preferences.tools, { anonymous: init.anonymous, temporary: init.temporary, sandbox: !!context.sandbox });
-		const definitions = tools.definitions(offered);
-
-		const remembered =
-			init.memories &&
-			memory.prompt(
-				init.memories,
-				offered.some(tool => tool.environment == 'memory' && tool.access == 'write')
-			);
-
 		const allowed = new Set(init.allowedTools);
 		const history = await init.history();
 		await resolveAwaiting(history, init, allowed);
 
-		const spoken = !!history.findLast(message => message.role == 'user')?.voice;
-		const reasoning = spoken ? 'none' : init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning;
-
-		const timeZone = init.timeZone ?? 'UTC';
-
-		const messages: ChatMessage[] = [
-			{
-				role: 'system',
-				content: systemPrompt({
-					prompt: model.systemPrompt ?? init.defaultSystemPrompt,
-					instructions: preferences.instructions?.trim(),
-					offered,
-					remembered,
-					voice: spoken,
-					timeZone,
-					homeTimeZone: init.homeTimeZone,
-					sandboxNetwork: offered.some(tool => tool.environment == 'sandbox') ? context.sandbox?.network : undefined,
-				}),
-			},
-			...history.map(message => toChatMessage(message, timeZone)).filter(message => !!message),
-		];
+		const { messages, tools: definitions, reasoning } = createRequest({ ...init, history });
 
 		/** Calls that failed, by name and arguments */
 		const failed = new Set<string>();

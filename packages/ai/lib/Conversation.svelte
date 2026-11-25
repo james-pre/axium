@@ -11,6 +11,7 @@
 	import BackLink from './BackLink.svelte';
 	import ChatMessage from './ChatMessage.svelte';
 	import Composer from './Composer.svelte';
+	import ContextMeter from './ContextMeter.svelte';
 	import ConversationMenu from './ConversationMenu.svelte';
 	import { attach } from './sandbox.js';
 	import SandboxFiles from './SandboxFiles.svelte';
@@ -134,7 +135,7 @@
 	function temporaryHistory(): ai.TemporaryMessage[] {
 		return messages
 			.filter(message => message.status != 'pending')
-			.map(({ id, role, content, toolCalls, toolCallId, status, voice, attachments, created }) => ({
+			.map(({ id, role, content, toolCalls, toolCallId, status, voice, attachments, usage, created }) => ({
 				id,
 				role,
 				content,
@@ -143,9 +144,23 @@
 				status,
 				voice,
 				attachments,
+				usage,
 				created,
 			}));
 	}
+
+	async function loadContext(parts: boolean): Promise<ai.ContextUsage> {
+		if (!temporary) return await fetchAPI('GET', 'ai/conversations/:id/context', { parts }, conversation.id);
+		return await fetchAPI(
+			'POST',
+			'ai/temporary/:id/context',
+			{ model: model || null, reasoning, anonymous, messages: temporaryHistory(), parts },
+			conversation.id
+		);
+	}
+
+	/** Changes whenever what the model would see changes, except while it is responding */
+	const contextKey = $derived(generating ? undefined : `${model}/${reasoning}/${messages.length}`);
 
 	async function respondTemporary(decided?: ai.Decisions): Promise<void> {
 		const pending = await fetchAPI(
@@ -314,6 +329,9 @@
 					<span>{text('ai.temporary.title')}</span>
 				{/if}
 			</div>
+			{#if messages.length}
+				<ContextMeter load={loadContext} refresh={contextKey} models={models.models} />
+			{/if}
 			{#if sandbox && messages.length}
 				<SandboxFiles conversationId={conversation.id} />
 			{/if}
@@ -331,6 +349,9 @@
 					<span>{title || text('ai.untitled')}</span>
 				{/if}
 			</div>
+			{#if messages.length}
+				<ContextMeter load={loadContext} refresh={contextKey} models={models.models} />
+			{/if}
 			{#if sandbox}
 				<SandboxFiles conversationId={conversation.id} />
 			{/if}

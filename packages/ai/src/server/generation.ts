@@ -10,13 +10,14 @@ import { randomUUID } from 'node:crypto';
 import type schema from '../../db.json';
 import type * as ai from '../common.js';
 import * as loop from '../loop.js';
-import { chat, streamChat } from '../node/chat.js';
+import { chat, countTokens, requestLimit, streamChat } from '../node/chat.js';
+import { measure } from '../node/context.js';
 import features from '@axium/core/features';
 import { getMemories } from './memory.js';
 import { getPreferences } from './preferences.js';
-import * as sandbox from './sandbox.js';
+import * as sandboxes from './sandbox.js';
 import * as timers from './timers.js';
-import { getRow, learnCapabilities, resolveRole } from './models.js';
+import { getModel, getRow, learnCapabilities, resolveRole } from './models.js';
 import { pick } from 'utilium';
 
 declare module '@axium/server/database' {
@@ -169,6 +170,21 @@ async function allowAlways(userId: string, preferences: ai.Preferences, names: s
 		.execute();
 }
 
+/** What a turn needs to know about its user, beyond the conversation */
+async function turnSettings(userId: string, conversationId: string, { anonymous, temporary }: Pick<TurnInit, 'anonymous' | 'temporary'>) {
+	const [preferences, user] = await Promise.all([getPreferences(userId), getUser(userId)]);
+	const remembers = preferences.tools.memory && features('ai-memory') && !anonymous;
+	return {
+		preferences,
+		user,
+		memories: remembers ? await getMemories(userId) : undefined,
+		sandbox: sandboxes.forConversation(userId, conversationId, {
+			temporary: !!temporary,
+			network: features('ai-network') ? preferences.tools.sandbox_network : 'none',
+		}),
+	};
+}
+
 /** Responds with the server's model, streaming text to the user. Never throws. */
 async function respond(init: TurnInit): Promise<void> {
 	const { store } = init;
@@ -183,8 +199,7 @@ async function respond(init: TurnInit): Promise<void> {
 		const model = id && (await getRow(id));
 		if (!model) throw new Error('No model is available');
 
-		const [preferences, user] = await Promise.all([getPreferences(store.userId), getUser(store.userId)]);
-		const remembers = preferences.tools.memory && features('ai-memory') && !init.anonymous;
+		const { preferences, user, memories, sandbox } = await turnSettings(store.userId, store.conversationId, init);
 		let streaming = false;
 
 		await loop.respond({
@@ -197,17 +212,14 @@ async function respond(init: TurnInit): Promise<void> {
 			preferences,
 			timeZone: init.timeZone ?? user.preferences.time_zone,
 			homeTimeZone: user.preferences.time_zone,
-			memories: remembers ? await getMemories(store.userId) : undefined,
+			memories,
 			context: {
 				userId: user.id,
 				conversationId: init.temporary ? undefined : store.conversationId,
 				signal,
 				api: (method, endpoint, data, ...params) => callAPI(user, method, endpoint, data, ...params),
 				timers: timers.forUser(user.id),
-				sandbox: sandbox.forConversation(user.id, store.conversationId, {
-					temporary: !!init.temporary,
-					network: features('ai-network') ? preferences.tools.sandbox_network : 'none',
-				}),
+				sandbox,
 			},
 			allowAlways: names => allowAlways(store.userId, preferences, names),
 			progress,
@@ -232,14 +244,10 @@ async function respond(init: TurnInit): Promise<void> {
 	}
 }
 
-async function savedHistory(conversationId: string, exclude: string): Promise<ai.Message[]> {
-	const rows = await database
-		.selectFrom('ai_messages')
-		.selectAll()
-		.where('conversationId', '=', conversationId)
-		.where('id', '!=', exclude)
-		.orderBy('created')
-		.execute();
+async function savedHistory(conversationId: string, exclude?: string): Promise<ai.Message[]> {
+	let query = database.selectFrom('ai_messages').selectAll().where('conversationId', '=', conversationId);
+	if (exclude) query = query.where('id', '!=', exclude);
+	const rows = await query.orderBy('created').execute();
 
 	return rows.map(toMessage);
 }
@@ -274,6 +282,21 @@ export async function generate(
 	});
 }
 
+/** A temporary conversation's messages, as the client sent them */
+function temporaryHistory(conversationId: string, messages: ai.TemporaryMessage[]): ai.Message[] {
+	return messages.map((message): ai.Message => ({
+		conversationId,
+		reasoning: null,
+		error: null,
+		...message,
+		usage: message.usage ?? null,
+		attachments: message.attachments ?? null,
+		toolCalls: message.toolCalls ?? null,
+		toolCallId: message.toolCallId ?? null,
+		status: message.status ?? 'done',
+	}));
+}
+
 /** Responds into `pending` for a temporary conversation, which is never saved. Never throws. */
 export async function generateTemporary(
 	userId: string,
@@ -281,17 +304,7 @@ export async function generateTemporary(
 	pending: ai.Message,
 	timeZone?: string | null
 ): Promise<void> {
-	const history = init.messages.map((message): ai.Message => ({
-		conversationId: pending.conversationId,
-		reasoning: null,
-		error: null,
-		usage: null,
-		...message,
-		attachments: message.attachments ?? null,
-		toolCalls: message.toolCalls ?? null,
-		toolCallId: message.toolCallId ?? null,
-		status: message.status ?? 'done',
-	}));
+	const history = temporaryHistory(pending.conversationId, init.messages);
 
 	await respond({
 		store: temporaryStore(userId, pending.conversationId, [...history, pending]),
@@ -304,6 +317,89 @@ export async function generateTemporary(
 		anonymous: init.anonymous,
 		temporary: true,
 		timeZone,
+	});
+}
+
+interface ContextInit extends Pick<TurnInit, 'model' | 'reasoning' | 'anonymous' | 'temporary' | 'timeZone'> {
+	userId: string;
+	conversationId: string;
+	history: ai.Message[];
+	/** Also counts what each part takes up */
+	parts?: boolean;
+	signal?: AbortSignal;
+}
+
+/**
+ * How much of the model's context the conversation's next request takes up.
+ * Counting needs the model loaded, so otherwise this falls back to the size of the last response's request.
+ */
+async function measureContext(init: ContextInit): Promise<ai.ContextUsage> {
+	const id = init.model ?? (await resolveRole('chat'));
+	const model = id && (await getRow(id));
+	if (!model) throw new Error('No model is available');
+
+	const last = init.history.findLast(message => message.role == 'assistant' && message.usage)?.usage;
+	const fallback: ai.ContextUsage = {
+		model: model.id,
+		counted: false,
+		used: last ? last.promptTokens + last.completionTokens : undefined,
+	};
+	if ((await getModel(model.id))?.status != 'loaded') return fallback;
+
+	const { preferences, user, memories, sandbox } = await turnSettings(init.userId, init.conversationId, init);
+	const request = loop.createRequest({
+		model,
+		reasoning: init.reasoning,
+		defaultSystemPrompt: getConfig('@axium/ai').system_prompt,
+		preferences,
+		memories,
+		anonymous: init.anonymous,
+		temporary: init.temporary,
+		timeZone: init.timeZone ?? user.preferences.time_zone,
+		homeTimeZone: user.preferences.time_zone,
+		context: { sandbox },
+		history: init.history,
+	});
+
+	try {
+		const limit = await requestLimit(model.id, init.signal);
+		if (init.parts) return { model: model.id, counted: true, limit, ...(await measure(model.id, request, init.signal)) };
+
+		const used = await countTokens({ model: model.id, ...pick(request, 'messages', 'tools', 'reasoning'), signal: init.signal });
+		return { model: model.id, counted: true, limit, used };
+	} catch (error) {
+		io.debug(`AI: could not count the context of ${init.conversationId}: ${io.errorText(error)}`);
+		return fallback;
+	}
+}
+
+export async function savedContext(conversation: ConversationRow, options: Pick<ContextInit, 'timeZone' | 'parts' | 'signal'>) {
+	return await measureContext({
+		...options,
+		userId: conversation.userId,
+		conversationId: conversation.id,
+		model: conversation.model,
+		reasoning: conversation.reasoning,
+		history: await savedHistory(conversation.id),
+	});
+}
+
+export async function temporaryContext(
+	userId: string,
+	conversationId: string,
+	init: ai.TemporaryContext,
+	options: Pick<ContextInit, 'timeZone' | 'signal'>
+) {
+	return await measureContext({
+		...options,
+		userId,
+		conversationId,
+		model: init.model ?? null,
+		reasoning: init.reasoning,
+		anonymous: init.anonymous,
+		temporary: true,
+		parts: init.parts,
+		history: temporaryHistory(conversationId, init.messages),
 	});
 }
 

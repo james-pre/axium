@@ -49,20 +49,23 @@ export async function chat(request: ChatRequest): Promise<ChatResult> {
 	return chunk.value;
 }
 
+/** The body of a chat completion request */
+function requestBody(request: Omit<ChatRequest, 'signal'>) {
+	return {
+		model: request.model,
+		messages: request.messages,
+		reasoning_effort: request.reasoning == 'default' ? undefined : request.reasoning,
+		max_tokens: request.maxTokens,
+		tools: request.tools?.length ? request.tools : undefined,
+		response_format: request.schema && { type: 'json_schema', json_schema: { name: 'response', schema: request.schema } },
+	};
+}
+
 export async function* streamChat(request: ChatRequest): ChatStream {
 	const response = await llamaRequest('v1/chat/completions', {
 		method: 'POST',
 		signal: request.signal,
-		body: JSON.stringify({
-			model: request.model,
-			messages: request.messages,
-			reasoning_effort: request.reasoning == 'default' ? undefined : request.reasoning,
-			max_tokens: request.maxTokens,
-			tools: request.tools?.length ? request.tools : undefined,
-			response_format: request.schema && { type: 'json_schema', json_schema: { name: 'response', schema: request.schema } },
-			stream: true,
-			stream_options: { include_usage: true },
-		}),
+		body: JSON.stringify({ ...requestBody(request), stream: true, stream_options: { include_usage: true } }),
 	});
 
 	const result: ChatResult = { content: '', reasoning: '', toolCalls: [], finishReason: null, usage: null };
@@ -99,4 +102,22 @@ export async function* streamChat(request: ChatRequest): ChatStream {
 	}
 
 	return result;
+}
+
+/** Counts the tokens a request would give the model, failing instead of loading the model when it isn't loaded */
+export async function countTokens(request: ChatRequest): Promise<number> {
+	const response = await llamaRequest('v1/chat/completions/input_tokens?autoload=false', {
+		method: 'POST',
+		signal: request.signal,
+		body: JSON.stringify(requestBody(request)),
+	});
+	const { input_tokens } = await response.json();
+	return input_tokens;
+}
+
+/** The most tokens one request to a loaded model can hold, which is less than its context when it serves several at once */
+export async function requestLimit(model: string, signal?: AbortSignal): Promise<number | undefined> {
+	const response = await llamaRequest(`props?model=${encodeURIComponent(model)}&autoload=false`, { signal });
+	const props = await response.json();
+	return props.default_generation_settings?.n_ctx || undefined;
 }

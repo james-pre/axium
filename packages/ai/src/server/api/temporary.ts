@@ -6,7 +6,7 @@ import { addRoute } from '@axium/server/routes';
 import { randomUUID } from 'node:crypto';
 import * as z from 'zod';
 import * as ai from '../../common.js';
-import { cancel, emitMessage, generateTemporary, isGenerating } from '../generation.js';
+import { cancel, emitMessage, generateTemporary, isGenerating, temporaryContext } from '../generation.js';
 import * as sandbox from '../sandbox.js';
 
 addRoute({
@@ -62,5 +62,18 @@ addRoute({
 				await sandbox.remove(userId, id, true).catch(withError('Could not delete the sandbox'));
 				return {};
 		}
+	},
+});
+
+addRoute({
+	path: '/api/ai/temporary/:id/context',
+	params: { id: z.uuid() },
+	async POST(request, { id }): AsyncResult<'POST', 'ai/temporary/:id/context'> {
+		const init = await parseBody(request, ai.TemporaryContext);
+		const { userId, timezone } = await requireSession(request);
+
+		return await temporaryContext(userId, id, init, { timeZone: timezone, signal: request.signal }).catch(
+			withError('Could not measure the context', 503)
+		);
 	},
 });

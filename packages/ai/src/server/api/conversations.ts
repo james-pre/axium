@@ -2,11 +2,11 @@ import type { AsyncResult } from '@axium/core/api';
 import { checkAuthForUser } from '@axium/server/auth';
 import { database, type Schema } from '@axium/server/database';
 import type { Selectable } from 'kysely';
-import { error, parseBody, withError } from '@axium/server/requests';
+import { error, parseBody, parseSearch, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
 import * as z from 'zod';
 import * as ai from '../../common.js';
-import { cancel, emitMessage, emitRemoved, generate, isGenerating, toMessage, withProgress } from '../generation.js';
+import { cancel, emitMessage, emitRemoved, generate, isGenerating, savedContext, toMessage, withProgress } from '../generation.js';
 import { resolveRole } from '../models.js';
 import * as sandbox from '../sandbox.js';
 import * as io from 'ioium';
@@ -267,5 +267,18 @@ addRoute({
 			.catch(error => io.warn(`AI: could not delete the sandbox of ${id}: ${io.errorText(error)}`));
 
 		return deleted;
+	},
+});
+
+addRoute({
+	path: '/api/ai/conversations/:id/context',
+	params: { id: z.uuid() },
+	async GET(request, { id }): AsyncResult<'GET', 'ai/conversations/:id/context'> {
+		const { parts } = parseSearch(request, ai.ContextQuery);
+		const { conversation, timeZone } = await authConversation(request, id);
+
+		return await savedContext(conversation, { timeZone, parts, signal: request.signal }).catch(
+			withError('Could not measure the context', 503)
+		);
 	},
 });

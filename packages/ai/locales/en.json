@@ -141,6 +141,20 @@
 			"packages": "Package registries only",
 			"all": "All public sites"
 		},
+		"context": {
+			"title": "Context",
+			"counting": "Counting...",
+			"not_loaded": "{model} isn't loaded, so this is the size of its last request. Load it to see what takes up the space.",
+			"part": {
+				"system": "System prompt",
+				"tools": "Tool definitions",
+				"user": "Your messages",
+				"assistant": "Replies",
+				"tool_calls": "Tool calls",
+				"tool_results": "Tool results",
+				"other": "Formatting"
+			}
+		},
 		"sandbox": {
 			"files": "Sandbox files",
 			"loading": "Loading files...",

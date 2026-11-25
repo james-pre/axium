@@ -94,7 +94,7 @@ export const Config = z
 		timeout: z.number().positive(),
 		/** The most responses the model may give in one turn while using tools */
 		max_steps: z.int().positive(),
-		/** A SearXNG instance used by the web search tool, which is hidden while this is unset */
+		/** A SearXNG instance for the web search tool, which searches DuckDuckGo while this is unset */
 		search_url: z.url().nullish(),
 		/** The most memories each user may have */
 		max_memories: z.int().positive(),
@@ -474,6 +474,8 @@ export type ConversationAction = z.infer<typeof ConversationAction>;
 
 /** A message in a temporary conversation, which only the client keeps */
 export const TemporaryMessage = Message.pick({ id: true, role: true, toolCalls: true, toolCallId: true, status: true }).extend({
+	/** Kept so the context view can show the last request's size without the model */
+	usage: Usage.nullish(),
 	content: z.string().max(100_000),
 	voice: z.boolean().default(false),
 	attachments: Attachment.array().max(100).nullish(),
@@ -657,6 +659,35 @@ export const Transcription = z.object({
 });
 export interface Transcription extends z.infer<typeof Transcription> {}
 
+/** What takes up a conversation's context. `other` is the chat template's own formatting. */
+export const contextParts = ['system', 'tools', 'user', 'assistant', 'tool_calls', 'tool_results', 'other'] as const;
+export const ContextPart = z.literal(contextParts);
+export type ContextPart = z.infer<typeof ContextPart>;
+
+export const ContextUsage = z.object({
+	model: ModelId,
+	/** The most tokens one request can hold, known while the model is loaded */
+	limit: z.int().positive().optional(),
+	/** Tokens in the conversation's next request */
+	used: z.int().nonnegative().optional(),
+	/** Whether `used` was counted by the model, rather than taken from the last response */
+	counted: z.boolean(),
+	/** Tokens by part, when asked for and the model is loaded */
+	parts: z.partialRecord(ContextPart, z.int().nonnegative()).optional(),
+});
+export interface ContextUsage extends z.infer<typeof ContextUsage> {}
+
+export const ContextQuery = z.object({
+	/** Also counts what each part takes up */
+	parts: z.stringbool().optional(),
+});
+export interface ContextQuery extends z.infer<typeof ContextQuery> {}
+
+export const TemporaryContext = TemporaryInit.pick({ model: true, reasoning: true, anonymous: true, messages: true }).extend({
+	parts: z.boolean().optional(),
+});
+export interface TemporaryContext extends z.infer<typeof TemporaryContext> {}
+
 export const SandboxFile = z.object({
 	/** Relative to the sandbox's files */
 	path: z.string(),
@@ -720,10 +751,17 @@ const AIAPI = {
 		POST: [ConversationAction, z.object({ message: Message.optional() })],
 		DELETE: Conversation,
 	},
+	'ai/conversations/:id/context': {
+		/** How much of the model's context the conversation takes up. The model is never loaded for this. */
+		GET: [ContextQuery, ContextUsage],
+	},
 	'ai/temporary/:id': {
 		/** Starts a response without saving anything; returns the pending response */
 		PUT: [TemporaryInit, Message],
 		POST: [TemporaryAction, z.object({})],
+	},
+	'ai/temporary/:id/context': {
+		POST: [TemporaryContext, ContextUsage],
 	},
 	'ai/sandbox': {
 		GET: z.object({ available: z.boolean() }),
