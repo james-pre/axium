@@ -12,12 +12,14 @@
 		children?: Snippet;
 	}
 
-	let stack = $state.raw<TopBarContentProps[]>([]);
+	/** Mounted contents, oldest first. */
+	const stack: TopBarContentProps[] = [];
+	let current = $state.raw<TopBarContentProps>();
 	let middle = $state<HTMLElement>();
 
 	/** The content registered by the most recently mounted `TopBarContent`. */
 	export function currentContent(): TopBarContentProps | undefined {
-		return stack.at(-1);
+		return current;
 	}
 
 	/** Marks the element in the top bar that the current content's children are moved into. */
@@ -34,9 +36,11 @@
 
 	const props: TopBarContentProps = $props();
 
-	stack = [...stack, props];
+	stack.push(props);
+	current = props;
 	onDestroy(() => {
-		stack = stack.filter(entry => entry !== props);
+		stack.splice(stack.indexOf(props), 1);
+		current = stack.at(-1);
 	});
 
 	const moveToTopBar: Attachment<HTMLElement> = element => {
