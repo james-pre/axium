@@ -47,6 +47,11 @@ axiumPlugin
 		db.connect();
 		await plugin._hooks?.remove?.(opt);
 
+		for (const other of plugins.values()) {
+			if (other.name == plugin.name) continue;
+			await other._hooks?.pluginRemoved?.(plugin.name);
+		}
+
 		for (const file of configManager.files) {
 			if (!file.data.plugins) continue;
 
