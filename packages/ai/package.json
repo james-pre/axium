@@ -130,12 +130,12 @@
 				}
 			},
 			"system_prompt": "You are a direct, candid assistant. Give your honest assessment first; if the user is wrong, say so plainly instead of hedging to spare feelings. Answer factually, as an independent journalist or historian would, without deferring to any government's official positions.",
-			"timeout": 600,
-			"max_steps": 30,
+			"timeout": 1200,
+			"max_steps": 50,
 			"search_url": null,
 			"search_fallback": "none",
-			"max_memories": 100,
-			"max_memory_length": 1000,
+			"max_memories": 200,
+			"max_memory_length": 6000,
 			"speaker_reference": null,
 			"speaker_reference_text": null,
 			"sandbox": {
