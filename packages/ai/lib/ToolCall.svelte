@@ -120,6 +120,10 @@
 		white-space: nowrap;
 		overflow: hidden;
 
+		.name {
+			flex-shrink: 0;
+		}
+
 		.preview {
 			overflow: hidden;
 			text-overflow: ellipsis;
