@@ -5,7 +5,7 @@ import { hostname } from 'node:os';
 import * as z from 'zod';
 import { database, listen } from './db/connection.js';
 import type { Schema } from './db/index.js';
-import { _unique } from './state.js';
+import './state.js';
 
 export type State = 'queued' | 'running' | 'failed';
 
@@ -68,7 +68,7 @@ export const channel = 'axium_jobs';
 /** The Postgres notification channel used to abort cancelled jobs, with job IDs as payloads */
 const cancelChannel = 'axium_jobs_cancel';
 
-const definitions = _unique('jobs', new Map<string, Definition<any>>());
+const definitions = new Map<string, Definition<any>>();
 
 /** In seconds */
 const leaseDuration = 60;

@@ -14,7 +14,7 @@ import * as cfg from './config_types.js';
 import { MxConfig } from './email.js';
 import { dirs, logger, systemDir } from './io.js';
 import * as secrets from './secrets.js';
-import { _duplicateStateWarnings, _unique } from './state.js';
+import './state.js';
 
 const audit_severity_levels = ['emergency', 'alert', 'critical', 'error', 'warning', 'notice', 'info', 'debug'] satisfies Lowercase<
 	keyof typeof Severity
@@ -109,7 +109,6 @@ const schema = z.looseObject({
 	request_size_limit: z.coerce.number().min(0).optional().default(0),
 	/** Where new secrets are stored. Defaults to `systemd` when the system was booted with systemd, otherwise `file`. Overridden by `AXIUM_SECRET_STORE`. */
 	secret_store: SecretStore.optional(),
-	show_duplicate_state: cfg.bool.default(false),
 	/** Who can use the user discovery API. For example, setting to `admin` means regular users need to type a full email in the ACL dialog and won't be shown results */
 	user_discovery: z.literal(['disabled', 'admin', 'user', 'public']).default('user'),
 	/** Configuration for user profile pictures */
@@ -137,7 +136,7 @@ const schema = z.looseObject({
 });
 
 /** Names of plugins whose `load` hook has run in this process */
-export const startedPlugins = _unique('startedPlugins', new Set<string>());
+export const startedPlugins = new Set<string>();
 
 async function loadPlugins(path: string, file: { plugins?: string[] }, options: Partial<LoadOptions>): Promise<void> {
 	for (const pluginPath of file.plugins ?? []) {
@@ -179,16 +178,13 @@ async function loadPlugins(path: string, file: { plugins?: string[] }, options: 
 	}
 }
 
-export const configManager = _unique(
-	'config',
-	new jpConfig.Manager(schema, { enableIncludes: true, system: 'axium/config' }).$loadOptions<LoadOptions>()
-)
+export const configManager = new jpConfig.Manager(schema, { enableIncludes: true, system: 'axium/config' })
+	.$loadOptions<LoadOptions>()
 	.on('change', () => {
 		secrets.apply(configManager.schema, configManager.data);
 		logger.detach(io);
 		if (config.log.console) logger.attach(io, { output: config.log.level });
 		io._setDebugOutput(config.debug);
-		_duplicateStateWarnings(config.show_duplicate_state);
 	})
 	.on('create', path => io.debug('Created config file', path))
 	.on('write', path => io.debug('Wrote config to', path))

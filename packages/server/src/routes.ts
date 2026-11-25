@@ -3,7 +3,7 @@ import type { RequestMethod } from '@axium/core/requests';
 import type { Component } from 'svelte';
 import type z from 'zod';
 import config from './config.js';
-import { _unique } from './state.js';
+import './state.js';
 
 type RouteParams = Record<string, z.ZodType>;
 
@@ -58,7 +58,7 @@ export type Route<Params extends RouteParams = RouteParams> = ServerRoute<Params
 /**
  * @internal
  */
-export const routes = _unique('routes', new Map<string, Route<any>>());
+export const routes = new Map<string, Route<any>>();
 
 /**
  * @category Plugin API

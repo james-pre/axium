@@ -10,7 +10,7 @@ import { isRoot } from 'utilium/node';
 import * as z from 'zod';
 import config from './config.js';
 import { dirs, localDir, systemDir } from './io.js';
-import { _unique } from './state.js';
+import './state.js';
 
 const fileName = 'secrets.json';
 const credentialsDir = join(systemDir, 'credentials');
@@ -125,7 +125,7 @@ function writeFile(path: string, secrets: Record<string, string>): void {
 	if (created) chownToService(path);
 }
 
-const loaded = _unique('secrets', new Map<string, Secret>());
+const loaded = new Map<string, Secret>();
 let isLoaded = false;
 
 /** Read secrets from systemd credentials and secrets files, which take precedence in that order */

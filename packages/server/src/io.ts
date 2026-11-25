@@ -7,11 +7,11 @@ import * as fs from 'node:fs';
 import type { Socket } from 'node:net';
 import { dirname, join, resolve } from 'node:path/posix';
 import { _throw, pick } from 'utilium';
-import { _unique } from './state.js';
+import './state.js';
 
 export const systemDir = '/etc/axium';
 
-export const dirs: string[] = _unique('dirs', []);
+export const dirs: string[] = [];
 for (let dir = resolve(process.cwd()); dir !== '/'; dir = dirname(dir)) {
 	if (fs.existsSync(join(dir, '.axium'))) dirs.push(join(dir, '.axium'));
 }
