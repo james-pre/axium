@@ -15,6 +15,7 @@
 		width: var(--size, 1em);
 		height: var(--size, 1em);
 		display: inline-block;
+		flex-shrink: 0;
 		fill: var(--fill, hsl(var(--hue) 0 var(--fg-light)));
 		user-select: none;
 	}
