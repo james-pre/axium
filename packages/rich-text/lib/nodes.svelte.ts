@@ -159,8 +159,7 @@ export function defineNode<Data>(options: CustomNodeOptions<Data>): CustomNode<D
 					new Plugin({
 						key: new PluginKey(`${name}-paste`),
 						props: {
-							transformPasted: slice =>
-								new Slice(transformPasted(slice.content), slice.openStart, slice.openEnd),
+							transformPasted: slice => new Slice(transformPasted(slice.content), slice.openStart, slice.openEnd),
 						},
 					})
 				);
