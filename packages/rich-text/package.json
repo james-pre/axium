@@ -1,6 +1,6 @@
 {
 	"name": "@axium/rich-text",
-	"version": "0.0.0",
+	"version": "0.0.1",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Rich text editing for Axium",
 	"funding": {
