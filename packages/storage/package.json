@@ -42,7 +42,7 @@
 	"peerDependencies": {
 		"@axium/client": ">=0.43.0",
 		"@axium/core": ">=0.47.0",
-		"@axium/server": ">=0.60.0",
+		"@axium/server": ">=0.62.0",
 		"@james-pre/locales": "^1.0.0",
 		"@sveltejs/kit": "^3.0.0",
 		"commander": "^15.0.0",
