@@ -301,10 +301,7 @@ export function createRequest(init: RequestInit): TurnRequest {
 	});
 
 	return {
-		messages: [
-			{ role: 'system', content: system },
-			...chatHistory(history, timeZone),
-		],
+		messages: [{ role: 'system', content: system }, ...chatHistory(history, timeZone)],
 		tools: tools.definitions(offered),
 		reasoning: spoken ? 'none' : init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning,
 	};
