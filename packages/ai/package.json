@@ -1,6 +1,6 @@
 {
 	"name": "@axium/ai",
-	"version": "0.4.0",
+	"version": "0.4.1",
 	"author": "James Prevett <axium@jamespre.dev>",
 	"description": "Local-first AI assistant for Axium",
 	"funding": {
