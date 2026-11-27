@@ -19,9 +19,9 @@ async function authConversation(request: Request, id: string) {
 		.executeTakeFirstOrThrow()
 		.catch(withError('Conversation not found', 404));
 
-	const { timezone } = await checkAuthForUser(request, conversation.userId);
+	const { timezone, accessor } = await checkAuthForUser(request, conversation.userId);
 
-	return { conversation, timeZone: timezone };
+	return { conversation, timeZone: timezone, isAdmin: accessor.isAdmin };
 }
 
 type ConversationRow = Selectable<Schema['ai_conversations']>;
@@ -138,25 +138,26 @@ addRoute({
 			.catch(withError('Could not update conversation'));
 	},
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/conversations/:id'> {
-		const { content, voice, attachments } = await parseBody(request, ai.MessageInit);
+		const { content, voice, attachments, role } = await parseBody(request, ai.MessageInit);
 
 		const auth = await authConversation(request, id);
 
+		if (role == 'system' && !auth.isAdmin) error(403, 'Only administrators can send system messages');
 		if (isGenerating(id)) error(409, 'A response is already being generated');
 
 		const conversation = await database
 			.updateTable('ai_conversations')
-			.set({ modified: new Date(), title: auth.conversation.title || content.slice(0, 60) })
+			.set({ modified: new Date(), title: auth.conversation.title || (role == 'user' ? content.slice(0, 60) : '') })
 			.where('id', '=', id)
 			.returningAll()
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not update conversation'));
 
-		const user = await database
+		const sent = await database
 			.insertInto('ai_messages')
 			.values({
 				conversationId: id,
-				role: 'user',
+				role,
 				content,
 				voice,
 				attachments: attachments?.length ? JSON.stringify(attachments) : null,
@@ -165,6 +166,9 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not save message'));
 
+		emitMessage(conversation.userId, toMessage(sent));
+		if (role == 'system') return [toMessage(sent)];
+
 		const assistant = await database
 			.insertInto('ai_messages')
 			.values({ conversationId: id, role: 'assistant', status: 'pending' })
@@ -172,17 +176,16 @@ addRoute({
 			.executeTakeFirstOrThrow()
 			.catch(withError('Could not save message'));
 
-		const messages = [toMessage(user), toMessage(assistant)];
-		for (const message of messages) emitMessage(conversation.userId, message);
+		emitMessage(conversation.userId, toMessage(assistant));
 
 		void generate(conversation, assistant, { timeZone: auth.timeZone });
 
-		return messages;
+		return [toMessage(sent), toMessage(assistant)];
 	},
 	async POST(request, { id }): AsyncResult<'POST', 'ai/conversations/:id'> {
 		const body = await parseBody(request, ai.ConversationAction);
 
-		const { conversation, timeZone } = await authConversation(request, id);
+		const { conversation, timeZone, isAdmin } = await authConversation(request, id);
 
 		switch (body.action) {
 			case 'cancel':
@@ -217,9 +220,20 @@ addRoute({
 					.catch(withError('Could not get message'));
 
 				if (!target) error(404, 'Message not found');
-				if (target.role != 'user') error(409, 'Only your own messages can be edited');
+				if (!ai.SentRole.safeParse(target.role).success) error(409, 'Only your own messages can be edited');
+				if (target.role == 'user') return { message: await restart(conversation, target, timeZone, body.content) };
+				if (!isAdmin) error(403, 'Only administrators can edit system messages');
 
-				return { message: await restart(conversation, target, timeZone, body.content) };
+				const edited = await database
+					.updateTable('ai_messages')
+					.set({ content: body.content })
+					.where('id', '=', target.id)
+					.returningAll()
+					.executeTakeFirstOrThrow()
+					.catch(withError('Could not save message'));
+
+				emitMessage(conversation.userId, toMessage(edited));
+				return {};
 			}
 			case 'decide': {
 				if (isGenerating(id)) error(409, 'A response is already being generated');
@@ -274,10 +288,12 @@ addRoute({
 	path: '/api/ai/conversations/:id/context',
 	params: { id: z.uuid() },
 	async GET(request, { id }): AsyncResult<'GET', 'ai/conversations/:id/context'> {
-		const { parts } = parseSearch(request, ai.ContextQuery);
-		const { conversation, timeZone } = await authConversation(request, id);
+		const { parts, prompt } = parseSearch(request, ai.ContextQuery);
+		const { conversation, timeZone, isAdmin } = await authConversation(request, id);
 
-		return await savedContext(conversation, { timeZone, parts, signal: request.signal }).catch(
+		if (prompt && !isAdmin) error(403, 'Only administrators can view the system prompt');
+
+		return await savedContext(conversation, { timeZone, parts, prompt, signal: request.signal }).catch(
 			withError('Could not measure the context', 503)
 		);
 	},

@@ -20,6 +20,7 @@
 		onoptions,
 		onattach,
 		ctrlEnter = false,
+		admin = false,
 	}: {
 		generating?: boolean;
 		/** Whether sending needs Ctrl+Enter, leaving Enter for new lines */
@@ -27,8 +28,10 @@
 		models: ai.Model[];
 		model: string;
 		reasoning: string;
-		/** @param voice Whether the content was spoken in conversation mode */
-		onsend(content: string, voice?: boolean, attachments?: ai.Attachment[]): Promise<unknown>;
+		/** Lets the user send messages as the system */
+		admin?: boolean;
+		/** `options.voice` is whether the content was spoken in conversation mode */
+		onsend(content: string, options?: Partial<Omit<ai.MessageInit, 'content'>>): Promise<unknown>;
 		onstop?(): void;
 		/** Called after the model or reasoning changes */
 		onoptions?(): void;
@@ -113,6 +116,7 @@
 	}
 
 	let content = $state(''),
+		asSystem = $state(false),
 		sending = $state(false),
 		recording = $state<voice.Recording>(),
 		transcribing = $state(false);
@@ -148,16 +152,20 @@
 
 	$effect(() => cancelDictation);
 
-	$effect(() => voice.useSender(async spoken => void (await onsend(spoken, true))));
+	$effect(() => voice.useSender(async spoken => void (await onsend(spoken, { voice: true }))));
 
 	async function send() {
 		if (!content.trim() || generating || sending || uploading) return;
 		sending = true;
 		try {
 			const attachments = uploads.map(upload => upload.attachment!);
-			await onsend(content, false, attachments.length ? $state.snapshot(attachments) : undefined);
+			await onsend(content, {
+				attachments: attachments.length ? $state.snapshot(attachments) : undefined,
+				role: asSystem ? 'system' : 'user',
+			});
 			content = '';
 			uploads = [];
+			asSystem = false;
 		} finally {
 			sending = false;
 		}
@@ -211,7 +219,13 @@
 				attachFiles(Array.from(e.clipboardData.files, file => ({ file, path: file.name })));
 			}}
 			bind:value={content}
-			placeholder={transcribing ? text('ai.voice.transcribing') : recording ? text('ai.voice.listening') : text('ai.placeholder')}
+			placeholder={transcribing
+				? text('ai.voice.transcribing')
+				: recording
+					? text('ai.voice.listening')
+					: asSystem
+						? text('ai.system_message.placeholder')
+						: text('ai.placeholder')}
 			onkeydown={e => {
 				if (e.key == 'Escape' && recording) return cancelDictation();
 				if (e.key != 'Enter' || e.shiftKey || e.isComposing) return;
@@ -239,6 +253,18 @@
 					onclick={() => fileInput?.click()}
 				>
 					<Icon i="paperclip" />
+				</button>
+			{/if}
+			{#if admin}
+				<button
+					type="button"
+					class={['as-system', asSystem && 'active']}
+					title={text('ai.system_message.toggle')}
+					aria-label={text('ai.system_message.toggle')}
+					aria-pressed={asSystem}
+					onclick={() => (asSystem = !asSystem)}
+				>
+					<Icon i="server" />
 				</button>
 			{/if}
 			<div class="options">
@@ -362,6 +388,7 @@
 	}
 
 	.attach,
+	.as-system,
 	.dictate,
 	.cancel,
 	.send {
@@ -369,6 +396,7 @@
 	}
 
 	.attach,
+	.as-system,
 	.dictate {
 		display: inline-flex;
 		align-items: center;
@@ -381,6 +409,10 @@
 		&.recording {
 			background-color: var(--bg-error);
 			animation: pulse 1.5s ease-in-out infinite;
+		}
+
+		&.active {
+			background-color: var(--bg-strong);
 		}
 
 		&:disabled {

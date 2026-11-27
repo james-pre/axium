@@ -160,6 +160,8 @@ export function toChatMessage(message: ai.Message, timeZone: string = 'UTC'): Ch
 				);
 			return { role: 'user', content: `${tags.join('\n')}\n${message.content}` };
 		}
+		case 'system':
+			return { role: 'user', content: `<system-reminder>\n${message.content}\n</system-reminder>` };
 		case 'tool':
 			return {
 				role: 'tool',
@@ -178,6 +180,30 @@ export function toChatMessage(message: ai.Message, timeZone: string = 'UTC'): Ch
 				})),
 			};
 	}
+}
+
+/** The conversation as the model sees it, with system messages joined to the user message after them */
+function chatHistory(history: ai.Message[], timeZone: string): ChatMessage[] {
+	const messages: ChatMessage[] = [];
+	let reminders: string[] = [];
+
+	for (const message of history) {
+		const chat = toChatMessage(message, timeZone);
+		if (!chat) continue;
+
+		if (message.role == 'system' && chat.role == 'user') {
+			reminders.push(chat.content);
+			continue;
+		}
+
+		if (reminders.length && chat.role == 'user') chat.content = [...reminders, chat.content].join('\n');
+		else if (reminders.length) messages.push({ role: 'user', content: reminders.join('\n') });
+		reminders = [];
+		messages.push(chat);
+	}
+
+	if (reminders.length) messages.push({ role: 'user', content: reminders.join('\n') });
+	return messages;
 }
 
 const repeatedFailure: tools.CallResult = {
@@ -277,7 +303,7 @@ export function createRequest(init: RequestInit): TurnRequest {
 	return {
 		messages: [
 			{ role: 'system', content: system },
-			...history.map(message => toChatMessage(message, timeZone)).filter(message => !!message),
+			...chatHistory(history, timeZone),
 		],
 		tools: tools.definitions(offered),
 		reasoning: spoken ? 'none' : init.reasoning == 'default' ? (model.reasoning ?? 'default') : init.reasoning,

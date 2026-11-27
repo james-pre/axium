@@ -157,7 +157,13 @@
 				"tool_calls": "Tool calls",
 				"tool_results": "Tool results",
 				"other": "Formatting"
-			}
+			},
+			"system_prompt": "System prompt"
+		},
+		"system_message": {
+			"label": "System",
+			"toggle": "Send as the system",
+			"placeholder": "System message"
 		},
 		"sandbox": {
 			"files": "Sandbox files",

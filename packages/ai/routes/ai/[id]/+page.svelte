@@ -20,5 +20,6 @@
 		{title}
 		ctrlEnter={data.preferences.ctrl_enter}
 		sandbox={data.sandbox}
+		admin={!!data.session.user.isAdmin}
 	/>
 {/key}

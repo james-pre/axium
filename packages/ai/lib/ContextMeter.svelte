@@ -7,12 +7,14 @@
 		load,
 		refresh,
 		models,
+		admin = false,
 	}: {
-		/** @param parts Whether to count what each part takes up */
-		load(parts: boolean): Promise<ai.ContextUsage>;
+		load(query: ai.ContextQuery): Promise<ai.ContextUsage>;
 		/** Usage is loaded again when this changes; `undefined` while a response is being generated */
 		refresh: unknown;
 		models: ai.Model[];
+		/** Shows the system prompt */
+		admin?: boolean;
 	} = $props();
 
 	const dialogId = $props.id();
@@ -25,7 +27,7 @@
 	$effect(() => {
 		if (refresh === undefined) return;
 		let current = true;
-		load(false)
+		load({})
 			.then(result => {
 				if (!current) return;
 				usage = result;
@@ -39,7 +41,7 @@
 		counting = true;
 		error = undefined;
 		try {
-			usage = await load(true);
+			usage = await load({ parts: true, prompt: admin });
 			parts = usage.parts;
 		} catch (cause) {
 			error = cause instanceof Error ? cause.message : String(cause);
@@ -106,6 +108,13 @@
 		<p class="subtle">{text('ai.context.not_loaded', { model: modelName })}</p>
 	{/if}
 
+	{#if usage?.prompt}
+		<details class="prompt">
+			<summary>{text('ai.context.system_prompt')}</summary>
+			<pre>{usage.prompt}</pre>
+		</details>
+	{/if}
+
 	<button command="close" commandfor={dialogId}>{text('generic.done')}</button>
 </dialog>
 
@@ -144,6 +153,25 @@
 
 		.tokens {
 			font-variant-numeric: tabular-nums;
+		}
+	}
+
+	.prompt {
+		margin-bottom: 1em;
+
+		summary {
+			cursor: pointer;
+		}
+
+		pre {
+			max-height: 50vh;
+			overflow-y: auto;
+			white-space: pre-wrap;
+			overflow-wrap: anywhere;
+			padding: 0.75em 1em;
+			border-radius: 0.5em;
+			background-color: var(--bg-alt);
+			font-size: 0.85em;
 		}
 	}
 

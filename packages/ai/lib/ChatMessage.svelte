@@ -66,6 +66,13 @@
 </script>
 
 <div class={['message', message.role, draft !== undefined && 'editing']}>
+	{#if message.role == 'system'}
+		<div class="sender subtle icon-text">
+			<Icon i="server" --size="12px" />
+			<span>{text('ai.system_message.label')}</span>
+		</div>
+	{/if}
+
 	{#if draft !== undefined}
 		<form
 			class="edit"
@@ -190,10 +197,26 @@
 			max-width: 80%;
 		}
 
-		&.user.editing {
+		&.system {
+			align-self: center;
+			align-items: center;
+			max-width: 80%;
+
+			.bubble {
+				background: none;
+				border: 1px dashed var(--bg-strong);
+			}
+		}
+
+		&.user.editing,
+		&.system.editing {
 			align-self: stretch;
 			max-width: none;
 		}
+	}
+
+	.sender {
+		font-size: 0.8em;
 	}
 
 	.attachments {
@@ -267,11 +290,11 @@
 	}
 
 	@media (hover: hover) {
-		.message.user .actions {
+		.message:is(.user, .system) .actions {
 			visibility: hidden;
 		}
 
-		.message.user:hover .actions {
+		.message:is(.user, .system):hover .actions {
 			visibility: visible;
 		}
 

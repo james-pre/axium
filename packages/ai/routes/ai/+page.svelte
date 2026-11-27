@@ -38,12 +38,12 @@
 		return created;
 	}
 
-	async function start(content: string, spoken = false, attachments?: ai.Attachment[]) {
+	async function start(content: string, options: Partial<Omit<ai.MessageInit, 'content'>> = {}) {
 		try {
 			const { id } = await conversation();
-			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken, attachments }, id);
+			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, ...options }, id);
 			const message = sent.find(message => message.role == 'user');
-			if (spoken && message) voice.addTurn(message.id);
+			if (options.voice && message) voice.addTurn(message.id);
 			await invalidate('ai:conversations');
 			await goto('/ai/' + id);
 		} catch (error) {
@@ -77,6 +77,7 @@
 		title=""
 		ctrlEnter={data.preferences.ctrl_enter}
 		sandbox={data.sandbox}
+		admin={!!data.session.user.isAdmin}
 		actions={toggle}
 	/>
 {:else}
@@ -92,6 +93,7 @@
 				? async (file, path, onProgress, signal) => attach((await conversation()).id, file, path, onProgress, signal)
 				: undefined}
 			ctrlEnter={data.preferences.ctrl_enter}
+			admin={!!data.session.user.isAdmin}
 		/>
 	</div>
 {/if}

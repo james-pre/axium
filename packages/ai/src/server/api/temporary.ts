@@ -1,5 +1,5 @@
 import type { AsyncResult } from '@axium/core/api';
-import { requireSession } from '@axium/server/auth';
+import { requireSession, type SessionAndUser } from '@axium/server/auth';
 import { database } from '@axium/server/database';
 import { error, parseBody, withError } from '@axium/server/requests';
 import { addRoute } from '@axium/server/routes';
@@ -9,13 +9,21 @@ import * as ai from '../../common.js';
 import { cancel, emitMessage, generateTemporary, isGenerating, temporaryContext } from '../generation.js';
 import * as sandbox from '../sandbox.js';
 
+/** Refuses system messages anywhere in the history from users who aren't administrators */
+function checkSystemMessages(messages: ai.TemporaryMessage[], session: SessionAndUser): void {
+	if (session.user.isAdmin || !messages.some(message => message.role == 'system')) return;
+	error(403, 'Only administrators can send system messages');
+}
+
 addRoute({
 	path: '/api/ai/temporary/:id',
 	params: { id: z.uuid() },
 	async PUT(request, { id }): AsyncResult<'PUT', 'ai/temporary/:id'> {
 		const init = await parseBody(request, ai.TemporaryInit);
-		const { userId, timezone } = await requireSession(request);
+		const session = await requireSession(request);
+		const { userId, timezone } = session;
 
+		checkSystemMessages(init.messages, session);
 		if (isGenerating(id)) error(409, 'A response is already being generated');
 
 		const last = init.messages.at(-1)!;
@@ -70,7 +78,11 @@ addRoute({
 	params: { id: z.uuid() },
 	async POST(request, { id }): AsyncResult<'POST', 'ai/temporary/:id/context'> {
 		const init = await parseBody(request, ai.TemporaryContext);
-		const { userId, timezone } = await requireSession(request);
+		const session = await requireSession(request);
+		const { userId, timezone } = session;
+
+		checkSystemMessages(init.messages, session);
+		if (init.prompt && !session.user.isAdmin) error(403, 'Only administrators can view the system prompt');
 
 		return await temporaryContext(userId, id, init, { timeZone: timezone, signal: request.signal }).catch(
 			withError('Could not measure the context', 503)

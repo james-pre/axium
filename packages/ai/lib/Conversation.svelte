@@ -25,6 +25,7 @@
 		ctrlEnter,
 		temporary = false,
 		sandbox = false,
+		admin = false,
 		actions,
 	}: {
 		conversation: Pick<ai.Conversation, 'id' | 'model' | 'reasoning'> & { messages: ai.Message[] };
@@ -35,6 +36,8 @@
 		temporary?: boolean;
 		/** Whether the conversation has a sandbox for files and commands */
 		sandbox?: boolean;
+		/** Lets the user send system messages and view the system prompt */
+		admin?: boolean;
 		/** Shown in the header of temporary conversations */
 		actions?: Snippet;
 	} = $props();
@@ -149,12 +152,12 @@
 			}));
 	}
 
-	async function loadContext(parts: boolean): Promise<ai.ContextUsage> {
-		if (!temporary) return await fetchAPI('GET', 'ai/conversations/:id/context', { parts }, conversation.id);
+	async function loadContext(query: ai.ContextQuery): Promise<ai.ContextUsage> {
+		if (!temporary) return await fetchAPI('GET', 'ai/conversations/:id/context', query, conversation.id);
 		return await fetchAPI(
 			'POST',
 			'ai/temporary/:id/context',
-			{ model: model || null, reasoning, anonymous, messages: temporaryHistory(), parts },
+			{ model: model || null, reasoning, anonymous, messages: temporaryHistory(), ...query },
 			conversation.id
 		);
 	}
@@ -196,12 +199,14 @@
 		}
 	}
 
-	async function sendTemporary(content: string, spoken: boolean, attachments?: ai.Attachment[]): Promise<void> {
+	type SendOptions = Partial<Omit<ai.MessageInit, 'content'>>;
+
+	async function sendTemporary(content: string, { voice: spoken = false, attachments, role = 'user' }: SendOptions): Promise<void> {
 		const message: ai.Message = {
 			id: crypto.randomUUID(),
 			conversationId: conversation.id,
 			created: new Date(),
-			role: 'user',
+			role,
 			content: content.trim(),
 			reasoning: null,
 			toolCalls: null,
@@ -215,6 +220,7 @@
 		if (spoken) voice.addTurn(message.id);
 		if (messages.length) upsert(message);
 		else await viewTransition(() => upsert(message));
+		if (role == 'system') return;
 
 		try {
 			await respondTemporary();
@@ -224,12 +230,12 @@
 		}
 	}
 
-	async function send(content: string, spoken = false, attachments?: ai.Attachment[]) {
+	async function send(content: string, options: SendOptions = {}) {
 		try {
-			if (temporary) return await sendTemporary(content, spoken, attachments);
-			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, voice: spoken, attachments }, conversation.id);
+			if (temporary) return await sendTemporary(content, options);
+			const sent = await fetchAPI('PUT', 'ai/conversations/:id', { content, ...options }, conversation.id);
 			for (const message of sent) {
-				if (message.role == 'user' && spoken) voice.addTurn(message.id);
+				if (message.role == 'user' && options.voice) voice.addTurn(message.id);
 				upsert(message);
 			}
 			await invalidate('ai:conversations');
@@ -260,12 +266,18 @@
 		}
 	}
 
-	/** Replaces the content of one of the user's messages and responds again, dropping the messages after it */
+	/** Replaces the content of a message. For the user's own, also responds again, dropping the messages after it. */
 	async function edit(id: string, content: string) {
 		const index = messages.findIndex(message => message.id == id);
 		const later = messages.slice(index + 1).map(message => message.id);
+		const reminder = messages[index].role == 'system';
 
 		try {
+			if (temporary && reminder) {
+				messages[index].content = content.trim();
+				return;
+			}
+
 			if (temporary) {
 				const previous = messages;
 				messages = [...messages.slice(0, index), { ...messages[index], content: content.trim() }];
@@ -281,6 +293,7 @@
 			const { message } = await fetchAPI('POST', 'ai/conversations/:id', { action: 'edit', message: id, content }, conversation.id);
 			const edited = messages.find(message => message.id == id);
 			if (edited) edited.content = content.trim();
+			if (reminder) return;
 			remove(later);
 			if (message) add(message);
 		} catch (error) {
@@ -330,7 +343,7 @@
 				{/if}
 			</div>
 			{#if messages.length}
-				<ContextMeter load={loadContext} refresh={contextKey} models={models.models} />
+				<ContextMeter load={loadContext} refresh={contextKey} models={models.models} {admin} />
 			{/if}
 			{#if sandbox && messages.length}
 				<SandboxFiles conversationId={conversation.id} />
@@ -350,7 +363,7 @@
 				{/if}
 			</div>
 			{#if messages.length}
-				<ContextMeter load={loadContext} refresh={contextKey} models={models.models} />
+				<ContextMeter load={loadContext} refresh={contextKey} models={models.models} {admin} />
 			{/if}
 			{#if sandbox}
 				<SandboxFiles conversationId={conversation.id} />
@@ -381,7 +394,9 @@
 					{results}
 					{decisions}
 					onretry={index == visible.length - 1 && !generating ? retry : undefined}
-					onedit={message.role == 'user' && !generating ? content => edit(message.id, content) : undefined}
+					onedit={(message.role == 'user' || (message.role == 'system' && admin)) && !generating
+						? content => edit(message.id, content)
+						: undefined}
 					ondecide={generating ? undefined : decide}
 				/>
 			{/each}
@@ -393,6 +408,7 @@
 			{generating}
 			models={models.models}
 			{ctrlEnter}
+			{admin}
 			bind:model
 			bind:reasoning
 			onsend={send}

@@ -386,8 +386,12 @@ export const Conversation = z.object({
 });
 export interface Conversation extends z.infer<typeof Conversation> {}
 
-export const MessageRole = z.literal(['user', 'assistant', 'tool']);
+export const MessageRole = z.literal(['user', 'assistant', 'tool', 'system']);
 export type MessageRole = z.infer<typeof MessageRole>;
+
+/** Roles of messages people send. The model only responds to `user` messages; it sees `system` ones with the next. */
+export const SentRole = z.literal(['user', 'system']);
+export type SentRole = z.infer<typeof SentRole>;
 
 /** `awaiting` is a tool call waiting for the user to approve it */
 export const MessageStatus = z.literal(['pending', 'done', 'error', 'cancelled', 'awaiting']);
@@ -462,6 +466,7 @@ export const MessageInit = z.object({
 	content: z.string().trim().min(1).max(100_000),
 	voice: z.boolean().optional(),
 	attachments: Attachment.array().max(100).optional(),
+	role: SentRole.default('user'),
 });
 export type MessageInit = z.infer<typeof MessageInit>;
 
@@ -679,18 +684,22 @@ export const ContextUsage = z.object({
 	counted: z.boolean(),
 	/** Tokens by part, when asked for and the model is loaded */
 	parts: z.partialRecord(ContextPart, z.int().nonnegative()).optional(),
+	/** The system prompt the next request starts with, when asked for */
+	prompt: z.string().optional(),
 });
 export interface ContextUsage extends z.infer<typeof ContextUsage> {}
 
 export const ContextQuery = z.object({
 	/** Also counts what each part takes up */
 	parts: z.boolean().optional(),
+	/** Also returns the system prompt; only for administrators */
+	prompt: z.boolean().optional(),
 });
 export interface ContextQuery extends z.infer<typeof ContextQuery> {}
 
-export const TemporaryContext = TemporaryInit.pick({ model: true, reasoning: true, anonymous: true, messages: true }).extend({
-	parts: z.boolean().optional(),
-});
+export const TemporaryContext = TemporaryInit.pick({ model: true, reasoning: true, anonymous: true, messages: true }).extend(
+	ContextQuery.shape
+);
 export interface TemporaryContext extends z.infer<typeof TemporaryContext> {}
 
 export const SandboxFile = z.object({
@@ -750,9 +759,9 @@ const AIAPI = {
 	'ai/conversations/:id': {
 		GET: Conversation.extend({ messages: Message.array() }),
 		PATCH: [ConversationInit, Conversation],
-		/** Sends a message and starts the response; returns the user's message and the pending response */
+		/** Sends a message and, for user messages, starts the response; returns the message and any pending response */
 		PUT: [MessageInit, Message.array()],
-		/** `message` is the new pending response, for `retry` and `edit` */
+		/** `message` is the new pending response, for `retry` and editing a user message */
 		POST: [ConversationAction, z.object({ message: Message.optional() })],
 		DELETE: Conversation,
 	},

@@ -331,6 +331,8 @@ interface ContextInit extends Pick<TurnInit, 'model' | 'reasoning' | 'anonymous'
 	history: ai.Message[];
 	/** Also counts what each part takes up */
 	parts?: boolean;
+	/** Also returns the system prompt */
+	prompt?: boolean;
 	signal?: AbortSignal;
 }
 
@@ -347,7 +349,7 @@ async function measureContext(init: ContextInit): Promise<ai.ContextUsage> {
 		counted: false,
 		used: last ? last.promptTokens + last.completionTokens : undefined,
 	};
-	if (model.status != 'loaded') return fallback;
+	if (model.status != 'loaded' && !init.prompt) return fallback;
 
 	const { preferences, user, memories, sandbox } = await turnSettings(init.userId, init.conversationId, init);
 	const request = loop.createRequest({
@@ -364,19 +366,26 @@ async function measureContext(init: ContextInit): Promise<ai.ContextUsage> {
 		history: init.history,
 	});
 
+	if (init.prompt) {
+		const [system] = request.messages;
+		if (typeof system.content == 'string') fallback.prompt = system.content;
+	}
+	if (model.status != 'loaded') return fallback;
+
 	try {
 		const limit = await requestLimit(model.id, init.signal);
-		if (init.parts) return { model: model.id, counted: true, limit, ...(await measure(model.id, request, init.signal)) };
+		const { prompt } = fallback;
+		if (init.parts) return { model: model.id, counted: true, limit, prompt, ...(await measure(model.id, request, init.signal)) };
 
 		const used = await countTokens({ model: model.id, ...pick(request, 'messages', 'tools', 'reasoning'), signal: init.signal });
-		return { model: model.id, counted: true, limit, used };
+		return { model: model.id, counted: true, limit, used, prompt };
 	} catch (error) {
 		io.debug(`AI: could not count the context of ${init.conversationId}: ${io.errorText(error)}`);
 		return fallback;
 	}
 }
 
-export async function savedContext(conversation: ConversationRow, options: Pick<ContextInit, 'timeZone' | 'parts' | 'signal'>) {
+export async function savedContext(conversation: ConversationRow, options: Pick<ContextInit, 'timeZone' | 'parts' | 'prompt' | 'signal'>) {
 	return await measureContext({
 		...options,
 		userId: conversation.userId,
@@ -402,6 +411,7 @@ export async function temporaryContext(
 		anonymous: init.anonymous,
 		temporary: true,
 		parts: init.parts,
+		prompt: init.prompt,
 		history: temporaryHistory(conversationId, init.messages),
 	});
 }
