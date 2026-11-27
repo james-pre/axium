@@ -5,6 +5,7 @@
 	import { forPath } from '@axium/core/icons';
 	import { Icon, ProgressRing } from '@axium/client/components';
 	import { toast } from '@axium/client/toast';
+	import { isMobile } from '@axium/client/web';
 	import { bytes as formatBytes } from 'utilium/format';
 	import ModelOptions from './ModelOptions.svelte';
 	import VoiceMode from './VoiceMode.svelte';
@@ -226,10 +227,11 @@
 					: asSystem
 						? text('ai.system_message.placeholder')
 						: text('ai.placeholder')}
+			enterkeyhint="send"
 			onkeydown={e => {
 				if (e.key == 'Escape' && recording) return cancelDictation();
 				if (e.key != 'Enter' || e.shiftKey || e.isComposing) return;
-				if (ctrlEnter && !e.ctrlKey && !e.metaKey) return;
+				if (ctrlEnter && !isMobile() && !e.ctrlKey && !e.metaKey) return;
 				e.preventDefault();
 				void send();
 			}}></textarea>
@@ -317,7 +319,7 @@
 					<Icon i="stop" />
 				</button>
 			{:else}
-				<button type="submit" class="send" title={text('ai.send')} disabled={sending || uploading || !content.trim()}>
+				<button type="submit" class="send mobile-hide" title={text('ai.send')} disabled={sending || uploading || !content.trim()}>
 					<Icon i="arrow-up" />
 				</button>
 			{/if}

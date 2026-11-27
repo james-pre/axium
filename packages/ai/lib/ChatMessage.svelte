@@ -11,6 +11,7 @@
 	import { ClipboardCopy, Icon } from '@axium/client/components';
 	import { forPath } from '@axium/core/icons';
 	import { toast } from '@axium/client/toast';
+	import { isMobile } from '@axium/client/web';
 	import { bytes as formatBytes } from 'utilium/format';
 	import { markdown } from './markdown.js';
 	import { downloadURL } from './sandbox.js';
@@ -86,7 +87,7 @@
 				onkeydown={e => {
 					if (e.key == 'Escape') draft = undefined;
 					if (e.key != 'Enter' || e.shiftKey || e.isComposing) return;
-					if (ctrlEnter && !e.ctrlKey && !e.metaKey) return;
+					if (ctrlEnter && !isMobile() && !e.ctrlKey && !e.metaKey) return;
 					e.preventDefault();
 					void save();
 				}}
