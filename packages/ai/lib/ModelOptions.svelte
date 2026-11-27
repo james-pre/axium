@@ -92,6 +92,7 @@
 		min-width: 0;
 		text-overflow: ellipsis;
 		padding: 0;
+		field-sizing: content;
 	}
 
 	.toggle {
