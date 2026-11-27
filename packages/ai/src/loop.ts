@@ -57,8 +57,6 @@ export interface TurnInit {
 	allowAlways?(names: string[]): Promise<void>;
 	/** Leaves out tools that use the user's data */
 	anonymous?: boolean;
-	/** For conversations that are never saved, which never save memories */
-	temporary?: boolean;
 	/** Kept up to date with the text being streamed */
 	progress: Progress;
 	/** Called with each piece of streamed text, after `progress` is updated */
@@ -249,7 +247,7 @@ async function resolveAwaiting(history: ai.Message[], init: TurnInit, allowed: S
 
 export interface RequestInit extends Pick<
 	TurnInit,
-	'model' | 'reasoning' | 'defaultSystemPrompt' | 'preferences' | 'memories' | 'anonymous' | 'temporary' | 'timeZone' | 'homeTimeZone'
+	'model' | 'reasoning' | 'defaultSystemPrompt' | 'preferences' | 'memories' | 'anonymous' | 'timeZone' | 'homeTimeZone'
 > {
 	/** Only whether there is a sandbox matters */
 	context: Pick<tools.Context, 'sandbox'>;
@@ -274,7 +272,6 @@ export function createRequest(init: RequestInit): TurnRequest {
 			? []
 			: tools.allowed(preferences.tools, {
 					anonymous: init.anonymous,
-					temporary: init.temporary,
 					sandbox: !!context.sandbox,
 					inputs: model.inputs,
 				});

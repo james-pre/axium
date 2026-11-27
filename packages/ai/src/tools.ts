@@ -91,15 +91,13 @@ export function add<const Input extends z.ZodObject>(tool: Tool<Input>): void {
 export interface AllowedOptions {
 	/** Leaves out tools that use the user's data or memories */
 	anonymous?: boolean;
-	/** Leaves out tools that change memories */
-	temporary?: boolean;
 	/** Whether the host offers a sandbox */
 	sandbox?: boolean;
 	/** What the model accepts besides text */
 	inputs?: ai.Modality[];
 }
 
-export function allowed(preferences: ai.Preferences['tools'], { anonymous, temporary, sandbox, inputs }: AllowedOptions = {}): Tool[] {
+export function allowed(preferences: ai.Preferences['tools'], { anonymous, sandbox, inputs }: AllowedOptions = {}): Tool[] {
 	return Array.from(registry.values()).filter(tool => {
 		if (tool.available && !tool.available()) return false;
 		if (tool.needs && !inputs?.includes(tool.needs)) return false;
@@ -115,7 +113,7 @@ export function allowed(preferences: ai.Preferences['tools'], { anonymous, tempo
 				if (anonymous || !features('ai-account-access')) return false;
 				return preferences.account_access == 'write' || (preferences.account_access == 'read' && tool.access == 'read');
 			case 'memory':
-				return preferences.memory && features('ai-memory') && !anonymous && (tool.access == 'read' || !temporary);
+				return preferences.memory && features('ai-memory') && !anonymous;
 		}
 	});
 }

@@ -148,8 +148,10 @@ function temporaryStore(userId: string, conversationId: string, messages: ai.Mes
 
 interface TurnInit extends Pick<
 	loop.TurnInit,
-	'store' | 'pending' | 'history' | 'decisions' | 'allowedTools' | 'allowForChat' | 'anonymous' | 'temporary'
+	'store' | 'pending' | 'history' | 'decisions' | 'allowedTools' | 'allowForChat' | 'anonymous'
 > {
+	/** For conversations that are never saved */
+	temporary?: boolean;
 	/** `null` uses the chat role's model */
 	model: string | null;
 	reasoning: string;
@@ -212,7 +214,7 @@ async function respond(init: TurnInit): Promise<void> {
 			model,
 			defaultSystemPrompt: config.system_prompt,
 			maxSteps: config.max_steps,
-			...pick(init, 'reasoning', 'pending', 'history', 'decisions', 'allowedTools', 'allowForChat', 'anonymous', 'temporary'),
+			...pick(init, 'reasoning', 'pending', 'history', 'decisions', 'allowedTools', 'allowForChat', 'anonymous'),
 			complete: request => streamChat({ ...request, model: model.id }),
 			preferences,
 			timeZone: init.timeZone ?? user.preferences.time_zone,
@@ -359,7 +361,6 @@ async function measureContext(init: ContextInit): Promise<ai.ContextUsage> {
 		preferences,
 		memories,
 		anonymous: init.anonymous,
-		temporary: init.temporary,
 		timeZone: init.timeZone ?? user.preferences.time_zone,
 		homeTimeZone: user.preferences.time_zone,
 		context: { sandbox },
