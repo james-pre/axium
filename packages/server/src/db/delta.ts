@@ -11,17 +11,22 @@ import { readFileSync } from 'node:fs';
 export const Column = z.strictObject({
 	type: data.ColumnType.optional(),
 	default: z.string().optional(),
-	ops: z.literal(['drop_default', 'set_required', 'drop_required', 'set_unique', 'drop_unique']).array().optional(),
+	check: z.string().optional(),
+	ops: z.literal(['drop_default', 'set_required', 'drop_required', 'set_unique', 'drop_unique', 'drop_check']).array().optional(),
 });
 export interface Column extends z.infer<typeof Column> {}
 
 export function applyToColumn(column: data.Column, delta: Column): void {
 	if (delta.type) column.type = delta.type!;
 	if (delta.default) column.default = delta.default!;
+	if (delta.check) column.check = delta.check;
 	for (const op of delta.ops || []) {
 		switch (op) {
 			case 'drop_default':
 				delete column.default;
+				break;
+			case 'drop_check':
+				delete column.check;
 				break;
 			case 'set_required':
 				column.required = true;
@@ -185,6 +190,9 @@ export function validate(delta: Version): void {
 			if (column.default && column.ops?.includes('drop_default')) {
 				throw `Cannot set and drop default at the same time (column ${colName} in table ${tableName})`;
 			}
+			if (column.check && column.ops?.includes('drop_check')) {
+				throw `Cannot set and drop check at the same time (column ${colName} in table ${tableName})`;
+			}
 		}
 	}
 }
@@ -235,10 +243,12 @@ export function compute(from: SchemaDecl, to: SchemaDecl): Version {
 					if (fromCol.type != toCol.type) alter.type = toCol.type;
 					if (fromCol.required != toCol.required) alter.ops.push(toCol.required ? 'set_required' : 'drop_required');
 					if (fromCol.unique != toCol.unique) alter.ops.push(toCol.unique ? 'set_unique' : 'drop_unique');
+					if (fromCol.check && !toCol.check) alter.ops.push('drop_check');
+					else if (toCol.check && fromCol.check != toCol.check) alter.check = toCol.check;
 
 					return [name, alter] as const;
 				})
-				.filter(([, alter]) => alter.ops.length || 'default' in alter || 'type' in alter)
+				.filter(([, alter]) => alter.ops.length || 'default' in alter || 'type' in alter || 'check' in alter)
 		);
 
 		const fromConstraints = new Set(Object.keys(fromTable.constraints || {}));
@@ -365,6 +375,12 @@ export function collapse(deltas: Version[]): Version {
 
 				existingCol.ops ||= [];
 				const { ops } = existingCol;
+
+				if ('check' in delta) {
+					existingCol.check = delta.check;
+					const dropped = ops.indexOf('drop_check');
+					if (dropped != -1) ops.splice(dropped, 1);
+				}
 				for (const op of delta.ops || []) {
 					if (ops.includes(op)) {
 						io.debug(`Ignoring duplicate operation whilst resolving delta for ${name}.${colName}`);
@@ -375,6 +391,10 @@ export function collapse(deltas: Version[]): Version {
 						case 'drop_default':
 							if ('default' in existingCol) delete existingCol.default;
 							else ops.push(op);
+							break;
+						case 'drop_check':
+							delete existingCol.check;
+							ops.push(op);
 							break;
 						case 'set_required':
 						case 'drop_required': {
@@ -476,7 +496,12 @@ export function* display(delta: Version): Generator<string> {
 		for (const column of columns) {
 			const columnChanges =
 				column.op == '*'
-					? [...(column.ops ?? []), 'default' in column && 'set_default', 'type' in column && 'set_type']
+					? [
+							...(column.ops ?? []),
+							'default' in column && 'set_default',
+							'type' in column && 'set_type',
+							'check' in column && 'set_check',
+						]
 							.filter((e): e is string => !!e)
 							.map(e => e.replaceAll('_', ' '))
 							.join(', ')
@@ -605,8 +630,15 @@ export async function apply(delta: Version, forceAbort: boolean = false): Promis
 						case 'drop_unique':
 							await query.dropConstraint(`${tableName}_${colName}_key`).execute();
 							break;
+						case 'drop_check':
+							await query.dropConstraint(`${tableName}_${colName}_check`).execute();
+							break;
 					}
 				}
+
+				if (!column.check) continue;
+				await query.dropConstraint(`${tableName}_${colName}_check`).ifExists().execute();
+				await query.addCheckConstraint(`${tableName}_${colName}_check`, sql.raw(column.check)).execute();
 			}
 
 			for (const [name, constraint] of Object.entries(tableDelta.add_constraints)) {
